@@ -1,0 +1,27 @@
+# Gradle / build
+.gradle/
+build/
+*/build/
+.kotlin/
+.cxx/
+.externalNativeBuild/
+captures/
+
+# Local, machine-specific
+local.properties
+
+# Signing & secrets — never commit
+*.jks
+*.keystore
+keystore.properties
+
+# IDE
+.idea/
+*.iml
+
+# Read-only reference checkouts (Z-Sync)
+reference/
+
+# Misc
+*.log
+.DS_Store
