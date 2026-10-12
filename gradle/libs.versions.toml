@@ -1,0 +1,43 @@
+[versions]
+agp = "9.4.1"
+kotlin = "2.4.20"
+composeBom = "2026.09.00"
+coreKtx = "1.19.0"
+activityCompose = "1.13.0"
+lifecycle = "2.11.0"
+fragment = "1.9.1"
+coroutines = "1.11.0"
+# android-components and GeckoView must move together: AC X.Y depends on one exact GeckoView build.
+mozillaComponents = "157.0.1"
+geckoview = "157.0.20261005135250"
+junit = "4.13.2"
+
+[libraries]
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-fragment = { module = "androidx.fragment:fragment-ktx", version.ref = "fragment" }
+androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+compose-foundation = { module = "androidx.compose.foundation:foundation" }
+compose-animation = { module = "androidx.compose.animation:animation" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+
+geckoview = { module = "org.mozilla.geckoview:geckoview-omni", version.ref = "geckoview" }
+mozilla-browser-engine-gecko = { module = "org.mozilla.components:browser-engine-gecko", version.ref = "mozillaComponents" }
+mozilla-browser-state = { module = "org.mozilla.components:browser-state", version.ref = "mozillaComponents" }
+mozilla-concept-engine = { module = "org.mozilla.components:concept-engine", version.ref = "mozillaComponents" }
+mozilla-feature-session = { module = "org.mozilla.components:feature-session", version.ref = "mozillaComponents" }
+mozilla-feature-tabs = { module = "org.mozilla.components:feature-tabs", version.ref = "mozillaComponents" }
+mozilla-lib-state = { module = "org.mozilla.components:lib-state", version.ref = "mozillaComponents" }
+
+junit = { module = "junit:junit", version.ref = "junit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
