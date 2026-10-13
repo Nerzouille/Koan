@@ -6,7 +6,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
-import dev.nerzouille.koan.ui.browser.BrowserScreen
+import dev.nerzouille.koan.ui.KoanRoot
 import dev.nerzouille.koan.ui.requestMaxRefreshRate
 import dev.nerzouille.koan.ui.theme.KoanTheme
 
@@ -23,10 +23,11 @@ class MainActivity : FragmentActivity() {
         if (components.store.state.tabs.isEmpty()) {
             components.tabsUseCases.addTab("about:blank", selectTab = true)
         }
+        components.spaces.seedIfEmpty()
 
         setContent {
             KoanTheme {
-                BrowserScreen(components)
+                KoanRoot(components)
             }
         }
     }

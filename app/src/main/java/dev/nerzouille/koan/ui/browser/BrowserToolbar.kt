@@ -73,6 +73,7 @@ fun BrowserToolbar(
     onReload: () -> Unit,
     onStop: () -> Unit,
     onTabs: () -> Unit,
+    onDebugFill: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth().background(KoanColors.Base)) {
@@ -102,6 +103,7 @@ fun BrowserToolbar(
                     onForward = onForward,
                     onReload = onReload,
                     onStop = onStop,
+                    onDebugFill = onDebugFill,
                 )
             }
         }
@@ -227,6 +229,7 @@ private fun ToolbarMenu(
     onForward: () -> Unit,
     onReload: () -> Unit,
     onStop: () -> Unit,
+    onDebugFill: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
@@ -242,6 +245,12 @@ private fun ToolbarMenu(
                 text = { Text(if (loading) "Stop" else "Reload") },
                 leadingIcon = { Icon(if (loading) KoanIcons.Close else KoanIcons.Reload, null, Modifier.size(20.dp)) },
                 onClick = { open = false; if (loading) onStop() else onReload() },
+            )
+            // Dev-only until real tabs exist (M3): the 50-card performance check from ROADMAP M1.
+            DropdownMenuItem(
+                text = { Text("Fill space to 50 tabs (dev)") },
+                leadingIcon = { Icon(KoanIcons.Plus, null, Modifier.size(20.dp)) },
+                onClick = { open = false; onDebugFill() },
             )
         }
     }

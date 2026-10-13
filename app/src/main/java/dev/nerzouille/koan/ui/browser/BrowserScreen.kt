@@ -2,6 +2,7 @@ package dev.nerzouille.koan.ui.browser
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,11 +13,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -31,7 +32,14 @@ import mozilla.components.lib.state.ext.observeAsComposableState
 
 /** Page view: the live engine view on top, our own toolbar at the bottom. */
 @Composable
-fun BrowserScreen(components: Components) {
+fun BrowserScreen(
+    components: Components,
+    tabCount: Int,
+    editing: Boolean,
+    onEditingChange: (Boolean) -> Unit,
+    onTabs: () -> Unit,
+    onDebugFill: () -> Unit,
+) {
     val context = LocalContext.current
     val store = components.store
     val session = components.sessionUseCases
@@ -57,8 +65,6 @@ fun BrowserScreen(components: Components) {
     }
 
     val tab by store.observeAsComposableState { it.selectedTab }
-    val tabCount by store.observeAsComposableState { it.tabs.size }
-    var editing by remember { mutableStateOf(false) }
 
     val content = tab?.content
     BackHandler(enabled = !editing && content?.canGoBack == true) {
@@ -87,9 +93,9 @@ fun BrowserScreen(components: Components) {
             canGoForward = content?.canGoForward == true,
             tabCount = tabCount,
             editing = editing,
-            onEditingChange = { editing = it },
+            onEditingChange = onEditingChange,
             onSubmit = { input ->
-                editing = false
+                onEditingChange(false)
                 session.loadUrl(resolveInput(input))
                 engineView.asView().requestFocus()
             },
@@ -97,8 +103,22 @@ fun BrowserScreen(components: Components) {
             onForward = { session.goForward(store.state.selectedTabId) },
             onReload = { session.reload() },
             onStop = { session.stopLoading() },
-            onTabs = { /* Space overview arrives in M1. */ },
-            modifier = Modifier.navigationBarsPadding(),
+            onTabs = onTabs,
+            onDebugFill = onDebugFill,
+            modifier = Modifier
+                .navigationBarsPadding()
+                .pointerInput(Unit) {
+                    // Swipe up on the toolbar opens the overview.
+                    var total = 0f
+                    detectVerticalDragGestures(onDragStart = { total = 0f }) { change, dy ->
+                        total += dy
+                        if (total < -40.dp.toPx()) {
+                            total = Float.POSITIVE_INFINITY
+                            onTabs()
+                        }
+                        change.consume()
+                    }
+                },
         )
     }
 }

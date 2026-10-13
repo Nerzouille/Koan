@@ -7,6 +7,8 @@ activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 fragment = "1.9.1"
 coroutines = "1.11.0"
+room = "2.8.5"
+ksp = "2.3.12"
 # android-components and GeckoView must move together: AC X.Y depends on one exact GeckoView build.
 mozillaComponents = "157.0.1"
 geckoview = "157.0.20261005135250"
@@ -26,6 +28,9 @@ compose-animation = { module = "androidx.compose.animation:animation" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 
 geckoview = { module = "org.mozilla.geckoview:geckoview-omni", version.ref = "geckoview" }
@@ -41,3 +46,4 @@ junit = { module = "junit:junit", version.ref = "junit" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 // Local release signing. keystore.properties (gitignored) points at a keystore outside the repo.
@@ -25,8 +26,8 @@ android {
         applicationId = "dev.nerzouille.koan"
         minSdk = 34
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.0.1-m0"
+        versionCode = 2
+        versionName = "0.0.2-m1"
         // GeckoView-omni ships every ABI; both owner phones are arm64.
         ndk { abiFilters += "arm64-v8a" }
     }
@@ -72,6 +73,10 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
@@ -94,6 +99,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 
     implementation(libs.geckoview)
     implementation(libs.mozilla.browser.engine.gecko)
