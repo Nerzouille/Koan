@@ -7,8 +7,8 @@ the interaction rules below still apply.
 
 ## Screens
 
-1. **Browser (page view).** Full-screen web page. Bottom toolbar: address pill (domain only,
-   tap to edit), back, tabs button (shows tab count), menu. Toolbar hides on scroll down, shows on
+1. **Browser (page view).** Full-screen web page. Bottom bar (see "Bottom bar / workspace bar"): back, big
+   address field (domain only, tap to edit), tabs button (shows tab count), menu. Toolbar hides on scroll down, shows on
    scroll up (GeckoView dynamic toolbar).
 2. **Space overview** (the core screen). Shown when tapping the tabs button or swiping up on the
    toolbar.
@@ -70,50 +70,48 @@ the interaction rules below still apply.
 ## Cards
 
 - Width: screen width − 2×12dp. Corner radius 28dp (continuous/squircle-like if possible).
-- Card height ≈ 62% of screen height. How much of each card is visible depends on its depth
-  (see "Depth stack" below).
+- Card height: see "Depth stack" below (a fraction of the stack viewport). How much of each card
+  is visible depends on its depth.
 - Thumbnail fills the card, top-aligned, cropped (not letterboxed). Header and placeholder rules:
   see "Visual restraint".
 - The currently active tab's card is marked by a small accent dot next to its title, not a stroke.
 
 ### Depth stack (the "premium" feel) — most important visual rule
 
-The stack is a **3D deck receding into the distance**, not a flat list of overlapping rectangles.
-Every card's transform is a pure function of its distance `d` (in card slots, fractional) from the
-**focus line**, a horizontal line at ~62% of the stack viewport height. `d = 0` is the focused card,
-`d > 0` are cards further back (above), `d < 0` cards in front (below, about to leave).
+Source: v3 "Upright depth stack" in `docs/reference/design/Koan Screens.dc.html`
+(`v3-perspective-stack.png`). All numbers below live in `ui/theme/Tokens.kt` (`StackTokens`).
 
-| d (slots behind focus) | scale | translateY spacing to next | rotationX (top edge away) | brightness | blur |
-|---|---|---|---|---|---|
-| 0 (focused) | 1.00 | full peek 220dp, header + big slice of thumbnail visible | 0° | 100% | 0 |
-| 1 | 0.92 | 96dp | −6° | 88% | 0 |
-| 2 | 0.85 | 52dp | −10° | 74% | 1dp* |
-| 3 | 0.79 | 30dp | −13° | 60% | 2dp* |
-| ≥ 4 | 0.74 → 0.70 | 16dp → 8dp (asymptotic) | −15° | 45% → fade to 0 | 3dp* |
+The stack is a **one-point perspective deck**: cards behind the focused one converge toward a
+vanishing point above it. Cards are **always upright** (no tilt). Every card's transform is a pure
+function of its distance `d` (in card slots, fractional) from the focus: `d = 0` focused, `d > 0`
+behind (in the pile above), `d < 0` in front (the peek below, then gone).
 
-\* Blur values are a floor, probably too low: the distance blur must **match v2**
-(`docs/reference/design/v2-depth-stack.png`), where back cards are clearly soft. It's one of the main
-things that makes the stack feel premium. Tune up visually, then measure on the POCO X4 GT (release
-build). If live blur drops frames, switch to the pre-blurred thumbnail fallback
-(`ARCHITECTURE.md`, "Blur strategy"). Never drop the blur without a side-by-side for the owner.
-
-- Interpolate continuously between rows (use an easing curve on `d`, e.g. `1 - (1 - t)^2`), so
-  scrolling makes cards smoothly travel *back into the distance* and shrink, and the card passing
-  the focus line visibly "comes forward" to full size with a large view of its thumbnail.
-- Camera distance for `rotationX`: ~ 12 × density so the perspective is subtle, not cheesy.
-- Cards **in front** of the focus (d < 0) keep scale 1.0 and simply slide down out of the stack
-  area (they never go behind the workspace bar, see below).
-- The focused card gets a soft ambient shadow (large blur, 30% black, no hard edge); cards behind
-  get progressively less shadow. Depth comes from scale, tilt, brightness and blur, never from
-  borders.
-- Scroll snaps softly so a card settles on the focus line after a fling (snap only on release,
-  never fights the finger).
-- Rubber-band overscroll at both ends; at the top, overscroll pulls the stack apart (spacing grows)
-  before revealing the collapsed header block.
+- **Focus:** the focused card is big and dominant, upright, scale 1.0, around the middle of the stack
+  area. Height = 58% of the stack viewport (design 64%, made ~9% shorter so the pile has room).
+  Its bottom edge sits `PeekGap` (14dp) above the peeking card.
+- **Pile (d > 0):** with ρ = rᵈ, r = 0.55:
+  `offsetY(d) = −A·(1 − ρ)` (top edge rises; A ≈ 176dp, clamped so the pile never reaches the
+  header) and `scale(d) = sMin + (1 − sMin)·ρ`, sMin = 0.62 → .83 · .73 · .68 · .65.
+  Spacing and size shrink geometrically. Thumbnail darkness (brightness 1 → .84 → .72 → .62 …) and
+  blur (σ 0, 0, .5, 1, 1.6, 2.2, 2.8 dp) increase with depth; cards fade out from d ≈ 5 and are gone
+  by d = 8.
+- **Peek (d = −1):** only the next card, upright at scale 0.94, its header strip visible at the
+  bottom of the viewport (`PeekVisible` 80dp shows). Cards past the peek fade out within a third of
+  a slot.
+- **Scrolling is continuous along that curve:** the stack moves 1:1 with the finger (230dp per
+  slot); the next card rises from the peek and grows into focus, the current one shrinks and slides
+  up into the pile. On release the stack **snaps so a card always settles in focus**: a release that
+  moved more than 0.15 slot (fling carry included) commits to the next card in that direction,
+  otherwise it springs back.
+- The focused card gets a soft ambient shadow; cards behind get progressively less. Depth comes from
+  position, scale, brightness and blur, never from borders or tilt.
+- Rubber-band overscroll at both ends; at the top, overscroll pulls the stack down before revealing
+  the collapsed header block.
 - **Only the thumbnail layer** gets darkened/blurred. The header strip (favicon + title) stays
-  legible down to d = 3 (dimmed to 80% at most), so you always know what's in the stack.
+  legible deep in the pile (dimmed to 80% at most), so you always know what's in the stack.
 - All of this lives in `Modifier.graphicsLayer { }` reading the scroll state — zero recomposition
-  per frame.
+  per frame. If live blur ever drops frames on the POCO, switch to the pre-blurred thumbnail
+  fallback (`ARCHITECTURE.md`, "Blur strategy").
 
 ### Visual restraint (avoid the "AI-generated" look)
 
@@ -127,12 +125,13 @@ build). If live blur drops frames, switch to the pre-blurred thumbnail fallback
 - The space gradient is only the page background, desaturated and dark; cards stay neutral so the
   thumbnails are the color.
 
-### The stack never goes behind the workspace bar
+### The stack never goes behind the bottom bar
 
 - The stack viewport ends **12dp above the top of the workspace bar**. Cards are clipped to this
   viewport; the bar sits in its own reserved zone and nothing scrolls underneath it.
-- The bottom 48dp of the viewport has a fade mask (content alpha 1 → 0 toward the bar) so cards
-  leaving downward dissolve before the bar instead of being cut sharply.
+- The bottom 24dp of the viewport has a fade mask (content alpha 1 → 0 toward the bar) so cards
+  leaving downward dissolve before the bar instead of being cut sharply. It is shorter than the
+  peek so the peeking card's header stays crisp.
 - The bar's zone background is the solid dark base (gradient bg ends above it), so the bar reads
   as a dock, not as glass floating over content.
 
@@ -152,25 +151,33 @@ build). If live blur drops frames, switch to the pre-blurred thumbnail fallback
 Rule: **horizontal swipes in the card area never switch spaces.** Switching spaces only happens on
 the workspace bar. This avoids the close-vs-switch gesture conflict.
 
-## Workspace bar
+## Bottom bar / workspace bar
 
-- Pill, 56dp tall, 16dp from the bottom (above gesture nav inset), in its own reserved dock zone
-  (see "The stack never goes behind the workspace bar"). Subtle glass (white 6%), no content
-  passes underneath it.
-- Shows the current space name centered in bold, neighbours' names/icons faded on both sides,
-  plus page dots.
-- Horizontal drag on the bar is mapped to a pager across spaces:
-  - The whole card area translates horizontally with the drag (1:1), next space's stack slides in
-    from the side with slight parallax (0.85× speed) and a scale of 0.96 → 1.
-  - The whole space moves as one unit: header, essentials, pinned rows and the stack all slide
-    together (each space has its own essentials/pinned). Space titles crossfade with a short
-    slide, never overlap.
+One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Values in
+`Tokens.kt` (`BarTokens`, `PagerTokens`).
+
+- **Page view:** floating rounded bar, 68dp tall, 10dp from the sides and bottom (above the gesture
+  nav inset): back · big address field (50dp, 17sp, domain only, load progress inside) · tabs ·
+  menu. Swipe up on it (or tap tabs) opens the overview.
+- **Overview:** the same bar morphs into the workspace bar. Two styles exist while the owner
+  compares them (dev menu toggle), one will be kept:
+  - **Grow** (default): the bar grows upward; the workspace switcher row appears on top, the
+    address field stays underneath (tap = new tab with search). Back and menu fade out.
+  - **Replace:** same size; the address row crossfades into the workspace switcher.
+  The morph only draws/transforms (no relayout per frame).
+- Nothing scrolls underneath the bar: each screen ends 12dp above it.
+- The switcher shows the current space name centered in bold, neighbours faded on both sides, plus
+  page dots.
+- **Switching is a simple pager**, driven only by horizontal drags on the switcher:
+  - The whole space follows the finger 1:1 (header, essentials, pinned and stack move as one unit;
+    the stack trails slightly with parallax 0.85× and scale 0.96 → 1).
   - The background gradient interpolates between the two spaces' gradients by drag fraction.
-  - Release: spring to the nearest space (fling velocity aware).
-  - Light haptic tick when crossing into a new space.
-- Tap a neighbour name = jump to it. Long-press bar = grid of all spaces (pick, reorder, create).
-- In the page view, the address pill doubles as the bar: horizontal swipe on it switches space too
-  (and opens that space's last-active tab).
+  - Release: dragged past **25% of the width**, or flung in the drag direction, commits to the
+    neighbour; otherwise it springs back.
+  - **Exactly one light haptic tick per committed switch**, on release. Never while dragging.
+- Tap a neighbour name = jump to it (one tick). Long-press bar = grid of all spaces (pick, reorder,
+  create) — later.
+- In the page view, horizontal swipe on the address field switches space too — later (M3).
 
 ## Open / close transition (the hero animation)
 
@@ -196,4 +203,4 @@ the workspace bar. This avoids the close-vs-switch gesture conflict.
 - Radii: cards 28dp, pills full, sheets 32dp top.
 - Motion: springs everywhere; avoid linear/tween except for alpha. Respect the system
   "remove animations" setting (snap instead).
-- Haptics: light tick on space change, medium on card lift, confirm on close.
+- Haptics: one light tick per committed space change, medium on card lift, confirm on close.

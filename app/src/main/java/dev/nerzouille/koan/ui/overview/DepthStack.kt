@@ -2,7 +2,6 @@ package dev.nerzouille.koan.ui.overview
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
@@ -37,23 +36,19 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
 
-private const val FOCUS_FRACTION = 0.62f
-private const val CARD_HEIGHT_FRACTION = 0.62f
-private val CardShape = RoundedCornerShape(28.dp)
-private val SideMargin = 12.dp
-private val SlotDrag = 170.dp
-private val BottomFade = 48.dp
-
 /**
- * The 3D depth stack (docs/UI_SPEC.md "Depth stack"). Cards are laid out once; every frame of
+ * The upright perspective stack (docs/UI_SPEC.md "Depth stack"). Cards are laid out once; every frame of
  * scrolling, closing or reordering only touches graphicsLayer/draw lambdas.
  *
  * [blockHeight] is the height (px) of the essentials/pinned block revealed above the stack.
@@ -71,7 +66,6 @@ fun DepthStack(
 ) {
     val density = LocalDensity.current
     val view = LocalView.current
-    val screenHeight = LocalWindowInfo.current.containerSize.height
 
     // Order committed by a drop, shown until Room emits it back.
     var pendingOrder by remember { mutableStateOf<List<String>?>(null) }
@@ -81,7 +75,7 @@ fun DepthStack(
     val byId = remember(cards) { cards.associateBy { it.id } }
 
     state.last = (ids.size - 1).coerceAtLeast(0)
-    state.slotPx = with(density) { SlotDrag.toPx() }
+    state.slotPx = with(density) { StackTokens.SlotDrag.toPx() }
 
     LaunchedEffect(ids) {
         state.cards.keys.retainAll(ids.toSet())
@@ -94,7 +88,8 @@ fun DepthStack(
 
     val blurs = remember(density) {
         // 0.5dp steps; RenderEffects are immutable so the layer can reuse them every frame.
-        Array(25) { step -> if (step == 0) null else BlurEffect(step * 0.5f * density.density, step * 0.5f * density.density, TileMode.Clamp) }
+        val steps = (StackTokens.BlurDp.max() * 2f).roundToInt() + 1
+        Array(steps) { step -> if (step == 0) null else BlurEffect(step * 0.5f * density.density, step * 0.5f * density.density, TileMode.Clamp) }
     }
     val blurFor: (Float) -> RenderEffect? = remember(blurs) {
         { d -> blurs[(DepthCurve.blurDp(d) * 2f).roundToInt().coerceIn(0, blurs.size - 1)] }
@@ -103,23 +98,15 @@ fun DepthStack(
     BoxWithConstraints(modifier.clipToBounds()) {
         val width = constraints.maxWidth.toFloat()
         val height = constraints.maxHeight.toFloat()
-        val geo = remember(width, height, screenHeight, density) {
-            StackGeometry(
-                state = state,
-                width = width,
-                viewportHeight = height,
-                cardWidth = width - 2 * with(density) { SideMargin.toPx() },
-                cardHeight = screenHeight * CARD_HEIGHT_FRACTION,
-                density = density.density,
-                blockHeight = blockHeight,
-            )
+        val geo = remember(width, height, density) {
+            StackGeometry(state, width, height, density.density, blockHeight)
         }
         // The dock zone is solid Base, so fading *to Base* looks like the spec's alpha mask without
         // an offscreen layer for the whole stack every frame.
         val fade = remember(height, density) {
             Brush.verticalGradient(
                 0f to Color.Transparent, 1f to KoanColors.Base,
-                startY = height - with(density) { BottomFade.toPx() }, endY = height,
+                startY = height - with(density) { StackTokens.BottomFade.toPx() }, endY = height,
             )
         }
         val cardWidthDp = with(density) { geo.cardWidth.toDp() }
@@ -135,7 +122,7 @@ fun DepthStack(
                 .size(maxWidth, maxHeight)
                 .drawWithContent {
                     // Cards never cover the revealed header block, and dissolve before the dock.
-                    val top = (blockHeight() * state.expansion - 8.dp.toPx()).coerceAtLeast(0f)
+                    val top = (blockHeight() * state.expansion - StackTokens.BlockOverlap.toPx()).coerceAtLeast(0f)
                     clipRect(top = top) { this@drawWithContent.drawContent() }
                     drawRect(fade)
                 }
@@ -143,7 +130,7 @@ fun DepthStack(
                     if (!enabled) return@pointerInput
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
-                        state.stopScroll()
+                        state.startDrag()
                         val hit = geo.hitTest(down.position, currentIds)
                         val tracker = VelocityTracker()
                         tracker.addPosition(down.uptimeMillis, down.position)
@@ -233,46 +220,66 @@ private class StackGeometry(
     val state: StackState,
     val width: Float,
     val viewportHeight: Float,
-    val cardWidth: Float,
-    val cardHeight: Float,
     val density: Float,
     val blockHeight: () -> Float,
 ) {
-    private val headerPx = CardHeaderHeight.value * density
-    private val closePx = CloseButtonSize.value * density
+    val cardWidth = width - 2 * StackTokens.CardSideMargin.value * density
+    val cardHeight = viewportHeight * StackTokens.CARD_HEIGHT_FRACTION
+    private val headerPx = CardTokens.HeaderHeight.value * density
+    private val closePx = CardTokens.CloseTouch.value * density
+
+    /** Top of the peeking card (d = -1): only its header and a bit show above the viewport bottom. */
+    private val peekTop = viewportHeight - StackTokens.PeekVisible.value * density
+
+    /** Top of the focused card with the header block collapsed: its bottom sits just above the peek. */
+    private val focusTopCollapsed = peekTop - StackTokens.PeekGap.value * density - cardHeight
+
+    /** A: the pile converges this far above the focused card, never into the header. */
+    private val pileDepth = min(
+        StackTokens.PileDepth.value * density,
+        focusTopCollapsed - StackTokens.PileTopGap.value * density,
+    ).coerceAtLeast(0f)
 
     fun depthOf(a: CardAnim): Float = state.stackPos - a.slot
 
-    /** The focus line moves down as the header block is revealed, and further on overscroll. */
-    fun focusY(): Float {
+    /** The focused card moves down as the header block is revealed, and further on overscroll. */
+    fun focusTop(): Float {
         val e = state.expansion
-        val block = blockHeight()
-        val collapsed = viewportHeight * FOCUS_FRACTION
-        val expanded = block + (viewportHeight - block) * 0.3f
-        val overscroll = (REVEAL_STOP - state.pos).coerceAtLeast(0f) * state.slotPx * 0.5f
-        return collapsed + (expanded - collapsed) * e + overscroll
+        val expanded = blockHeight() + StackTokens.RevealGap.value * density
+        val overscroll = (REVEAL_STOP - state.pos).coerceAtLeast(0f) * state.slotPx * StackTokens.OVERSCROLL_SPREAD
+        return focusTopCollapsed + (expanded - focusTopCollapsed) * e + overscroll
     }
 
-    fun topOf(d: Float): Float = focusY() - DepthCurve.offsetDp(d) * density
+    /**
+     * Visual top of a card at depth [d]. Behind the focus it climbs the perspective curve; in front
+     * it slides straight down to the peek slot, then on out of the viewport.
+     */
+    fun topOf(d: Float): Float {
+        val focus = focusTop()
+        if (d >= 0f) return focus - pileDepth * DepthCurve.rise(d)
+        val peek = max(peekTop, focus + cardHeight + StackTokens.PeekGap.value * density)
+        if (d >= -1f) return focus + (peek - focus) * DepthCurve.drop(d)
+        return peek + (-1f - d) * (viewportHeight - peek)
+    }
+
+    private fun visible(d: Float) = d <= DepthCurve.MAX_VISIBLE_D && d >= DepthCurve.MIN_VISIBLE_D
 
     fun applyTo(layer: GraphicsLayerScope, a: CardAnim) = with(layer) {
         val d = depthOf(a)
-        if (d > DepthCurve.MAX_VISIBLE_D || (a.gone && a.exit == 0f && a.swipeX == 0f)) {
+        if (!visible(d) || (a.gone && a.exit == 0f && a.swipeX == 0f)) {
             alpha = 0f
             return@with
         }
-        val s = DepthCurve.scale(d) * (1f + 0.03f * a.lift) * (1f - 0.12f * a.exit)
+        val s = DepthCurve.scale(d) * (1f + StackTokens.LIFT_SCALE * a.lift) * (1f - StackTokens.EXIT_SCALE * a.exit)
         scaleX = s
         scaleY = s
         transformOrigin = TransformOrigin(0.5f, 0f)
         translationX = a.swipeX
-        translationY = topOf(d) - a.exit * 48f * density
-        rotationX = DepthCurve.rotationX(d) * (1f - a.lift)
-        cameraDistance = 12f * density
+        translationY = topOf(d) - a.exit * StackTokens.ExitSlide.value * density
         alpha = DepthCurve.alpha(d) * (1f - (abs(a.swipeX) / width) * 0.9f).coerceAtLeast(0f) * (1f - a.exit)
         shape = CardShape
         clip = true
-        shadowElevation = (DepthCurve.shadow(d) * 20f + a.lift * 16f) * density
+        shadowElevation = (DepthCurve.shadow(d) * StackTokens.ShadowMax.value + a.lift * StackTokens.LiftShadow.value) * density
         ambientShadowColor = Color.Black
         spotShadowColor = Color.Black
     }
@@ -288,7 +295,7 @@ private class StackGeometry(
         for (id in order) {
             val a = state.cards[id] ?: continue
             val d = depthOf(a)
-            if (a.gone || d > DepthCurve.MAX_VISIBLE_D) continue
+            if (a.gone || !visible(d)) continue
             val s = DepthCurve.scale(d)
             val top = topOf(d)
             val w = cardWidth * s
@@ -301,6 +308,8 @@ private class StackGeometry(
         return null
     }
 }
+
+private val CardShape = RoundedCornerShape(CardTokens.Radius)
 
 private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.trackUntilUp(
     pointer: androidx.compose.ui.input.pointer.PointerId,
@@ -336,16 +345,16 @@ private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.swi
 ) {
     trackUntilUp(pointer, tracker) { a.swipeX += it.positionChange().x }
     val vx = tracker.calculateVelocity().x
-    val flung = abs(vx) > 1200f * density && sign(vx) == sign(a.swipeX)
-    if (abs(a.swipeX) > width * 0.35f || flung) {
+    val flung = abs(vx) > StackTokens.SwipeCloseVelocity.toPx() && sign(vx) == sign(a.swipeX)
+    if (abs(a.swipeX) > width * StackTokens.SWIPE_CLOSE_FRACTION || flung) {
         a.gone = true
-        val target = sign(if (a.swipeX != 0f) a.swipeX else vx) * width * 1.15f
+        val target = sign(if (a.swipeX != 0f) a.swipeX else vx) * width * StackTokens.SWIPE_FLY_OFF
         state.launch {
-            animate(a.swipeX, target, vx, spring(dampingRatio = 1f, stiffness = 900f)) { v, _ -> a.swipeX = v }
+            animate(a.swipeX, target, vx, Motion.SwipeFlyOff) { v, _ -> a.swipeX = v }
             onClosed()
         }
     } else {
-        state.launch { animate(a.swipeX, 0f, vx, spring(dampingRatio = 0.75f, stiffness = 500f)) { v, _ -> a.swipeX = v } }
+        state.launch { animate(a.swipeX, 0f, vx, Motion.SwipeReturn) { v, _ -> a.swipeX = v } }
     }
 }
 
@@ -363,7 +372,7 @@ private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.reo
     val a = state.cards[id] ?: return null
     state.liftedId = id
     a.slotJob?.cancel()
-    state.launch { animate(a.lift, 1f, 0f, spring(dampingRatio = 0.7f, stiffness = 600f)) { v, _ -> a.lift = v } }
+    state.launch { animate(a.lift, 1f, 0f, Motion.Lift) { v, _ -> a.lift = v } }
     val start = ids.indexOf(id)
     var dy = 0f
     var target = start
@@ -382,7 +391,7 @@ private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.reo
         }
     }
     state.animateSlot(a, target.toFloat())
-    state.launch { animate(a.lift, 0f, 0f, spring(dampingRatio = 0.8f, stiffness = 500f)) { v, _ -> a.lift = v } }
+    state.launch { animate(a.lift, 0f, 0f, Motion.Drop) { v, _ -> a.lift = v } }
     state.liftedId = null
     if (target == start) return null
     return others.toMutableList().apply { add(target, id) }

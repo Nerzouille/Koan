@@ -1,22 +1,20 @@
 package dev.nerzouille.koan.ui.overview
 
-import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
@@ -25,27 +23,25 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.data.SpaceWithTabs
 import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.ui.theme.KoanColors
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
+import dev.nerzouille.koan.ui.theme.OverviewTokens
+import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlin.math.abs
 import kotlin.math.floor
-import kotlin.math.roundToInt
 
-/** Height of the dock zone below the stack: bar (56) + bottom margin (16) + gap above it (12). */
-private val DockHeight = 84.dp
-
-/** The Space overview: one page per space, switched only from the workspace bar. */
+/**
+ * The Space overview: one page per space, switched only from the workspace switcher in the bottom
+ * bar (drawn by KoanRoot over the [dock] zone this screen leaves free).
+ */
 @Composable
 fun OverviewScreen(
     spaces: List<SpaceWithTabs>,
     activeTabId: String?,
-    initialSpace: Int,
-    onSpaceSettled: (Int) -> Unit,
+    pager: SpacePager,
+    dock: Dp,
     onOpenTab: (spaceIndex: Int, tab: TabEntity) -> Unit,
     onNewTab: (spaceIndex: Int) -> Unit,
     onCloseTab: (String) -> Unit,
@@ -58,8 +54,6 @@ fun OverviewScreen(
 
     val models = remember(spaces, activeTabId) { spaces.map { it.toModel(activeTabId) } }
     val scope = rememberCoroutineScope()
-    val pager = remember { SpacePager(initialSpace.coerceIn(0, spaces.size - 1), scope) }
-    pager.count = spaces.size
     // Per-space scroll state, kept while the overview is open even when a page is not composed.
     val stacks = remember { HashMap<String, StackState>() }
     fun stackFor(space: SpaceModel) = stacks.getOrPut(space.uuid) {
@@ -67,17 +61,8 @@ fun OverviewScreen(
         StackState((if (active >= 0) active else space.stack.lastIndex).coerceAtLeast(0).toFloat(), scope)
     }
 
-    val view = LocalView.current
-    LaunchedEffect(pager) {
-        snapshotFlow { pager.pos.roundToInt() }.distinctUntilChanged().drop(1).collect {
-            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-        }
-    }
-    LaunchedEffect(pager) {
-        snapshotFlow { pager.settled }.drop(1).collect(onSpaceSettled)
-    }
-
-    val dockPx = with(LocalDensity.current) { DockHeight.toPx() }
+    val density = LocalDensity.current
+    val dockPx = with(density) { dock.toPx() } + WindowInsets.navigationBars.getBottom(density)
     Box(
         modifier
             .fillMaxSize()
@@ -124,21 +109,14 @@ fun OverviewScreen(
                             modifier = Modifier.graphicsLayer {
                                 // The whole space moves as one unit, with a small gap between spaces.
                                 val f = offset()
-                                translationX = f * (size.width + 24.dp.toPx())
+                                translationX = f * (size.width + PagerTokens.PageGap.toPx())
                                 alpha = if (abs(f) >= 1f) 0f else 1f
                             },
                         )
                     }
                 }
             }
-            Spacer(Modifier.height(12.dp))
-            WorkspaceBar(
-                spaces = models,
-                pager = pager,
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-            )
+            Spacer(Modifier.navigationBarsPadding().height(dock))
         }
     }
 }
@@ -148,8 +126,8 @@ private fun backdrop(gradient: List<Color>, stop: Int): Color {
     if (gradient.isEmpty()) return KoanColors.Base
     val c = gradient[stop.coerceAtMost(gradient.size - 1)]
     val grey = c.luminance().let { Color(it, it, it) }
-    val muted = lerp(c, grey, 0.3f)
-    return lerp(KoanColors.Base, muted, if (stop == 0) 0.75f else 0.45f)
+    val muted = lerp(c, grey, OverviewTokens.BACKDROP_DESATURATE)
+    return lerp(KoanColors.Base, muted, if (stop == 0) OverviewTokens.BACKDROP_TOP else OverviewTokens.BACKDROP_MID)
 }
 
 private fun SpaceWithTabs.findTab(id: String): TabEntity? =

@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.OverviewTokens
+import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlin.math.abs
 
 @Immutable
@@ -52,8 +54,6 @@ data class SpaceModel(
     val pinned: List<CardModel>,
     val stack: List<CardModel>,
 )
-
-private const val MAX_PINNED_ROWS = 5
 
 /**
  * One space in the overview: header, the collapsing essentials/pinned block, the depth stack.
@@ -89,8 +89,8 @@ fun SpacePage(
                     .graphicsLayer {
                         // The incoming stack trails the header slightly (0.85× speed) and grows 0.96 → 1.
                         val f = pageOffset()
-                        translationX = -f * size.width * 0.15f
-                        val s = 1f - 0.04f * abs(f).coerceAtMost(1f)
+                        translationX = -f * size.width * PagerTokens.PARALLAX
+                        val s = 1f - PagerTokens.INCOMING_SCALE * abs(f).coerceAtMost(1f)
                         scaleX = s
                         scaleY = s
                     },
@@ -105,8 +105,8 @@ fun SpacePage(
                     .graphicsLayer {
                         val e = stack.expansion
                         alpha = e
-                        translationY = -24.dp.toPx() * (1f - e)
-                        val s = 0.96f + 0.04f * e
+                        translationY = -OverviewTokens.BlockCollapseSlide.toPx() * (1f - e)
+                        val s = OverviewTokens.BLOCK_COLLAPSED_SCALE + (1f - OverviewTokens.BLOCK_COLLAPSED_SCALE) * e
                         scaleX = s
                         scaleY = s
                         transformOrigin = TransformOrigin(0.5f, 0f)
@@ -115,7 +115,7 @@ fun SpacePage(
                         if (interactive && active) {
                             Modifier.pointerInput(stack) {
                                 detectVerticalDragGestures(
-                                    onDragStart = { stack.stopScroll() },
+                                    onDragStart = { stack.startDrag() },
                                     onDragEnd = { stack.fling(0f) },
                                     onDragCancel = { stack.fling(0f) },
                                 ) { change, dy ->
@@ -132,26 +132,26 @@ fun SpacePage(
     }
 }
 
-/** 52dp header: back, space icon + name (larger while the block is revealed), new tab. */
+/** Header: back, space icon + name (larger while the block is revealed), new tab. */
 @Composable
 private fun SpaceHeader(space: SpaceModel, expansion: () -> Float, onBack: () -> Unit, onNewTab: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(OverviewTokens.HeaderHeight)
             .pointerInput(Unit) {
                 // Swipe down on the header = back to the current tab.
                 var total = 0f
                 detectVerticalDragGestures(onDragStart = { total = 0f }) { change, dy ->
                     total += dy
-                    if (total > 48.dp.toPx()) {
+                    if (total > OverviewTokens.SwipeDownToDismiss.toPx()) {
                         total = Float.NEGATIVE_INFINITY
                         onBack()
                     }
                     change.consume()
                 }
             }
-            .padding(horizontal = 6.dp),
+            .padding(horizontal = OverviewTokens.HeaderPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HeaderIcon(KoanIcons.Back, onBack)
@@ -159,7 +159,7 @@ private fun SpaceHeader(space: SpaceModel, expansion: () -> Float, onBack: () ->
             Modifier
                 .weight(1f)
                 .graphicsLayer {
-                    val s = 0.88f + 0.12f * expansion()
+                    val s = OverviewTokens.TITLE_COLLAPSED_SCALE + (1f - OverviewTokens.TITLE_COLLAPSED_SCALE) * expansion()
                     scaleX = s
                     scaleY = s
                     transformOrigin = TransformOrigin(0f, 0.5f)
@@ -167,14 +167,14 @@ private fun SpaceHeader(space: SpaceModel, expansion: () -> Float, onBack: () ->
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(KoanColors.Glass),
+                Modifier.size(OverviewTokens.SpaceIconBox).clip(RoundedCornerShape(OverviewTokens.SpaceIconRadius)).background(KoanColors.Glass),
                 contentAlignment = Alignment.Center,
-            ) { Text(space.icon, fontSize = 17.sp) }
-            Spacer(Modifier.width(10.dp))
+            ) { Text(space.icon, fontSize = OverviewTokens.SpaceIconSize) }
+            Spacer(Modifier.width(OverviewTokens.TitleGap))
             Text(
                 space.name,
                 color = KoanColors.TextPrimary,
-                fontSize = 22.sp,
+                fontSize = OverviewTokens.TitleSize,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -182,22 +182,22 @@ private fun SpaceHeader(space: SpaceModel, expansion: () -> Float, onBack: () ->
         }
         Box(
             Modifier
-                .padding(end = 4.dp)
-                .size(40.dp)
+                .padding(end = OverviewTokens.HeaderPadding)
+                .size(OverviewTokens.NewTabButton)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(KoanColors.NewTabButton)
                 .clickable(onClick = onNewTab),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(KoanIcons.Plus, "New tab", tint = Color.Black, modifier = Modifier.size(20.dp))
+            Icon(KoanIcons.Plus, "New tab", tint = KoanColors.NewTabIcon, modifier = Modifier.size(OverviewTokens.NewTabGlyph))
         }
     }
 }
 
 @Composable
 private fun HeaderIcon(icon: ImageVector, onClick: () -> Unit) {
-    Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, null, tint = KoanColors.TextPrimary, modifier = Modifier.size(22.dp))
+    Box(Modifier.size(OverviewTokens.HeaderIcon).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = KoanColors.TextPrimary, modifier = Modifier.size(OverviewTokens.HeaderGlyph))
     }
 }
 
@@ -212,56 +212,56 @@ private fun HeaderBlock(
     Column(
         modifier
             .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(start = OverviewTokens.BlockPadding, end = OverviewTokens.BlockPadding, top = OverviewTokens.BlockTop, bottom = OverviewTokens.BlockPadding),
+        verticalArrangement = Arrangement.spacedBy(OverviewTokens.BlockGap),
     ) {
         space.essentials.take(8).chunked(4).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(OverviewTokens.EssentialGap)) {
                 row.forEach { tab ->
                     Box(
                         Modifier
                             .weight(1f)
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(14.dp))
+                            .height(OverviewTokens.EssentialHeight)
+                            .clip(RoundedCornerShape(OverviewTokens.EssentialRadius))
                             .background(KoanColors.Glass)
                             .then(if (interactive) Modifier.clickable { onOpenTab(tab.id) } else Modifier),
                         contentAlignment = Alignment.Center,
-                    ) { Favicon(tab.url, 24.dp) }
+                    ) { Favicon(tab.url, OverviewTokens.EssentialFavicon) }
                 }
                 repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
         if (space.pinned.isNotEmpty()) {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(KoanColors.Glass)) {
-                space.pinned.take(MAX_PINNED_ROWS).forEach { tab ->
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(OverviewTokens.PinnedRadius)).background(KoanColors.Glass)) {
+                space.pinned.take(OverviewTokens.MAX_PINNED_ROWS).forEach { tab ->
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .height(44.dp)
+                            .height(OverviewTokens.PinnedRowHeight)
                             .then(if (interactive) Modifier.clickable { onOpenTab(tab.id) } else Modifier)
-                            .padding(horizontal = 12.dp),
+                            .padding(horizontal = OverviewTokens.PinnedPadding),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Favicon(tab.url, 22.dp)
-                        Spacer(Modifier.width(12.dp))
+                        Favicon(tab.url, OverviewTokens.PinnedFavicon)
+                        Spacer(Modifier.width(OverviewTokens.PinnedPadding))
                         Text(
                             tab.title,
                             color = KoanColors.TextPrimary,
-                            fontSize = 14.sp,
+                            fontSize = OverviewTokens.PinnedTitleSize,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f),
                         )
-                        Icon(KoanIcons.Pin, null, tint = KoanColors.TextSecondary, modifier = Modifier.size(16.dp))
+                        Icon(KoanIcons.Pin, null, tint = KoanColors.TextSecondary, modifier = Modifier.size(OverviewTokens.PinnedGlyph))
                     }
                 }
-                val more = space.pinned.size - MAX_PINNED_ROWS
+                val more = space.pinned.size - OverviewTokens.MAX_PINNED_ROWS
                 if (more > 0) {
                     Text(
                         "+$more more",
                         color = KoanColors.TextSecondary,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        fontSize = OverviewTokens.MoreTextSize,
+                        modifier = Modifier.padding(horizontal = OverviewTokens.MorePadding, vertical = OverviewTokens.BlockGap),
                     )
                 }
             }

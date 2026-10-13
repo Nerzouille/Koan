@@ -1,63 +1,83 @@
 package dev.nerzouille.koan.ui.overview
 
+import dev.nerzouille.koan.ui.theme.StackTokens
+import kotlin.math.ceil
+import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * The depth stack's transforms as pure functions of `d`, the card's distance in slots from the
- * focus line (docs/UI_SPEC.md "Depth stack"). d = 0 focused, d > 0 behind (above), d < 0 in front.
+ * The depth stack's per-card values as pure functions of `d`, the card's distance in slots from
+ * the focus (docs/UI_SPEC.md "Depth stack"). d = 0 focused, d > 0 behind (in the pile above),
+ * d < 0 in front (the peek below, then gone).
  *
- * Keyframes sit at d = -1, 0, 1 … 7 and are joined with monotone cubic splines, so every property
- * is smooth (no velocity kinks when a card crosses a slot) and never overshoots its keyframes.
+ * Behind the focus the deck is a one-point perspective: with ρ = rᵈ, the card rises by A·(1 − ρ)
+ * and scales to sMin + (1 − sMin)·ρ, so spacing and size shrink geometrically towards a vanishing
+ * point. Cards are always upright.
  */
 object DepthCurve {
-    /** How far a card in front of the focus sits below it, per slot. "Full peek" of the focused card. */
-    const val PEEK_DP = 220f
+    private val r = StackTokens.R
+    private val sMin = StackTokens.S_MIN
 
-    /**
-     * Distance of the card's top edge above the focus line, in dp. Negative = below. Spacing is ~1.5×
-     * the spec table so the deck fills the screen up to the header on a 6.6" phone.
-     */
-    val offsetDp = MonotoneSpline(-1f, floatArrayOf(-PEEK_DP, 0f, 150f, 255f, 330f, 380f, 412f, 432f, 445f), clamp = false)
+    /** 0 at the focus, → 1 deep in the pile: the fraction of the pile depth A a card has risen. */
+    fun rise(d: Float): Float = if (d <= 0f) 0f else 1f - r.pow(d)
 
-    val scale = MonotoneSpline(-1f, floatArrayOf(1f, 1f, 0.92f, 0.85f, 0.79f, 0.74f, 0.72f, 0.71f, 0.70f))
+    /** 0 at the focus, 1 at the peek slot (d = −1) and beyond. */
+    fun drop(d: Float): Float = (-d).coerceIn(0f, 1f)
 
-    /** Degrees; negative tilts the top edge away from the viewer. */
-    val rotationX = MonotoneSpline(-1f, floatArrayOf(0f, 0f, -6f, -10f, -13f, -15f, -15f, -15f, -15f))
+    fun scale(d: Float): Float =
+        if (d >= 0f) sMin + (1f - sMin) * r.pow(d) else 1f - (1f - StackTokens.PEEK_SCALE) * drop(d)
 
-    /** Black overlay alpha on the thumbnail (1 - brightness). */
-    val dim = MonotoneSpline(-1f, floatArrayOf(0f, 0f, 0.12f, 0.26f, 0.40f, 0.55f, 0.70f, 0.85f, 1f))
+    /** Black overlay alpha on the thumbnail (1 − brightness). */
+    fun dim(d: Float): Float = if (d >= 0f) dimSpline(d) else StackTokens.PEEK_DIM * drop(d)
 
-    /** Thumbnail blur radius in dp. Above the spec's floor on purpose: v2 back cards are clearly soft. */
-    val blurDp = MonotoneSpline(-1f, floatArrayOf(0f, 0f, 2f, 5f, 8f, 10f, 12f, 12f, 12f))
+    fun blurDp(d: Float): Float = if (d <= 0f) 0f else blurSpline(d)
 
-    /** Whole-card alpha: fully visible to d = 4, gone at d = 7. */
-    val alpha = MonotoneSpline(-1f, floatArrayOf(1f, 1f, 1f, 1f, 1f, 1f, 0.6f, 0.2f, 0f))
+    /** Whole-card alpha: the pile fades out far back, cards past the peek fade out quickly. */
+    fun alpha(d: Float): Float =
+        if (d >= 0f) alphaSpline(d) else (1f - (-1f - d) / StackTokens.FRONT_FADE_SLOTS).coerceIn(0f, 1f)
 
-    /** Shadow strength, 1 = focused card. */
-    val shadow = MonotoneSpline(-1f, floatArrayOf(1f, 1f, 0.55f, 0.3f, 0.15f, 0.05f, 0f, 0f, 0f))
+    fun shadow(d: Float): Float = if (d >= 0f) shadowSpline(d) else 1f
 
-    /** Header strip overlay alpha: dimmed to 80% at most, so titles stay legible down to d = 3. */
-    fun headerDim(d: Float): Float = (dim(d) * 0.5f).coerceAtMost(0.2f)
+    /** Header strip overlay alpha: half the thumbnail dim, capped, so titles stay legible. */
+    fun headerDim(d: Float): Float = (dim(d) * 0.5f).coerceAtMost(StackTokens.HEADER_DIM_MAX)
 
     /** Cards further back than this are invisible: skip drawing and hit-testing them. */
-    const val MAX_VISIBLE_D = 7f
+    val MAX_VISIBLE_D = (StackTokens.Alpha.size - 1).toFloat()
+
+    /** Cards further in front than this are invisible. */
+    val MIN_VISIBLE_D = -1f - StackTokens.FRONT_FADE_SLOTS
+
+    private val dimSpline = MonotoneSpline(0f, StackTokens.Dim)
+    private val blurSpline = MonotoneSpline(0f, StackTokens.BlurDp)
+    private val alphaSpline = MonotoneSpline(0f, StackTokens.Alpha)
+    private val shadowSpline = MonotoneSpline(0f, StackTokens.Shadow)
 }
 
 /**
- * Where a released stack settles: the nearest stop after carrying the fling a bit further.
- * Stops are the integer slots in [0, last], plus [revealStop] (< 0) for the expanded header block.
+ * Where a released stack settles. A release that moved more than [StackTokens.SNAP_COMMIT] slots
+ * from [start] (fling carry included) commits to the next card in that direction, so a short
+ * flick always changes card; otherwise it springs back. Stops are the integer slots in [0, last],
+ * plus [revealStop] (< 0) for the revealed essentials/pinned block.
  */
-fun snapTarget(pos: Float, velocitySlotsPerSec: Float, last: Int, revealStop: Float): Float {
-    val projected = pos + velocitySlotsPerSec * FLING_CARRY_SECONDS
-    if (projected < revealStop / 2f) return revealStop
-    return projected.roundToInt().coerceIn(0, last.coerceAtLeast(0)).toFloat()
+fun snapTarget(pos: Float, velocitySlotsPerSec: Float, start: Float, last: Int, revealStop: Float): Float {
+    val projected = pos + velocitySlotsPerSec * StackTokens.FLING_CARRY_SECONDS
+    val moved = projected - start
+    val target = when {
+        moved > StackTokens.SNAP_COMMIT -> max(ceil(pos), projected.roundToInt().toFloat())
+        moved < -StackTokens.SNAP_COMMIT -> min(floor(pos), projected.roundToInt().toFloat())
+        else -> start.roundToInt().toFloat()
+    }
+    if (target < 0f) return revealStop
+    // + 0f turns ceil's -0.0 into 0.0.
+    return (target + 0f).coerceAtMost(last.coerceAtLeast(0).toFloat())
 }
 
-private const val FLING_CARRY_SECONDS = 0.18f
-
 /** Monotone cubic Hermite spline (Fritsch–Carlson) through evenly spaced keyframes at x0, x0+1, … */
-class MonotoneSpline(private val x0: Float, private val ys: FloatArray, private val clamp: Boolean = true) {
+class MonotoneSpline(private val x0: Float, private val ys: FloatArray) {
     private val m = FloatArray(ys.size)
 
     init {
@@ -86,11 +106,12 @@ class MonotoneSpline(private val x0: Float, private val ys: FloatArray, private 
         }
     }
 
+    /** Clamped to the first/last keyframe outside the range. */
     operator fun invoke(x: Float): Float {
         val last = ys.size - 1
         val u = x - x0
-        if (u <= 0f) return if (clamp) ys[0] else ys[0] + m[0] * u
-        if (u >= last) return if (clamp) ys[last] else ys[last] + m[last] * (u - last)
+        if (u <= 0f) return ys[0]
+        if (u >= last) return ys[last]
         val i = u.toInt()
         val t = u - i
         val t2 = t * t

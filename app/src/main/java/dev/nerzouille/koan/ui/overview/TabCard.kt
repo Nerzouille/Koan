@@ -27,12 +27,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.KoanColors
-
-val CardHeaderHeight = 52.dp
 
 /** What a card needs to draw itself. Immutable so unchanged cards skip recomposition. */
 @Immutable
@@ -50,14 +48,14 @@ fun TabCard(
     modifier: Modifier = Modifier,
 ) {
     val look = faviconLook(card.url)
-    Box(modifier.background(KoanColors.CardPlaceholder).background(look.color.copy(alpha = 0.08f))) {
+    Box(modifier.background(KoanColors.CardPlaceholder).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
         // Thumbnail: only its top slice is blurred. Behind the focus line nothing below that slice is
         // ever visible, and blurring the whole card costs ~5× the GPU time (measured on the POCO).
         PlaceholderThumbnail(
             card.url,
             Modifier
                 .fillMaxWidth()
-                .height(BlurSliceHeight)
+                .height(CardTokens.BlurSlice)
                 .graphicsLayer { renderEffect = blurFor(depth()) },
         )
         Box(
@@ -73,64 +71,59 @@ fun TabCard(
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.White.copy(alpha = 0.10f)),
+                .height(CardTokens.Hairline)
+                .background(KoanColors.CardHairline),
         )
     }
 }
-
-/** Taller than the biggest peek of a card behind the focus (d = 1). */
-private val BlurSliceHeight = 300.dp
 
 @Composable
 private fun CardHeader(card: CardModel, depth: () -> Float) {
     Row(
         Modifier
             .fillMaxWidth()
-            .height(CardHeaderHeight)
-            .background(Color.Black.copy(alpha = 0.35f))
+            .height(CardTokens.HeaderHeight)
+            .background(KoanColors.CardHeaderScrim)
             .drawWithContent {
                 drawContent()
                 val dim = DepthCurve.headerDim(depth())
                 if (dim > 0.01f) drawRect(Color.Black, alpha = dim)
             }
-            .padding(start = 16.dp, end = 6.dp),
+            .padding(start = CardTokens.HeaderPaddingStart, end = CardTokens.HeaderPaddingEnd),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Favicon(card.url, 22.dp)
-        Spacer(Modifier.width(10.dp))
+        Favicon(card.url, CardTokens.Favicon)
+        Spacer(Modifier.width(CardTokens.HeaderGap))
         Text(
             card.title,
             color = KoanColors.TextPrimary,
-            fontSize = 15.sp,
+            fontSize = CardTokens.TitleSize,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
         if (card.active) {
-            Spacer(Modifier.width(8.dp))
-            Box(Modifier.size(6.dp).clip(CircleShape).background(KoanColors.DefaultAccent))
+            Spacer(Modifier.width(CardTokens.HeaderGap))
+            Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanColors.DefaultAccent))
         }
         Spacer(Modifier.weight(0.001f))
         // ✕ only on the focused card; the stack's gesture handler does the hit-testing.
         Box(
             Modifier
-                .size(CloseButtonSize)
+                .size(CardTokens.CloseTouch)
                 .graphicsLayer { alpha = (1f - kotlin.math.abs(depth()) * 2f).coerceIn(0f, 1f) },
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                Modifier.size(28.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.14f)),
+                Modifier.size(CardTokens.CloseButton).clip(CircleShape).background(KoanColors.CloseButton),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(KoanIcons.Close, null, tint = KoanColors.TextPrimary, modifier = Modifier.size(14.dp))
+                Icon(KoanIcons.Close, null, tint = KoanColors.TextPrimary, modifier = Modifier.size(CardTokens.CloseIcon))
             }
         }
     }
 }
-
-val CloseButtonSize = 44.dp
 
 /**
  * Never-opened tab: dark neutral surface, big favicon, domain, 8% favicon tint. Nothing else
@@ -139,11 +132,11 @@ val CloseButtonSize = 44.dp
 @Composable
 private fun PlaceholderThumbnail(url: String, modifier: Modifier) {
     Column(
-        modifier.padding(top = CardHeaderHeight + 44.dp),
+        modifier.padding(top = CardTokens.HeaderHeight + CardTokens.PlaceholderTop),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Favicon(url, 64.dp)
-        Spacer(Modifier.height(14.dp))
-        Text(displayHost(url), color = KoanColors.TextSecondary, fontSize = 14.sp, maxLines = 1)
+        Favicon(url, CardTokens.PlaceholderFavicon)
+        Spacer(Modifier.height(CardTokens.PlaceholderGap))
+        Text(displayHost(url), color = KoanColors.TextSecondary, fontSize = CardTokens.PlaceholderDomainSize, maxLines = 1)
     }
 }

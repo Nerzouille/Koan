@@ -1,7 +1,6 @@
 package dev.nerzouille.koan.ui.overview
 
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -11,6 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -60,6 +61,9 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
     internal val cards = HashMap<String, CardAnim>()
     private var scrollJob: Job? = null
 
+    /** [pos] when the current drag started; a release snaps relative to it. */
+    private var dragStart = initialPos
+
     /** Header block reveal: 0 collapsed … 1 fully revealed. */
     val expansion: Float get() = (pos / REVEAL_STOP).coerceIn(0f, 1f)
 
@@ -68,8 +72,10 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
 
     fun anim(id: String, index: Int): CardAnim = cards.getOrPut(id) { CardAnim(index.toFloat()) }
 
-    fun stopScroll() {
+    /** Finger down: stop any settling and remember where this drag starts. */
+    fun startDrag() {
         scrollJob?.cancel()
+        dragStart = pos
     }
 
     /** Finger moved by [dyPx] (positive = down). Rubber-bands past both ends. */
@@ -77,33 +83,33 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         val delta = -dyPx / slotPx
         val over = max(REVEAL_STOP - pos, pos - last)
         val goingFurtherOut = (pos < REVEAL_STOP && delta < 0) || (pos > last && delta > 0)
-        pos += if (over > 0f && goingFurtherOut) delta * 0.45f / (1f + over * 2f) else delta
+        pos += if (over > 0f && goingFurtherOut) delta * StackTokens.RUBBER_BAND / (1f + over * 2f) else delta
     }
 
     /** Finger lifted with vertical velocity [vyPx] px/s: settle on the nearest stop. */
     fun fling(vyPx: Float) {
         val velocity = -vyPx / slotPx
-        animateTo(snapTarget(pos, velocity, last, REVEAL_STOP), velocity)
+        animateTo(snapTarget(pos, velocity, dragStart, last, REVEAL_STOP), velocity)
     }
 
     fun animateTo(target: Float, velocity: Float = 0f) {
         scrollJob?.cancel()
         scrollJob = scope.launch {
-            animate(pos, target, velocity, spring(dampingRatio = 0.86f, stiffness = 260f)) { v, _ -> pos = v }
+            animate(pos, target, velocity, Motion.StackSnap) { v, _ -> pos = v }
         }
     }
 
     internal fun animateSlot(a: CardAnim, target: Float) {
         a.slotJob?.cancel()
         a.slotJob = scope.launch {
-            animate(a.slot, target, 0f, spring(dampingRatio = 0.8f, stiffness = 420f)) { v, _ -> a.slot = v }
+            animate(a.slot, target, 0f, Motion.CardSlot) { v, _ -> a.slot = v }
         }
     }
 
     internal fun launch(block: suspend CoroutineScope.() -> Unit) = scope.launch(block = block)
 
     internal suspend fun animateExit(a: CardAnim) =
-        animate(0f, 1f, 0f, tween(200)) { v, _ -> a.exit = v }
+        animate(0f, 1f, 0f, tween(Motion.CARD_EXIT_MS)) { v, _ -> a.exit = v }
 }
 
 @Composable
