@@ -84,8 +84,10 @@ class DepthCurveTest {
 
     @Test
     fun `a fling carries through several cards and lands on one`() {
-        // 20 slots/s × 0.5 s = 10 cards further.
+        // (20 − 2.2) × 0.55 ≈ 10 cards further.
         assertEquals(13f, flingTarget(3.2f, 20f, last = 49))
+        // A normal flick (≈ 7.5 slots/s) goes about 3 cards.
+        assertEquals(13f, flingTarget(10f, 7.5f, last = 49))
         assertEquals(0f, flingTarget(8f, -40f, last = 49))
         assertEquals(49f, flingTarget(45f, 40f, last = 49))
     }

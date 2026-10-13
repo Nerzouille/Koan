@@ -88,27 +88,30 @@ vanishing point just above it. Cards are **always upright** (no tilt). Every car
 pure function of its distance `d` (in card slots, fractional) from the focus: `d = 0` focused,
 `d > 0` behind (in the pile above), `d < 0` in front (the card below, then gone).
 
-- **Focus:** the focused card is big and dominant, upright, scale 1.0. Height = 65% of the stack
-  viewport; its bottom edge sits 94dp above the viewport bottom (it grows upward, not downward).
+- **Vertical layout (top → bottom):** ~28dp of breathing room under the header (`PileTopGap`
+  22dp + the pile's fade), the pile, the focused card, then the card in front peeking 60dp above
+  the viewport bottom (just above the bar). The focused card gets all the remaining height (≈ 72%
+  of the viewport on the POCO): it's clearly THE card on screen.
 - **Pile (d > 0):** bunched tightly just above the focused card's top, converging fast:
   `offsetY(d) = −A·(1 − rᵈ)` with r = 0.45 and A = 28% of the focused card's height (first gap
-  ≈ 15% of it), clamped so the pile never reaches the header; `scale(d) = sMin + (1 − sMin)·r_sᵈ`
+  ≈ 15% of it); `scale(d) = sMin + (1 − sMin)·r_sᵈ`
   with sMin = 0.58, r_s = 0.52 → .80 · .69 · .64 · .61. Thumbnail darkness (brightness 1 → .84 →
   .72 → .62 …) and blur (σ 0, 0, .5, 1, 1.6, 2.2, 2.8 dp) increase with depth, keyframes joined
   linearly; cards fade out from d ≈ 5 and are gone by d = 8.
 - **Card in front (d = −1):** closer to the viewer, so slightly **bigger** (scale 1.05) and drawn
-  over the focused card: it overlaps the focused card's bottom by 40dp, no gap between them. Its
-  header and the top of its thumbnail show at the bottom of the viewport. Cards past it fade out
+  over the focused card: it overlaps the focused card's bottom by 40dp, no gap between them. Only
+  its header strip and a hint of thumbnail show (60dp); the bottom fade is 16dp so it stays crisp. Cards past it fade out
   within a third of a slot.
-- **Scrolling is continuous along that curve:** a drag moves the stack 1:1 with the finger (140dp
+- **Scrolling is continuous along that curve:** a drag moves the stack 1:1 with the finger (170dp
   per card); the next card rises from the front and settles into focus, the current one shrinks and
   slides up into the pile.
 - **Release:** a card always settles in focus.
   - Slow release (< 2 cards/s): prototype rule — moved more than 0.15 card → the next whole card
     in that direction, otherwise glide back (exponential glide, ≈ 90ms time constant).
-  - Fling: **momentum scroll** — it travels velocity × 0.5s worth of cards (at least one), landing
-    exactly on a card with a cubic ease-out that starts at the finger's speed (0.3–2.2s). A few
-    flings cross 50 tabs. Touching the stack during a fling stops it (that touch never opens a card).
+  - Fling: **momentum scroll with friction** — it travels (velocity − 2.2) × 0.55 cards, velocity
+    in cards/s capped at 36 (at least one card): gentle swipe ≈ 1 card, normal flick ≈ 2–4, strong
+    fling 10+. It lands exactly on a card with a cubic ease-out that starts at the finger's speed
+    (0.3–2.2s). Touching the stack during a fling stops it (that touch never opens a card).
 - Every card keeps the same soft shadow (prototype): it is what layers the pile. Depth comes from
   position, scale, brightness and blur, never from borders or tilt.
 - Rubber-band overscroll at both ends (the prototype clamps hard; Android users expect the stretch).

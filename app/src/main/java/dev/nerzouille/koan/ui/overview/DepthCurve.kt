@@ -6,6 +6,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sign
 
 /**
  * The depth stack's per-card values as pure functions of `d`, the card's distance in slots from
@@ -74,11 +75,13 @@ fun snapTarget(pos: Float, start: Float, last: Int): Float {
 }
 
 /**
- * Where a fling lands: velocity × [StackTokens.FLING_GLIDE_SECONDS] further, on the nearest card,
- * and at least the next card in the fling direction. Always a card in [0, last].
+ * Where a fling lands: (|velocity| − dead zone) × gain cards further (velocity capped), on the
+ * nearest card, and at least the next card in the fling direction. Always a card in [0, last].
  */
 fun flingTarget(pos: Float, velocitySlotsPerSec: Float, last: Int): Float {
-    var target = (pos + velocitySlotsPerSec * StackTokens.FLING_GLIDE_SECONDS).roundToInt().toFloat()
+    val speed = abs(velocitySlotsPerSec).coerceAtMost(StackTokens.FLING_MAX_VELOCITY)
+    val cards = ((speed - StackTokens.FLING_DEADZONE) * StackTokens.FLING_GAIN).coerceAtLeast(1f)
+    var target = (pos + sign(velocitySlotsPerSec) * cards).roundToInt().toFloat()
     if (velocitySlotsPerSec > 0f && target <= pos) target = floor(pos) + 1f
     if (velocitySlotsPerSec < 0f && target >= pos) target = ceil(pos) - 1f
     return (target + 0f).coerceIn(0f, last.coerceAtLeast(0).toFloat())

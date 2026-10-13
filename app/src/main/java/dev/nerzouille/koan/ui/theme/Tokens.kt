@@ -52,12 +52,14 @@ object StackTokens {
      */
     const val PILE_DEPTH_FRACTION = 0.28f
 
-    /** Focused card height as a fraction of the stack viewport. Grows upward: the bottom stays put. */
-    const val CARD_HEIGHT_FRACTION = 0.65f
+    /*
+     * Vertical layout, top → bottom: PileTopGap, the pile (A), the focused card, the card in front
+     * peeking PeekVisible above the viewport bottom. The focused card gets all the height left.
+     */
     val CardSideMargin = 14.dp
 
-    /** Distance from the viewport bottom to the focused card's bottom edge. */
-    val FocusBottomInset = 94.dp
+    /** How much of the card in front shows above the viewport bottom: its header + a hint of thumbnail. */
+    val PeekVisible = 60.dp
 
     /** The card in front overlaps the focused card's bottom by this much (no gap between them). */
     val PeekOverlap = 40.dp
@@ -69,8 +71,8 @@ object StackTokens {
     /** Cards further in front than the peek fade out over this fraction of a slot. */
     const val FRONT_FADE_SLOTS = 0.33f
 
-    /** Keep the top of the pile this far below the header. */
-    val PileTopGap = 10.dp
+    /** Breathing room between the header and the top of the pile. */
+    val PileTopGap = 22.dp
 
     /** Keyframes at d = 0, 1, 2 …, joined linearly like the prototype. Thumbnail dim = 1 − brightness. */
     val Dim = floatArrayOf(0f, 0.16f, 0.28f, 0.38f, 0.48f, 0.58f, 0.66f)
@@ -89,7 +91,7 @@ object StackTokens {
     const val HEADER_DIM_MAX = 0.2f
 
     /** Finger travel that moves the stack by one slot (prototype: 230dp; shorter covers more cards). */
-    val SlotDrag = 140.dp
+    val SlotDrag = 170.dp
 
     /** A slow release that moved the stack more than this (in slots) commits to the next card. */
     const val SNAP_COMMIT = 0.15f
@@ -97,8 +99,14 @@ object StackTokens {
     /** Releases faster than this (slots/s) are flings: momentum scroll through several cards. */
     const val FLING_MIN_VELOCITY = 2f
 
-    /** A fling travels velocity × this many seconds, then lands on the nearest card. */
-    const val FLING_GLIDE_SECONDS = 0.5f
+    /**
+     * Fling friction: a fling travels (velocity − FLING_DEADZONE) × FLING_GAIN cards (at least one),
+     * velocity capped at FLING_MAX_VELOCITY, all in slots/s. Gentle swipe ≈ 1 card, normal flick
+     * ≈ 2–4, strong fling 10+.
+     */
+    const val FLING_DEADZONE = 2.2f
+    const val FLING_GAIN = 0.55f
+    const val FLING_MAX_VELOCITY = 36f
 
     /** Fling deceleration: cubic ease-out (starts at the finger's speed, stops dead on a card). */
     const val FLING_EASE_POWER = 3f
@@ -108,8 +116,8 @@ object StackTokens {
     /** Overscroll resistance past both ends. */
     const val RUBBER_BAND = 0.45f
 
-    /** Fade to the dock colour at the bottom of the viewport. */
-    val BottomFade = 48.dp
+    /** Fade to the dock colour at the bottom of the viewport; short, so the peek's header stays crisp. */
+    val BottomFade = 16.dp
 
     // Long-press reorder.
     const val LIFT_SCALE = 0.03f

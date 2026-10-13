@@ -231,15 +231,19 @@ private class StackGeometry(
     val density: Float,
 ) {
     val cardWidth = width - 2 * StackTokens.CardSideMargin.value * density
-    val cardHeight = viewportHeight * StackTokens.CARD_HEIGHT_FRACTION
+
+    /** The focused card gets all the height left by the top gap, the pile (A = fraction × height) and the peek. */
+    val cardHeight = (
+        viewportHeight - (StackTokens.PileTopGap + StackTokens.PeekVisible - StackTokens.PeekOverlap).value * density
+        ) / (1f + StackTokens.PILE_DEPTH_FRACTION)
     private val headerPx = CardTokens.HeaderHeight.value * density
     private val closePx = CardTokens.CloseTouch.value * density
 
-    /** Top of the focused card: its bottom sits a fixed inset above the viewport bottom. */
-    private val focusTop = viewportHeight - StackTokens.FocusBottomInset.value * density - cardHeight
+    /** Top of the card in front (d = -1): only its header and a hint of thumbnail show. */
+    private val peekTop = viewportHeight - StackTokens.PeekVisible.value * density
 
-    /** Top of the card in front (d = -1): it overlaps the focused card's bottom part. */
-    private val peekTop = focusTop + cardHeight - StackTokens.PeekOverlap.value * density
+    /** Top of the focused card: the card in front overlaps its bottom part. */
+    private val focusTop = peekTop + StackTokens.PeekOverlap.value * density - cardHeight
 
     /** A: the pile converges this far above the focused card, never into the header. */
     private val pileDepth = min(
