@@ -1,8 +1,6 @@
 package dev.nerzouille.koan.ui.bar
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,7 +34,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextRange
@@ -123,7 +120,7 @@ fun AddressRow(
     }
 }
 
-/** Host of the page (crossfading to the search hint in the overview), with the load progress inside. */
+/** Host of the page, crossfading to the search hint in the overview. */
 @Composable
 private fun AddressField(page: PageInfo, overview: () -> Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val host = displayHost(page.url)
@@ -142,11 +139,6 @@ private fun AddressField(page: PageInfo, overview: () -> Float, onClick: () -> U
             Modifier.graphicsLayer { alpha = 1f - overview() },
         )
         FieldText(SEARCH_HINT, primary = false, Modifier.graphicsLayer { alpha = overview() })
-        ProgressLine(
-            loading = page.loading,
-            progress = page.progress,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = BarTokens.ProgressInset),
-        )
     }
 }
 
@@ -161,25 +153,6 @@ private fun FieldText(text: String, primary: Boolean, modifier: Modifier) {
         overflow = TextOverflow.Ellipsis,
         textAlign = TextAlign.Center,
         modifier = modifier,
-    )
-}
-
-/** 2dp line; progress is read inside graphicsLayer so updates only redraw, never recompose. */
-@Composable
-private fun ProgressLine(loading: Boolean, progress: Float, modifier: Modifier = Modifier) {
-    val animated by animateFloatAsState(if (loading) progress.coerceAtLeast(0.05f) else 1f, spring(), label = "progress")
-    val alpha by animateFloatAsState(if (loading) 1f else 0f, label = "progressAlpha")
-    Box(
-        modifier
-            .fillMaxWidth()
-            .height(BarTokens.ProgressHeight)
-            .graphicsLayer {
-                scaleX = animated
-                this.alpha = alpha
-                transformOrigin = TransformOrigin(0f, 0.5f)
-            }
-            .clip(CircleShape)
-            .background(KoanColors.DefaultAccent),
     )
 }
 

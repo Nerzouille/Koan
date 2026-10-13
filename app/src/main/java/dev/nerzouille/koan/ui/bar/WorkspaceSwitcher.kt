@@ -2,7 +2,6 @@ package dev.nerzouille.koan.ui.bar
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -21,7 +20,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import dev.nerzouille.koan.data.SpaceEntity
@@ -29,13 +27,12 @@ import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.KoanColors
-import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * Current space centred, neighbours faded at the sides, page dots. The only place that switches
- * spaces. Exactly one light haptic tick per committed switch, on release, never while dragging.
+ * Current space centred, neighbours faded at the sides, page dots. Drags are handled by the whole
+ * bar (KoanBar); this only handles taps on a neighbour's name (jump there, one tick).
  */
 @Composable
 fun WorkspaceSwitcher(spaces: List<SpaceEntity>, pager: SpacePager, enabled: Boolean, modifier: Modifier = Modifier) {
@@ -48,19 +45,6 @@ fun WorkspaceSwitcher(spaces: List<SpaceEntity>, pager: SpacePager, enabled: Boo
             .then(
                 if (enabled) {
                     Modifier
-                        .pointerInput(pager) {
-                            val tracker = VelocityTracker()
-                            val flingPx = PagerTokens.FlingVelocity.toPx()
-                            detectHorizontalDragGestures(
-                                onDragStart = { pager.grab(); tracker.resetTracking() },
-                                onDragEnd = { if (pager.release(tracker.calculateVelocity().x, flingPx)) tick() },
-                                onDragCancel = { if (pager.release(0f, flingPx)) tick() },
-                            ) { change, dx ->
-                                tracker.addPosition(change.uptimeMillis, change.position)
-                                change.consume()
-                                pager.dragBy(dx)
-                            }
-                        }
                         .pointerInput(pager) {
                             detectTapGestures { p ->
                                 val steps = ((p.x - size.width / 2f) / BarTokens.LabelSpacing.toPx()).roundToInt()

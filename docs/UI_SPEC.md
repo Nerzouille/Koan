@@ -22,29 +22,24 @@ the interaction rules below still apply.
 
 ```
 ┌──────────────────────────────┐
-│ ‹   Work            ⌕   +    │  header: space icon + name, search-in-space, new tab
-│ ┌──┐┌──┐┌──┐┌──┐             │  essentials grid (favicons, 4 per row, max 2 rows)
-│ └──┘└──┘└──┘└──┘             │
-│ 📌 Notion · Planning          │  pinned tabs: compact rows (collapse on scroll, see below)
-│ 📌 Linear · Sprint board      │
-│ ╭──────────────────────────╮ │
-│ │ ▣ Zenith OS           ✕  │ │  card (header row always visible)
-│ │                          │ │
-│ ╭──────────────────────────╮ │  next card overlaps the previous one
-│ │ ▣ Tailwind CSS        ✕  │ │
+│ ‹  💼 Work                +  │  compact header: back, space icon + name, new tab
+│      ╭────────────────╮      │  pile: back cards converge upward
+│    ╭──────────────────────╮  │
+│ ╭──────────────────────────╮ │  focused card (big, upright)
+│ │ ▣ Zenith OS           ✕  │ │
 │ │      (thumbnail)         │ │
-│ │                          │ │
 │ ╰──────────────────────────╯ │
-│  ●  Personal · WORK · Uni  ● │  workspace bar (swipe left/right)
+│  ╭────────────────────────╮  │  peek: next card's header
+│            ▬▬                │  drawer handle
+│  ‹  Personal · WORK · Uni  › │  workspace switcher  ┐ the bottom bar (strip)
+│  ‹  [ Search or type URL ] ⧉ │  address row         ┘
 └──────────────────────────────┘
 ```
 
 - Background = the space's Zen theme gradient (`theme.gradientColors`), darkened for legibility.
   Default if no theme: near-black.
-- Essentials grid: favicon tiles. Tap = open, long-press = context menu.
-- **Pinned tabs are not cards.** They are compact Arc-style rows (favicon + title, 44dp each,
-  max 5 visible, then "+N more") directly under the essentials.
-- Below them, the card stack: folders (a labelled group that can collapse to a single "deck"
+- Essentials and pinned tabs live in the **drawer** (see below), not in the overview itself.
+- The card stack: folders (a labelled group that can collapse to a single "deck"
   card), then normal tabs, most recent last (bottom, closest to the thumb).
 - **Live pinned tabs also get a card.** When a pinned tab (row) is opened on the phone, it gets a
   card in the stack while it's live, marked with a small pin glyph next to its title. Its row stays
@@ -53,19 +48,25 @@ the interaction rules below still apply.
   never tombstoned or written as unpinned). Normal tabs are synced from Zen ("sync normal tabs" is
   on), so desktop normal tabs appear as regular cards.
 
-### Collapsing top area
+### Essentials & pinned drawer
 
-- **Default state when opening the overview: half-collapsed and centred on the current tab**
-  (compact header bar, essentials and pinned hidden, current tab on the focus line). Pulling down
-  **inside the card stack** reveals essentials and pinned; swiping down **on the compact header**
-  closes the overview back to the current tab.
+Replaces the old collapsing essentials/pinned block: reaching pinned tabs must never need a scroll
+to the top of the stack.
 
-- Header + essentials + pinned rows form one collapsing block (iOS large-title behaviour).
-- Scrolling the stack up first collapses this block: essentials and pinned rows fade and slide up
-  (alpha 1 → 0, translateY −24dp, scale 0.96), then the header shrinks to a compact 52dp bar with
-  the space name, search and +. Only after that do the cards themselves scroll.
-- Scrolling back down to the top, or pulling down past the top, reveals the block again with a
-  spring. Collapse progress is driven by the scroll offset (1:1), not a timed animation.
+- **Default state when opening the overview:** compact header + the stack centred on the current
+  tab. Swiping down **on the compact header** closes the overview back to the current tab.
+- **Open:** in the overview, swipe **up** on the bottom bar (anywhere on it) or tap the small handle
+  at its top. The bar grows upward into a sheet (≈ half the screen, sized to the tallest space's
+  content, 28dp top corners): essentials grid on top (favicon tiles, 4 per row, max 2 rows), pinned
+  rows below (Arc-style compact rows, max 5 visible, then "+N more"), the switcher and address row
+  stay at the bottom. Tap = open the tab (closes drawer and overview).
+- The drawer follows the finger 1:1 and settles with a spring (position past half, or a fling,
+  decides open/closed).
+- Behind it the overview dims (black up to 45%) and blurs (up to 14dp), both driven by the drawer's
+  progress.
+- **Close:** swipe down on the sheet or the bar, tap outside it, tap the handle, or Back.
+- On the bar, horizontal drags still switch spaces and vertical drags drive the drawer (axis picked
+  after the touch slop). Switching spaces with the drawer open slides its content with the space.
 
 ## Cards
 
@@ -93,20 +94,20 @@ behind (in the pile above), `d < 0` in front (the peek below, then gone).
   `offsetY(d) = −A·(1 − ρ)` (top edge rises; A ≈ 176dp, clamped so the pile never reaches the
   header) and `scale(d) = sMin + (1 − sMin)·ρ`, sMin = 0.62 → .83 · .73 · .68 · .65.
   Spacing and size shrink geometrically. Thumbnail darkness (brightness 1 → .84 → .72 → .62 …) and
-  blur (σ 0, 0, .5, 1, 1.6, 2.2, 2.8 dp) increase with depth; cards fade out from d ≈ 5 and are gone
-  by d = 8.
+  blur (σ 0, 0, .5, 1, 1.6, 2.2, 2.8 dp) increase with depth, keyframes joined linearly; cards fade
+  out from d ≈ 5 and are gone by d = 8.
 - **Peek (d = −1):** only the next card, upright at scale 0.94, its header strip visible at the
   bottom of the viewport (`PeekVisible` 80dp shows). Cards past the peek fade out within a third of
   a slot.
 - **Scrolling is continuous along that curve:** the stack moves 1:1 with the finger (230dp per
   slot); the next card rises from the peek and grows into focus, the current one shrinks and slides
-  up into the pile. On release the stack **snaps so a card always settles in focus**: a release that
-  moved more than 0.15 slot (fling carry included) commits to the next card in that direction,
-  otherwise it springs back.
-- The focused card gets a soft ambient shadow; cards behind get progressively less. Depth comes from
+  up into the pile. On release the stack **snaps so a card always settles in focus** (prototype
+  rule): a release that moved more than 0.15 card commits to the next whole card in that direction
+  from where the finger left it (no fling carry, never skips further), otherwise it glides back.
+  The snap is an exponential glide (≈ 90ms time constant, no overshoot).
+- Every card keeps the same soft shadow (prototype): it is what layers the pile. Depth comes from
   position, scale, brightness and blur, never from borders or tilt.
-- Rubber-band overscroll at both ends; at the top, overscroll pulls the stack down before revealing
-  the collapsed header block.
+- Rubber-band overscroll at both ends (the prototype clamps hard; Android users expect the stretch).
 - **Only the thumbnail layer** gets darkened/blurred. The header strip (favicon + title) stays
   legible deep in the pile (dimmed to 80% at most), so you always know what's in the stack.
 - All of this lives in `Modifier.graphicsLayer { }` reading the scroll state — zero recomposition
@@ -140,37 +141,38 @@ behind (in the pile above), `d < 0` in front (the peek below, then gone).
 | Gesture | Where | Result |
 |---|---|---|
 | Vertical drag | card area | scroll the stack |
-| Horizontal swipe on a card | card | swipe-to-close (card follows finger, fades, flies off; others close the gap with a spring) |
-| Horizontal swipe | **workspace bar only** | switch space |
-| Tap card | card | open tab (zoom morph) |
+| Horizontal swipe | card area | swipe-to-close **the focused card** (prototype): follows the finger with a slight tilt and fade; past 100dp it flies off (280ms, 8°); the card in front rises into focus |
+| Horizontal swipe | **bottom bar only** | switch space |
+| Vertical swipe | bottom bar (overview) | open / close the essentials & pinned drawer |
+| Tap focused card | card | open tab (zoom morph) |
+| Tap a pile or peek card | card | bring it into focus |
 | Long-press card | card | lift (scale 1.03 + shadow), then drag to reorder; drop on the workspace bar to move tab to another space |
-| Tap ✕ | card | close (same animation as swipe-close, upward collapse) |
+| Tap ✕ | focused card | close (same fly-off as swipe-close, to the right) |
 | Tap space name in header | header | space menu (rename, icon, theme, new folder) |
 | Swipe down on overview header | header | dismiss overview back to the current tab |
 
 Rule: **horizontal swipes in the card area never switch spaces.** Switching spaces only happens on
-the workspace bar. This avoids the close-vs-switch gesture conflict.
+the bottom bar. This avoids the close-vs-switch gesture conflict.
 
 ## Bottom bar / workspace bar
 
 One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Values in
-`Tokens.kt` (`BarTokens`, `PagerTokens`).
+`Tokens.kt` (`BarTokens`, `DrawerTokens`, `PagerTokens`).
 
-- **Page view:** floating rounded bar, 68dp tall, 10dp from the sides and bottom (above the gesture
-  nav inset): back · big address field (50dp, 17sp, domain only, load progress inside) · tabs ·
-  menu. Swipe up on it (or tap tabs) opens the overview.
-- **Overview:** the same bar morphs into the workspace bar. Two styles exist while the owner
-  compares them (dev menu toggle), one will be kept:
-  - **Grow** (default): the bar grows upward; the workspace switcher row appears on top, the
-    address field stays underneath (tap = new tab with search). Back and menu fade out.
-  - **Replace:** same size; the address row crossfades into the workspace switcher.
+- **Page view:** a plain full-width strip on the page-dark background (no container around it, a
+  1dp white-6% hairline on top): back · big address field (50dp, 17sp, domain only) · tab count ·
+  menu. A 2dp accent progress line runs along the top edge while a page loads, full width, fading
+  out when done. Swipe up on the bar (or tap the tab count) opens the overview.
+- **Overview:** the same strip grows upward; the workspace switcher row (with the drawer handle)
+  appears on top, the address field stays underneath (tap = new tab with search). Back and menu
+  fade out. From here it can grow further into the drawer (see "Essentials & pinned drawer").
   The morph only draws/transforms (no relayout per frame).
-- Nothing scrolls underneath the bar: each screen ends 12dp above it.
+- Nothing scrolls underneath the bar: the stack ends 12dp above it.
 - The switcher shows the current space name centered in bold, neighbours faded on both sides, plus
   page dots.
-- **Switching is a simple pager**, driven only by horizontal drags on the switcher:
-  - The whole space follows the finger 1:1 (header, essentials, pinned and stack move as one unit;
-    the stack trails slightly with parallax 0.85× and scale 0.96 → 1).
+- **Switching is a simple pager**, driven by horizontal drags anywhere on the bar:
+  - The whole space follows the finger 1:1 (header and stack move as one unit; the stack trails
+    slightly with parallax 0.85× and scale 0.96 → 1).
   - The background gradient interpolates between the two spaces' gradients by drag fraction.
   - Release: dragged past **25% of the width**, or flung in the drag direction, commits to the
     neighbour; otherwise it springs back.

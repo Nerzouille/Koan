@@ -39,7 +39,7 @@ import kotlin.math.floor
 @Composable
 fun OverviewScreen(
     spaces: List<SpaceWithTabs>,
-    activeTabId: String?,
+    models: List<SpaceModel>,
     pager: SpacePager,
     dock: Dp,
     onOpenTab: (spaceIndex: Int, tab: TabEntity) -> Unit,
@@ -50,9 +50,8 @@ fun OverviewScreen(
     modifier: Modifier = Modifier,
 ) {
     BackHandler(onBack = onDismiss)
-    if (spaces.isEmpty()) return
+    if (spaces.isEmpty() || models.size != spaces.size) return
 
-    val models = remember(spaces, activeTabId) { spaces.map { it.toModel(activeTabId) } }
     val scope = rememberCoroutineScope()
     // Per-space scroll state, kept while the overview is open even when a page is not composed.
     val stacks = remember { HashMap<String, StackState>() }
@@ -130,12 +129,17 @@ private fun backdrop(gradient: List<Color>, stop: Int): Color {
     return lerp(KoanColors.Base, muted, if (stop == 0) OverviewTokens.BACKDROP_TOP else OverviewTokens.BACKDROP_MID)
 }
 
-private fun SpaceWithTabs.findTab(id: String): TabEntity? =
+fun SpaceWithTabs.findTab(id: String): TabEntity? =
     stack.firstOrNull { it.koanTabId == id } ?: pinned.firstOrNull { it.koanTabId == id }
         ?: essentials.firstOrNull { it.koanTabId == id }
 
-private fun SpaceWithTabs.toModel(activeTabId: String?): SpaceModel {
-    fun TabEntity.card() = CardModel(koanTabId, title, url, koanTabId == activeTabId)
+/**
+ * UI model of a space. A pinned or essential tab that is live (the active tab) also gets a card at
+ * the bottom of the stack, marked pinned (docs/UI_SPEC.md "Live pinned tabs also get a card").
+ */
+fun SpaceWithTabs.toModel(activeTabId: String?): SpaceModel {
+    fun TabEntity.card(pinned: Boolean = false) = CardModel(koanTabId, title, url, koanTabId == activeTabId, pinned)
+    val livePinned = (essentials + pinned).filter { it.koanTabId == activeTabId }.map { it.card(pinned = true) }
     return SpaceModel(
         uuid = space.uuid,
         name = space.name,
@@ -143,6 +147,6 @@ private fun SpaceWithTabs.toModel(activeTabId: String?): SpaceModel {
         gradient = space.gradientColors.map { Color(it.toInt()) },
         essentials = essentials.map { it.card() },
         pinned = pinned.map { it.card() },
-        stack = stack.map { it.card() },
+        stack = stack.map { it.card() } + livePinned,
     )
 }

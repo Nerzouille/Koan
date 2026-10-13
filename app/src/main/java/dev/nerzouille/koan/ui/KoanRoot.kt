@@ -1,13 +1,11 @@
 package dev.nerzouille.koan.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -21,14 +19,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.resolveInput
 import dev.nerzouille.koan.ui.bar.AddressRow
-import dev.nerzouille.koan.ui.bar.BarStyle
+import dev.nerzouille.koan.ui.bar.DrawerContent
+import dev.nerzouille.koan.ui.bar.DrawerState
 import dev.nerzouille.koan.ui.bar.KoanBar
 import dev.nerzouille.koan.ui.bar.PageInfo
 import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
@@ -36,15 +41,20 @@ import dev.nerzouille.koan.ui.bar.barZone
 import dev.nerzouille.koan.ui.browser.BrowserScreen
 import dev.nerzouille.koan.ui.overview.OverviewScreen
 import dev.nerzouille.koan.ui.overview.SpacePager
+import dev.nerzouille.koan.ui.overview.findTab
+import dev.nerzouille.koan.ui.overview.toModel
+import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.lib.state.ext.observeAsComposableState
+import kotlin.math.roundToInt
 
 /**
  * Page view and Space overview, with the one bottom bar on top of both: it morphs into the
- * workspace bar as the overview opens. M1: Room holds fake spaces; opening a card loads its URL in
- * the single live engine tab (real per-card tabs arrive in M3).
+ * workspace bar as the overview opens, and into the essentials/pinned drawer from there. M1: Room
+ * holds fake spaces; opening a card loads its URL in the single live engine tab (real per-card tabs
+ * arrive in M3).
  */
 @Composable
 fun KoanRoot(components: Components) {
@@ -53,8 +63,7 @@ fun KoanRoot(components: Components) {
     var activeTabId by rememberSaveable { mutableStateOf<String?>(null) }
     var overviewOpen by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
-    // Dev toggle while the owner compares both morphs.
-    var barStyle by rememberSaveable { mutableStateOf(BarStyle.Grow) }
+    val models = remember(spaces, activeTabId) { spaces.map { it.toModel(activeTabId) } }
 
     // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph.
     val progress = remember { Animatable(if (overviewOpen) 1f else 0f) }
@@ -71,12 +80,28 @@ fun KoanRoot(components: Components) {
     LaunchedEffect(pager) {
         snapshotFlow { pager.settled }.collect { currentSpace = it }
     }
+    val drawer = remember { DrawerState(scope) }
+    LaunchedEffect(overviewOpen) { if (!overviewOpen) drawer.snapClosed() }
+
+    // Blur steps for the cards behind the open drawer; RenderEffects are immutable and reusable.
+    val drawerBlurs = remember(density) {
+        val steps = DrawerTokens.Blur.value.roundToInt()
+        Array(steps + 1) { step -> if (step == 0) null else BlurEffect(step * density.density, step * density.density, TileMode.Decal) }
+    }
 
     fun loadInLiveTab(url: String) = components.sessionUseCases.loadUrl(url)
     fun openOverview() {
         editing = false
         pager.snapTo(currentSpace.coerceIn(0, pager.count - 1))
         overviewOpen = true
+    }
+    fun openTab(index: Int, tab: TabEntity) {
+        currentSpace = index
+        if (tab.koanTabId != activeTabId) {
+            activeTabId = tab.koanTabId
+            loadInLiveTab(tab.url)
+        }
+        overviewOpen = false
     }
     fun newTab(index: Int) {
         currentSpace = index
@@ -85,38 +110,60 @@ fun KoanRoot(components: Components) {
         overviewOpen = false
         editing = true
     }
+    fun isPinned(id: String) = spaces.any { s -> (s.pinned + s.essentials).any { it.koanTabId == id } }
 
     Box(Modifier.fillMaxSize()) {
         BrowserScreen(
             components = components,
             editing = editing,
-            bottomPadding = barZone(barStyle, overview = false),
+            bottomPadding = barZone(overview = false),
         )
         if (overviewVisible) {
             OverviewScreen(
                 spaces = spaces,
-                activeTabId = activeTabId,
+                models = models,
                 pager = pager,
-                dock = barZone(barStyle, overview = true),
-                onOpenTab = { index, tab ->
-                    currentSpace = index
-                    if (tab.koanTabId != activeTabId) {
-                        activeTabId = tab.koanTabId
-                        loadInLiveTab(tab.url)
-                    }
-                    overviewOpen = false
-                },
+                dock = barZone(overview = true),
+                onOpenTab = ::openTab,
                 onNewTab = ::newTab,
-                onCloseTab = { components.spaces.closeTab(it) },
-                onReorder = { components.spaces.reorderStack(it) },
-                onDismiss = { overviewOpen = false },
-                modifier = Modifier.graphicsLayer {
-                    val p = progress.value
-                    alpha = p
-                    val s = 1f + Motion.OVERVIEW_ZOOM * (1f - p)
-                    scaleX = s
-                    scaleY = s
+                onCloseTab = { id ->
+                    // A live pinned/essential card is only unloaded back to its row, never deleted.
+                    if (isPinned(id)) {
+                        if (id == activeTabId) activeTabId = null
+                    } else {
+                        components.spaces.closeTab(id)
+                    }
                 },
+                onReorder = { ids -> components.spaces.reorderStack(ids.filterNot(::isPinned)) },
+                onDismiss = { overviewOpen = false },
+                modifier = Modifier
+                    .graphicsLayer {
+                        val p = progress.value
+                        alpha = p
+                        val s = 1f + Motion.OVERVIEW_ZOOM * (1f - p)
+                        scaleX = s
+                        scaleY = s
+                        renderEffect = drawerBlurs[(drawer.progress * (drawerBlurs.size - 1)).roundToInt()]
+                    }
+                    .drawWithContent {
+                        drawContent()
+                        val d = drawer.progress
+                        if (d > 0.01f) drawRect(Color.Black, alpha = d * DrawerTokens.SCRIM)
+                    },
+            )
+        }
+        if (drawer.open) {
+            // Tap outside the drawer closes it; nothing behind it takes input meanwhile.
+            BackHandler { drawer.animateTo(false) }
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown().consume()
+                            drawer.animateTo(false)
+                        }
+                    },
             )
         }
 
@@ -135,17 +182,29 @@ fun KoanRoot(components: Components) {
         }
         val currentPage = page ?: PageInfo("", false, 0f, false, false)
         KoanBar(
-            style = barStyle,
             overviewOpen = overviewOpen,
             overview = { progress.value },
+            pager = pager,
+            drawer = drawer,
+            loading = currentPage.loading,
+            loadProgress = currentPage.progress,
             onSwipeUp = ::openOverview,
+            drawerContent = { modifier ->
+                DrawerContent(
+                    spaces = models,
+                    pager = pager,
+                    drawer = drawer,
+                    onOpenTab = { index, id -> spaces.getOrNull(index)?.findTab(id)?.let { openTab(index, it) } },
+                    modifier = modifier,
+                )
+            },
             switcher = { modifier ->
                 WorkspaceSwitcher(spaces.map { it.space }, pager, enabled = overviewOpen, modifier = modifier)
             },
             address = { modifier ->
                 AddressRow(
                     page = currentPage,
-                    tabCount = spaces.getOrNull(currentSpace)?.stack?.size ?: 0,
+                    tabCount = models.getOrNull(currentSpace)?.stack?.size ?: 0,
                     editing = editing,
                     overviewOpen = overviewOpen,
                     overview = { progress.value },
@@ -164,16 +223,11 @@ fun KoanRoot(components: Components) {
                         "Fill space to 50 tabs (dev)" to {
                             spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid) }
                         },
-                        "Bar: ${if (barStyle == BarStyle.Grow) "replace" else "grow"} style (dev)" to {
-                            barStyle = if (barStyle == BarStyle.Grow) BarStyle.Replace else BarStyle.Grow
-                        },
                     ),
                     modifier = modifier,
                 )
             },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
 }

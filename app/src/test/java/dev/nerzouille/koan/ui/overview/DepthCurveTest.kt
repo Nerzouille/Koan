@@ -58,23 +58,27 @@ class DepthCurveTest {
 
     @Test
     fun `a short drag commits to the next card, a tiny one springs back`() {
-        assertEquals(4f, snapTarget(3.2f, 0f, start = 3f, last = 10, revealStop = -1f))
-        assertEquals(2f, snapTarget(2.8f, 0f, start = 3f, last = 10, revealStop = -1f))
-        assertEquals(3f, snapTarget(3.1f, 0f, start = 3f, last = 10, revealStop = -1f))
-        assertEquals(3f, snapTarget(2.9f, 0f, start = 3f, last = 10, revealStop = -1f))
+        assertEquals(4f, snapTarget(3.2f, start = 3f, last = 10))
+        assertEquals(2f, snapTarget(2.8f, start = 3f, last = 10))
+        assertEquals(3f, snapTarget(3.1f, start = 3f, last = 10))
+        assertEquals(3f, snapTarget(2.9f, start = 3f, last = 10))
     }
 
     @Test
-    fun `fling carries further and clamps to the ends`() {
-        assertEquals(10f, snapTarget(9.8f, 20f, start = 9f, last = 10, revealStop = -1f))
-        assertEquals(6f, snapTarget(3.5f, 15f, start = 3f, last = 10, revealStop = -1f))
-        assertEquals(0f, snapTarget(0.3f, 0f, start = 0.4f, last = -1, revealStop = -1f))
+    fun `snap never skips past where the finger left the stack`() {
+        assertEquals(6f, snapTarget(5.4f, start = 3f, last = 10))
+        assertEquals(1f, snapTarget(1.6f, start = 3f, last = 10))
     }
 
     @Test
-    fun `pulling down past the first card reveals the header block`() {
-        assertEquals(-1f, snapTarget(-0.3f, 0f, start = 0f, last = 10, revealStop = -1f))
-        assertEquals(-1f, snapTarget(-1.2f, 0f, start = -1f, last = 10, revealStop = -1f))
-        assertEquals(0f, snapTarget(-0.8f, 0f, start = -1f, last = 10, revealStop = -1f))
+    fun `snap clamps to the ends`() {
+        assertEquals(10f, snapTarget(10.3f, start = 9f, last = 10))
+        assertEquals(0f, snapTarget(-0.4f, start = 0f, last = 10))
+        assertEquals(0f, snapTarget(0.3f, start = 0.4f, last = -1))
+    }
+
+    @Test
+    fun `pile keyframes are joined linearly`() {
+        assertEquals((StackTokens.Dim[1] + StackTokens.Dim[2]) / 2f, DepthCurve.dim(1.5f), 1e-5f)
     }
 }

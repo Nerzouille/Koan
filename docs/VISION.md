@@ -34,7 +34,7 @@ workspaces **are** your Zen desktop Spaces.
 1. Zen Spaces sync (read in M2, write-back in M6).
 2. Passwords + history + bookmarks from the Firefox account.
 3. uBlock Origin.
-4. Essentials grid at the top of each space (Zen essentials, synced).
+4. Essentials grid per space (Zen essentials, synced), in the drawer that grows out of the bottom bar.
 5. **Glance**: long-press a link → page opens in a floating sheet over the current tab; swipe up to
    promote it to a real tab, swipe down to dismiss (Zen's Glance feature, mobile-ised).
 6. Bottom address bar with a single-thumb flow (Arc-style), search suggestions, `@` to search a

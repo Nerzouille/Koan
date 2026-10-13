@@ -32,9 +32,12 @@ import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.KoanColors
 
-/** What a card needs to draw itself. Immutable so unchanged cards skip recomposition. */
+/**
+ * What a card needs to draw itself. Immutable so unchanged cards skip recomposition. [pinned] =
+ * a live pinned/essential tab: shown with a pin glyph, closing it only unloads it.
+ */
 @Immutable
-data class CardModel(val id: String, val title: String, val url: String, val active: Boolean)
+data class CardModel(val id: String, val title: String, val url: String, val active: Boolean, val pinned: Boolean = false)
 
 /**
  * One card of the depth stack. Depth-dependent effects (blur, dim, ✕ visibility) are read from
@@ -103,6 +106,10 @@ private fun CardHeader(card: CardModel, depth: () -> Float) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
+        if (card.pinned) {
+            Spacer(Modifier.width(CardTokens.HeaderGap))
+            Icon(KoanIcons.Pin, null, tint = KoanColors.TextSecondary, modifier = Modifier.size(CardTokens.PinGlyph))
+        }
         if (card.active) {
             Spacer(Modifier.width(CardTokens.HeaderGap))
             Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanColors.DefaultAccent))
