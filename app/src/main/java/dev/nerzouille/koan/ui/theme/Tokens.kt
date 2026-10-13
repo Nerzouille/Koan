@@ -287,4 +287,7 @@ object Motion {
     /** Overview open/close; also drives the bar morph. */
     val Overview: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)
     const val OVERVIEW_ZOOM = 0.04f
+
+    /** Keep the high refresh rate this long after the last touch/key: longer than the longest fling (2.2 s). */
+    const val REFRESH_BOOST_IDLE_MS = 3000L
 }
