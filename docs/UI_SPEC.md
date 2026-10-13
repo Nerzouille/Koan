@@ -80,31 +80,35 @@ to the top of the stack.
 ### Depth stack (the "premium" feel) — most important visual rule
 
 Source: v3 "Upright depth stack" in `docs/reference/design/Koan Screens.dc.html`
-(`v3-perspective-stack.png`). All numbers below live in `ui/theme/Tokens.kt` (`StackTokens`).
+(`v3-perspective-stack.png`), geometry retuned to the owner's `sketch-stack.png`. All numbers
+below live in `ui/theme/Tokens.kt` (`StackTokens`).
 
 The stack is a **one-point perspective deck**: cards behind the focused one converge toward a
-vanishing point above it. Cards are **always upright** (no tilt). Every card's transform is a pure
-function of its distance `d` (in card slots, fractional) from the focus: `d = 0` focused, `d > 0`
-behind (in the pile above), `d < 0` in front (the peek below, then gone).
+vanishing point just above it. Cards are **always upright** (no tilt). Every card's transform is a
+pure function of its distance `d` (in card slots, fractional) from the focus: `d = 0` focused,
+`d > 0` behind (in the pile above), `d < 0` in front (the card below, then gone).
 
-- **Focus:** the focused card is big and dominant, upright, scale 1.0, around the middle of the stack
-  area. Height = 58% of the stack viewport (design 64%, made ~9% shorter so the pile has room).
-  Its bottom edge sits `PeekGap` (14dp) above the peeking card.
-- **Pile (d > 0):** with ρ = rᵈ, r = 0.55:
-  `offsetY(d) = −A·(1 − ρ)` (top edge rises; A ≈ 176dp, clamped so the pile never reaches the
-  header) and `scale(d) = sMin + (1 − sMin)·ρ`, sMin = 0.62 → .83 · .73 · .68 · .65.
-  Spacing and size shrink geometrically. Thumbnail darkness (brightness 1 → .84 → .72 → .62 …) and
-  blur (σ 0, 0, .5, 1, 1.6, 2.2, 2.8 dp) increase with depth, keyframes joined linearly; cards fade
-  out from d ≈ 5 and are gone by d = 8.
-- **Peek (d = −1):** only the next card, upright at scale 0.94, its header strip visible at the
-  bottom of the viewport (`PeekVisible` 80dp shows). Cards past the peek fade out within a third of
-  a slot.
-- **Scrolling is continuous along that curve:** the stack moves 1:1 with the finger (230dp per
-  slot); the next card rises from the peek and grows into focus, the current one shrinks and slides
-  up into the pile. On release the stack **snaps so a card always settles in focus** (prototype
-  rule): a release that moved more than 0.15 card commits to the next whole card in that direction
-  from where the finger left it (no fling carry, never skips further), otherwise it glides back.
-  The snap is an exponential glide (≈ 90ms time constant, no overshoot).
+- **Focus:** the focused card is big and dominant, upright, scale 1.0. Height = 65% of the stack
+  viewport; its bottom edge sits 94dp above the viewport bottom (it grows upward, not downward).
+- **Pile (d > 0):** bunched tightly just above the focused card's top, converging fast:
+  `offsetY(d) = −A·(1 − rᵈ)` with r = 0.45 and A = 28% of the focused card's height (first gap
+  ≈ 15% of it), clamped so the pile never reaches the header; `scale(d) = sMin + (1 − sMin)·r_sᵈ`
+  with sMin = 0.58, r_s = 0.52 → .80 · .69 · .64 · .61. Thumbnail darkness (brightness 1 → .84 →
+  .72 → .62 …) and blur (σ 0, 0, .5, 1, 1.6, 2.2, 2.8 dp) increase with depth, keyframes joined
+  linearly; cards fade out from d ≈ 5 and are gone by d = 8.
+- **Card in front (d = −1):** closer to the viewer, so slightly **bigger** (scale 1.05) and drawn
+  over the focused card: it overlaps the focused card's bottom by 40dp, no gap between them. Its
+  header and the top of its thumbnail show at the bottom of the viewport. Cards past it fade out
+  within a third of a slot.
+- **Scrolling is continuous along that curve:** a drag moves the stack 1:1 with the finger (140dp
+  per card); the next card rises from the front and settles into focus, the current one shrinks and
+  slides up into the pile.
+- **Release:** a card always settles in focus.
+  - Slow release (< 2 cards/s): prototype rule — moved more than 0.15 card → the next whole card
+    in that direction, otherwise glide back (exponential glide, ≈ 90ms time constant).
+  - Fling: **momentum scroll** — it travels velocity × 0.5s worth of cards (at least one), landing
+    exactly on a card with a cubic ease-out that starts at the finger's speed (0.3–2.2s). A few
+    flings cross 50 tabs. Touching the stack during a fling stops it (that touch never opens a card).
 - Every card keeps the same soft shadow (prototype): it is what layers the pile. Depth comes from
   position, scale, brightness and blur, never from borders or tilt.
 - Rubber-band overscroll at both ends (the prototype clamps hard; Android users expect the stretch).

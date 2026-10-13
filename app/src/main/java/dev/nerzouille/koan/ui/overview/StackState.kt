@@ -17,6 +17,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.sign
 
 /** Per-card animated values, all read in layer/draw lambdas only. */
 @Stable
@@ -68,10 +70,12 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
 
     fun anim(id: String, index: Int): CardAnim = cards.getOrPut(id) { CardAnim(index.toFloat()) }
 
-    /** Finger down: stop any settling and remember where this drag starts. */
-    fun startDrag() {
+    /** Finger down: stop any settling/fling and remember where this drag starts. True if it caught one. */
+    fun startDrag(): Boolean {
+        val caught = scrollJob?.isActive == true
         scrollJob?.cancel()
         dragStart = pos
+        return caught
     }
 
     /** Finger moved by [dyPx] (positive = down = earlier cards come forward). Rubber-bands past both ends. */
@@ -82,8 +86,32 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         pos += if (over > 0f && goingFurtherOut) delta * StackTokens.RUBBER_BAND / (1f + over * 2f) else delta
     }
 
-    /** Finger lifted: settle on a card. */
-    fun release() = animateTo(snapTarget(pos, dragStart, last))
+    /**
+     * Finger lifted with vertical velocity [vyPx] px/s. Slow: settle by the prototype's distance rule.
+     * Fast: momentum scroll through as many cards as the velocity carries, landing on a card.
+     */
+    fun release(vyPx: Float = 0f) {
+        val v = -vyPx / slotPx
+        if (abs(v) < StackTokens.FLING_MIN_VELOCITY) return animateTo(snapTarget(pos, dragStart, last))
+        val target = flingTarget(pos, v, last)
+        val distance = target - pos
+        if (distance == 0f || sign(distance) != sign(v)) return animateTo(target)
+        // Cubic ease-out x(t) = x0 + D·(1 − (1 − t/T)³) starts at speed 3D/T: pick T to match the finger.
+        val p = StackTokens.FLING_EASE_POWER
+        val duration = (p * distance / v).coerceIn(StackTokens.FLING_MIN_SECONDS, StackTokens.FLING_MAX_SECONDS)
+        scrollJob?.cancel()
+        scrollJob = scope.launch {
+            val from = pos
+            val start = withFrameNanos { it }
+            var t = 0f
+            while (t < 1f) {
+                withFrameNanos { now ->
+                    t = ((now - start) / 1_000_000_000f / duration).coerceAtMost(1f)
+                    pos = from + distance * (1f - (1f - t).pow(p))
+                }
+            }
+        }
+    }
 
     /** Exponential glide to [target]: fast start, no overshoot, like the prototype. */
     fun animateTo(target: Float) {

@@ -84,9 +84,11 @@ fun KoanRoot(components: Components) {
     LaunchedEffect(overviewOpen) { if (!overviewOpen) drawer.snapClosed() }
 
     // Blur steps for the cards behind the open drawer; RenderEffects are immutable and reusable.
+    // Clamp, not Decal: Decal fades the edges to transparent and the page underneath (often a white
+    // site) showed through as light strips on the left and right.
     val drawerBlurs = remember(density) {
         val steps = DrawerTokens.Blur.value.roundToInt()
-        Array(steps + 1) { step -> if (step == 0) null else BlurEffect(step * density.density, step * density.density, TileMode.Decal) }
+        Array(steps + 1) { step -> if (step == 0) null else BlurEffect(step * density.density, step * density.density, TileMode.Clamp) }
     }
 
     fun loadInLiveTab(url: String) = components.sessionUseCases.loadUrl(url)

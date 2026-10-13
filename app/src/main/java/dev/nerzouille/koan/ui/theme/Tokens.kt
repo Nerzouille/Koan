@@ -35,27 +35,35 @@ object KoanColors {
     val PageDot = Color.White
 }
 
-/** The upright one-point-perspective card stack (docs/UI_SPEC.md "Depth stack"). */
+/** The upright one-point-perspective card stack (docs/UI_SPEC.md "Depth stack"). Tuned to sketch-stack.png. */
 object StackTokens {
-    /** Geometric ratio per slot of depth: spacing and scale shrink by this factor each card back. */
-    const val R = 0.55f
+    /** Geometric ratio per slot of depth for the pile's spacing: lower = bunches tighter, faster. */
+    const val R = 0.45f
+
+    /** Same, for the pile's scale (the sketch shrinks widths a bit slower than it closes gaps). */
+    const val SCALE_R = 0.52f
 
     /** Scale the pile converges to far back (the vanishing point). */
-    const val S_MIN = 0.62f
+    const val S_MIN = 0.58f
 
-    /** A: how far above the focused card's top the pile converges. Clamped to the room available. */
-    val PileDepth = 176.dp
+    /**
+     * A: how far above the focused card's top the pile converges, as a fraction of the focused
+     * card's height (first gap = A·(1 − r)). Clamped to the room available.
+     */
+    const val PILE_DEPTH_FRACTION = 0.28f
 
-    /** Focused card height as a fraction of the stack viewport (design: 0.64; −9% per owner). */
-    const val CARD_HEIGHT_FRACTION = 0.58f
+    /** Focused card height as a fraction of the stack viewport. Grows upward: the bottom stays put. */
+    const val CARD_HEIGHT_FRACTION = 0.65f
     val CardSideMargin = 14.dp
 
-    /** How much of the card below the focus shows at the bottom of the viewport (its header + a bit). */
-    val PeekVisible = 80.dp
+    /** Distance from the viewport bottom to the focused card's bottom edge. */
+    val FocusBottomInset = 94.dp
 
-    /** Gap between the focused card's bottom edge and the peeking card's top edge. */
-    val PeekGap = 14.dp
-    const val PEEK_SCALE = 0.94f
+    /** The card in front overlaps the focused card's bottom by this much (no gap between them). */
+    val PeekOverlap = 40.dp
+
+    /** The card in front is closer to the viewer: slightly bigger than the focused one. */
+    const val PEEK_SCALE = 1.05f
     const val PEEK_DIM = 0.12f
 
     /** Cards further in front than the peek fade out over this fraction of a slot. */
@@ -80,11 +88,22 @@ object StackTokens {
     /** Header strip is dimmed at most this much, so titles stay legible deep in the pile. */
     const val HEADER_DIM_MAX = 0.2f
 
-    /** Finger travel that moves the stack by one slot. */
-    val SlotDrag = 230.dp
+    /** Finger travel that moves the stack by one slot (prototype: 230dp; shorter covers more cards). */
+    val SlotDrag = 140.dp
 
-    /** A release that moved the stack more than this (in slots) commits to the next card. */
+    /** A slow release that moved the stack more than this (in slots) commits to the next card. */
     const val SNAP_COMMIT = 0.15f
+
+    /** Releases faster than this (slots/s) are flings: momentum scroll through several cards. */
+    const val FLING_MIN_VELOCITY = 2f
+
+    /** A fling travels velocity × this many seconds, then lands on the nearest card. */
+    const val FLING_GLIDE_SECONDS = 0.5f
+
+    /** Fling deceleration: cubic ease-out (starts at the finger's speed, stops dead on a card). */
+    const val FLING_EASE_POWER = 3f
+    const val FLING_MIN_SECONDS = 0.3f
+    const val FLING_MAX_SECONDS = 2.2f
 
     /** Overscroll resistance past both ends. */
     const val RUBBER_BAND = 0.45f

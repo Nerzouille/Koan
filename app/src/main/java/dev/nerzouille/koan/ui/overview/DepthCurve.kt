@@ -12,12 +12,13 @@ import kotlin.math.roundToInt
  * the focus (docs/UI_SPEC.md "Depth stack"). d = 0 focused, d > 0 behind (in the pile above),
  * d < 0 in front (the peek below, then gone).
  *
- * Behind the focus the deck is a one-point perspective: with ρ = rᵈ, the card rises by A·(1 − ρ)
- * and scales to sMin + (1 − sMin)·ρ, so spacing and size shrink geometrically towards a vanishing
- * point. Cards are always upright.
+ * Behind the focus the deck is a one-point perspective: the card rises by A·(1 − rᵈ) and scales to
+ * sMin + (1 − sMin)·r_sᵈ, so spacing and size shrink geometrically towards a vanishing point. The
+ * card in front is closer to the viewer, so slightly bigger. Cards are always upright.
  */
 object DepthCurve {
     private val r = StackTokens.R
+    private val scaleR = StackTokens.SCALE_R
     private val sMin = StackTokens.S_MIN
 
     /** 0 at the focus, → 1 deep in the pile: the fraction of the pile depth A a card has risen. */
@@ -27,7 +28,7 @@ object DepthCurve {
     fun drop(d: Float): Float = (-d).coerceIn(0f, 1f)
 
     fun scale(d: Float): Float =
-        if (d >= 0f) sMin + (1f - sMin) * r.pow(d) else 1f - (1f - StackTokens.PEEK_SCALE) * drop(d)
+        if (d >= 0f) sMin + (1f - sMin) * scaleR.pow(d) else 1f + (StackTokens.PEEK_SCALE - 1f) * drop(d)
 
     /** Black overlay alpha on the thumbnail (1 − brightness). */
     fun dim(d: Float): Float = if (d >= 0f) lerp(StackTokens.Dim, d) else StackTokens.PEEK_DIM * drop(d)
@@ -69,5 +70,16 @@ fun snapTarget(pos: Float, start: Float, last: Int): Float {
         else -> floor(pos)
     }
     // + 0f turns ceil's -0.0 into 0.0.
+    return (target + 0f).coerceIn(0f, last.coerceAtLeast(0).toFloat())
+}
+
+/**
+ * Where a fling lands: velocity × [StackTokens.FLING_GLIDE_SECONDS] further, on the nearest card,
+ * and at least the next card in the fling direction. Always a card in [0, last].
+ */
+fun flingTarget(pos: Float, velocitySlotsPerSec: Float, last: Int): Float {
+    var target = (pos + velocitySlotsPerSec * StackTokens.FLING_GLIDE_SECONDS).roundToInt().toFloat()
+    if (velocitySlotsPerSec > 0f && target <= pos) target = floor(pos) + 1f
+    if (velocitySlotsPerSec < 0f && target >= pos) target = ceil(pos) - 1f
     return (target + 0f).coerceIn(0f, last.coerceAtLeast(0).toFloat())
 }

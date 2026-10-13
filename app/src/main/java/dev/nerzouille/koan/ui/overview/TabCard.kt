@@ -97,24 +97,26 @@ private fun CardHeader(card: CardModel, depth: () -> Float) {
     ) {
         Favicon(card.url, CardTokens.Favicon)
         Spacer(Modifier.width(CardTokens.HeaderGap))
-        Text(
-            card.title,
-            color = KoanColors.TextPrimary,
-            fontSize = CardTokens.TitleSize,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        if (card.pinned) {
-            Spacer(Modifier.width(CardTokens.HeaderGap))
-            Icon(KoanIcons.Pin, null, tint = KoanColors.TextSecondary, modifier = Modifier.size(CardTokens.PinGlyph))
+        // Title + markers take the free width, so the ✕ always sits at the right edge.
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                card.title,
+                color = KoanColors.TextPrimary,
+                fontSize = CardTokens.TitleSize,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (card.pinned) {
+                Spacer(Modifier.width(CardTokens.HeaderGap))
+                Icon(KoanIcons.Pin, null, tint = KoanColors.TextSecondary, modifier = Modifier.size(CardTokens.PinGlyph))
+            }
+            if (card.active) {
+                Spacer(Modifier.width(CardTokens.HeaderGap))
+                Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanColors.DefaultAccent))
+            }
         }
-        if (card.active) {
-            Spacer(Modifier.width(CardTokens.HeaderGap))
-            Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanColors.DefaultAccent))
-        }
-        Spacer(Modifier.weight(0.001f))
         // ✕ only on the focused card; the stack's gesture handler does the hit-testing.
         Box(
             Modifier

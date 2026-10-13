@@ -139,7 +139,8 @@ fun DepthStack(
                     if (!enabled) return@pointerInput
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
-                        state.startDrag()
+                        // A touch that catches a moving stack only stops it; it never opens or focuses a card.
+                        val caught = state.startDrag()
                         val hit = geo.hitTest(down.position, currentIds)
                         val tracker = VelocityTracker()
                         tracker.addPosition(down.uptimeMillis, down.position)
@@ -166,7 +167,7 @@ fun DepthStack(
                         when (result) {
                             Gesture.Cancel -> state.release()
                             Gesture.Tap -> when {
-                                hit == null -> state.release()
+                                hit == null || caught -> state.release()
                                 hit.onClose -> flyOff(hit.id, 1f)
                                 // Tap the focused card to open it; tap any other card to bring it into focus.
                                 hit.focused -> currentOnOpen(hit.id)
@@ -180,7 +181,7 @@ fun DepthStack(
                                     swipeCard(state, state.anim(focusedId, 0), down.id) { dir -> flyOff(focusedId, dir) }
                                 } else {
                                     trackUntilUp(down.id, tracker) { state.dragBy(it.positionChange().y) }
-                                    state.release()
+                                    state.release(tracker.calculateVelocity().y)
                                 }
                             }
                             Gesture.LongPress -> if (hit != null) {
@@ -234,15 +235,15 @@ private class StackGeometry(
     private val headerPx = CardTokens.HeaderHeight.value * density
     private val closePx = CardTokens.CloseTouch.value * density
 
-    /** Top of the peeking card (d = -1): only its header and a bit show above the viewport bottom. */
-    private val peekTop = viewportHeight - StackTokens.PeekVisible.value * density
+    /** Top of the focused card: its bottom sits a fixed inset above the viewport bottom. */
+    private val focusTop = viewportHeight - StackTokens.FocusBottomInset.value * density - cardHeight
 
-    /** Top of the focused card: its bottom sits just above the peek. */
-    private val focusTop = peekTop - StackTokens.PeekGap.value * density - cardHeight
+    /** Top of the card in front (d = -1): it overlaps the focused card's bottom part. */
+    private val peekTop = focusTop + cardHeight - StackTokens.PeekOverlap.value * density
 
     /** A: the pile converges this far above the focused card, never into the header. */
     private val pileDepth = min(
-        StackTokens.PileDepth.value * density,
+        StackTokens.PILE_DEPTH_FRACTION * cardHeight,
         focusTop - StackTokens.PileTopGap.value * density,
     ).coerceAtLeast(0f)
 

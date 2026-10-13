@@ -9,13 +9,13 @@ class DepthCurveTest {
     @Test
     fun `pile follows the geometric perspective curve`() {
         assertEquals(1f, DepthCurve.scale(0f), 1e-5f)
-        // Design: scale(d) = 0.62 + 0.38·0.55ᵈ → .83 · .73 · .68 · .65
-        assertEquals(0.829f, DepthCurve.scale(1f), 1e-3f)
-        assertEquals(0.735f, DepthCurve.scale(2f), 1e-3f)
-        assertEquals(0.683f, DepthCurve.scale(3f), 1e-3f)
+        // Sketch: scale(d) = 0.58 + 0.42·0.52ᵈ → .80 · .69 · .64
+        assertEquals(0.798f, DepthCurve.scale(1f), 1e-3f)
+        assertEquals(0.694f, DepthCurve.scale(2f), 1e-3f)
+        assertEquals(0.639f, DepthCurve.scale(3f), 1e-3f)
         assertEquals(0f, DepthCurve.rise(0f), 1e-5f)
-        assertEquals(0.45f, DepthCurve.rise(1f), 1e-4f)
-        assertEquals(1f - 0.55f * 0.55f, DepthCurve.rise(2f), 1e-4f)
+        assertEquals(0.55f, DepthCurve.rise(1f), 1e-4f)
+        assertEquals(1f - 0.45f * 0.45f, DepthCurve.rise(2f), 1e-4f)
     }
 
     @Test
@@ -37,7 +37,7 @@ class DepthCurveTest {
     }
 
     @Test
-    fun `peek card is slightly smaller and cards past it fade out`() {
+    fun `card in front is slightly bigger and cards past it fade out`() {
         assertEquals(StackTokens.PEEK_SCALE, DepthCurve.scale(-1f), 1e-5f)
         assertEquals(StackTokens.PEEK_SCALE, DepthCurve.scale(-1.5f), 1e-5f)
         assertEquals(1f, DepthCurve.alpha(-1f), 1e-5f)
@@ -80,5 +80,19 @@ class DepthCurveTest {
     @Test
     fun `pile keyframes are joined linearly`() {
         assertEquals((StackTokens.Dim[1] + StackTokens.Dim[2]) / 2f, DepthCurve.dim(1.5f), 1e-5f)
+    }
+
+    @Test
+    fun `a fling carries through several cards and lands on one`() {
+        // 20 slots/s × 0.5 s = 10 cards further.
+        assertEquals(13f, flingTarget(3.2f, 20f, last = 49))
+        assertEquals(0f, flingTarget(8f, -40f, last = 49))
+        assertEquals(49f, flingTarget(45f, 40f, last = 49))
+    }
+
+    @Test
+    fun `a weak fling still reaches the next card`() {
+        assertEquals(4f, flingTarget(3.1f, 0.1f, last = 49))
+        assertEquals(2f, flingTarget(3f, -0.1f, last = 49))
     }
 }
