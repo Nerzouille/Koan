@@ -9,4 +9,12 @@ class KoanApp : Application() {
      * never spin up a second runtime.
      */
     val components by lazy { Components(this) }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (componentsReady) components.tabs.onTrimMemory(level)
+    }
+
+    /** Set by MainActivity: only the main process ever builds the components. */
+    var componentsReady = false
 }

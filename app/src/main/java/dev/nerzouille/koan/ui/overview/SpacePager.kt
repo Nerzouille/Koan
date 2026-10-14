@@ -71,6 +71,12 @@ class SpacePager(initial: Int, private val scope: CoroutineScope) {
      * Otherwise spring back. Returns true when this commits to another space.
      */
     fun release(vxPx: Float, flingPx: Float): Boolean {
+        val from = settled
+        return releaseTo(vxPx, flingPx) != from
+    }
+
+    /** [release], returning the space it lands on (known before the motion ends). */
+    fun releaseTo(vxPx: Float, flingPx: Float): Int {
         val delta = pos - settled
         val v = -vxPx // > 0 = towards the next space
         val dir = when {
@@ -81,7 +87,7 @@ class SpacePager(initial: Int, private val scope: CoroutineScope) {
         }
         val target = (settled + dir).coerceIn(0, count - 1)
         animateTo(target, v / pageWidthPx)
-        return target != settled
+        return target
     }
 
     fun animateTo(index: Int, velocity: Float = 0f) {

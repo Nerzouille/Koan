@@ -40,6 +40,8 @@ class SpacesSync(
     private val accounts: AccountStore,
     private val dao: KoanDao,
     private val scope: CoroutineScope,
+    /** Tabs open on the phone right now: a pull never changes their page under the user. */
+    private val liveTabs: () -> Set<String> = { emptySet() },
 ) {
     private val _status = MutableStateFlow<SyncStatus>(SyncStatus.Idle(0))
     val status: StateFlow<SyncStatus> = _status
@@ -151,7 +153,7 @@ class SpacesSync(
         } else {
             val inUse = rows.tabs.mapNotNullTo(HashSet()) { it.iconUrl?.takeIf { k -> k.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX) } }
             IconStore.storeInline(rows.inlineIcons, inUse)
-            val diff = ZenDiff.between(rows, dao.spaces(), dao.tabs(), dao.folders(), dao.splits())
+            val diff = ZenDiff.between(rows, dao.spaces(), dao.tabs(), dao.folders(), dao.splits(), liveTabs())
             if (!diff.isEmpty) dao.applyZenDiff(diff)
             IconStore.prewarm(rows.tabs.map { it.url to it.iconUrl })
         }

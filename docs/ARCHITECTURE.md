@@ -131,7 +131,8 @@ Request the display's highest refresh rate for the overview and page view
 
 AndroidX core/activity/lifecycle/navigation-compose, Compose BOM (+ foundation, animation,
 material3), Room, DataStore, WorkManager, kotlinx.coroutines, kotlinx.serialization,
-androidx.security / Keystore, Coil 3 (images), Mozilla android-components + GeckoView,
+androidx.security / Keystore, Coil 3 (images), Mozilla android-components + GeckoView (incl.
+`browser-session-storage`, approved for M3),
 androidsvg (favicons, as in Z-Sync), baselineprofile, JUnit, Turbine, Robolectric (if needed).
 
 ## Decisions log
@@ -169,6 +170,22 @@ androidsvg (favicons, as in Z-Sync), baselineprofile, JUnit, Turbine, Robolectri
   never Google's (owner's choice). Decoded icons are prewarmed at start/sync.
 - 2026-10-14 — **Stack scale**: the depth stack composes only cards near the focus and applies data
   updates only when the stack is idle, anchored on the focused card.
+
+- 2026-10-14 — **M3 tabs**: `engine/TabManager` maps Room tabs to BrowserStore tabs with the same
+  id, created on first open (never-opened Zen tabs have none). Max 4 live sessions (MRU); others
+  suspended via `SuspendEngineSessionAction`. Android 14+ only delivers `UI_HIDDEN`/`BACKGROUND` to
+  `onTrimMemory`: BACKGROUND keeps only the current session live; the screenshot for the next start
+  is taken in `onPause`. Engine tabs persist with AC `browser-session-storage` (AutoSave on change,
+  periodically in the foreground, on stop). Room v3 adds `cardOrder` (live pinned/essential tabs'
+  stack slot) and `zenUrl`: a pull only overrides a phone-navigated page when Zen navigated that tab
+  itself, never while it is open on the phone.
+- 2026-10-14 — **Thumbnails**: own `ThumbnailStore` (not AC `browser-thumbnails`): WebP lossy q80,
+  480px wide (`ThumbTokens`), 150 MB disk LRU, ~48 MB memory LRU of hardware bitmaps. Room
+  `thumbnailKey` = file name, new per capture, so cards update via the normal diff.
+- 2026-10-14 — **Page cover**: a Compose layer over the engine view shows the tab's screenshot (or
+  placeholder) until the engine reports a fresh first paint; no white flash on open, restore or
+  cold start. Dock hides with GeckoView's dynamic toolbar (`setDynamicToolbarMaxHeight` +
+  `setVerticalClipping`), driven by GeckoView's nested scrolling through Compose.
 
 _(Claude Code: append dated decisions here, e.g. "2026-10-20 — chose android-components over raw
 GeckoView because …")_

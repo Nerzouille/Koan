@@ -76,6 +76,7 @@ object ZenRoomMapper {
                 order = order,
                 zenOrder = order,
                 origin = TabOrigin.ZEN,
+                zenUrl = t.url,
             )
         }
 

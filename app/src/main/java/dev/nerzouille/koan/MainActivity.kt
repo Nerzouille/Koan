@@ -15,10 +15,12 @@ import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.favicon.IconStore
+import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.KoanRoot
 import dev.nerzouille.koan.ui.RefreshBooster
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
+import mozilla.components.feature.tabs.WindowFeature
 
 class MainActivity : FragmentActivity() {
     private val refresh = RefreshBooster(this)
@@ -30,12 +32,19 @@ class MainActivity : FragmentActivity() {
         )
         super.onCreate(savedInstanceState)
 
-        val components = (application as KoanApp).components
-        if (components.store.state.tabs.isEmpty()) {
-            components.tabsUseCases.addTab("about:blank", selectTab = true)
-        }
+        val app = application as KoanApp
+        val components = app.components
+        app.componentsReady = true
         IconStore.initialize(this)
+        ThumbnailStore.initialize(this)
         components.spaces.ensureLocalSpace()
+        // Engine tabs come back from disk (no-op if this process already has them), then the last tab.
+        components.tabs.start(components.sessionStorage)
+        components.autoSave
+            .periodicallyInForeground(lifecycle = lifecycle)
+            .whenGoingToBackground(lifecycle)
+        // Pages opening tabs (target=_blank, window.open); TabManager files them next to their opener.
+        lifecycle.addObserver(WindowFeature(components.store, components.tabsUseCases))
         components.sync.start()
 
         setContent {
@@ -89,6 +98,8 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onPause() {
+        // Leaving Koan: screenshot the page, so the next start (or a restore) shows it at once.
+        (application as KoanApp).components.tabs.captureCurrent()
         refresh.stop()
         super.onPause()
     }

@@ -97,4 +97,48 @@ class ZenDiffTest {
         )
         assertEquals(listOf(folder.copy(name = "Docs 2", collapsed = true)), diff.foldersToUpsert)
     }
+
+    // ---- M3: pages navigated on the phone ----
+
+    private fun phoneNavigated(t: TabEntity) =
+        t.copy(url = "https://phone/", title = "Phone page", iconUrl = null, dirty = true, zenUrl = t.url)
+
+    @Test
+    fun phoneNavigationSurvivesAPullWhenZenDidNotNavigate() {
+        val local = listOf(phoneNavigated(pulledTabs[0]), pulledTabs[1], pulledTabs[2])
+        val pulled = pulledTabs.map { it.copy(zenUrl = it.url) }
+        val diff = ZenDiff.between(rows(listOf(a), pulled), listOf(a), local, emptyList(), emptyList())
+        assertTrue(diff.tabsToUpsert.none { it.koanTabId == "zen:t1" && it.url != "https://phone/" })
+    }
+
+    @Test
+    fun zenNavigationWinsOverAPhonePageThatIsNotOpen() {
+        val local = listOf(phoneNavigated(pulledTabs[0]), pulledTabs[1], pulledTabs[2])
+        val moved = pulledTabs[0].copy(url = "https://zen-moved/", zenUrl = "https://zen-moved/")
+        val diff = ZenDiff.between(rows(listOf(a), listOf(moved) + pulledTabs.drop(1)), listOf(a), local, emptyList(), emptyList())
+        val t1 = diff.tabsToUpsert.single { it.koanTabId == "zen:t1" }
+        assertEquals("https://zen-moved/", t1.url)
+        assertEquals(false, t1.dirty)
+    }
+
+    @Test
+    fun aTabOpenOnThePhoneKeepsItsPageEvenWhenZenNavigates() {
+        val local = listOf(phoneNavigated(pulledTabs[0]), pulledTabs[1], pulledTabs[2])
+        val moved = pulledTabs[0].copy(url = "https://zen-moved/", zenUrl = "https://zen-moved/")
+        val diff = ZenDiff.between(
+            rows(listOf(a), listOf(moved) + pulledTabs.drop(1)), listOf(a), local, emptyList(), emptyList(), live = setOf("zen:t1"),
+        )
+        val t1 = diff.tabsToUpsert.single { it.koanTabId == "zen:t1" }
+        assertEquals("https://phone/", t1.url)
+        assertEquals("https://zen-moved/", t1.zenUrl)
+        assertEquals(true, t1.dirty)
+    }
+
+    @Test
+    fun aLivePinnedTabKeepsItsCard() {
+        val pinned = zenTab("p", "a", 0).copy(pinned = true)
+        val local = listOf(pinned.copy(cardOrder = 40))
+        val diff = ZenDiff.between(rows(listOf(a), listOf(pinned.copy(title = "renamed"))), listOf(a), local, emptyList(), emptyList())
+        assertEquals(40, diff.tabsToUpsert.single().cardOrder)
+    }
 }

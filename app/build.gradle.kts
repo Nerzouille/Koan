@@ -125,6 +125,7 @@ dependencies {
     implementation(libs.mozilla.concept.engine)
     implementation(libs.mozilla.feature.session)
     implementation(libs.mozilla.feature.tabs)
+    implementation(libs.mozilla.browser.session.storage)
     implementation(libs.mozilla.lib.state)
 
     testImplementation(libs.junit)

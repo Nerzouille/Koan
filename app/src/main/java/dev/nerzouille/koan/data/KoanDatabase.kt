@@ -13,6 +13,8 @@ import androidx.room.Transaction
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.Upsert
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 import org.json.JSONArray
 
@@ -75,6 +77,53 @@ interface KoanDao {
 
     @Query("DELETE FROM tabs WHERE koanTabId = :koanTabId")
     suspend fun deleteTab(koanTabId: String)
+
+    @Query("SELECT * FROM tabs WHERE koanTabId = :koanTabId")
+    suspend fun tab(koanTabId: String): TabEntity?
+
+    /** Stack position of the space's last card (normal tabs and live pinned ones), -1 if none. */
+    @Query(
+        "SELECT COALESCE(MAX(COALESCE(cardOrder, `order`)), -1) FROM tabs " +
+            "WHERE spaceUuid = :spaceUuid AND NOT closed AND ((NOT pinned AND NOT essential) OR cardOrder IS NOT NULL)",
+    )
+    suspend fun maxStackOrder(spaceUuid: String): Int
+
+    @Query("UPDATE tabs SET `order` = `order` + :by WHERE spaceUuid = :spaceUuid AND NOT pinned AND NOT essential AND `order` > :after")
+    suspend fun shiftStackOrders(spaceUuid: String, after: Int, by: Int)
+
+    @Query("UPDATE tabs SET cardOrder = cardOrder + :by WHERE spaceUuid = :spaceUuid AND cardOrder > :after")
+    suspend fun shiftCardOrders(spaceUuid: String, after: Int, by: Int)
+
+    /** Inserts [tab] into its space's stack right after position [after] (the card in front of it). */
+    @Transaction
+    suspend fun insertInStack(tab: TabEntity, after: Int) {
+        shiftStackOrders(tab.spaceUuid, after, 1)
+        shiftCardOrders(tab.spaceUuid, after, 1)
+        upsertTabs(listOf(if (tab.pinned || tab.essential) tab.copy(cardOrder = after + 1) else tab.copy(order = after + 1)))
+    }
+
+    @Query("UPDATE tabs SET cardOrder = :cardOrder WHERE koanTabId = :koanTabId")
+    suspend fun setCardOrder(koanTabId: String, cardOrder: Int?)
+
+    /** What the engine reports about a page; [dirty] marks it as navigated on the phone. */
+    @Query(
+        "UPDATE tabs SET url = :url, title = :title, iconUrl = :iconUrl, staticIcon = :staticIcon, dirty = 1 " +
+            "WHERE koanTabId = :koanTabId",
+    )
+    suspend fun setPage(koanTabId: String, url: String, title: String, iconUrl: String?, staticIcon: Boolean)
+
+    @Query("UPDATE tabs SET lastAccessed = :at WHERE koanTabId = :koanTabId")
+    suspend fun setLastAccessed(koanTabId: String, at: Long)
+
+    @Query("UPDATE tabs SET thumbnailKey = :key WHERE koanTabId = :koanTabId")
+    suspend fun setThumbnail(koanTabId: String, key: String?)
+
+    @Query("UPDATE tabs SET thumbnailKey = NULL WHERE thumbnailKey IN (:keys)")
+    suspend fun clearThumbnails(keys: List<String>)
+
+    /** New tabs that never got a url (the app died with the search sheet open). */
+    @Query("DELETE FROM tabs WHERE url = '' AND origin = 'LOCAL'")
+    suspend fun deleteBlankTabs()
 
     /** Phone tabs go; Zen tabs are only hidden (see TabEntity.closed). */
     @Transaction
@@ -155,7 +204,7 @@ class Converters {
 
 @Database(
     entities = [SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class],
-    version = 2,
+    version = 3,
 )
 @TypeConverters(Converters::class)
 abstract class KoanDatabase : RoomDatabase() {
@@ -167,6 +216,16 @@ abstract class KoanDatabase : RoomDatabase() {
                 // v1 only ever held M1's fake data. From v2 on, rows are real Zen data and phone
                 // tabs: every schema change needs a real Migration.
                 .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1)
+                .addMigrations(MIGRATION_2_3)
                 .build()
+
+        /** M3: live pinned tabs' stack position, and the url Zen last sent (see ZenDiff). */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tabs ADD COLUMN cardOrder INTEGER")
+                db.execSQL("ALTER TABLE tabs ADD COLUMN zenUrl TEXT")
+                db.execSQL("UPDATE tabs SET zenUrl = url WHERE origin = 'ZEN'")
+            }
+        }
     }
 }

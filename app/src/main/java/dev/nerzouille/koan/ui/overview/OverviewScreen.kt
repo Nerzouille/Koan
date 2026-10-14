@@ -241,13 +241,12 @@ fun SpaceWithTabs.findTab(id: String): TabEntity? =
         ?: essentials.firstOrNull { it.koanTabId == id }
 
 /**
- * UI model of a space. A pinned or essential tab that is live (the active tab) also gets a card at
- * the bottom of the stack, marked pinned (docs/UI_SPEC.md "Live pinned tabs also get a card").
+ * UI model of a space. A pinned or essential tab opened on the phone has a card in the stack too,
+ * marked pinned (docs/UI_SPEC.md "Live pinned tabs also get a card").
  */
 fun SpaceWithTabs.toModel(activeTabId: String?, palette: KoanPalette): SpaceModel {
-    fun TabEntity.card(pinned: Boolean = false) =
-        CardModel(koanTabId, title, url, koanTabId == activeTabId, pinned, iconUrl, staticIcon)
-    val livePinned = (essentials + pinnedTabs).filter { it.koanTabId == activeTabId }.map { it.card(pinned = true) }
+    fun TabEntity.card() =
+        CardModel(koanTabId, title, url, koanTabId == activeTabId, pinned || essential, iconUrl, staticIcon, thumb = thumbnailKey)
     val rows = buildList {
         for (entry in pinned) {
             when (entry) {
@@ -279,10 +278,10 @@ fun SpaceWithTabs.toModel(activeTabId: String?, palette: KoanPalette): SpaceMode
                 CardModel(
                     item.id, item.tabs.joinToString("  |  ") { it.title }, first.url,
                     item.tabs.any { it.koanTabId == activeTabId }, icon = first.iconUrl, staticIcon = first.staticIcon,
-                    splitCount = item.tabs.size,
+                    splitCount = item.tabs.size, thumb = first.thumbnailKey,
                 )
             }
-        } + livePinned,
+        },
         zen = space.zenOrigin,
     )
 }

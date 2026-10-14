@@ -320,6 +320,16 @@ object OverviewTokens {
     val NewTabButton = 40.dp
     val NewTabGlyph = 20.dp
     val SwipeDownToDismiss = 48.dp
+
+    /** A space with no cards: message + "New tab" button. */
+    val EmptyPadding = 32.dp
+    val EmptyTitleSize = 18.sp
+    val EmptyBodySize = 14.sp
+    val EmptyGap = 6.dp
+    val EmptyButtonGap = 24.dp
+    val EmptyButtonHeight = 52.dp
+    val EmptyButtonPadding = 26.dp
+    val EmptyButtonText = 16.sp
 }
 
 /** The bottom bar: a plain strip with the address row; + workspace switcher in the overview. */
@@ -486,6 +496,40 @@ object PagerTokens {
     const val RUBBER_BAND = 0.3f
 }
 
+/** Page screenshots (thumbs/ThumbnailStore). */
+object ThumbTokens {
+    /** Width on disk; ~2 MB per decoded image at the POCO's aspect. 720 if the focused card looks soft. */
+    const val WIDTH_PX = 480
+    const val QUALITY = 80
+    const val DISK_CAP_BYTES = 150L * 1024 * 1024
+    /** Decoded images kept in memory (GPU): ~24 at 480px, enough for the cards around the focus. */
+    const val MEMORY_CAP_BYTES = 48 * 1024 * 1024
+
+    /** Capture this long after a page finished loading (it settles: fonts, images, layout). */
+    const val SETTLE_MS = 1500L
+
+    /** Switching tabs waits at most this long for the outgoing page's screenshot. */
+    const val LEAVE_CAPTURE_TIMEOUT_MS = 150L
+
+    /** A card's real screenshot fades in over its placeholder. */
+    const val FADE_MS = 140
+}
+
+/** Page view: the cover over the engine while a tab comes up, and the dock hiding on scroll. */
+object PageTokens {
+    /** The cover fades out once the live page has painted. */
+    const val COVER_FADE_MS = 140
+
+    /** Never cover a page longer than this, even if it never reports a paint. */
+    const val COVER_MAX_MS = 2500L
+
+    /** Opening a card: its screenshot grows from this scale to full screen. */
+    const val OPEN_ZOOM_FROM = 0.92f
+
+    /** The dock always shows when the page is scrolled less than this from the top. */
+    val DockNearTop = 48.dp
+}
+
 object Motion {
     /**
      * Stack snap: exponential glide, no overshoot (prototype: 17% of the remaining distance per
@@ -510,6 +554,9 @@ object Motion {
     /** Overview open/close; also drives the bar morph. */
     val Overview: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)
     const val OVERVIEW_ZOOM = 0.04f
+
+    /** The dock settling shown/hidden after a page scroll lets go. */
+    val DockSettle: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 800f)
 
     /** Keep the high refresh rate this long after the last touch/key: longer than the longest fling (2.2 s). */
     const val REFRESH_BOOST_IDLE_MS = 3000L

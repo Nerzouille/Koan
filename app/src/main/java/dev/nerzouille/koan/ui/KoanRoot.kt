@@ -41,7 +41,13 @@ import dev.nerzouille.koan.ui.bar.KoanBar
 import dev.nerzouille.koan.ui.bar.PageInfo
 import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
 import dev.nerzouille.koan.ui.bar.barZone
+import dev.nerzouille.koan.ui.bar.SwipeSpace
 import dev.nerzouille.koan.ui.browser.BrowserScreen
+import dev.nerzouille.koan.ui.browser.CoverTarget
+import dev.nerzouille.koan.ui.browser.DockState
+import dev.nerzouille.koan.ui.browser.observeSlice
+import androidx.compose.runtime.SideEffect
+import mozilla.components.browser.state.selector.findTab
 import dev.nerzouille.koan.ui.overview.OverviewScreen
 import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.overview.SyncBadge
@@ -57,15 +63,12 @@ import dev.nerzouille.koan.ui.theme.SpaceColors
 import kotlinx.coroutines.launch
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
-import mozilla.components.browser.state.selector.selectedTab
-import mozilla.components.lib.state.ext.observeAsComposableState
 import kotlin.math.roundToInt
 
 /**
  * Page view and Space overview, with the one bottom bar on top of both: it morphs into the
- * workspace bar as the overview opens, and into the essentials/pinned drawer from there. M1: Room
- * holds fake spaces; opening a card loads its URL in the single live engine tab (real per-card tabs
- * arrive in M3).
+ * workspace bar as the overview opens, and into the essentials/pinned drawer from there. Every card
+ * is a real engine tab, managed by [dev.nerzouille.koan.engine.TabManager].
  */
 @Composable
 fun KoanRoot(components: Components) {
@@ -78,9 +81,14 @@ fun KoanRoot(components: Components) {
     var currentSpace by rememberSaveable { mutableIntStateOf(0) }
     // The space the user is on, by id: spaces added/removed on the desktop never move them.
     var currentSpaceUuid by rememberSaveable { mutableStateOf<String?>(null) }
-    var activeTabId by rememberSaveable { mutableStateOf<String?>(null) }
+    val tabs = components.tabs
+    val activeTabId by tabs.current.collectAsStateWithLifecycle()
+    val blankId by tabs.blank.collectAsStateWithLifecycle()
+    val tabsStarted by tabs.started.collectAsStateWithLifecycle()
     var overviewOpen by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
+    // A new tab always starts with the search sheet open.
+    LaunchedEffect(blankId) { if (blankId != null) editing = true }
     val palette = KoanTheme.colors
     val themeMode by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
     val models = remember(spaces, activeTabId, palette) { spaces.map { it.toModel(activeTabId, palette) } }
@@ -99,34 +107,14 @@ fun KoanRoot(components: Components) {
     pager.count = spaces.size.coerceAtLeast(1)
     val density = LocalDensity.current
     pager.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { PagerTokens.PageGap.toPx() }
-    // Cold start (e.g. after swiping Koan away): reopen on the space and tab saved on disk. After a
-    // configuration change or a background kill, the saved instance state already has them.
-    /** The live engine tab shows nothing yet (cold start). */
-    fun engineIsBlank() = components.store.state.selectedTab?.content?.url.let { it.isNullOrEmpty() || it == "about:blank" }
+    // Cold start (e.g. after swiping Koan away): reopen on the space saved on disk (TabManager
+    // reopens the tab). After a configuration change or a background kill, the saved instance state
+    // already has it.
     var placeRestored by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (placeRestored) return@LaunchedEffect
-        val place = components.lastPlace.read()
-        place.spaceUuid?.let { currentSpaceUuid = it }
-        val tabId = place.tabId
-        if (tabId != null) {
-            val tab = snapshotFlow { spaces }.first { it.isNotEmpty() }.firstNotNullOfOrNull { it.findTab(tabId) }
-            if (tab != null) {
-                activeTabId = tab.koanTabId
-                // The engine starts on a blank tab after a cold start; the live page itself
-                // (history, scroll) is restored by the engine from M3 on.
-                // A loadUrl sent now could reach the start-up blank tab before its engine session
-                // exists and get lost, so open the page as a fresh engine tab instead.
-                if (engineIsBlank()) {
-                    components.tabsUseCases.removeAllTabs()
-                    components.tabsUseCases.addTab(tab.url, selectTab = true)
-                }
-            }
-        }
+        components.lastPlace.read().spaceUuid?.let { currentSpaceUuid = it }
         placeRestored = true
-    }
-    LaunchedEffect(activeTabId, placeRestored) {
-        if (placeRestored) components.lastPlace.saveTab(activeTabId)
     }
 
     LaunchedEffect(pager) {
@@ -160,10 +148,22 @@ fun KoanRoot(components: Components) {
         Array(steps + 1) { step -> if (step == 0) null else BlurEffect(step * density.density, step * density.density, TileMode.Clamp) }
     }
 
-    fun loadInLiveTab(url: String) = components.sessionUseCases.loadUrl(url)
+    // The page cover zooms the tapped card's screenshot in (read when the cover starts).
+    val zoomIn = remember { mutableStateOf(false) }
+    val dock = remember { DockState(scope) }
+    SideEffect { dock.locked = overviewOpen || editing }
+    LaunchedEffect(activeTabId) { dock.snapShown() }
+
     fun openOverview() {
         editing = false
-        pager.snapTo(currentSpace.coerceIn(0, pager.count - 1))
+        tabs.cancelBlank()
+        tabs.captureCurrent()
+        val index = currentSpace.coerceIn(0, pager.count - 1)
+        pager.snapTo(index)
+        spaces.getOrNull(index)?.let { s ->
+            val current = s.stack.indexOfFirst { item -> item.tabs.any { it.koanTabId == activeTabId } }
+            tabs.prefetchThumbnails(s, if (current >= 0) current else s.stack.lastIndex)
+        }
         overviewOpen = true
     }
     fun openTab(index: Int, tab: TabEntity) {
@@ -173,24 +173,44 @@ fun KoanRoot(components: Components) {
             val card = s.stack.firstOrNull { item -> item.tabs.any { it.koanTabId == tab.koanTabId } }?.id
             currentTabs[s.space.uuid] = card ?: tab.koanTabId
         }
-        // Also load when the engine shows nothing (blank after a cold start), even for the current card.
-        if (tab.koanTabId != activeTabId || engineIsBlank()) {
-            activeTabId = tab.koanTabId
-            loadInLiveTab(tab.url)
-        }
+        zoomIn.value = overviewOpen
+        // From the overview the page was captured when it opened; from the page view, now.
+        tabs.open(tab, captureLeaving = !overviewOpen)
         overviewOpen = false
     }
     fun newTab(index: Int) {
+        val space = spaces.getOrNull(index) ?: return
         currentSpace = index
-        val id = components.spaces.addTab(spaces[index].space.uuid, "about:blank", "New tab")
-        activeTabId = id
-        currentTabs[spaces[index].space.uuid] = id
-        loadInLiveTab("about:blank")
+        currentTabs[space.space.uuid] = tabs.newTab(space.space.uuid)
+        zoomIn.value = false
         overviewOpen = false
         editing = true
     }
-    fun isPinned(id: String) = spaces.any { s -> (s.pinnedTabs + s.essentials).any { it.koanTabId == id } }
     fun stackItem(id: String) = spaces.firstNotNullOfOrNull { s -> s.stack.firstOrNull { it.id == id } }
+    fun tabById(id: String) = spaces.firstNotNullOfOrNull { s ->
+        s.stack.firstNotNullOfOrNull { item -> item.tabs.firstOrNull { it.koanTabId == id } }
+            ?: (s.pinnedTabs + s.essentials).firstOrNull { it.koanTabId == id }
+    }
+    /** The tab a space shows when switched to from the page view: its current card, else its newest. */
+    fun lastTabOf(index: Int): TabEntity? {
+        val s = spaces.getOrNull(index) ?: return null
+        val item = currentTabs[s.space.uuid]?.let { id -> s.stack.firstOrNull { it.id == id } } ?: s.stack.lastOrNull()
+        return item?.first
+    }
+    /** Leaving the overview without picking a card: back to the current tab, or the space's newest. */
+    fun dismissOverview() {
+        if (activeTabId != null && tabById(activeTabId!!) != null) {
+            zoomIn.value = false
+            overviewOpen = false
+            return
+        }
+        val index = pager.settled
+        lastTabOf(index)?.let { openTab(index, it) }
+    }
+    // No tab to show (first run, or the last one was closed in Zen): the overview.
+    LaunchedEffect(tabsStarted, activeTabId, spaces.isEmpty()) {
+        if (tabsStarted && activeTabId == null && spaces.isNotEmpty() && !overviewOpen) openOverview()
+    }
 
     val signedIn = account is AccountState.SignedIn
     val sync = SyncUi(
@@ -229,11 +249,28 @@ fun KoanRoot(components: Components) {
         }
     }
 
+    val canGoBack by components.store.observeSlice(activeTabId) { state ->
+        activeTabId?.let { state.findTab(it) }?.content?.canGoBack == true
+    }
+    // Page view: Back goes through the page's history, then to the overview.
+    BackHandler(enabled = !overviewOpen && !editing) {
+        val id = activeTabId
+        if (canGoBack && id != null) components.sessionUseCases.goBack(id) else openOverview()
+    }
+
     Box(Modifier.fillMaxSize()) {
+        val activeTab = activeTabId?.let(::tabById)
         BrowserScreen(
             components = components,
-            editing = editing,
-            bottomPadding = barZone(overview = false),
+            dock = dock,
+            cover = activeTabId?.let { id ->
+                when {
+                    id == blankId -> CoverTarget(id, "", null, false, null, blank = true)
+                    activeTab != null -> CoverTarget.of(activeTab, blank = false)
+                    else -> CoverTarget(id, "", null, false, null, blank = false)
+                }
+            },
+            zoomIn = { zoomIn.value },
         )
         if (overviewVisible) {
             OverviewScreen(
@@ -244,13 +281,12 @@ fun KoanRoot(components: Components) {
                 onOpenTab = ::openTab,
                 onNewTab = ::newTab,
                 onCloseTab = { id ->
-                    val members = stackItem(id)?.tabs?.map { it.koanTabId } ?: listOf(id)
-                    if (activeTabId in members) activeTabId = null
-                    // A live pinned/essential card is only unloaded back to its row, never closed.
-                    if (!isPinned(id)) components.spaces.closeTabs(members)
+                    // A live pinned/essential card is only unloaded back to its row (TabManager).
+                    val rows = stackItem(id)?.tabs.orEmpty()
+                    tabs.close(rows.map { it.koanTabId }.ifEmpty { listOf(id) }, rows)
                 },
                 onReorder = { ids -> components.spaces.reorderStack(ids.mapNotNull(::stackItem)) },
-                onDismiss = { overviewOpen = false },
+                onDismiss = ::dismissOverview,
                 sync = sync,
                 open = overviewOpen,
                 currentTabs = currentTabs,
@@ -289,8 +325,9 @@ fun KoanRoot(components: Components) {
 
         val store = components.store
         val session = components.sessionUseCases
-        val page by store.observeAsComposableState { state ->
-            state.selectedTab?.content.let { c ->
+        // What the address row shows: the current tab (a blank new tab has no page yet).
+        val page by store.observeSlice(activeTabId to blankId) { state ->
+            activeTabId?.takeIf { it != blankId }?.let { state.findTab(it) }?.content.let { c ->
                 PageInfo(
                     url = c?.url.orEmpty(),
                     loading = c?.loading == true,
@@ -300,7 +337,9 @@ fun KoanRoot(components: Components) {
                 )
             }
         }
-        val currentPage = page ?: PageInfo("", false, 0f, false, false)
+        val currentPage = page
+        // A new page load brings the dock back.
+        LaunchedEffect(currentPage.loading) { if (currentPage.loading) dock.show() }
         KoanBar(
             overviewOpen = overviewOpen,
             overview = { progress.value },
@@ -310,6 +349,12 @@ fun KoanRoot(components: Components) {
             loadProgress = currentPage.progress,
             colors = currentColors,
             onSwipeUp = ::openOverview,
+            dockHide = { dock.offset },
+            onSpaceSwipe = { index ->
+                currentSpace = index
+                val tab = lastTabOf(index)
+                if (tab != null) openTab(index, tab) else openOverview()
+            },
             drawerContent = { modifier ->
                 DrawerContent(
                     spaces = models,
@@ -333,16 +378,20 @@ fun KoanRoot(components: Components) {
                     editing = editing,
                     overviewOpen = overviewOpen,
                     overview = { progress.value },
-                    onEditingChange = { editing = it },
+                    onEditingChange = { on ->
+                        editing = on
+                        // Closing the sheet of a new tab that never got a url discards it.
+                        if (!on) tabs.cancelBlank()
+                    },
                     onSubmit = { input ->
                         editing = false
-                        session.loadUrl(resolveInput(input))
+                        tabs.load(resolveInput(input))
                     },
                     onSearchFromOverview = { newTab(pager.settled) },
-                    onBack = { session.goBack(store.state.selectedTabId) },
-                    onForward = { session.goForward(store.state.selectedTabId) },
-                    onReload = { session.reload() },
-                    onStop = { session.stopLoading() },
+                    onBack = { session.goBack(activeTabId) },
+                    onForward = { session.goForward(activeTabId) },
+                    onReload = { session.reload(activeTabId) },
+                    onStop = { session.stopLoading(activeTabId) },
                     onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
                     menuExtras = buildList {
                         add("Theme: ${themeMode.label}" to {
@@ -368,6 +417,9 @@ fun KoanRoot(components: Components) {
                         add("Remove fake tabs (dev)" to { components.spaces.removeFakeTabs() })
                     },
                     modifier = modifier,
+                    swipe = { if (overviewOpen) 0f else pager.pos - pager.settled },
+                    previous = models.getOrNull(currentSpace - 1)?.let { SwipeSpace(it.name, it.icon) },
+                    next = models.getOrNull(currentSpace + 1)?.let { SwipeSpace(it.name, it.icon) },
                 )
             },
             modifier = Modifier.align(Alignment.BottomCenter),

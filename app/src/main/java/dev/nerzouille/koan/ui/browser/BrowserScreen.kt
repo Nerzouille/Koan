@@ -1,40 +1,50 @@
 package dev.nerzouille.koan.ui.browser
 
-import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.ui.bar.barZone
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.PageTokens
+import kotlinx.coroutines.flow.distinctUntilChanged
 import mozilla.components.browser.engine.gecko.GeckoEngineView
-import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.feature.session.SessionFeature
-import mozilla.components.lib.state.ext.observeAsComposableState
+import kotlin.math.roundToInt
 
-/** Page view: the live engine view, ending above the bottom bar (drawn by KoanRoot). */
+/**
+ * Page view: the live engine view, full height under the dock (drawn by KoanRoot), which hides as
+ * the page scrolls (GeckoView dynamic toolbar). The [cover] sits on top while a tab comes up.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BrowserScreen(
     components: Components,
-    editing: Boolean,
-    bottomPadding: Dp,
+    dock: DockState,
+    cover: CoverTarget?,
+    zoomIn: () -> Boolean,
 ) {
     val context = LocalContext.current
     val store = components.store
@@ -54,15 +64,31 @@ fun BrowserScreen(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
+        components.tabs.attach(engineView)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             sessionFeature.stop()
+            components.tabs.attach(null)
         }
     }
 
-    val canGoBack by store.observeAsComposableState { it.selectedTab?.content?.canGoBack == true }
-    BackHandler(enabled = !editing && canGoBack == true) {
-        sessionFeature.onBackPressed()
+    // The dock's height over the page: the engine lays the page out above it, and lets the page
+    // grow under it as it slides away. (With the keyboard up, the dock sits on the keyboard.)
+    val density = LocalDensity.current
+    val imeUp = WindowInsets.isImeVisible
+    val navPx = WindowInsets.navigationBars.getBottom(density)
+    val dockPx = with(density) { barZone(overview = false).toPx() } + if (imeUp) 0 else navPx
+    dock.heightPx = dockPx
+    LaunchedEffect(dockPx) {
+        engineView.setDynamicToolbarMaxHeight(dockPx.roundToInt())
+        snapshotFlow { (dockPx - dock.offset).roundToInt() }.distinctUntilChanged().collect { visible ->
+            engineView.setVerticalClipping(-visible)
+        }
+    }
+    LaunchedEffect(engineView) {
+        // Near the top of a page the dock always shows (once the finger is off: a fling, a jump).
+        val nearTop = with(density) { PageTokens.DockNearTop.toPx() }
+        engineView.verticalScrollPosition.collect { y -> if (y < nearTop && !dock.touching) dock.show() }
     }
 
     Box(
@@ -70,9 +96,25 @@ fun BrowserScreen(
             .fillMaxSize()
             .background(KoanTheme.colors.Base)
             .statusBarsPadding()
-            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
-            .padding(bottom = bottomPadding),
+            .windowInsetsPadding(WindowInsets.ime)
+            .nestedScroll(dock.nestedScroll)
+            .pointerInput(dock) {
+                // Watch (never consume) the fingers on the page: the dock settles when they lift.
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        when {
+                            event.changes.all { !it.pressed } -> {
+                                dock.settle(viewConfiguration.touchSlop)
+                                if (engineView.verticalScrollPosition.value < with(density) { PageTokens.DockNearTop.toPx() }) dock.show()
+                            }
+                            event.changes.count { it.pressed && !it.previousPressed } > 0 -> dock.onTouchDown()
+                        }
+                    }
+                }
+            },
     ) {
         AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())
+        PageCover(cover, store, zoomIn)
     }
 }

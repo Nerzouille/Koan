@@ -10,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -96,6 +95,10 @@ fun KoanBar(
     /** The current space's colours: the load line uses its gradient. */
     colors: SpaceColors,
     onSwipeUp: () -> Unit,
+    /** Page view: how far the dock has slid down as the page scrolls (px); read in a layer. */
+    dockHide: () -> Float,
+    /** Page view: a swipe on the address row landed on another space (its index). */
+    onSpaceSwipe: (Int) -> Unit,
     drawerContent: @Composable (Modifier) -> Unit,
     switcher: @Composable (Modifier) -> Unit,
     address: @Composable (Modifier) -> Unit,
@@ -150,22 +153,54 @@ fun KoanBar(
             }
         }
     }
-    val pageGestures = Modifier.pointerInput(Unit) {
-        // Swipe up on the bar opens the overview.
-        var total = 0f
-        detectVerticalDragGestures(onDragStart = { total = 0f }) { change, dy ->
-            total += dy
-            if (total < -BarTokens.SwipeUpToOpen.toPx()) {
-                total = Float.POSITIVE_INFINITY
-                onSwipeUp()
+    val pageGestures = Modifier.pointerInput(pager) {
+        // Up on the address row opens the overview; sideways switches space (the pill follows).
+        val pagerFling = PagerTokens.FlingVelocity.toPx()
+        val openPx = BarTokens.SwipeUpToOpen.toPx()
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val tracker = VelocityTracker()
+            tracker.addPosition(down.uptimeMillis, down.position)
+            var total = Offset.Zero
+            var horizontal: Boolean? = null
+            val from = pager.settled
+            while (true) {
+                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id }
+                if (change == null || !change.pressed) {
+                    if (horizontal == true) {
+                        val v = if (change == null) Velocity.Zero else tracker.calculateVelocity()
+                        val to = pager.releaseTo(v.x, pagerFling)
+                        if (to != from) {
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            onSpaceSwipe(to)
+                        }
+                    }
+                    break
+                }
+                tracker.addPosition(change.uptimeMillis, change.position)
+                val delta = change.positionChange()
+                total += delta
+                if (horizontal == null) {
+                    if (total.getDistance() <= viewConfiguration.touchSlop) continue
+                    horizontal = abs(total.x) > abs(total.y)
+                    if (horizontal) pager.grab()
+                }
+                if (horizontal) {
+                    pager.dragBy(delta.x)
+                } else if (total.y < -openPx) {
+                    change.consume()
+                    onSwipeUp()
+                    break
+                }
+                change.consume()
             }
-            change.consume()
         }
     }
 
     Column(
         modifier
             .fillMaxWidth()
+            .graphicsLayer { translationY = if (overviewOpen) 0f else dockHide() }
             .drawWithCache {
                 val shadowPx = BarTokens.DockShadowHeight.toPx()
                 val hairline = BarTokens.Hairline.toPx()

@@ -26,7 +26,8 @@ data class ZenDiff(
          * Phone state survives a pull: phone-only tabs are never touched (they move to the first
          * space if theirs disappeared), a Zen tab keeps its local order until Zen itself moves it,
          * opening history / thumbnails stay attached, and a Zen tab closed on the phone stays closed.
-         * Phone-side folder collapse is kept.
+         * Phone-side folder collapse is kept. A tab navigated on the phone ([TabEntity.dirty]) keeps
+         * its page until Zen itself navigates it, and always while it is open on the phone ([live]).
          */
         fun between(
             pulled: ZenRows,
@@ -34,6 +35,7 @@ data class ZenDiff(
             tabs: List<TabEntity>,
             folders: List<FolderEntity>,
             splits: List<SplitEntity>,
+            live: Set<String> = emptySet(),
         ): ZenDiff {
             val pulledSpaceIds = pulled.spaces.mapTo(HashSet()) { it.uuid }
             // Includes the phone-only space used before sign-in: its tabs join the first Zen space.
@@ -45,13 +47,17 @@ data class ZenDiff(
             val currentTabs = tabs.associateBy { it.koanTabId }
             val tabUpserts = pulled.tabs.mapNotNull { new ->
                 val old = currentTabs[new.koanTabId] ?: return@mapNotNull new
-                val merged = new.copy(
+                val zenNavigated = old.zenUrl != null && old.zenUrl != new.url
+                val keepPhonePage = old.dirty && (!zenNavigated || old.koanTabId in live)
+                val page = if (keepPhonePage) new.copy(url = old.url, title = old.title, iconUrl = old.iconUrl, staticIcon = old.staticIcon) else new
+                val merged = page.copy(
                     // Zen moved it → follow Zen; otherwise keep any phone-side reorder.
                     order = if (old.zenOrder == new.zenOrder) old.order else new.order,
                     lastAccessed = old.lastAccessed,
                     thumbnailKey = old.thumbnailKey,
-                    dirty = old.dirty,
+                    dirty = keepPhonePage,
                     closed = old.closed,
+                    cardOrder = old.cardOrder,
                 )
                 merged.takeIf { it != old }
             }.toMutableList()

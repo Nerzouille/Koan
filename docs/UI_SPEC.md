@@ -202,7 +202,9 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   - **Exactly one light haptic tick per committed switch**, on release. Never while dragging.
 - Tap a space icon = jump to it (one tick). Long-press bar = grid of all spaces (pick, reorder,
   create) — later.
-- In the page view, horizontal swipe on the address field switches space too — later (M3).
+- In the page view, horizontal swipe on the address field switches space too: the host slides out,
+  the target space's icon and name slide in; landing opens that space's current (else newest) tab,
+  or its overview with an empty state (message + big "New tab" button) if it has no cards.
 
 ## Open / close transition (the hero animation)
 

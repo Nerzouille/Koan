@@ -51,13 +51,27 @@ data class TabEntity(
     val lastAccessed: Long = 0,
     val thumbnailKey: String? = null,
     val origin: TabOrigin = TabOrigin.LOCAL,
+    /** Navigated on the phone: its url/title/icon are the phone's, not Zen's (see [zenUrl]). */
     val dirty: Boolean = false,
     /**
      * Closed on the phone but still open in Zen (no write-back before M6): hidden here, kept so a
      * sync doesn't bring it back. Dropped once Zen closes it too.
      */
     val closed: Boolean = false,
-)
+    /**
+     * Pinned/essential tabs only: opened on the phone, so it also has a card in the stack, at this
+     * position (same scale as normal tabs' [order]). Null = only its drawer row.
+     */
+    val cardOrder: Int? = null,
+    /** The url Zen sent on the last pull; a pull only overrides phone navigation when Zen's changed. */
+    val zenUrl: String? = null,
+) {
+    /** Shown as a card in the stack: a normal tab, or a pinned/essential tab opened on the phone. */
+    val inStack: Boolean get() = !pinned && !essential || cardOrder != null
+
+    /** Position in the stack (only meaningful when [inStack]). */
+    val stackOrder: Int get() = cardOrder ?: order
+}
 
 @Entity(tableName = "folders", indices = [Index("spaceUuid")])
 data class FolderEntity(

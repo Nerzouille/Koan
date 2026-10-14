@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import mozilla.components.browser.engine.gecko.GeckoEngine
+import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.DefaultSettings
@@ -53,7 +54,17 @@ class Components(context: Context) {
     val database by lazy { KoanDatabase.build(appContext) }
     val spaces by lazy { SpacesRepository(database.dao(), appScope) }
     val accounts by lazy { AccountStore(DataStoreBlob(appContext), KeystoreBox()) }
-    val sync by lazy { SpacesSync(accounts, database.dao(), appScope) }
+    val sync by lazy { SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }) }
     val lastPlace by lazy { LastPlace(appContext) }
     val settings by lazy { Settings(appContext) }
+
+    /** Engine tabs (history, scroll, form data) on disk, so they survive the process dying. */
+    val sessionStorage by lazy { SessionStorage(appContext, engine, applicationScope = appScope) }
+
+    /** Saves on tab changes; MainActivity adds "every few seconds in the foreground" and "on stop". */
+    val autoSave by lazy { sessionStorage.autoSave(store).whenSessionsChange(appScope) }
+
+    val tabs by lazy {
+        TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, appScope)
+    }
 }

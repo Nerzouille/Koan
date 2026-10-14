@@ -37,4 +37,15 @@ class SpaceLayoutTest {
         )
         assertEquals(listOf("fa"), (entries[1] as PinnedEntry.Folder).tabs.map { it.koanTabId })
     }
+
+    @Test
+    fun anOpenedPinnedTabJoinsTheStackAtItsCardOrder() {
+        val tabs = listOf(
+            tab("n1", 0), tab("n2", 8),
+            tab("p", 0, folder = "f").copy(cardOrder = 9),
+            tab("q", 4, folder = "f"),
+        )
+        val stack = SpaceLayout.stackItems(tabs.filter { it.inStack }.sortedBy { it.stackOrder })
+        assertEquals(listOf("n1", "n2", "p"), stack.map { it.id })
+    }
 }

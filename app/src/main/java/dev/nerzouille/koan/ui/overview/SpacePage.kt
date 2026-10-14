@@ -115,6 +115,7 @@ fun SpacePage(
             when {
                 space.stack.isEmpty() && sync.firstSync -> SkeletonStack()
                 connect && space.stack.isEmpty() -> ConnectCard(onConnect, compact = false, Modifier.align(Alignment.Center))
+                space.stack.isEmpty() -> EmptySpace(space, onNewTab, Modifier.align(Alignment.Center))
                 else -> DepthStack(
                     cards = space.stack,
                     colors = space.colors,
@@ -126,6 +127,40 @@ fun SpacePage(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+        }
+    }
+}
+
+/**
+ * A space with no cards: a calm line and one big button, so landing here by accident opens no
+ * keyboard, but starting a tab is still one tap.
+ */
+@Composable
+private fun EmptySpace(space: SpaceModel, onNewTab: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.padding(horizontal = OverviewTokens.EmptyPadding), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            "No open tabs in ${space.name}",
+            color = KoanTheme.colors.TextPrimary,
+            fontSize = OverviewTokens.EmptyTitleSize,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(OverviewTokens.EmptyGap))
+        Text("Its pinned tabs are in the drawer below.", color = KoanTheme.colors.TextSecondary, fontSize = OverviewTokens.EmptyBodySize)
+        Spacer(Modifier.height(OverviewTokens.EmptyButtonGap))
+        Row(
+            Modifier
+                .height(OverviewTokens.EmptyButtonHeight)
+                .clip(CircleShape)
+                .background(KoanTheme.colors.NewTabButton)
+                .clickable(onClick = onNewTab)
+                .padding(horizontal = OverviewTokens.EmptyButtonPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(KoanIcons.Plus, null, tint = KoanTheme.colors.NewTabIcon, modifier = Modifier.size(OverviewTokens.NewTabGlyph))
+            Spacer(Modifier.width(OverviewTokens.TitleGap))
+            Text("New tab", color = KoanTheme.colors.NewTabIcon, fontSize = OverviewTokens.EmptyButtonText, fontWeight = FontWeight.SemiBold)
         }
     }
 }

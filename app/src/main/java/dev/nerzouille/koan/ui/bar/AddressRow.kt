@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -47,8 +49,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import kotlin.math.abs
 
 /** What the address row shows about the live page. */
 @Immutable
@@ -61,6 +65,10 @@ data class PageInfo(
 )
 
 private const val SEARCH_HINT = "Search or type URL"
+
+/** A neighbour space, named in the address pill while a swipe heads to it. */
+@Immutable
+data class SwipeSpace(val name: String, val icon: String)
 
 /**
  * back · address field · tabs · menu. In the page view, tapping the field turns it into an input.
@@ -85,6 +93,10 @@ fun AddressRow(
     onTabs: () -> Unit,
     menuExtras: List<Pair<String, () -> Unit>>,
     modifier: Modifier = Modifier,
+    /** Page view space swipe: -1..1 towards [previous] / [next]; read in layers only. */
+    swipe: () -> Float = { 0f },
+    previous: SwipeSpace? = null,
+    next: SwipeSpace? = null,
 ) {
     val pageOnly = Modifier.graphicsLayer { alpha = 1f - overview() }
     Row(
@@ -107,6 +119,9 @@ fun AddressRow(
             AddressField(
                 page = page,
                 overview = overview,
+                swipe = swipe,
+                previous = previous,
+                next = next,
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 modifier = Modifier.weight(1f),
             )
@@ -124,9 +139,20 @@ fun AddressRow(
     }
 }
 
-/** Host of the page, crossfading to the search hint in the overview. */
+/**
+ * Host of the page, crossfading to the search hint in the overview. While a swipe switches space,
+ * the host slides away and the space it heads to slides in.
+ */
 @Composable
-private fun AddressField(page: PageInfo, overview: () -> Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun AddressField(
+    page: PageInfo,
+    overview: () -> Float,
+    swipe: () -> Float,
+    previous: SwipeSpace?,
+    next: SwipeSpace?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val host = displayHost(page.url)
     Box(
         modifier
@@ -140,11 +166,38 @@ private fun AddressField(page: PageInfo, overview: () -> Float, onClick: () -> U
         FieldText(
             host.ifEmpty { SEARCH_HINT },
             primary = host.isNotEmpty(),
-            Modifier.graphicsLayer { alpha = 1f - overview() },
+            Modifier.graphicsLayer {
+                val f = swipe()
+                translationX = -f * size.width * SWIPE_TRAVEL
+                alpha = (1f - overview()) * (1f - abs(f) * SWIPE_FADE).coerceIn(0f, 1f)
+            },
         )
         FieldText(SEARCH_HINT, primary = false, Modifier.graphicsLayer { alpha = overview() })
+        previous?.let { SwipeLabel(it, -1f, swipe, overview) }
+        next?.let { SwipeLabel(it, 1f, swipe, overview) }
     }
 }
+
+/** The space a page-view swipe heads to: icon and name, sliding in from its side. */
+@Composable
+private fun SwipeLabel(space: SwipeSpace, side: Float, swipe: () -> Float, overview: () -> Float) {
+    Row(
+        Modifier.graphicsLayer {
+            val f = swipe()
+            translationX = (side - f) * size.width * SWIPE_TRAVEL
+            alpha = (1f - overview()) * (f * side * SWIPE_FADE).coerceIn(0f, 1f)
+        },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ZenIcon(space.icon, BarTokens.SwitcherIcon, tint = KoanTheme.colors.TextPrimary)
+        Spacer(Modifier.width(BarTokens.SwitcherNameGap))
+        FieldText(space.name, primary = true, Modifier)
+    }
+}
+
+/** How far (share of the text's width) the host and the space name travel during a swipe. */
+private const val SWIPE_TRAVEL = 0.6f
+private const val SWIPE_FADE = 2.5f
 
 @Composable
 private fun FieldText(text: String, primary: Boolean, modifier: Modifier) {

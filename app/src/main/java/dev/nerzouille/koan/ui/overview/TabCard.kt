@@ -1,5 +1,18 @@
 package dev.nerzouille.koan.ui.overview
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.layout.ContentScale
+import dev.nerzouille.koan.thumbs.ThumbnailStore
+import dev.nerzouille.koan.ui.theme.ThumbTokens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -52,6 +65,8 @@ data class CardModel(
     val splitCount: Int = 1,
     /** Placeholder while the first sync runs: soft bars instead of title and favicon. */
     val skeleton: Boolean = false,
+    /** Key of the page's last screenshot (ThumbnailStore); null = never captured, placeholder. */
+    val thumb: String? = null,
 )
 
 /**
@@ -82,6 +97,7 @@ fun TabCard(
                 .height(CardTokens.BlurSlice)
                 .graphicsLayer { renderEffect = blurFor(depth()) },
         )
+        if (card.thumb != null) Screenshot(card.thumb, depth, blurFor)
         Box(
             Modifier
                 .fillMaxSize()
@@ -154,7 +170,7 @@ private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color, acc
 
 /**
  * Never-opened tab: dark neutral surface, big favicon, domain, 8% favicon tint. Nothing else
- * (docs/UI_SPEC.md "Visual restraint"). Real thumbnails replace this in M3.
+ * (docs/UI_SPEC.md "Visual restraint"). The real screenshot covers it once there is one.
  */
 @Composable
 private fun PlaceholderThumbnail(card: CardModel, modifier: Modifier) {
@@ -173,6 +189,51 @@ private fun PlaceholderThumbnail(card: CardModel, modifier: Modifier) {
         )
     }
 }
+
+/**
+ * The page's real screenshot over the placeholder, top-aligned under the header. Two layers of the
+ * same image: full and sharp while the card is near the focus, only its top slice and blurred
+ * deeper in the pile (blurring the whole card costs ~5×). Decoded off the main thread, only while
+ * the card is near the visible range ([depth] is constant beyond it), and faded in.
+ */
+@Composable
+private fun Screenshot(key: String, depth: () -> Float, blurFor: (Float) -> RenderEffect?) {
+    val near by remember { derivedStateOf { depth() < OFFSCREEN_DEPTH_FROM } }
+    var image by remember(key) { mutableStateOf(ThumbnailStore.cached(key)) }
+    val reveal = remember(key) { Animatable(if (image != null) 1f else 0f) }
+    if (image == null && near) {
+        LaunchedEffect(key) {
+            image = ThumbnailStore.load(key) ?: return@LaunchedEffect
+            reveal.animateTo(1f, tween(ThumbTokens.FADE_MS))
+        }
+    }
+    val bitmap = image ?: return
+    val shot = Modifier.fillMaxWidth().padding(top = CardTokens.HeaderHeight)
+    Image(
+        bitmap, null,
+        contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter, filterQuality = FilterQuality.Medium,
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = if (blurFor(depth()) == null) reveal.value else 0f }
+            .then(shot),
+    )
+    Image(
+        bitmap, null,
+        contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter, filterQuality = FilterQuality.Low,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(CardTokens.BlurSlice)
+            .graphicsLayer {
+                val blur = blurFor(depth())
+                alpha = if (blur != null) reveal.value else 0f
+                renderEffect = blur
+            }
+            .then(shot),
+    )
+}
+
+/** Beyond this depth a card is off screen (DepthStack hands it a constant far depth). */
+private const val OFFSCREEN_DEPTH_FROM = 50f
 
 /** A card-shaped placeholder: header bars where favicon and title will be, nothing else. */
 @Composable

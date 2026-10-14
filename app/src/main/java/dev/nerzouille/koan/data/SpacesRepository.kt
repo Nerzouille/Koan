@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 /** One entry of the drawer's pinned list: a pinned tab, or a folder with its rows. */
 sealed interface PinnedEntry {
@@ -31,7 +30,10 @@ data class SpaceWithTabs(
     val essentials: List<TabEntity>,
     /** Pinned tabs and folders in Zen sidebar order. */
     val pinned: List<PinnedEntry>,
-    /** Normal tabs, oldest first (the most recent sits at the bottom of the stack). */
+    /**
+     * Normal tabs, plus pinned/essential tabs opened on the phone, oldest first (the most recent sits
+     * at the bottom of the stack).
+     */
     val stack: List<StackItem>,
 ) {
     /** Every pinned tab, folders included, in drawer order. */
@@ -56,7 +58,7 @@ class SpacesRepository(private val dao: KoanDao, private val scope: CoroutineSco
                     space = space,
                     essentials = own.filter { it.essential },
                     pinned = SpaceLayout.pinnedEntries(own.filter { it.pinned && !it.essential }, foldersBySpace[space.uuid].orEmpty()),
-                    stack = SpaceLayout.stackItems(own.filter { !it.pinned && !it.essential }),
+                    stack = SpaceLayout.stackItems(own.filter { it.inStack }.sortedBy { it.stackOrder }),
                 )
             }
         }.stateIn(scope, SharingStarted.Eagerly, emptyList())
@@ -79,20 +81,6 @@ class SpacesRepository(private val dao: KoanDao, private val scope: CoroutineSco
     }
 
     fun setFolderCollapsed(folderId: String, collapsed: Boolean) = scope.launch { dao.setFolderCollapsed(folderId, collapsed) }
-
-    /** Adds a tab at the bottom of the space's stack and returns its id right away. */
-    fun addTab(spaceUuid: String, url: String, title: String): String {
-        val id = UUID.randomUUID().toString()
-        scope.launch {
-            val order = dao.maxTabOrder(spaceUuid) + 1
-            dao.upsertTabs(
-                listOf(
-                    TabEntity(id, spaceUuid = spaceUuid, url = url, title = title, order = order, lastAccessed = System.currentTimeMillis()),
-                ),
-            )
-        }
-        return id
-    }
 
     /** Dev: fills the space's stack with fake phone tabs, for the 50/150-card performance checks. */
     fun fillWithFakeTabs(spaceUuid: String, upTo: Int) = scope.launch {
