@@ -1,3 +1,6 @@
+// Ported from Z-Sync (https://github.com/Kjell6/Z-Sync), MIT, © 2026 Kjell Behrends
+// (gradient(): primary-dot ordering adapted from Z-Sync's ui/components/Gradient.kt)
+
 package dev.nerzouille.koan.sync
 
 import dev.nerzouille.koan.data.FolderEntity
