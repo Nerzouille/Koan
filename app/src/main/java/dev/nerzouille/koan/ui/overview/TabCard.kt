@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.theme.ThumbTokens
 import androidx.compose.foundation.background
@@ -40,6 +41,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,7 +99,7 @@ fun TabCard(
             card,
             Modifier
                 .fillMaxWidth()
-                .height(CardTokens.BlurSlice)
+                .height(blurSlice())
                 .graphicsLayer {
                     // Once the screenshot covers it, the placeholder is skipped (no blur buffer).
                     val covered = shot != null && shot.reveal.value >= 1f
@@ -163,7 +165,10 @@ private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color, acc
         Box(
             Modifier
                 .size(CardTokens.CloseTouch)
-                .graphicsLayer { alpha = (1f - kotlin.math.abs(depth()) * 2f).coerceIn(0f, 1f) },
+                .graphicsLayer {
+                    alpha = (1f - kotlin.math.abs(depth()) * 2f).coerceIn(0f, 1f)
+                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                },
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -234,7 +239,10 @@ private fun Screenshot(state: ScreenshotState, depth: () -> Float, blurFor: (Flo
         contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter, filterQuality = FilterQuality.Medium,
         modifier = Modifier
             .fillMaxSize()
-            .graphicsLayer { alpha = if (blurFor(depth()) == null) reveal.value else 0f }
+            .graphicsLayer {
+                alpha = if (blurFor(depth()) == null) reveal.value else 0f
+                compositingStrategy = CompositingStrategy.ModulateAlpha
+            }
             .then(shot),
     )
     Image(
@@ -242,7 +250,7 @@ private fun Screenshot(state: ScreenshotState, depth: () -> Float, blurFor: (Flo
         contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter, filterQuality = FilterQuality.Low,
         modifier = Modifier
             .fillMaxWidth()
-            .height(CardTokens.BlurSlice)
+            .height(blurSlice())
             .graphicsLayer {
                 val blur = blurFor(depth())
                 alpha = if (blur != null) reveal.value else 0f
@@ -251,6 +259,9 @@ private fun Screenshot(state: ScreenshotState, depth: () -> Float, blurFor: (Flo
             .then(shot),
     )
 }
+
+@Composable
+private fun blurSlice() = with(LocalDensity.current) { CardTokens.BLUR_SLICE_PX.toDp() }
 
 /** Beyond this depth a card is off screen (DepthStack hands it a constant far depth). */
 private const val OFFSCREEN_DEPTH_FROM = 50f

@@ -20,8 +20,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -35,6 +33,7 @@ import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.resolveInput
 import dev.nerzouille.koan.ui.bar.AddressRow
 import dev.nerzouille.koan.ui.bar.DrawerContent
+import dev.nerzouille.koan.ui.bar.drawerBackdrop
 import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.bar.DrawerState
 import dev.nerzouille.koan.ui.bar.KoanBar
@@ -63,7 +62,6 @@ import dev.nerzouille.koan.ui.theme.SpaceColors
 import kotlinx.coroutines.launch
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
-import kotlin.math.roundToInt
 
 /**
  * Page view and Space overview, with the one bottom bar on top of both: it morphs into the
@@ -140,12 +138,11 @@ fun KoanRoot(components: Components) {
     val drawer = remember { DrawerState(scope) }
     LaunchedEffect(overviewOpen) { if (!overviewOpen) drawer.snapClosed() }
 
-    // Blur steps for the cards behind the open drawer; RenderEffects are immutable and reusable.
-    // Clamp, not Decal: Decal fades the edges to transparent and the page underneath (often a white
-    // site) showed through as light strips on the left and right.
+    // Blur radii baked for the cards behind the open drawer (weakest first, see drawerBackdrop).
     val drawerBlurs = remember(density) {
-        val steps = DrawerTokens.Blur.value.roundToInt()
-        Array(steps + 1) { step -> if (step == 0) null else BlurEffect(step * density.density, step * density.density, TileMode.Clamp) }
+        val levels = DrawerTokens.BLUR_LEVELS
+        val max = DrawerTokens.Blur.value * density.density
+        List(levels) { i -> max * (i + 1) / levels }
     }
 
     // The page cover zooms the tapped card's screenshot in (read when the cover starts).
@@ -299,13 +296,13 @@ fun KoanRoot(components: Components) {
                         val s = 1f + Motion.OVERVIEW_ZOOM * (1f - p)
                         scaleX = s
                         scaleY = s
-                        renderEffect = drawerBlurs[(drawer.progress * (drawerBlurs.size - 1)).roundToInt()]
                     }
                     .drawWithContent {
                         drawContent()
                         val d = drawer.progress
                         if (d > 0.01f) drawRect(palette.DrawerScrim, alpha = d)
-                    },
+                    }
+                    .drawerBackdrop({ drawer.progress }, drawerBlurs),
             )
         }
         if (drawer.open) {

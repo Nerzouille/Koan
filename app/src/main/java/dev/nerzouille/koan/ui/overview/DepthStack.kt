@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
@@ -423,6 +424,11 @@ private class StackGeometry(
         translationX = x + h * sin(rad)
         translationY = topOf(d) + h * (1f - cos(rad))
         alpha = DepthCurve.alpha(d) * swipeAlpha
+        // Fade by modulating each draw, never through an offscreen buffer: a layer at partial
+        // alpha is otherwise promoted to its own ~5 MB GPU buffer (every fading card and contact
+        // shadow, on every page composed ahead), and the renderer keeps those buffers cached
+        // until Koan goes to the background.
+        compositingStrategy = CompositingStrategy.ModulateAlpha
         shape = CardShape
         clip = true
         shadowElevation = (palette.CardElevation.value + a.lift * StackTokens.LiftShadow.value) * density

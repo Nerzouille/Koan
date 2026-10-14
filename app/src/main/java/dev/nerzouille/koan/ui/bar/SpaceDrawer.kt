@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
@@ -141,6 +142,8 @@ fun DrawerContent(
             .graphicsLayer {
                 val p = drawer.progress
                 alpha = p
+                // No offscreen buffer for the fade (the GPU would keep it cached; see DepthStack).
+                compositingStrategy = CompositingStrategy.ModulateAlpha
                 translationY = (1f - p) * DrawerTokens.Gap.toPx() * 3f
             },
     ) {

@@ -303,8 +303,12 @@ object CardTokens {
     /** The contact shadow never covers more than this share of a card's visible sliver (deep pile). */
     const val CONTACT_SHADOW_MAX_FRACTION = 0.35f
 
-    /** Only this top slice of the thumbnail is blurred: more than any pile card ever shows. */
-    val BlurSlice = 300.dp
+    /**
+     * Only this top slice of the thumbnail is blurred: more than any blurred pile card ever shows
+     * (~330 px on the POCO). In px, not dp: the GPU rounds a layer up to 512 / 1024 px, and 512
+     * keeps each blurred card's buffer at 2 MB instead of 4.
+     */
+    const val BLUR_SLICE_PX = 512
 }
 
 object OverviewTokens {
@@ -477,6 +481,13 @@ object DrawerTokens {
 
     /** Cards behind the open drawer: blur radius at full open (the scrim is KoanPalette.DrawerScrim). */
     val Blur = 14.dp
+
+    /**
+     * Blurred copies of the overview baked when the drawer opens, crossfaded with the drag (up to
+     * [Blur]). One alone reads as a sharp image fading out, not as a blur growing: the half-way copy
+     * makes it read as blur. Each one is a full-screen bitmap while the drawer is open.
+     */
+    const val BLUR_LEVELS = 2
 
     /** Release faster than this (vertical) opens/closes regardless of position. */
     val FlingVelocity = 600.dp // per second

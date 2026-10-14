@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -123,6 +124,7 @@ fun WorkspaceSwitcher(spaces: List<SpaceModel>, pager: SpacePager, enabled: Bool
                         .graphicsLayer {
                             val e = geo.open(i, pager.pos)
                             alpha = BarTokens.SWITCHER_INACTIVE_ALPHA + (1f - BarTokens.SWITCHER_INACTIVE_ALPHA) * e
+                            compositingStrategy = CompositingStrategy.ModulateAlpha
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -145,6 +147,7 @@ fun WorkspaceSwitcher(spaces: List<SpaceModel>, pager: SpacePager, enabled: Bool
                         .graphicsLayer {
                             val e = geo.open(i, pager.pos)
                             alpha = ((e - BarTokens.SWITCHER_NAME_FROM) / (1f - BarTokens.SWITCHER_NAME_FROM)).coerceIn(0f, 1f)
+                            compositingStrategy = CompositingStrategy.ModulateAlpha
                         },
                 )
             }

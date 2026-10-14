@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -108,12 +109,12 @@ fun Favicon(url: String, size: Dp, modifier: Modifier = Modifier, icon: String? 
         val backed = loaded != null && loaded.dark && backing.isSpecified
         // Composed only when the icon was not in memory; the fade is a layer property, so loading
         // never recomposes per frame.
-        if (initial == null) LetterTile(url, size, shape, Modifier.graphicsLayer { alpha = 1f - reveal.value })
+        if (initial == null) LetterTile(url, size, shape, Modifier.graphicsLayer { alpha = 1f - reveal.value; compositingStrategy = CompositingStrategy.ModulateAlpha })
         if (loaded != null) {
             Box(
                 Modifier
                     .size(size)
-                    .graphicsLayer { alpha = reveal.value }
+                    .graphicsLayer { alpha = reveal.value; compositingStrategy = CompositingStrategy.ModulateAlpha }
                     .clip(shape)
                     .then(if (backed) Modifier.background(backing) else Modifier),
                 contentAlignment = Alignment.Center,
