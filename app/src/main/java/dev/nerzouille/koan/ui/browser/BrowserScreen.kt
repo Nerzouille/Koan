@@ -23,7 +23,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.nerzouille.koan.engine.Components
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanTheme
 import mozilla.components.browser.engine.gecko.GeckoEngineView
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.feature.session.SessionFeature
@@ -68,7 +68,7 @@ fun BrowserScreen(
     Box(
         Modifier
             .fillMaxSize()
-            .background(KoanColors.Base)
+            .background(KoanTheme.colors.Base)
             .statusBarsPadding()
             .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
             .padding(bottom = bottomPadding),

@@ -43,7 +43,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.zIndex
 import dev.nerzouille.koan.ui.theme.CardTokens
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanPalette
+import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.SpaceColors
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlin.math.PI
@@ -64,6 +66,7 @@ import kotlin.math.sin
 @Composable
 fun DepthStack(
     cards: List<CardModel>,
+    colors: SpaceColors,
     state: StackState,
     enabled: Boolean,
     onOpen: (String) -> Unit,
@@ -152,15 +155,19 @@ fun DepthStack(
         { d -> blurs[(DepthCurve.blurDp(d) * 2f).roundToInt().coerceIn(0, blurs.size - 1)] }
     }
 
+    val palette = KoanTheme.colors
+    // Light: back cards fade into the wash where the pile sits; dark: they darken.
+    val dimColor = if (palette.DimFromHaze) colors.haze else Color.Black
+
     BoxWithConstraints(modifier.clipToBounds()) {
         val width = constraints.maxWidth.toFloat()
         val height = constraints.maxHeight.toFloat()
-        val geo = remember(width, height, density) { StackGeometry(state, width, height, density.density) }
-        // The dock zone is solid Base, so fading *to Base* looks like the spec's alpha mask without
-        // an offscreen layer for the whole stack every frame.
-        val fade = remember(height, density) {
+        val geo = remember(width, height, density, palette) { StackGeometry(state, width, height, density.density, palette) }
+        // The background is plain Base above the dock, so fading *to Base* looks like the spec's
+        // alpha mask without an offscreen layer for the whole stack every frame.
+        val fade = remember(height, density, palette) {
             Brush.verticalGradient(
-                0f to Color.Transparent, 1f to KoanColors.Base,
+                0f to Color.Transparent, 1f to palette.Base,
                 startY = height - with(density) { StackTokens.BottomFade.toPx() }, endY = height,
             )
         }
@@ -266,10 +273,16 @@ fun DepthStack(
                     val near = remember(a, geo) {
                         derivedStateOf { geo.depthOf(a).let { it >= DepthCurve.MIN_VISIBLE_D - 1f && it <= DepthCurve.MAX_VISIBLE_D + 1f } }
                     }
+                    // The card one slot in front casts a short contact shadow on this one.
+                    val front = ids.getOrNull(index + 1)?.let { state.anim(it, index + 1) }
                     TabCard(
                         card = card,
                         depth = { if (near.value) geo.depthOf(a) else OFFSCREEN_DEPTH },
+                        frontEdge = { if (front != null && near.value) geo.frontEdge(a, front) else Float.NaN },
+                        frontShadow = { if (front != null && near.value) geo.frontShadow(front) else 0f },
                         blurFor = blurFor,
+                        dimColor = dimColor,
+                        accent = colors.accent,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .zIndex(if (state.liftedId == id) 1f else 0f)
@@ -307,6 +320,7 @@ private class StackGeometry(
     val width: Float,
     val viewportHeight: Float,
     val density: Float,
+    val palette: KoanPalette,
 ) {
     val cardWidth = width - 2 * StackTokens.CardSideMargin.value * density
 
@@ -343,6 +357,24 @@ private class StackGeometry(
 
     private fun visible(d: Float) = d <= DepthCurve.MAX_VISIBLE_D && d >= DepthCurve.MIN_VISIBLE_D
 
+    /**
+     * Top edge of the card in front of [a], in [a]'s own (unscaled) coordinates: where that card
+     * casts its contact shadow. NaN when it is not on screen.
+     */
+    fun frontEdge(a: CardAnim, front: CardAnim): Float {
+        val f = depthOf(front)
+        if (!visible(f)) return Float.NaN
+        return (topOf(f) - topOf(depthOf(a))) / DepthCurve.scale(depthOf(a))
+    }
+
+    /** Strength of that shadow: it fades with the card in front, and as it is swiped away. */
+    fun frontShadow(front: CardAnim): Float {
+        val f = depthOf(front)
+        if (!visible(f) || front.gone) return 0f
+        val away = (1f - abs(front.swipeX) / (StackTokens.SwipeCloseDistance.value * density)).coerceIn(0f, 1f)
+        return DepthCurve.alpha(f) * away
+    }
+
     fun applyTo(layer: GraphicsLayerScope, a: CardAnim) = with(layer) {
         val d = depthOf(a)
         if (!visible(d) || (a.gone && a.fly == 0f && a.swipeX == 0f)) {
@@ -378,9 +410,9 @@ private class StackGeometry(
         alpha = DepthCurve.alpha(d) * swipeAlpha
         shape = CardShape
         clip = true
-        shadowElevation = (StackTokens.Shadow.value + a.lift * StackTokens.LiftShadow.value) * density
-        ambientShadowColor = Color.Black
-        spotShadowColor = Color.Black
+        shadowElevation = (palette.CardElevation.value + a.lift * StackTokens.LiftShadow.value) * density
+        ambientShadowColor = palette.CardShadowColor
+        spotShadowColor = palette.CardShadowColor
     }
 
     private fun tiltFor(xPx: Float) = xPx / density * StackTokens.SWIPE_TILT_PER_DP

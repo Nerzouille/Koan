@@ -38,9 +38,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
+import dev.nerzouille.koan.ui.theme.SpaceColors
 import kotlin.math.abs
 
 @Immutable
@@ -49,6 +50,8 @@ data class SpaceModel(
     val name: String,
     val icon: String,
     val gradient: List<Color>,
+    /** The space's accent, wash and loading-bar colours in the current theme. */
+    val colors: SpaceColors,
     val essentials: List<CardModel>,
     /** The drawer's pinned list: tabs and folder headers, collapsed folders' tabs left out. */
     val pinned: List<DrawerRow>,
@@ -114,6 +117,7 @@ fun SpacePage(
                 connect && space.stack.isEmpty() -> ConnectCard(onConnect, compact = false, Modifier.align(Alignment.Center))
                 else -> DepthStack(
                     cards = space.stack,
+                    colors = space.colors,
                     state = stack,
                     enabled = active,
                     onOpen = onOpenTab,
@@ -129,6 +133,8 @@ fun SpacePage(
 /** Placeholder cards in the real stack geometry, breathing slowly while the first sync runs. */
 @Composable
 internal fun SkeletonStack(modifier: Modifier = Modifier) {
+    val palette = KoanTheme.colors
+    val colors = remember(palette) { SpaceColors.of(emptyList(), palette) }
     val scope = rememberCoroutineScope()
     val state = remember { StackState((SkeletonCards.size - 2).toFloat(), scope) }
     val breath = rememberInfiniteTransition(label = "skeleton")
@@ -140,6 +146,7 @@ internal fun SkeletonStack(modifier: Modifier = Modifier) {
     )
     DepthStack(
         cards = SkeletonCards,
+        colors = colors,
         state = state,
         enabled = false,
         onOpen = {},
@@ -172,13 +179,13 @@ private fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit,
     ) {
         HeaderIcon(KoanIcons.Back, onBack)
         Box(
-            Modifier.size(OverviewTokens.SpaceIconBox).clip(RoundedCornerShape(OverviewTokens.SpaceIconRadius)).background(KoanColors.Glass),
+            Modifier.size(OverviewTokens.SpaceIconBox).clip(RoundedCornerShape(OverviewTokens.SpaceIconRadius)).background(KoanTheme.colors.Glass),
             contentAlignment = Alignment.Center,
-        ) { ZenIcon(space.icon, OverviewTokens.SpaceIconGlyph, tint = KoanColors.TextPrimary) }
+        ) { ZenIcon(space.icon, OverviewTokens.SpaceIconGlyph, tint = KoanTheme.colors.TextPrimary) }
         Spacer(Modifier.width(OverviewTokens.TitleGap))
         Text(
             space.name,
-            color = KoanColors.TextPrimary,
+            color = KoanTheme.colors.TextPrimary,
             fontSize = OverviewTokens.TitleSize,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -192,11 +199,11 @@ private fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit,
                 .padding(end = OverviewTokens.HeaderPadding)
                 .size(OverviewTokens.NewTabButton)
                 .clip(CircleShape)
-                .background(KoanColors.NewTabButton)
+                .background(KoanTheme.colors.NewTabButton)
                 .clickable(onClick = onNewTab),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(KoanIcons.Plus, "New tab", tint = KoanColors.NewTabIcon, modifier = Modifier.size(OverviewTokens.NewTabGlyph))
+            Icon(KoanIcons.Plus, "New tab", tint = KoanTheme.colors.NewTabIcon, modifier = Modifier.size(OverviewTokens.NewTabGlyph))
         }
     }
 }
@@ -204,7 +211,7 @@ private fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit,
 @Composable
 private fun HeaderIcon(icon: ImageVector, onClick: () -> Unit) {
     Box(Modifier.size(OverviewTokens.HeaderIcon).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, null, tint = KoanColors.TextPrimary, modifier = Modifier.size(OverviewTokens.HeaderGlyph))
+        Icon(icon, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(OverviewTokens.HeaderGlyph))
     }
 }
 
@@ -236,7 +243,7 @@ private fun SyncBadgeView(badge: SyncBadge, onClick: () -> Unit) {
                 .size(FirstRunTokens.BadgeDot)
                 .graphicsLayer { this.alpha = if (syncing) alpha.value else 1f }
                 .clip(CircleShape)
-                .background(if (syncing) KoanColors.TextSecondary else KoanColors.Attention),
+                .background(if (syncing) KoanTheme.colors.TextSecondary else KoanTheme.colors.Attention),
         )
     }
 }

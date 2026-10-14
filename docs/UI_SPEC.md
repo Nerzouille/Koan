@@ -30,14 +30,15 @@ the interaction rules below still apply.
 │ │      (thumbnail)         │ │
 │ ╰──────────────────────────╯ │
 │  ╭────────────────────────╮  │  peek: next card's header
+╭──────────────────────────────╮  the dock (own surface, 24dp top corners)
 │            ▬▬                │  drawer handle
-│  ‹  Personal · WORK · Uni  › │  workspace switcher  ┐ the bottom bar (strip)
-│  ‹  [ Search or type URL ] ⧉ │  address row         ┘
+│     🏡  ( 💼 Work )  🎓       │  workspace switcher  ┐ the bottom bar
+│     [ Search or type URL ] ⧉ │  address row         ┘
 └──────────────────────────────┘
 ```
 
-- Background = the space's Zen theme gradient (`theme.gradientColors`), darkened for legibility.
-  Default if no theme: near-black.
+- Background: see "Themes". Light = near-white with a soft wash of the space colour at the top;
+  Dark = plain dark grey. The wash crossfades with the drag when switching spaces.
 - Essentials and pinned tabs live in the **drawer** (see below), not in the overview itself.
 - The card stack: folders (a labelled group that can collapse to a single "deck"
   card), then normal tabs, most recent last (bottom, closest to the thumb).
@@ -62,8 +63,8 @@ to the top of the stack.
   stay at the bottom. Tap = open the tab (closes drawer and overview).
 - The drawer follows the finger 1:1 and settles with a spring (position past half, or a fling,
   decides open/closed).
-- Behind it the overview dims (black up to 45%) and blurs (up to 14dp), both driven by the drawer's
-  progress.
+- Behind it the overview dims (light: `rgba(28,28,40,.16)`, dark: black 45%) and blurs (up to
+  14dp), both driven by the drawer's progress.
 - **Close:** swipe down on the sheet or the bar, tap outside it, tap the handle, or Back.
 - On the bar, horizontal drags still switch spaces and vertical drags drive the drawer (axis picked
   after the touch slop). Switching spaces with the drawer open slides its content with the space.
@@ -75,7 +76,8 @@ to the top of the stack.
   is visible depends on its depth.
 - Thumbnail fills the card, top-aligned, cropped (not letterboxed). Header and placeholder rules:
   see "Visual restraint".
-- The currently active tab's card is marked by a small accent dot next to its title, not a stroke.
+- The currently active tab's card is marked by a small dot in the space's accent next to its title,
+  not a stroke.
 
 ### Depth stack (the "premium" feel) — most important visual rule
 
@@ -97,7 +99,8 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
   ≈ 15% of it); `scale(d) = sMin + (1 − sMin)·r_sᵈ`
   with sMin = 0.58, r_s = 0.52 → .80 · .69 · .64 · .61. Thumbnail darkness (brightness 1 → .84 →
   .72 → .62 …) and blur (σ 0, 0, .5, 1, 1.6, 2.2, 2.8 dp) increase with depth, keyframes joined
-  linearly; cards fade out from d ≈ 5 and are gone by d = 8.
+  linearly; cards fade out from d ≈ 5 and are gone by d = 8. In Light the "darkness" is a haze
+  towards the space's wash colour instead (1.25× the dim, at most 85%), like the design.
 - **Card in front (d = −1):** closer to the viewer, so slightly **bigger** (scale 1.05) and drawn
   over the focused card: it overlaps the focused card's bottom by 40dp, no gap between them. Only
   its header strip and a hint of thumbnail show (60dp); the bottom fade is 16dp so it stays crisp. Cards past it fade out
@@ -112,8 +115,12 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
     in cards/s capped at 36 (at least one card): gentle swipe ≈ 1 card, normal flick ≈ 2–4, strong
     fling 10+. It lands exactly on a card with a cubic ease-out that starts at the finger's speed
     (0.3–2.2s). Touching the stack during a fling stops it (that touch never opens a card).
-- Every card keeps the same soft shadow (prototype): it is what layers the pile. Depth comes from
-  position, scale, brightness and blur, never from borders or tilt.
+- Every card keeps the same shadow (prototype): it is what layers the pile. Depth comes from
+  position, scale, brightness and blur, never from borders or tilt. Per theme: dark 20dp black
+  elevation; light a light 8dp one. On top, each card casts a **contact shadow** on the card
+  behind it: a 14dp gradient just above its top edge (light: 10% ink, dark: 22% black), shorter
+  where only a sliver of the card behind shows, fading as the card is swiped away. Never a big grey
+  fog over the bottom of the focused card (light-mode rule from the owner).
 - Rubber-band overscroll at both ends (the prototype clamps hard; Android users expect the stretch).
 - **Only the thumbnail layer** gets darkened/blurred. The header strip (favicon + title) stays
   legible deep in the pile (dimmed to 80% at most), so you always know what's in the stack.
@@ -124,14 +131,15 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
 ### Visual restraint (avoid the "AI-generated" look)
 
 - No random saturated gradients on cards. A card shows the **real page thumbnail**. Placeholder for
-  never-opened Zen tabs: dark neutral surface `#18181B` with a large centered favicon and the
-  domain in secondary text, plus a very faint tint (8%) of the favicon colour. Nothing else.
-- Card header: a frosted strip over the thumbnail (black 35% + blur), favicon 22dp, title 15sp
-  medium, ✕ only on the focused card (others show it on touch). No colored header bars.
-- No outlines/strokes on cards except the 1dp `white @ 10%` hairline at the top edge for light
-  catch. Corner radius 28dp, continuous.
-- The space gradient is only the page background, desaturated and dark; cards stay neutral so the
-  thumbnails are the color.
+  never-opened Zen tabs: the neutral card surface (light `#FFFFFF`, dark `#2C2C2E`) with a large
+  centered favicon and the domain in secondary text, plus a very faint tint (8%) of the favicon
+  colour. Nothing else.
+- Card header: a strip over the thumbnail in the card colour (light white 94%, dark `#2C2C2E`
+  95%), favicon 22dp, title 15sp medium, ✕ only on the focused card. No colored header bars.
+- One 1dp outline all around each card (light `#E4E4EA`, dark white 8%), nothing else. Corner
+  radius 28dp.
+- The space colour is only a small accent (see "Themes"); cards stay neutral so the thumbnails are
+  the color.
 
 ### The stack never goes behind the bottom bar
 
@@ -140,8 +148,10 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
 - The bottom 24dp of the viewport has a fade mask (content alpha 1 → 0 toward the bar) so cards
   leaving downward dissolve before the bar instead of being cut sharply. It is shorter than the
   peek so the peeking card's header stays crisp.
-- The bar's zone background is the solid dark base (gradient bg ends above it), so the bar reads
-  as a dock, not as glass floating over content.
+- The bar is **the dock**: its own surface (light `#FFFFFF`, dark `#252527`) with a 1dp hairline
+  on top (light `#ECECF0`, dark white 8%) and a soft upward shadow (28dp; light `rgba(60,40,30,.07)`,
+  dark black 35%). Square under a page, 24dp top corners in the overview, 28dp as the drawer. The
+  stack fades out into the background just above it.
 
 ## Interactions and gesture ownership (important)
 
@@ -166,25 +176,31 @@ the bottom bar. This avoids the close-vs-switch gesture conflict.
 One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Values in
 `Tokens.kt` (`BarTokens`, `DrawerTokens`, `PagerTokens`).
 
-- **Page view:** a plain full-width strip on the page-dark background (no container around it, a
-  1dp white-6% hairline on top): back · big address field (50dp, 17sp, domain only) · tab count ·
-  menu. A 2dp accent progress line runs along the top edge while a page loads, full width, fading
-  out when done. Swipe up on the bar (or tap the tab count) opens the overview.
+- **Page view:** the dock, full width, square: back · big address field (50dp, 17sp, domain
+  only) · tab count · menu. Swipe up on the bar (or tap the tab count) opens the overview.
+- **Loading line** (design 4d): a 2dp gradient line on the dock's top edge, from the left, in the
+  space's gradient colours (pink → violet → blue when the space has fewer than two usable
+  colours), with a soft glow. It eases towards the engine's progress (800ms, never backwards), a
+  lighter streak sweeps along it while it waits, and on completion it runs to the end and fades
+  out (350ms). Page view only.
 - **Overview:** the same strip grows upward; the workspace switcher row (with the drawer handle)
   appears on top, the address field stays underneath (tap = new tab with search). Back and menu
   fade out. From here it can grow further into the drawer (see "Essentials & pinned drawer").
   The morph only draws/transforms (no relayout per frame).
 - Nothing scrolls underneath the bar: the stack ends 12dp above it.
-- The switcher shows the current space name centered in bold, neighbours faded on both sides, plus
-  page dots.
+- The switcher is Zen's icon row (design 4a): one icon per space (initial if it has none), the
+  active one in a pill tinted with its colour (accent at 14% light / 18% dark) showing its name in
+  the space's ink colour. Inactive icons: 44dp touch targets, 70% opacity. The pill follows the
+  drag continuously (positions, pill width and fades are layer/draw-only). Centred when it fits;
+  with too many spaces the active pill stays centred.
 - **Switching is a simple pager**, driven by horizontal drags anywhere on the bar:
   - The whole space follows the finger 1:1 (header and stack move as one unit; the stack trails
     slightly with parallax 0.85× and scale 0.96 → 1).
-  - The background gradient interpolates between the two spaces' gradients by drag fraction.
+  - The background (light: the wash; the switcher pill) interpolates between the two spaces by drag fraction.
   - Release: dragged past **25% of the width**, or flung in the drag direction, commits to the
     neighbour; otherwise it springs back.
   - **Exactly one light haptic tick per committed switch**, on release. Never while dragging.
-- Tap a neighbour name = jump to it (one tick). Long-press bar = grid of all spaces (pick, reorder,
+- Tap a space icon = jump to it (one tick). Long-press bar = grid of all spaces (pick, reorder,
   create) — later.
 - In the page view, horizontal swipe on the address field switches space too — later (M3).
 
@@ -201,12 +217,31 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 - **New tab (+):** a new card grows from the + button into the stack bottom, then immediately
   morphs open with the address sheet focused.
 
+## Themes
+
+Source: section 4 "Themes" of `docs/reference/design/Koan Screens.dc.html` (Light A "soft wash"
+and Dark; Light B is not used). Setting: Light / Dark / Follow system (default), in the ⋯ menu
+for now (Settings screen later). Web pages follow it too (`prefers-color-scheme`).
+
+- **Light ("soft wash"):** background `#FFFFFF` with a wash of the space colour at the top:
+  accent mixed into white at 16% at the top, 9% at 24% of the height, plain white from 50%.
+- **Dark:** plain `#1C1C1E` background, cards `#2C2C2E`, dock `#252527`. No wash.
+- **The space colour is only a small accent:** the loading line, the active space pill, the
+  current-tab dot, the address field's focus ring and cursor, and the light wash. It is derived
+  from the Zen gradient's first colour (hue kept; saturation ≥ 55%; lightness pulled into
+  45–62% light, 62–74% dark; ink text 38% / 80%). A grey or missing theme uses the default accent
+  (`#5B6CFF` light, `#8EA2FF` dark). It crossfades on space switch (with the drag in the overview,
+  400ms elsewhere).
+
 ## Visual tokens (starting point, tweak freely)
 
-- Dark-first UI. Surfaces: `#0E0E10` base, glass surfaces `white @ 8%` with 24dp blur where
-  supported (Android 12+ RenderEffect), fallback to `#1A1A1E @ 92%`.
-- Text: primary `#FFFFFF`, secondary `white @ 62%`.
-- Accent = primary color of the current space's gradient.
+All values live in `ui/theme/Tokens.kt`: one `KoanPalette` per theme (colours), plus the shared
+size/motion objects.
+
+- Light: base/cards/dock `#FFFFFF`, small surfaces `#F2F2F5`, field `#F1F1F4`, text `#1C1C1E`,
+  secondary/icons `#6E6E73`, hints `#8E8E93`.
+- Dark: base `#1C1C1E`, cards `#2C2C2E`, dock `#252527`, small surfaces and field `white @ 8%`,
+  text `#FFFFFF`, secondary `white @ 62%`, icons `#98989D`, hints `white @ 60%`.
 - Typography: one geometric sans (e.g. Inter or Google Sans Flex if bundled); titles 20sp bold,
   card titles 16sp semibold, body 14sp.
 - Radii: cards 28dp, pills full, sheets 32dp top.

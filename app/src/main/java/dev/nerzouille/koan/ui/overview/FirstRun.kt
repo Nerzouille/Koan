@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanTheme
 
 /** Cards the stack shows while the very first sync runs, so the overview is never blank. */
 val SkeletonCards: List<CardModel> = List(FirstRunTokens.SKELETON_CARDS) { i ->
@@ -39,12 +39,12 @@ fun ConnectCard(onConnect: () -> Unit, compact: Boolean, modifier: Modifier = Mo
                 .padding(horizontal = FirstRunTokens.SideMargin)
                 .fillMaxWidth()
                 .clip(CircleShape)
-                .background(KoanColors.Glass)
+                .background(KoanTheme.colors.Glass)
                 .clickable(onClick = onConnect)
                 .padding(vertical = FirstRunTokens.CompactPadding),
             contentAlignment = Alignment.Center,
         ) {
-            Text("Connect your Zen Spaces", color = KoanColors.TextPrimary, fontSize = FirstRunTokens.ButtonSize, fontWeight = FontWeight.Medium)
+            Text("Connect your Zen Spaces", color = KoanTheme.colors.TextPrimary, fontSize = FirstRunTokens.ButtonSize, fontWeight = FontWeight.Medium)
         }
         return
     }
@@ -53,14 +53,14 @@ fun ConnectCard(onConnect: () -> Unit, compact: Boolean, modifier: Modifier = Mo
             .padding(horizontal = FirstRunTokens.SideMargin)
             .fillMaxWidth()
             .clip(RoundedCornerShape(CardTokens.Radius))
-            .background(KoanColors.CardPlaceholder)
+            .background(KoanTheme.colors.Card)
             .padding(FirstRunTokens.Padding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FirstRunTokens.Gap),
     ) {
         Text(
             "Connect your Zen Spaces",
-            color = KoanColors.TextPrimary,
+            color = KoanTheme.colors.TextPrimary,
             fontSize = FirstRunTokens.TitleSize,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -68,7 +68,7 @@ fun ConnectCard(onConnect: () -> Unit, compact: Boolean, modifier: Modifier = Mo
         Text(
             "Sign in with the Mozilla account Zen syncs to. Your spaces, essentials, pinned and open tabs " +
                 "show up here, read-only.",
-            color = KoanColors.TextSecondary,
+            color = KoanTheme.colors.TextSecondary,
             fontSize = FirstRunTokens.BodySize,
             textAlign = TextAlign.Center,
         )
@@ -76,11 +76,11 @@ fun ConnectCard(onConnect: () -> Unit, compact: Boolean, modifier: Modifier = Mo
         Box(
             Modifier
                 .clip(CircleShape)
-                .background(KoanColors.NewTabButton)
+                .background(KoanTheme.colors.NewTabButton)
                 .clickable(onClick = onConnect)
                 .padding(horizontal = FirstRunTokens.ButtonPaddingH, vertical = FirstRunTokens.ButtonPaddingV),
         ) {
-            Text("Sign in", color = KoanColors.NewTabIcon, fontSize = FirstRunTokens.ButtonSize, fontWeight = FontWeight.Bold)
+            Text("Sign in", color = KoanTheme.colors.NewTabIcon, fontSize = FirstRunTokens.ButtonSize, fontWeight = FontWeight.Bold)
         }
     }
 }

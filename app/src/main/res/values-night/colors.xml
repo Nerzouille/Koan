@@ -1,0 +1,4 @@
+<resources>
+    <!-- Window background before the first frame: matches the Dark theme's base. -->
+    <color name="koan_base">#1C1C1E</color>
+</resources>

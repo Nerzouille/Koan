@@ -2,46 +2,179 @@ package dev.nerzouille.koan.ui.theme
 
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.spring
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /*
  * Every visual value of Koan in one place: colours, sizes, the depth-stack geometry, motion.
- * Tweak here, not in the screens. A second theme = a second set of these objects.
+ * Tweak here, not in the screens. Colours come in one set per theme ([KoanPalette]).
  * Sources: docs/UI_SPEC.md and docs/reference/design/Koan Screens.dc.html (v3 perspective stack).
  */
 
-object KoanColors {
-    val Base = Color(0xFF0E0E10)
-    val Glass = Color.White.copy(alpha = 0.08f)
-    val GlassFallback = Color(0xEB1A1A1E) // #1A1A1E @ 92%
-    val TextPrimary = Color.White
-    val TextSecondary = Color.White.copy(alpha = 0.62f)
-    val TextDisabled = Color.White.copy(alpha = 0.19f)
-    val CardPlaceholder = Color(0xFF18181B)
-    val CardHeaderScrim = Color.Black.copy(alpha = 0.35f)
-    val CardHairline = Color.White.copy(alpha = 0.10f)
-    val CloseButton = Color.White.copy(alpha = 0.14f)
-    val DefaultAccent = Color(0xFF8AB4FF)
-    val NewTabButton = Color.White
-    val NewTabIcon = Color.Black
-
-    /** The bottom bar is a plain page-dark strip; the drawer sheet shares it. */
-    val BarSurface = Color(0xFF0E0E10)
-    val BarHairline = Color.White.copy(alpha = 0.06f)
-    val DrawerHandle = Color.White.copy(alpha = 0.28f)
-    val BarField = Color.White.copy(alpha = 0.10f)
-    val PageDot = Color.White
-    val Skeleton = Color.White.copy(alpha = 0.07f)
-
-    /** Behind favicons too dark to read on Koan's dark surfaces. */
-    val IconBacking = Color(0xFFE9E9EE)
-
-    val Notice = Color(0xF2232327)
-
+/**
+ * One theme's colours (docs/UI_SPEC.md "Visual tokens"). Two instances, [Light] (design 4a, "soft
+ * wash") and [Dark] (4i, grey). Screens read the current one through `KoanTheme.colors`; the
+ * space's own colour is only a small accent on top (see [SpaceColors]).
+ */
+@Immutable
+class KoanPalette(
+    val isDark: Boolean,
+    /** Page background behind everything, and what the stack fades to above the dock. */
+    val Base: Color,
+    /** Small surfaces on Base: the header's space icon box, essentials tiles, pinned list. */
+    val Glass: Color,
+    val TextPrimary: Color,
+    val TextSecondary: Color,
+    val TextDisabled: Color,
+    /** Bar icons and the tab-count badge. */
+    val Icon: Color,
+    val Card: Color,
+    val CardStrip: Color,
+    /** 1dp outline all around a card. */
+    val CardBorder: Color,
+    val CloseButton: Color,
+    val CloseIcon: Color,
+    /** Fallback accent for spaces without a usable Zen colour. */
+    val DefaultAccent: Color,
+    val NewTabButton: Color,
+    val NewTabIcon: Color,
+    /** The dock: the bottom bar's own surface (also the drawer sheet). */
+    val Dock: Color,
+    val DockHairline: Color,
+    /** Soft shadow the dock casts upward over the content. */
+    val DockShadow: Color,
+    val DrawerHandle: Color,
+    val BarField: Color,
+    val FieldHint: Color,
+    val Skeleton: Color,
+    /** Behind favicons too dark to read on dark surfaces; Unspecified = never needed. */
+    val IconBacking: Color,
+    val Notice: Color,
     /** Quiet sync notices: amber, never red. */
-    val Attention = Color(0xFFE8B45A)
+    val Attention: Color,
+    /** Over the overview while the drawer is open, at full open. */
+    val DrawerScrim: Color,
+    // Depth stack.
+    /** Back cards fade towards this (dark: black = brightness). Light uses the space's haze instead. */
+    val DimFromHaze: Boolean,
+    /** Multiplies StackTokens.Dim, capped at DimMax (light haze is stronger than a dim). */
+    val DimGain: Float,
+    val DimMax: Float,
+    val CardElevation: Dp,
+    val CardShadowColor: Color,
+    /** Short, soft shadow a card casts on the card behind it, just above its top edge. */
+    val ContactShadow: Color,
+    val ContactShadowLength: Dp,
+    // Space colour → accent (hue kept, saturation and lightness pulled into a range that reads on Base).
+    val AccentLightness: ClosedFloatingPointRange<Float>,
+    val InkLightness: Float,
+    /** Alpha of the active space pill's tint. */
+    val PillAlpha: Float,
+    /** How much of the accent tints the top of the background, and at 24% of the height (light only). */
+    val WashTop: Float,
+    val WashMid: Float,
+) {
+    companion object {
+        val Light = KoanPalette(
+            isDark = false,
+            Base = Color(0xFFFFFFFF),
+            Glass = Color(0xFFF2F2F5),
+            TextPrimary = Color(0xFF1C1C1E),
+            TextSecondary = Color(0xFF6E6E73),
+            TextDisabled = Color.Black.copy(alpha = 0.22f),
+            Icon = Color(0xFF6E6E73),
+            Card = Color(0xFFFFFFFF),
+            CardStrip = Color.White.copy(alpha = 0.94f),
+            CardBorder = Color(0xFFE4E4EA),
+            CloseButton = Color.Black.copy(alpha = 0.06f),
+            CloseIcon = Color(0xFF6E6E73),
+            DefaultAccent = Color(0xFF5B6CFF),
+            NewTabButton = Color(0xFF1C1C1E),
+            NewTabIcon = Color.White,
+            Dock = Color(0xFFFFFFFF),
+            DockHairline = Color(0xFFECECF0),
+            DockShadow = Color(0xFF3C281E).copy(alpha = 0.07f),
+            DrawerHandle = Color.Black.copy(alpha = 0.16f),
+            BarField = Color(0xFFF1F1F4),
+            FieldHint = Color(0xFF8E8E93),
+            Skeleton = Color.Black.copy(alpha = 0.06f),
+            IconBacking = Color.Unspecified,
+            Notice = Color(0xF2F2F2F5),
+            Attention = Color(0xFFC0841A),
+            DrawerScrim = Color(0xFF1C1C28).copy(alpha = 0.16f),
+            DimFromHaze = true,
+            DimGain = 1.25f,
+            DimMax = 0.85f,
+            CardElevation = 8.dp,
+            CardShadowColor = Color(0xFF1E1E3C).copy(alpha = 0.5f),
+            ContactShadow = Color(0xFF1C1C30).copy(alpha = 0.10f),
+            ContactShadowLength = 14.dp,
+            AccentLightness = 0.45f..0.62f,
+            InkLightness = 0.38f,
+            PillAlpha = 0.14f,
+            WashTop = 0.16f,
+            WashMid = 0.09f,
+        )
+
+        val Dark = KoanPalette(
+            isDark = true,
+            Base = Color(0xFF1C1C1E),
+            Glass = Color.White.copy(alpha = 0.08f),
+            TextPrimary = Color.White,
+            TextSecondary = Color.White.copy(alpha = 0.62f),
+            TextDisabled = Color.White.copy(alpha = 0.19f),
+            Icon = Color(0xFF98989D),
+            Card = Color(0xFF2C2C2E),
+            CardStrip = Color(0xF22C2C2E),
+            CardBorder = Color.White.copy(alpha = 0.08f),
+            CloseButton = Color.White.copy(alpha = 0.10f),
+            CloseIcon = Color.White.copy(alpha = 0.75f),
+            DefaultAccent = Color(0xFF8EA2FF),
+            NewTabButton = Color.White,
+            NewTabIcon = Color(0xFF1C1C1E),
+            Dock = Color(0xFF252527),
+            DockHairline = Color.White.copy(alpha = 0.08f),
+            DockShadow = Color.Black.copy(alpha = 0.35f),
+            DrawerHandle = Color.White.copy(alpha = 0.20f),
+            BarField = Color.White.copy(alpha = 0.08f),
+            FieldHint = Color.White.copy(alpha = 0.60f),
+            Skeleton = Color.White.copy(alpha = 0.07f),
+            IconBacking = Color(0xFFE9E9EE),
+            Notice = Color(0xF22C2C2E),
+            Attention = Color(0xFFE8B45A),
+            DrawerScrim = Color.Black.copy(alpha = 0.45f),
+            DimFromHaze = false,
+            DimGain = 1f,
+            DimMax = 1f,
+            CardElevation = 20.dp,
+            CardShadowColor = Color.Black,
+            ContactShadow = Color.Black.copy(alpha = 0.22f),
+            ContactShadowLength = 14.dp,
+            AccentLightness = 0.62f..0.74f,
+            InkLightness = 0.80f,
+            PillAlpha = 0.18f,
+            WashTop = 0f,
+            WashMid = 0f,
+        )
+    }
+}
+
+/** Where the background wash ends, as fractions of the screen height (design 4a). */
+object WashTokens {
+    const val MID_STOP = 0.24f
+    const val END_STOP = 0.5f
+
+    /** Below this saturation a Zen colour counts as grey: the space uses the default accent. */
+    const val MIN_SATURATION = 0.12f
+
+    /** Accents get at least this saturation, so a muted Zen theme still reads as a colour. */
+    const val ACCENT_SATURATION = 0.55f
+
+    /** Loading bar when the space has fewer than two colours: pink → violet → blue. */
+    val DefaultProgress = listOf(Color(0xFFFF5FA2), Color(0xFFB46BFF), Color(0xFF4F8DFF))
 }
 
 /** The upright one-point-perspective card stack (docs/UI_SPEC.md "Depth stack"). Tuned to sketch-stack.png. */
@@ -93,8 +226,7 @@ object StackTokens {
     val BlurDp = floatArrayOf(0f, 0f, 0f, 0.9f, 1.9f, 2.9f, 4f)
     val Alpha = floatArrayOf(1f, 1f, 1f, 1f, 1f, 0.85f, 0.6f, 0.3f, 0f)
 
-    /** Every visible card keeps the same soft shadow (prototype), it's what layers the pile. */
-    val Shadow = 20.dp
+    // Every visible card keeps the same shadow (it layers the pile): KoanPalette.CardElevation.
 
     /** Header strip is dimmed at most this much, so titles stay legible deep in the pile. */
     const val HEADER_DIM_MAX = 0.2f
@@ -125,7 +257,7 @@ object StackTokens {
     /** Overscroll resistance past both ends. */
     const val RUBBER_BAND = 0.45f
 
-    /** Fade to the dock colour at the bottom of the viewport; short, so the peek's header stays crisp. */
+    /** Fade to the background at the bottom of the viewport; short, so the peek's header stays crisp. */
     val BottomFade = 16.dp
 
     // Long-press reorder.
@@ -168,6 +300,9 @@ object CardTokens {
     val PlaceholderGap = 14.dp
     val PlaceholderDomainSize = 14.sp
 
+    /** The contact shadow never covers more than this share of a card's visible sliver (deep pile). */
+    const val CONTACT_SHADOW_MAX_FRACTION = 0.35f
+
     /** Only this top slice of the thumbnail is blurred: more than any pile card ever shows. */
     val BlurSlice = 300.dp
 }
@@ -185,11 +320,6 @@ object OverviewTokens {
     val NewTabButton = 40.dp
     val NewTabGlyph = 20.dp
     val SwipeDownToDismiss = 48.dp
-
-    /** Space gradient backdrop: how much of each stop survives over the base colour. */
-    const val BACKDROP_TOP = 0.75f
-    const val BACKDROP_MID = 0.45f
-    const val BACKDROP_DESATURATE = 0.3f
 }
 
 /** The bottom bar: a plain strip with the address row; + workspace switcher in the overview. */
@@ -257,9 +387,30 @@ object BarTokens {
     val TabsBadgeRadius = 8.dp
     val TabsBadgeBorder = 2.dp
     val TabsCountSize = 12.sp
-    /** Page load progress along the bar's top edge. */
-    val ProgressHeight = 2.dp
     val Hairline = 1.dp
+
+    /** The dock: top corners in the overview (design 4a: 24) and its upward shadow. */
+    val DockRadius = 24.dp
+    val DockShadowHeight = 28.dp
+
+    /** Ring around the address input while it has focus. */
+    val FocusRing = 1.5.dp
+
+    /** Page load progress: a gradient line on the dock's top edge, with a soft glow. */
+    val ProgressHeight = 2.dp
+    val ProgressGlow = 8.dp
+    const val PROGRESS_GLOW_ALPHA = 0.35f
+
+    /** Where the line starts as soon as a load begins, so it never looks stuck at 0. */
+    const val PROGRESS_START = 0.06f
+    const val PROGRESS_MS = 800
+    const val PROGRESS_FINISH_MS = 250
+    const val PROGRESS_FADE_MS = 350
+
+    /** A lighter streak running along the line while it waits. */
+    val ShimmerWidth = 72.dp
+    const val SHIMMER_MS = 1300
+    const val SHIMMER_ALPHA = 0.55f
 
     /** Rows slide this far while they crossfade during the page ↔ overview morph. */
     val MorphSlide = 12.dp
@@ -268,19 +419,25 @@ object BarTokens {
     val GapAbove = 12.dp
     val SwipeUpToOpen = 40.dp
 
-    // Switcher row.
-    val LabelSpacing = 116.dp
-    val LabelSize = 15.sp
-    val LabelIcon = 18.dp
-    val LabelGap = 6.dp
-    val LabelLift = 8.dp
-    const val LABEL_FAR_SCALE = 0.14f
-    const val LABEL_FAR_FADE = 0.6f
-    val Chevron = 16.dp
-    val ChevronInset = 14.dp
-    val Dot = 5.dp
-    val DotGap = 5.dp
-    val DotsBottom = 8.dp
+    // Switcher row: Zen-style space icons, the active one in a tinted pill with its name (design 4a).
+    /** Touch target of an inactive icon; icons sit side by side, no gap. */
+    val SwitcherItem = 44.dp
+    val SwitcherBottom = 2.dp
+    val SwitcherIcon = 20.dp
+
+    /** Icon inset from the item's left edge, the same collapsed and in the pill, so it never jumps. */
+    val SwitcherIconInset = 12.dp
+    val SwitcherNameGap = 7.dp
+    val SwitcherPillEnd = 14.dp
+    val SwitcherPillHeight = 36.dp
+    val SwitcherNameSize = 14.sp
+    val SwitcherNameMax = 140.dp
+
+    /** Inactive icons (design: .55; a bit more visible on the phone). */
+    const val SWITCHER_INACTIVE_ALPHA = 0.7f
+
+    /** The name only shows once the pill is this far open, so it never runs into the next icon. */
+    const val SWITCHER_NAME_FROM = 0.45f
 }
 
 /** Essentials + pinned drawer that grows out of the overview's bar. */
@@ -308,8 +465,7 @@ object DrawerTokens {
     val StatusRowHeight = 40.dp
     val StatusTextSize = 13.sp
 
-    /** Cards behind the open drawer: black overlay alpha and blur radius at full open. */
-    const val SCRIM = 0.45f
+    /** Cards behind the open drawer: blur radius at full open (the scrim is KoanPalette.DrawerScrim). */
     val Blur = 14.dp
 
     /** Release faster than this (vertical) opens/closes regardless of position. */
@@ -347,6 +503,9 @@ object Motion {
 
     /** Full-screen sheets (sign-in) sliding up and down. */
     val Sheet: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 380f)
+
+    /** The space accent (loading bar, cursor) crossfades this long when the current space changes. */
+    const val ACCENT_FADE_MS = 400
 
     /** Overview open/close; also drives the bar morph. */
     val Overview: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)

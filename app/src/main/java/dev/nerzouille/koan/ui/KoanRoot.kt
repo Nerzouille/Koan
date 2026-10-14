@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -31,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
+import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.resolveInput
 import dev.nerzouille.koan.ui.bar.AddressRow
@@ -52,6 +52,9 @@ import dev.nerzouille.koan.ui.overview.toModel
 import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
 import dev.nerzouille.koan.ui.theme.DrawerTokens
+import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.SpaceColors
+import kotlinx.coroutines.launch
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import mozilla.components.browser.state.selector.selectedTab
@@ -78,7 +81,11 @@ fun KoanRoot(components: Components) {
     var activeTabId by rememberSaveable { mutableStateOf<String?>(null) }
     var overviewOpen by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
-    val models = remember(spaces, activeTabId) { spaces.map { it.toModel(activeTabId) } }
+    val palette = KoanTheme.colors
+    val themeMode by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
+    val models = remember(spaces, activeTabId, palette) { spaces.map { it.toModel(activeTabId, palette) } }
+    val defaultColors = remember(palette) { SpaceColors.of(emptyList(), palette) }
+    val currentColors = models.getOrNull(currentSpace)?.colors ?: defaultColors
 
     // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph.
     val progress = remember { Animatable(if (overviewOpen) 1f else 0f) }
@@ -253,7 +260,7 @@ fun KoanRoot(components: Components) {
                     .drawWithContent {
                         drawContent()
                         val d = drawer.progress
-                        if (d > 0.01f) drawRect(Color.Black, alpha = d * DrawerTokens.SCRIM)
+                        if (d > 0.01f) drawRect(palette.DrawerScrim, alpha = d)
                     },
             )
         }
@@ -293,6 +300,7 @@ fun KoanRoot(components: Components) {
             drawer = drawer,
             loading = currentPage.loading,
             loadProgress = currentPage.progress,
+            colors = currentColors,
             onSwipeUp = ::openOverview,
             drawerContent = { modifier ->
                 DrawerContent(
@@ -307,12 +315,13 @@ fun KoanRoot(components: Components) {
                 )
             },
             switcher = { modifier ->
-                WorkspaceSwitcher(spaces.map { it.space }, pager, enabled = overviewOpen, modifier = modifier)
+                WorkspaceSwitcher(models, pager, enabled = overviewOpen, modifier = modifier)
             },
             address = { modifier ->
                 AddressRow(
                     page = currentPage,
                     tabCount = models.getOrNull(currentSpace)?.stack?.size ?: 0,
+                    accent = currentColors.accent,
                     editing = editing,
                     overviewOpen = overviewOpen,
                     overview = { progress.value },
@@ -328,6 +337,10 @@ fun KoanRoot(components: Components) {
                     onStop = { session.stopLoading() },
                     onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
                     menuExtras = buildList {
+                        add("Theme: ${themeMode.label}" to {
+                            val next = ThemeMode.entries[(themeMode.ordinal + 1) % ThemeMode.entries.size]
+                            scope.launch { components.settings.setThemeMode(next) }
+                        })
                         when (val a = account) {
                             is AccountState.SignedIn -> {
                                 add("Sync now" to { components.sync.syncNow() })

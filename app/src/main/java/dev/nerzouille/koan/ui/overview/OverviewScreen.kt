@@ -6,11 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
@@ -32,15 +30,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.data.PinnedEntry
 import dev.nerzouille.koan.data.SpaceWithTabs
 import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanPalette
 import dev.nerzouille.koan.ui.theme.OverviewTokens
+import dev.nerzouille.koan.ui.theme.SpaceColors
+import dev.nerzouille.koan.ui.theme.WashTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -124,25 +123,25 @@ fun OverviewScreen(
         }
     }
 
-    val density = LocalDensity.current
-    val dockPx = with(density) { dock.toPx() } + WindowInsets.navigationBars.getBottom(density)
+    val palette = KoanTheme.colors
     Box(
         modifier
             .fillMaxSize()
             .drawBehind {
-                drawRect(KoanColors.Base)
-                // Background = the space gradients blended by drag fraction; ends above the dock.
+                drawRect(palette.Base)
+                if (palette.WashTop <= 0f) return@drawBehind
+                // Light: a soft wash of the space colour at the top, crossfading with the drag.
                 val p = pager.pos.coerceIn(0f, (models.size - 1).toFloat())
                 val i = floor(p).toInt()
                 val f = p - i
-                val a = models[i].gradient
-                val b = models[(i + 1).coerceAtMost(models.size - 1)].gradient
-                val top = lerp(backdrop(a, 0), backdrop(b, 0), f)
-                val mid = lerp(backdrop(a, 1), backdrop(b, 1), f)
+                val a = models[i].colors
+                val b = models[(i + 1).coerceAtMost(models.size - 1)].colors
                 drawRect(
                     Brush.verticalGradient(
-                        0f to top, 0.45f to mid, 1f to KoanColors.Base,
-                        endY = size.height - dockPx,
+                        0f to lerp(a.washTop, b.washTop, f),
+                        WashTokens.MID_STOP to lerp(a.washMid, b.washMid, f),
+                        WashTokens.END_STOP to palette.Base,
+                        endY = size.height,
                     ),
                 )
             },
@@ -214,15 +213,6 @@ data class SyncUi(
 
 enum class SyncBadge { None, Syncing, Attention }
 
-/** Desaturated, darkened version of a Zen gradient stop, so cards stay the colour (UI_SPEC). */
-private fun backdrop(gradient: List<Color>, stop: Int): Color {
-    if (gradient.isEmpty()) return KoanColors.Base
-    val c = gradient[stop.coerceAtMost(gradient.size - 1)]
-    val grey = c.luminance().let { Color(it, it, it) }
-    val muted = lerp(c, grey, OverviewTokens.BACKDROP_DESATURATE)
-    return lerp(KoanColors.Base, muted, if (stop == 0) OverviewTokens.BACKDROP_TOP else OverviewTokens.BACKDROP_MID)
-}
-
 /** The tab a card or row id opens: a split card opens its first member. */
 fun SpaceWithTabs.findTab(id: String): TabEntity? =
     stack.firstOrNull { it.id == id }?.first
@@ -234,7 +224,7 @@ fun SpaceWithTabs.findTab(id: String): TabEntity? =
  * UI model of a space. A pinned or essential tab that is live (the active tab) also gets a card at
  * the bottom of the stack, marked pinned (docs/UI_SPEC.md "Live pinned tabs also get a card").
  */
-fun SpaceWithTabs.toModel(activeTabId: String?): SpaceModel {
+fun SpaceWithTabs.toModel(activeTabId: String?, palette: KoanPalette): SpaceModel {
     fun TabEntity.card(pinned: Boolean = false) =
         CardModel(koanTabId, title, url, koanTabId == activeTabId, pinned, iconUrl, staticIcon)
     val livePinned = (essentials + pinnedTabs).filter { it.koanTabId == activeTabId }.map { it.card(pinned = true) }
@@ -251,11 +241,13 @@ fun SpaceWithTabs.toModel(activeTabId: String?): SpaceModel {
             }
         }
     }
+    val gradient = space.gradientColors.map { Color(it.toInt()) }
     return SpaceModel(
         uuid = space.uuid,
         name = space.name,
         icon = space.icon,
-        gradient = space.gradientColors.map { Color(it.toInt()) },
+        gradient = gradient,
+        colors = SpaceColors.of(gradient, palette),
         essentials = essentials.map { it.card() },
         pinned = rows,
         stack = stack.map { item ->

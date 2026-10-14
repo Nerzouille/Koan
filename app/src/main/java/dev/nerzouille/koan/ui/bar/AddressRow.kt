@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -47,7 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.BarTokens
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanTheme
 
 /** What the address row shows about the live page. */
 @Immutable
@@ -69,6 +70,8 @@ private const val SEARCH_HINT = "Search or type URL"
 fun AddressRow(
     page: PageInfo,
     tabCount: Int,
+    /** The current space's accent: cursor and focus ring. */
+    accent: Color,
     editing: Boolean,
     overviewOpen: Boolean,
     overview: () -> Float,
@@ -94,6 +97,7 @@ fun AddressRow(
         if (editing) {
             AddressInput(
                 initial = if (page.url == "about:blank") "" else page.url,
+                accent = accent,
                 onSubmit = onSubmit,
                 onCancel = { onEditingChange(false) },
                 modifier = Modifier.weight(1f),
@@ -128,7 +132,7 @@ private fun AddressField(page: PageInfo, overview: () -> Float, onClick: () -> U
         modifier
             .height(BarTokens.FieldHeight)
             .clip(CircleShape)
-            .background(KoanColors.BarField)
+            .background(KoanTheme.colors.BarField)
             .clickable(onClick = onClick)
             .padding(horizontal = BarTokens.FieldPadding),
         contentAlignment = Alignment.Center,
@@ -146,7 +150,7 @@ private fun AddressField(page: PageInfo, overview: () -> Float, onClick: () -> U
 private fun FieldText(text: String, primary: Boolean, modifier: Modifier) {
     Text(
         text = text,
-        color = if (primary) KoanColors.TextPrimary else KoanColors.TextSecondary,
+        color = if (primary) KoanTheme.colors.TextPrimary else KoanTheme.colors.FieldHint,
         fontSize = BarTokens.FieldTextSize,
         fontWeight = FontWeight.Medium,
         maxLines = 1,
@@ -159,6 +163,7 @@ private fun FieldText(text: String, primary: Boolean, modifier: Modifier) {
 @Composable
 private fun AddressInput(
     initial: String,
+    accent: Color,
     onSubmit: (String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -166,6 +171,7 @@ private fun AddressInput(
     var value by remember { mutableStateOf(TextFieldValue(initial, selection = TextRange(0, initial.length))) }
     val focusRequester = remember { FocusRequester() }
     var hadFocus by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -174,19 +180,20 @@ private fun AddressInput(
                 .weight(1f)
                 .height(BarTokens.FieldHeight)
                 .clip(CircleShape)
-                .background(KoanColors.BarField)
+                .background(KoanTheme.colors.BarField)
+                .then(if (focused) Modifier.border(BarTokens.FocusRing, accent, CircleShape) else Modifier)
                 .padding(horizontal = BarTokens.FieldPadding),
             contentAlignment = Alignment.CenterStart,
         ) {
             if (value.text.isEmpty()) {
-                Text(SEARCH_HINT, color = KoanColors.TextSecondary, fontSize = BarTokens.FieldTextSize)
+                Text(SEARCH_HINT, color = KoanTheme.colors.FieldHint, fontSize = BarTokens.FieldTextSize)
             }
             BasicTextField(
                 value = value,
                 onValueChange = { value = it },
                 singleLine = true,
-                textStyle = TextStyle(color = KoanColors.TextPrimary, fontSize = BarTokens.FieldTextSize),
-                cursorBrush = SolidColor(KoanColors.DefaultAccent),
+                textStyle = TextStyle(color = KoanTheme.colors.TextPrimary, fontSize = BarTokens.FieldTextSize),
+                cursorBrush = SolidColor(accent),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Uri,
                     imeAction = ImeAction.Go,
@@ -197,6 +204,7 @@ private fun AddressInput(
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
                     .onFocusChanged {
+                        focused = it.isFocused
                         // Losing focus (keyboard dismissed, tap elsewhere) cancels the edit.
                         if (it.isFocused) hadFocus = true else if (hadFocus) onCancel()
                     },
@@ -213,12 +221,12 @@ private fun TabsButton(count: Int, onClick: () -> Unit) {
         Box(
             Modifier
                 .size(BarTokens.TabsBadge)
-                .border(BarTokens.TabsBadgeBorder, KoanColors.TextPrimary, RoundedCornerShape(BarTokens.TabsBadgeRadius)),
+                .border(BarTokens.TabsBadgeBorder, KoanTheme.colors.Icon, RoundedCornerShape(BarTokens.TabsBadgeRadius)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = if (count > 99) "∞" else count.toString(),
-                color = KoanColors.TextPrimary,
+                color = KoanTheme.colors.Icon,
                 fontSize = BarTokens.TabsCountSize,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -281,7 +289,7 @@ private fun BarIcon(
         Icon(
             icon,
             contentDescription = null,
-            tint = if (enabled) KoanColors.TextPrimary else KoanColors.TextDisabled,
+            tint = if (enabled) KoanTheme.colors.Icon else KoanTheme.colors.TextDisabled,
             modifier = Modifier.size(BarTokens.Icon),
         )
     }

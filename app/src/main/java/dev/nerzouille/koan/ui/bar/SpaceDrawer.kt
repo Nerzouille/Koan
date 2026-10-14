@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
@@ -47,7 +48,7 @@ import dev.nerzouille.koan.ui.overview.SpaceModel
 import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlinx.coroutines.CoroutineScope
@@ -180,7 +181,7 @@ private fun DrawerPage(
         if (space.essentials.isEmpty() && space.pinned.isEmpty()) {
             Text(
                 "No essentials or pinned tabs in ${space.name}",
-                color = KoanColors.TextSecondary,
+                color = KoanTheme.colors.TextSecondary,
                 fontSize = DrawerTokens.PinnedTitleSize,
                 modifier = Modifier.padding(vertical = DrawerTokens.Padding),
             )
@@ -193,7 +194,7 @@ private fun DrawerPage(
                             .weight(1f)
                             .height(DrawerTokens.EssentialHeight)
                             .clip(RoundedCornerShape(DrawerTokens.EssentialRadius))
-                            .background(KoanColors.Glass)
+                            .background(KoanTheme.colors.Glass)
                             .then(if (interactive) Modifier.clickable { onOpenTab(tab.id) } else Modifier),
                         contentAlignment = Alignment.Center,
                     ) { Favicon(tab.url, DrawerTokens.EssentialFavicon, icon = tab.icon, staticIcon = tab.staticIcon) }
@@ -211,13 +212,13 @@ private fun DrawerPage(
                         .fillMaxWidth()
                         .heightIn(max = maxHeight)
                         .clip(RoundedCornerShape(DrawerTokens.PinnedRadius))
-                        .background(KoanColors.Glass)
+                        .background(KoanTheme.colors.Glass)
                         .verticalScroll(rememberScrollState(), enabled = interactive),
                 ) {
                     space.pinned.forEach { row ->
                         key(row.key) {
                             when (row) {
-                                is DrawerRow.Tab -> PinnedRow(row, interactive, onOpenTab)
+                                is DrawerRow.Tab -> PinnedRow(row, space.colors.accent, interactive, onOpenTab)
                                 is DrawerRow.Folder -> FolderRow(row, interactive) { onToggleFolder(row.id, !row.collapsed) }
                             }
                         }
@@ -230,7 +231,7 @@ private fun DrawerPage(
 }
 
 @Composable
-private fun PinnedRow(row: DrawerRow.Tab, interactive: Boolean, onOpenTab: (String) -> Unit) {
+private fun PinnedRow(row: DrawerRow.Tab, accent: Color, interactive: Boolean, onOpenTab: (String) -> Unit) {
     val tab = row.card
     Row(
         Modifier
@@ -244,17 +245,17 @@ private fun PinnedRow(row: DrawerRow.Tab, interactive: Boolean, onOpenTab: (Stri
         Spacer(Modifier.width(DrawerTokens.PinnedPadding))
         Text(
             tab.title,
-            color = KoanColors.TextPrimary,
+            color = KoanTheme.colors.TextPrimary,
             fontSize = DrawerTokens.PinnedTitleSize,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
         if (tab.active) {
-            Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanColors.DefaultAccent))
+            Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(accent))
             Spacer(Modifier.width(DrawerTokens.PinnedPadding))
         }
-        if (row.depth == 0) Icon(KoanIcons.Pin, null, tint = KoanColors.TextSecondary, modifier = Modifier.size(DrawerTokens.PinnedGlyph))
+        if (row.depth == 0) Icon(KoanIcons.Pin, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(DrawerTokens.PinnedGlyph))
     }
 }
 
@@ -272,9 +273,9 @@ private fun FolderRow(row: DrawerRow.Folder, interactive: Boolean, onToggle: () 
     ) {
         Box(Modifier.size(DrawerTokens.PinnedFavicon), contentAlignment = Alignment.Center) {
             if (row.icon.isNullOrBlank()) {
-                Icon(KoanIcons.Folder, null, tint = KoanColors.TextSecondary, modifier = Modifier.size(DrawerTokens.PinnedFavicon))
+                Icon(KoanIcons.Folder, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(DrawerTokens.PinnedFavicon))
             } else {
-                ZenIcon(row.icon, DrawerTokens.PinnedFavicon, tint = KoanColors.TextSecondary)
+                ZenIcon(row.icon, DrawerTokens.PinnedFavicon, tint = KoanTheme.colors.TextSecondary)
             }
         }
         Spacer(Modifier.width(DrawerTokens.PinnedPadding))
@@ -282,7 +283,7 @@ private fun FolderRow(row: DrawerRow.Folder, interactive: Boolean, onToggle: () 
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 row.name.ifBlank { "Folder" },
-                color = KoanColors.TextPrimary,
+                color = KoanTheme.colors.TextPrimary,
                 fontSize = DrawerTokens.PinnedTitleSize,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -290,10 +291,10 @@ private fun FolderRow(row: DrawerRow.Folder, interactive: Boolean, onToggle: () 
                 modifier = Modifier.weight(1f, fill = false),
             )
             Spacer(Modifier.width(DrawerTokens.Gap))
-            Text("${row.count}", color = KoanColors.TextSecondary, fontSize = DrawerTokens.FolderCountSize)
+            Text("${row.count}", color = KoanTheme.colors.TextSecondary, fontSize = DrawerTokens.FolderCountSize)
         }
         Icon(
-            KoanIcons.ChevronDown, null, tint = KoanColors.TextSecondary,
+            KoanIcons.ChevronDown, null, tint = KoanTheme.colors.TextSecondary,
             modifier = Modifier.size(DrawerTokens.PinnedGlyph).graphicsLayer { rotationZ = turn.value },
         )
     }
@@ -325,10 +326,10 @@ private fun StatusRow(status: DrawerStatus, interactive: Boolean, onClick: () ->
         horizontalArrangement = Arrangement.Center,
     ) {
         if (attention) {
-            Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanColors.Attention))
+            Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanTheme.colors.Attention))
             Spacer(Modifier.width(DrawerTokens.Gap))
         }
-        Text(text, color = KoanColors.TextSecondary, fontSize = DrawerTokens.StatusTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(text, color = KoanTheme.colors.TextSecondary, fontSize = DrawerTokens.StatusTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

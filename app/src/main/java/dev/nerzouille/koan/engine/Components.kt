@@ -6,6 +6,7 @@ import dev.nerzouille.koan.data.DataStoreBlob
 import dev.nerzouille.koan.data.KeystoreBox
 import dev.nerzouille.koan.data.KoanDatabase
 import dev.nerzouille.koan.data.LastPlace
+import dev.nerzouille.koan.data.Settings
 import dev.nerzouille.koan.data.SpacesRepository
 import dev.nerzouille.koan.data.SpacesSync
 import kotlinx.coroutines.CoroutineScope
@@ -54,4 +55,5 @@ class Components(context: Context) {
     val accounts by lazy { AccountStore(DataStoreBlob(appContext), KeystoreBox()) }
     val sync by lazy { SpacesSync(accounts, database.dao(), appScope) }
     val lastPlace by lazy { LastPlace(appContext) }
+    val settings by lazy { Settings(appContext) }
 }

@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.nerzouille.koan.sync.SyncError
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SignInTokens
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -83,10 +83,11 @@ fun SignInScreen(onLogin: suspend (FxAWebLogin) -> Unit, onClose: () -> Unit, mo
         }
     }
 
+    val accent = KoanTheme.colors.DefaultAccent
     Column(
         modifier
             .fillMaxSize()
-            .background(KoanColors.Base)
+            .background(KoanTheme.colors.Base)
             .statusBarsPadding(),
     ) {
         Row(
@@ -103,12 +104,12 @@ fun SignInScreen(onLogin: suspend (FxAWebLogin) -> Unit, onClose: () -> Unit, mo
                     .clickable(enabled = !finishing, onClick = onClose),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(KoanIcons.Close, "Close", tint = KoanColors.TextPrimary, modifier = Modifier.size(SignInTokens.CloseGlyph))
+                Icon(KoanIcons.Close, "Close", tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SignInTokens.CloseGlyph))
             }
             Spacer(Modifier.width(SignInTokens.HeaderPadding))
             Column {
-                Text("Connect your Zen Spaces", color = KoanColors.TextPrimary, fontSize = SignInTokens.TitleSize, fontWeight = FontWeight.Bold)
-                Text("Mozilla account · read-only", color = KoanColors.TextSecondary, fontSize = SignInTokens.SubtitleSize)
+                Text("Connect your Zen Spaces", color = KoanTheme.colors.TextPrimary, fontSize = SignInTokens.TitleSize, fontWeight = FontWeight.Bold)
+                Text("Mozilla account · read-only", color = KoanTheme.colors.TextSecondary, fontSize = SignInTokens.SubtitleSize)
             }
         }
         Box(
@@ -118,7 +119,7 @@ fun SignInScreen(onLogin: suspend (FxAWebLogin) -> Unit, onClose: () -> Unit, mo
                 .drawBehind {
                     val p = if (finishing) 1f else progress
                     if (p in 0.01f..0.99f || finishing) {
-                        drawRect(KoanColors.DefaultAccent, size = Size(size.width * p, size.height), alpha = 0.8f)
+                        drawRect(accent, size = Size(size.width * p, size.height), alpha = 0.8f)
                     }
                 },
         )
@@ -142,11 +143,11 @@ fun SignInScreen(onLogin: suspend (FxAWebLogin) -> Unit, onClose: () -> Unit, mo
                         .align(Alignment.TopCenter)
                         .padding(SignInTokens.NoticeMargin)
                         .clip(RoundedCornerShape(SignInTokens.NoticeRadius))
-                        .background(KoanColors.Notice)
+                        .background(KoanTheme.colors.Notice)
                         .clickable { notice = null }
                         .padding(SignInTokens.NoticePadding),
                 ) {
-                    Text(text, color = KoanColors.TextPrimary, fontSize = SignInTokens.NoticeSize)
+                    Text(text, color = KoanTheme.colors.TextPrimary, fontSize = SignInTokens.NoticeSize)
                 }
             }
             if (finishing) {
@@ -156,12 +157,12 @@ fun SignInScreen(onLogin: suspend (FxAWebLogin) -> Unit, onClose: () -> Unit, mo
                         .navigationBarsPadding()
                         .padding(SignInTokens.NoticeMargin)
                         .clip(CircleShape)
-                        .background(KoanColors.Notice)
+                        .background(KoanTheme.colors.Notice)
                         .padding(SignInTokens.NoticePadding),
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     // The page stays usable: a first login may still need the email confirmation.
-                    Text("Connecting to your Zen Spaces…", color = KoanColors.TextPrimary, fontSize = SignInTokens.NoticeSize)
+                    Text("Connecting to your Zen Spaces…", color = KoanTheme.colors.TextPrimary, fontSize = SignInTokens.NoticeSize)
                 }
             }
         }

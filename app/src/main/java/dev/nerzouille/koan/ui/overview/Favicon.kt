@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -27,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.favicon.IconStore
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.ZenIcon
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanTheme
 
 /**
  * Letter tile shown until (or instead of) a real favicon. The colour is also used for the 8% tint of
@@ -82,7 +83,7 @@ fun faviconLook(url: String): FaviconLook {
 fun Favicon(url: String, size: Dp, modifier: Modifier = Modifier, icon: String? = null, staticIcon: Boolean = false) {
     if (staticIcon && !icon.isNullOrEmpty()) {
         Box(modifier.size(size), contentAlignment = Alignment.Center) {
-            ZenIcon(icon, size, tint = KoanColors.TextPrimary)
+            ZenIcon(icon, size, tint = KoanTheme.colors.TextPrimary)
         }
         return
     }
@@ -100,8 +101,11 @@ fun Favicon(url: String, size: Dp, modifier: Modifier = Modifier, icon: String? 
         }
     }
     val shape = RoundedCornerShape(size * 0.28f)
+    val backing = KoanTheme.colors.IconBacking
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         val loaded = image
+        // Dark icons get a light tile on dark surfaces, like Zen's light sidebar gives them.
+        val backed = loaded != null && loaded.dark && backing.isSpecified
         // Composed only when the icon was not in memory; the fade is a layer property, so loading
         // never recomposes per frame.
         if (initial == null) LetterTile(url, size, shape, Modifier.graphicsLayer { alpha = 1f - reveal.value })
@@ -111,8 +115,7 @@ fun Favicon(url: String, size: Dp, modifier: Modifier = Modifier, icon: String? 
                     .size(size)
                     .graphicsLayer { alpha = reveal.value }
                     .clip(shape)
-                    // Dark icons get a light tile, like Zen's light sidebar gives them.
-                    .then(if (loaded.dark) Modifier.background(KoanColors.IconBacking) else Modifier),
+                    .then(if (backed) Modifier.background(backing) else Modifier),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
@@ -120,7 +123,7 @@ fun Favicon(url: String, size: Dp, modifier: Modifier = Modifier, icon: String? 
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
                     filterQuality = FilterQuality.Medium,
-                    modifier = Modifier.size(if (loaded.dark) size * 0.72f else size),
+                    modifier = Modifier.size(if (backed) size * 0.72f else size),
                 )
             }
         }

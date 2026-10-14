@@ -1,6 +1,7 @@
 package dev.nerzouille.koan.ui.overview
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,8 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -31,7 +38,9 @@ import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.CardTokens
-import dev.nerzouille.koan.ui.theme.KoanColors
+import dev.nerzouille.koan.ui.theme.KoanPalette
+import dev.nerzouille.koan.ui.theme.KoanTheme
+import kotlin.math.min
 
 /**
  * What a card needs to draw itself. Immutable so unchanged cards skip recomposition. [pinned] =
@@ -54,19 +63,27 @@ data class CardModel(
 )
 
 /**
- * One card of the depth stack. Depth-dependent effects (blur, dim, ✕ visibility) are read from
- * [depth] inside draw/layer lambdas only, so scrolling never recomposes the card.
+ * One card of the depth stack. Depth-dependent effects (blur, dim, ✕ visibility, the contact
+ * shadow of the card in front at local y [frontEdge]) are read inside draw/layer lambdas only, so
+ * scrolling never recomposes the card. Back cards fade towards [dimColor].
  */
 @Composable
 fun TabCard(
     card: CardModel,
     depth: () -> Float,
+    frontEdge: () -> Float,
+    frontShadow: () -> Float,
     blurFor: (Float) -> RenderEffect?,
+    dimColor: Color,
+    accent: Color,
     modifier: Modifier = Modifier,
 ) {
-    if (card.skeleton) return SkeletonCard(depth, modifier)
+    val palette = KoanTheme.colors
+    val dimOf = { d: Float -> (DepthCurve.dim(d) * palette.DimGain).coerceAtMost(palette.DimMax) }
+    val withShadow = modifier.contactShadow(frontEdge, frontShadow, palette)
+    if (card.skeleton) return SkeletonCard(depth, dimColor, dimOf, withShadow)
     val look = faviconLook(card.url)
-    Box(modifier.background(KoanColors.CardPlaceholder).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
+    Box(withShadow.background(palette.Card).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
         // Thumbnail: only its top slice is blurred. Behind the focus line nothing below that slice is
         // ever visible, and blurring the whole card costs ~5× the GPU time (measured on the POCO).
         PlaceholderThumbnail(
@@ -80,32 +97,52 @@ fun TabCard(
             Modifier
                 .fillMaxSize()
                 .drawBehind {
-                    val dim = DepthCurve.dim(depth())
-                    if (dim > 0.01f) drawRect(Color.Black, alpha = dim)
+                    val dim = dimOf(depth())
+                    if (dim > 0.01f) drawRect(dimColor, alpha = dim)
                 },
         )
-        CardHeader(card, depth)
-        // 1dp light-catch hairline on the top edge.
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(CardTokens.Hairline)
-                .background(KoanColors.CardHairline),
-        )
+        CardHeader(card, depth, dimColor, accent)
+        Box(Modifier.fillMaxSize().border(CardTokens.Hairline, palette.CardBorder, CardShape))
     }
 }
 
+private val CardShape = RoundedCornerShape(CardTokens.Radius)
+
+/**
+ * The short, soft shadow the card in front casts on this one, just above its top edge (light
+ * theme: never a grey fog over the card). Shorter where the pile leaves only a sliver showing.
+ */
+private fun Modifier.contactShadow(edge: () -> Float, strength: () -> Float, palette: KoanPalette): Modifier =
+    drawWithCache {
+        val len = palette.ContactShadowLength.toPx()
+        val brush = Brush.verticalGradient(0f to Color.Transparent, 1f to palette.ContactShadow, startY = 0f, endY = len)
+        onDrawWithContent {
+            drawContent()
+            val y = edge()
+            if (y.isNaN() || y <= 0f) return@onDrawWithContent
+            val a = strength()
+            if (a < 0.01f) return@onDrawWithContent
+            val h = min(len, y * CardTokens.CONTACT_SHADOW_MAX_FRACTION)
+            translate(top = y - h) {
+                scale(scaleX = 1f, scaleY = h / len, pivot = Offset.Zero) {
+                    drawRect(brush, size = Size(size.width, len), alpha = a)
+                }
+            }
+        }
+    }
+
 @Composable
-private fun CardHeader(card: CardModel, depth: () -> Float) {
+private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color, accent: Color) {
+    val palette = KoanTheme.colors
     Row(
         Modifier
             .fillMaxWidth()
             .height(CardTokens.HeaderHeight)
-            .background(KoanColors.CardHeaderScrim)
+            .background(palette.CardStrip)
             .drawWithContent {
                 drawContent()
-                val dim = DepthCurve.headerDim(depth())
-                if (dim > 0.01f) drawRect(Color.Black, alpha = dim)
+                val dim = (DepthCurve.headerDim(depth()) * palette.DimGain).coerceAtMost(palette.DimMax)
+                if (dim > 0.01f) drawRect(dimColor, alpha = dim)
             }
             .padding(start = CardTokens.HeaderPaddingStart, end = CardTokens.HeaderPaddingEnd),
         verticalAlignment = Alignment.CenterVertically,
@@ -116,7 +153,7 @@ private fun CardHeader(card: CardModel, depth: () -> Float) {
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 card.title,
-                color = KoanColors.TextPrimary,
+                color = KoanTheme.colors.TextPrimary,
                 fontSize = CardTokens.TitleSize,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -125,11 +162,11 @@ private fun CardHeader(card: CardModel, depth: () -> Float) {
             )
             if (card.pinned) {
                 Spacer(Modifier.width(CardTokens.HeaderGap))
-                Icon(KoanIcons.Pin, null, tint = KoanColors.TextSecondary, modifier = Modifier.size(CardTokens.PinGlyph))
+                Icon(KoanIcons.Pin, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(CardTokens.PinGlyph))
             }
             if (card.active) {
                 Spacer(Modifier.width(CardTokens.HeaderGap))
-                Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanColors.DefaultAccent))
+                Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(accent))
             }
         }
         // ✕ only on the focused card; the stack's gesture handler does the hit-testing.
@@ -140,10 +177,10 @@ private fun CardHeader(card: CardModel, depth: () -> Float) {
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                Modifier.size(CardTokens.CloseButton).clip(CircleShape).background(KoanColors.CloseButton),
+                Modifier.size(CardTokens.CloseButton).clip(CircleShape).background(palette.CloseButton),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(KoanIcons.Close, null, tint = KoanColors.TextPrimary, modifier = Modifier.size(CardTokens.CloseIcon))
+                Icon(KoanIcons.Close, null, tint = palette.CloseIcon, modifier = Modifier.size(CardTokens.CloseIcon))
             }
         }
     }
@@ -164,7 +201,7 @@ private fun PlaceholderThumbnail(card: CardModel, modifier: Modifier) {
         val host = displayHost(card.url)
         Text(
             if (card.splitCount > 1) "$host  ·  split view of ${card.splitCount}" else host,
-            color = KoanColors.TextSecondary,
+            color = KoanTheme.colors.TextSecondary,
             fontSize = CardTokens.PlaceholderDomainSize,
             maxLines = 1,
         )
@@ -173,27 +210,27 @@ private fun PlaceholderThumbnail(card: CardModel, modifier: Modifier) {
 
 /** A card-shaped placeholder: header bars where favicon and title will be, nothing else. */
 @Composable
-private fun SkeletonCard(depth: () -> Float, modifier: Modifier) {
+private fun SkeletonCard(depth: () -> Float, dimColor: Color, dimOf: (Float) -> Float, modifier: Modifier) {
     Box(
         modifier
-            .background(KoanColors.CardPlaceholder)
+            .background(KoanTheme.colors.Card)
             .drawBehind {
-                val dim = DepthCurve.dim(depth())
-                if (dim > 0.01f) drawRect(Color.Black, alpha = dim)
+                val dim = dimOf(depth())
+                if (dim > 0.01f) drawRect(dimColor, alpha = dim)
             },
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
                 .height(CardTokens.HeaderHeight)
-                .background(KoanColors.CardHeaderScrim)
+                .background(KoanTheme.colors.CardStrip)
                 .padding(start = CardTokens.HeaderPaddingStart, end = CardTokens.HeaderPaddingEnd),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.size(CardTokens.Favicon).clip(RoundedCornerShape(CardTokens.Favicon * 0.28f)).background(KoanColors.Skeleton))
+            Box(Modifier.size(CardTokens.Favicon).clip(RoundedCornerShape(CardTokens.Favicon * 0.28f)).background(KoanTheme.colors.Skeleton))
             Spacer(Modifier.width(CardTokens.HeaderGap))
-            Box(Modifier.width(CardTokens.SkeletonTitle).height(CardTokens.SkeletonBar).clip(CircleShape).background(KoanColors.Skeleton))
+            Box(Modifier.width(CardTokens.SkeletonTitle).height(CardTokens.SkeletonBar).clip(CircleShape).background(KoanTheme.colors.Skeleton))
         }
-        Box(Modifier.fillMaxWidth().height(CardTokens.Hairline).background(KoanColors.CardHairline))
+        Box(Modifier.fillMaxSize().border(CardTokens.Hairline, KoanTheme.colors.CardBorder, CardShape))
     }
 }
