@@ -111,7 +111,13 @@ class TabManager(
         val tab = place.tabId?.let(byId::get)?.takeIf { it.hasCard() || it.pinned || it.essential }
         if (tab != null) open(tab, captureLeaving = false)
         _started.value = true
-        appScope.launch { ThumbnailStore.retainOnly(rooms.allTabs().mapNotNullTo(HashSet()) { it.thumbnailKey }) }
+        appScope.launch {
+            ThumbnailStore.retainOnly(rooms.allTabs().mapNotNullTo(HashSet()) { it.thumbnailKey })
+            // Blank screenshots saved by older builds go once, later, so startup isn't slowed.
+            delay(BLANK_SCAN_DELAY_MS)
+            val blank = ThumbnailStore.dropBlank()
+            if (blank.isNotEmpty()) dao.clearThumbnails(blank)
+        }
         watchEngine()
         watchRoom()
     }
@@ -436,6 +442,7 @@ class TabManager(
         private const val CRASH_RETRY_MS = 5000L
         private const val PREFETCH_BEHIND = 6
         private const val PREFETCH_FRONT = 2
+        private const val BLANK_SCAN_DELAY_MS = 15_000L
     }
 }
 

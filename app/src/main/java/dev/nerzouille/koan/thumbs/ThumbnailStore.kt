@@ -78,10 +78,15 @@ object ThumbnailStore {
     /**
      * Scales [capture] to the thumbnail width, writes it and returns its key, and the keys the disk
      * LRU dropped to stay under its cap (their Room references must be cleared). [capture] is
-     * recycled. [previous] (this tab's old key) is deleted.
+     * recycled. [previous] (this tab's old key) is deleted. Null if nothing was saved, e.g. a blank
+     * capture: the tab then keeps its previous screenshot, or its placeholder.
      */
     suspend fun save(tabId: String, capture: Bitmap, previous: String?): Pair<String, List<String>>? = withContext(Dispatchers.IO) {
         val folder = dir ?: return@withContext null
+        if (looksBlank(capture)) {
+            capture.recycle()
+            return@withContext null
+        }
         val scaled = scaleDown(capture, ThumbTokens.WIDTH_PX)
         if (scaled !== capture) capture.recycle()
         val key = "${hash(tabId)}-${System.currentTimeMillis()}.webp"
@@ -113,6 +118,23 @@ object ThumbnailStore {
             val size = file.length()
             if (file.delete() && diskBytes >= 0) diskBytes -= size
         }
+    }
+
+    /**
+     * Deletes saved screenshots that are blank (captured before the page painted, by builds without
+     * the check in [save]) and returns their keys, whose Room references must be cleared. Runs once.
+     */
+    suspend fun dropBlank(): List<String> = withContext(Dispatchers.IO) {
+        val folder = dir ?: return@withContext emptyList()
+        val marker = File(folder.parentFile, BLANK_SCAN_MARKER)
+        if (marker.exists()) return@withContext emptyList()
+        val blank = folder.listFiles().orEmpty().filter { file ->
+            val bitmap = runCatching { BitmapFactory.decodeFile(file.path) }.getOrNull() ?: return@filter false
+            looksBlank(bitmap).also { bitmap.recycle() }
+        }.map { it.name }
+        blank.forEach { delete(it) }
+        marker.createNewFile()
+        blank
     }
 
     /** Deletes files no tab refers to any more (tabs removed while Koan was not running). */
@@ -148,6 +170,13 @@ object ThumbnailStore {
         dropped
     }
 
+    /** True if [bitmap] is (nearly) one flat colour: a page captured before it painted. */
+    private fun looksBlank(bitmap: Bitmap): Boolean {
+        val soft = if (bitmap.config == Bitmap.Config.HARDWARE) bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return false else bitmap
+        return BlankCheck.looksBlank(soft.width, soft.height) { y, row -> soft.getPixels(row, 0, soft.width, 0, y, soft.width, 1) }
+            .also { if (soft !== bitmap) soft.recycle() }
+    }
+
     private fun fileFor(key: String): File? {
         val folder = dir ?: return null
         if (key.contains('/') || key.startsWith(".")) return null
@@ -171,6 +200,9 @@ object ThumbnailStore {
         if (cur !== src) cur.recycle()
         return out
     }
+
+    /** Written once the one-time scan for old blank screenshots ([dropBlank]) has run. */
+    private const val BLANK_SCAN_MARKER = "thumbs-blank-scan-1"
 
     private fun hash(id: String): String =
         MessageDigest.getInstance("SHA-1").digest(id.toByteArray()).take(10).joinToString("") { "%02x".format(it) }
