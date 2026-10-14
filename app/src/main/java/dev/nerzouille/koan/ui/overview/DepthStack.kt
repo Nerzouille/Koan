@@ -80,6 +80,11 @@ fun DepthStack(
      * those buffers until Koan goes to the background.
      */
     onScreen: () -> Boolean = { true },
+    /**
+     * The overview's open motion has finished. Until then only the visible cards are composed (the
+     * open's first frame is the costly one); the margin and the cards ahead come after.
+     */
+    settled: Boolean = true,
 ) {
     val density = LocalDensity.current
     val view = LocalView.current
@@ -115,15 +120,18 @@ fun DepthStack(
     // the stack is idle: [ahead] grows a few cards per frame around the focus and does not move
     // during a gesture. The window only extends mid-gesture when a long fling outruns it.
     var ahead by remember { mutableStateOf(IntRange.EMPTY) }
+    val latestSettled = rememberUpdatedState(settled)
     val window by remember {
         derivedStateOf {
-            val lo = floor(state.pos - DepthCurve.MAX_VISIBLE_D).toInt() - WINDOW_MARGIN
-            val hi = ceil(state.pos - DepthCurve.MIN_VISIBLE_D).toInt() + WINDOW_MARGIN
+            val margin = if (latestSettled.value) WINDOW_MARGIN else 0
+            val lo = floor(state.pos - DepthCurve.MAX_VISIBLE_D).toInt() - margin
+            val hi = ceil(state.pos - DepthCurve.MIN_VISIBLE_D).toInt() + margin
             val a = ahead
             if (a.isEmpty()) lo..hi else minOf(lo, a.first)..maxOf(hi, a.last)
         }
     }
     LaunchedEffect(state) {
+        snapshotFlow { latestSettled.value }.first { it }
         // Also when the focus jumps while idle (the overview re-centres a stack on its current tab).
         snapshotFlow { if (state.busy) null else state.pos.roundToInt() }.collect { focus ->
             if (focus == null) return@collect

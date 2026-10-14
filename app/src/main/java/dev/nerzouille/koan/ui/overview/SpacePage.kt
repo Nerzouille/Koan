@@ -94,6 +94,8 @@ fun SpacePage(
     onBadge: () -> Unit,
     onConnect: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The overview's open motion has finished (see [DepthStack]'s `settled`). */
+    settled: Boolean = true,
 ) {
     Column(modifier.fillMaxSize()) {
         SpaceHeader(space, sync.badge, onBack = onDismiss, onNewTab = onNewTab, onBadge = onBadge)
@@ -126,6 +128,7 @@ fun SpacePage(
                     onReorder = onReorder,
                     modifier = Modifier.fillMaxSize(),
                     onScreen = { abs(pageOffset()) < 1f },
+                    settled = settled,
                 )
             }
         }

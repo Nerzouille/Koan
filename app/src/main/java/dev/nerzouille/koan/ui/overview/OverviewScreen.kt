@@ -42,7 +42,6 @@ import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.SpaceColors
 import dev.nerzouille.koan.ui.theme.WashTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
@@ -67,6 +66,8 @@ fun OverviewScreen(
     sync: SyncUi,
     /** The overview is open (false while its closing motion still shows it). */
     open: Boolean,
+    /** The open motion has finished (work that would cost its frames waits for this). */
+    settled: Boolean,
     /** Space uuid → that space's current tab (card id last opened there); owned by the caller. */
     currentTabs: Map<String, String>,
     onBadge: () -> Unit,
@@ -78,13 +79,17 @@ fun OverviewScreen(
 
     // Composing a space's page costs ~40 ms (measured on the POCO). Doing it when a switch lands
     // was a visible hitch, so pages are composed ahead of time, one per idle moment, and kept
-    // while the overview is open: switching spaces then composes nothing.
+    // while the overview is open: switching spaces then composes nothing. The open's first frame
+    // composes only the current space; its neighbours come first once the motion has settled.
     val precomposed = remember { mutableStateListOf<String>() }
+    val latestSettled by rememberUpdatedState(settled)
     LaunchedEffect(models.map { it.uuid }) {
-        delay(PRECOMPOSE_START_MS)
+        snapshotFlow { latestSettled }.first { it }
         while (true) {
             snapshotFlow { pager.moving }.first { !it }
-            val next = models.firstOrNull { it.uuid !in precomposed }?.uuid ?: break
+            val here = pager.settled
+            val order = models.indices.sortedBy { abs(it - here) }.map { models[it].uuid }
+            val next = order.firstOrNull { it !in precomposed } ?: break
             precomposed += next
             // Let that frame render before the next page; yield to gestures in between.
             repeat(PRECOMPOSE_GAP_FRAMES) { withFrameNanos { } }
@@ -173,17 +178,19 @@ fun OverviewScreen(
                     .fillMaxWidth()
                     .statusBarsPadding(),
             ) {
-                val settled = pager.settled
+                val current = pager.settled
                 for (i in models.indices) {
                     val space = models[i]
-                    // The settled page and its neighbours, plus every page composed ahead of time.
-                    if (abs(i - settled) > 1 && space.uuid !in precomposed) continue
+                    // The settled page, its neighbours as soon as a swipe starts, and every page
+                    // composed ahead of time.
+                    val near = i == current || (abs(i - current) == 1 && pager.moving)
+                    if (!near && space.uuid !in precomposed) continue
                     key(space.uuid) {
                         val offset = { i - pager.pos }
                         SpacePage(
                             space = space,
                             stack = stackFor(space),
-                            active = i == settled,
+                            active = i == current,
                             sync = sync,
                             pageOffset = offset,
                             onDismiss = onDismiss,
@@ -193,6 +200,7 @@ fun OverviewScreen(
                             onReorder = onReorder,
                             onBadge = onBadge,
                             onConnect = onConnect,
+                            settled = settled,
                             modifier = Modifier.graphicsLayer {
                                 // The whole space moves as one unit, with a small gap between spaces.
                                 val f = offset()
@@ -217,8 +225,7 @@ fun OverviewScreen(
     }
 }
 
-/** Pages are composed ahead of time only after the overview's opening motion. */
-private const val PRECOMPOSE_START_MS = 450L
+/** Frames between two pages composed ahead of time. */
 private const val PRECOMPOSE_GAP_FRAMES = 3
 
 /** What the overview shows about the account and sync. */

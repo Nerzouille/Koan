@@ -96,11 +96,15 @@ fun KoanRoot(components: Components) {
 
     // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph.
     val progress = remember { Animatable(if (overviewOpen) 1f else 0f) }
+    // The open motion has finished: the overview may now do the work it put off (thumbs/BakedBlur,
+    // composing the neighbouring spaces).
+    var overviewSettled by remember { mutableStateOf(false) }
     LaunchedEffect(overviewOpen) {
-        // Blur bakes and uploads wait until the motion has settled (thumbs/BakedBlur).
+        overviewSettled = false
         BakedBlur.onOverviewMotion(running = true, open = overviewOpen)
         progress.animateTo(if (overviewOpen) 1f else 0f, Motion.Overview)
         BakedBlur.onOverviewMotion(running = false, open = overviewOpen)
+        overviewSettled = overviewOpen
     }
     val overviewVisible by remember { derivedStateOf { overviewOpen || progress.value > 0f } }
 
@@ -290,6 +294,7 @@ fun KoanRoot(components: Components) {
                 onDismiss = ::dismissOverview,
                 sync = sync,
                 open = overviewOpen,
+                settled = overviewSettled,
                 currentTabs = currentTabs,
                 onBadge = ::onSyncAction,
                 onConnect = { signingIn = true },
