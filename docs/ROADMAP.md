@@ -58,5 +58,6 @@ conflict is handled without data loss.
 
 ## M7 — Delights (open-ended)
 - Glance (long-press link → floating sheet; swipe up to promote to tab).
+- Long press then slide down -> open link in a new window (in background)
 - Pull-down for new tab, `@engine` search shortcuts, space menu (rename/icon/theme) if write-back
   for `space` records is added, "send to Zen" from share sheet, home-screen widget for a space.
