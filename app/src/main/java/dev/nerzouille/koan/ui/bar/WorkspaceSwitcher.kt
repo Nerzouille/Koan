@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import dev.nerzouille.koan.data.SpaceEntity
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.KoanColors
@@ -84,8 +85,8 @@ fun WorkspaceSwitcher(spaces: List<SpaceEntity>, pager: SpacePager, enabled: Boo
                     },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(space.icon, fontSize = BarTokens.LabelSize)
-                Spacer(Modifier.width(BarTokens.LabelGap))
+                ZenIcon(space.icon, BarTokens.LabelIcon, tint = KoanColors.TextPrimary)
+                if (space.icon.isNotBlank()) Spacer(Modifier.width(BarTokens.LabelGap))
                 Text(space.name, color = KoanColors.TextPrimary, fontSize = BarTokens.LabelSize, fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }

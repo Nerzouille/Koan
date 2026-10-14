@@ -1,8 +1,12 @@
 package dev.nerzouille.koan.engine
 
 import android.content.Context
+import dev.nerzouille.koan.data.AccountStore
+import dev.nerzouille.koan.data.DataStoreBlob
+import dev.nerzouille.koan.data.KeystoreBox
 import dev.nerzouille.koan.data.KoanDatabase
 import dev.nerzouille.koan.data.SpacesRepository
+import dev.nerzouille.koan.data.SpacesSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,4 +50,6 @@ class Components(context: Context) {
 
     val database by lazy { KoanDatabase.build(appContext) }
     val spaces by lazy { SpacesRepository(database.dao(), appScope) }
+    val accounts by lazy { AccountStore(DataStoreBlob(appContext), KeystoreBox()) }
+    val sync by lazy { SpacesSync(accounts, database.dao(), appScope) }
 }

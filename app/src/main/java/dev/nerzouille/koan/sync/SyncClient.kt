@@ -494,4 +494,7 @@ data class TokenServerCreds(
         other.expiresAtMillis == expiresAtMillis
 
     override fun hashCode(): Int = uid.hashCode() * 31 + expiresAtMillis.hashCode()
+
+    // Koan: never print the Hawk key (CLAUDE.md rule 5).
+    override fun toString(): String = "TokenServerCreds(uid=$uid, expiresAtMillis=$expiresAtMillis, key=<redacted>)"
 }

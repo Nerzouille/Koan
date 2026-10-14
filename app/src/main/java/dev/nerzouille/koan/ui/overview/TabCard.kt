@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,7 +38,20 @@ import dev.nerzouille.koan.ui.theme.KoanColors
  * a live pinned/essential tab: shown with a pin glyph, closing it only unloads it.
  */
 @Immutable
-data class CardModel(val id: String, val title: String, val url: String, val active: Boolean, val pinned: Boolean = false)
+data class CardModel(
+    val id: String,
+    val title: String,
+    val url: String,
+    val active: Boolean,
+    val pinned: Boolean = false,
+    /** Favicon reference (see TabEntity.iconUrl). */
+    val icon: String? = null,
+    val staticIcon: Boolean = false,
+    /** > 1 for a Zen split view shown as one card. */
+    val splitCount: Int = 1,
+    /** Placeholder while the first sync runs: soft bars instead of title and favicon. */
+    val skeleton: Boolean = false,
+)
 
 /**
  * One card of the depth stack. Depth-dependent effects (blur, dim, ✕ visibility) are read from
@@ -50,12 +64,13 @@ fun TabCard(
     blurFor: (Float) -> RenderEffect?,
     modifier: Modifier = Modifier,
 ) {
+    if (card.skeleton) return SkeletonCard(depth, modifier)
     val look = faviconLook(card.url)
     Box(modifier.background(KoanColors.CardPlaceholder).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
         // Thumbnail: only its top slice is blurred. Behind the focus line nothing below that slice is
         // ever visible, and blurring the whole card costs ~5× the GPU time (measured on the POCO).
         PlaceholderThumbnail(
-            card.url,
+            card,
             Modifier
                 .fillMaxWidth()
                 .height(CardTokens.BlurSlice)
@@ -95,7 +110,7 @@ private fun CardHeader(card: CardModel, depth: () -> Float) {
             .padding(start = CardTokens.HeaderPaddingStart, end = CardTokens.HeaderPaddingEnd),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Favicon(card.url, CardTokens.Favicon)
+        Favicon(card.url, CardTokens.Favicon, icon = card.icon, staticIcon = card.staticIcon)
         Spacer(Modifier.width(CardTokens.HeaderGap))
         // Title + markers take the free width, so the ✕ always sits at the right edge.
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
@@ -139,13 +154,46 @@ private fun CardHeader(card: CardModel, depth: () -> Float) {
  * (docs/UI_SPEC.md "Visual restraint"). Real thumbnails replace this in M3.
  */
 @Composable
-private fun PlaceholderThumbnail(url: String, modifier: Modifier) {
+private fun PlaceholderThumbnail(card: CardModel, modifier: Modifier) {
     Column(
         modifier.padding(top = CardTokens.HeaderHeight + CardTokens.PlaceholderTop),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Favicon(url, CardTokens.PlaceholderFavicon)
+        Favicon(card.url, CardTokens.PlaceholderFavicon, icon = card.icon, staticIcon = card.staticIcon)
         Spacer(Modifier.height(CardTokens.PlaceholderGap))
-        Text(displayHost(url), color = KoanColors.TextSecondary, fontSize = CardTokens.PlaceholderDomainSize, maxLines = 1)
+        val host = displayHost(card.url)
+        Text(
+            if (card.splitCount > 1) "$host  ·  split view of ${card.splitCount}" else host,
+            color = KoanColors.TextSecondary,
+            fontSize = CardTokens.PlaceholderDomainSize,
+            maxLines = 1,
+        )
+    }
+}
+
+/** A card-shaped placeholder: header bars where favicon and title will be, nothing else. */
+@Composable
+private fun SkeletonCard(depth: () -> Float, modifier: Modifier) {
+    Box(
+        modifier
+            .background(KoanColors.CardPlaceholder)
+            .drawBehind {
+                val dim = DepthCurve.dim(depth())
+                if (dim > 0.01f) drawRect(Color.Black, alpha = dim)
+            },
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(CardTokens.HeaderHeight)
+                .background(KoanColors.CardHeaderScrim)
+                .padding(start = CardTokens.HeaderPaddingStart, end = CardTokens.HeaderPaddingEnd),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(CardTokens.Favicon).clip(RoundedCornerShape(CardTokens.Favicon * 0.28f)).background(KoanColors.Skeleton))
+            Spacer(Modifier.width(CardTokens.HeaderGap))
+            Box(Modifier.width(CardTokens.SkeletonTitle).height(CardTokens.SkeletonBar).clip(CircleShape).background(KoanColors.Skeleton))
+        }
+        Box(Modifier.fillMaxWidth().height(CardTokens.Hairline).background(KoanColors.CardHairline))
     }
 }

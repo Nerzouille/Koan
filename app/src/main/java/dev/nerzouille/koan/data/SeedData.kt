@@ -3,9 +3,13 @@ package dev.nerzouille.koan.data
 import java.util.UUID
 
 /**
- * Fake spaces for M1, until M2 pulls the real ones from Zen. Seeded once into an empty database.
+ * Fake tabs for the dev menu's stress fills (50 and 150 cards). M1's fake spaces are gone: the
+ * overview shows real Zen data since M2. The pool below is only a source of plausible titles/URLs.
  */
 object SeedData {
+    /** Fake tabs' id prefix, so the dev menu can remove them again. */
+    const val FAKE_PREFIX = "fake:"
+
     private class FakeSpace(
         val name: String,
         val icon: String,
@@ -106,35 +110,12 @@ object SeedData {
         ),
     )
 
-    fun spaces(): List<SpaceEntity> = spaces.mapIndexed { i, s ->
-        SpaceEntity(uuid = uuidFor(s.name), name = s.name, icon = s.icon, gradientColors = s.gradient, order = i)
-    }
-
-    fun tabs(now: Long = System.currentTimeMillis()): List<TabEntity> = spaces.flatMap { s ->
-        val space = uuidFor(s.name)
-        val essentials = s.essentials.mapIndexed { i, (title, url) ->
-            TabEntity(UUID.randomUUID().toString(), spaceUuid = space, url = url, title = title, essential = true, order = i)
-        }
-        val pinned = s.pinned.mapIndexed { i, (title, url) ->
-            TabEntity(UUID.randomUUID().toString(), spaceUuid = space, url = url, title = title, pinned = true, order = i)
-        }
-        val normal = s.tabs.mapIndexed { i, (title, url) ->
-            TabEntity(
-                UUID.randomUUID().toString(), spaceUuid = space, url = url, title = title, order = i,
-                lastAccessed = now - (s.tabs.size - i) * 60_000L,
-            )
-        }
-        essentials + pinned + normal
-    }
-
-    /** Extra tabs for the 50-card performance check (ROADMAP M1 "done when"). */
+    /** Extra phone-only tabs appended to a space's stack, for the 50/150-card performance checks. */
     fun filler(spaceUuid: String, startOrder: Int, count: Int): List<TabEntity> {
-        val pool = spaces.flatMap { it.tabs }
+        val pool = spaces.flatMap { it.essentials + it.pinned + it.tabs }
         return List(count) { i ->
             val (title, url) = pool[i % pool.size]
-            TabEntity(UUID.randomUUID().toString(), spaceUuid = spaceUuid, url = url, title = title, order = startOrder + i)
+            TabEntity(FAKE_PREFIX + UUID.randomUUID(), spaceUuid = spaceUuid, url = url, title = title, order = startOrder + i)
         }
     }
-
-    private fun uuidFor(name: String) = UUID.nameUUIDFromBytes("koan-seed-$name".toByteArray()).toString()
 }

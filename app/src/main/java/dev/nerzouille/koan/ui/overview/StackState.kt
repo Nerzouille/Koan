@@ -65,6 +65,11 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
     internal val cards = HashMap<String, CardAnim>()
     private var scrollJob: Job? = null
 
+    /** A finger is on the stack or it is still moving: data updates wait for this to clear. */
+    var busy by mutableStateOf(false)
+        private set
+    private var dragging = false
+
     /** [pos] when the current drag started; a release snaps relative to it. */
     private var dragStart = initialPos
 
@@ -75,7 +80,29 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         val caught = scrollJob?.isActive == true
         scrollJob?.cancel()
         dragStart = pos
+        dragging = true
+        busy = true
         return caught
+    }
+
+    /** The gesture that started with [startDrag] is over, whatever it turned out to be. */
+    fun endTouch() {
+        dragging = false
+        busy = scrollJob?.isActive == true
+    }
+
+    /**
+     * Moves the whole stack by [slots] without any visible motion: the position and every card's
+     * slot shift together. Used when cards are added/removed before the focus by a sync.
+     */
+    internal fun shiftBy(slots: Int) {
+        if (slots == 0) return
+        pos += slots
+        dragStart += slots
+        for (a in cards.values) {
+            a.slotJob?.cancel()
+            a.slot += slots
+        }
     }
 
     /** Finger moved by [dyPx] (positive = down = earlier cards come forward). Rubber-bands past both ends. */
@@ -91,6 +118,7 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
      * Fast: momentum scroll through as many cards as the velocity carries, landing on a card.
      */
     fun release(vyPx: Float = 0f) {
+        dragging = false
         val v = -vyPx / slotPx
         if (abs(v) < StackTokens.FLING_MIN_VELOCITY) return animateTo(snapTarget(pos, dragStart, last))
         val target = flingTarget(pos, v, last)
@@ -99,8 +127,7 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         // Cubic ease-out x(t) = x0 + D·(1 − (1 − t/T)³) starts at speed 3D/T: pick T to match the finger.
         val p = StackTokens.FLING_EASE_POWER
         val duration = (p * distance / v).coerceIn(StackTokens.FLING_MIN_SECONDS, StackTokens.FLING_MAX_SECONDS)
-        scrollJob?.cancel()
-        scrollJob = scope.launch {
+        startScroll {
             val from = pos
             val start = withFrameNanos { it }
             var t = 0f
@@ -115,8 +142,7 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
 
     /** Exponential glide to [target]: fast start, no overshoot, like the prototype. */
     fun animateTo(target: Float) {
-        scrollJob?.cancel()
-        scrollJob = scope.launch {
+        startScroll {
             var lastFrame = withFrameNanos { it }
             while (abs(target - pos) > 0.002f) {
                 withFrameNanos { now ->
@@ -127,6 +153,14 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
             }
             pos = target
         }
+    }
+
+    private fun startScroll(block: suspend CoroutineScope.() -> Unit) {
+        scrollJob?.cancel()
+        busy = true
+        val job = scope.launch(block = block)
+        scrollJob = job
+        job.invokeOnCompletion { if (scrollJob === job && !dragging) busy = false }
     }
 
     internal fun animateSlot(a: CardAnim, target: Float) {

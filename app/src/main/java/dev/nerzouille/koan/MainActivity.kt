@@ -8,6 +8,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.fragment.app.FragmentActivity
+import dev.nerzouille.koan.favicon.IconStore
 import dev.nerzouille.koan.ui.KoanRoot
 import dev.nerzouille.koan.ui.RefreshBooster
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -26,7 +27,9 @@ class MainActivity : FragmentActivity() {
         if (components.store.state.tabs.isEmpty()) {
             components.tabsUseCases.addTab("about:blank", selectTab = true)
         }
-        components.spaces.seedIfEmpty()
+        IconStore.initialize(this)
+        components.spaces.ensureLocalSpace()
+        components.sync.start()
 
         setContent {
             KoanTheme {
@@ -44,6 +47,16 @@ class MainActivity : FragmentActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         refresh.onInput()
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        (application as KoanApp).components.sync.onForeground()
+    }
+
+    override fun onStop() {
+        (application as KoanApp).components.sync.onBackground()
+        super.onStop()
     }
 
     override fun onPause() {

@@ -1,23 +1,37 @@
 package dev.nerzouille.koan.ui.overview
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import dev.nerzouille.koan.favicon.IconStore
 import dev.nerzouille.koan.search.displayHost
+import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.theme.KoanColors
 
 /**
- * Letter-tile favicon until real icons are fetched (M3, browser-icons). The colour is also used for
- * the 8% tint of placeholder thumbnails.
+ * Letter tile shown until (or instead of) a real favicon. The colour is also used for the 8% tint of
+ * placeholder thumbnails.
  */
 data class FaviconLook(val letters: String, val color: Color, val textColor: Color = Color.White)
 
@@ -59,13 +73,59 @@ fun faviconLook(url: String): FaviconLook {
     return FaviconLook(letter, fallback[(host.hashCode() and 0x7fffffff) % fallback.size])
 }
 
+/**
+ * A tab's icon: the Zen static icon if it has one, else the real favicon (synced inline by Zen or
+ * fetched from the site), else a letter tile. An icon already in memory draws in the first frame;
+ * one that has to load fades in over the letter tile, so cards never flash empty.
+ */
 @Composable
-fun Favicon(url: String, size: Dp, modifier: Modifier = Modifier) {
+fun Favicon(url: String, size: Dp, modifier: Modifier = Modifier, icon: String? = null, staticIcon: Boolean = false) {
+    if (staticIcon && !icon.isNullOrEmpty()) {
+        Box(modifier.size(size), contentAlignment = Alignment.Center) {
+            ZenIcon(icon, size, tint = KoanColors.TextPrimary)
+        }
+        return
+    }
+    val key = remember(url, icon) { IconStore.keyFor(url, icon) }
+    val initial = remember(key) { key?.let { IconStore.cached(it) } }
+    var image by remember(key) { mutableStateOf(initial) }
+    // 1 when the icon was in memory already: no fade, nothing to animate.
+    val reveal = remember(key) { Animatable(if (initial != null) 1f else 0f) }
+    if (image == null && key != null) {
+        LaunchedEffect(key) {
+            IconStore.load(url, icon)?.let {
+                image = it
+                reveal.animateTo(1f, tween(FADE_MS))
+            }
+        }
+    }
+    val shape = RoundedCornerShape(size * 0.28f)
+    Box(modifier.size(size), contentAlignment = Alignment.Center) {
+        val loaded = image
+        // Composed only when the icon was not in memory; the fade is a layer property, so loading
+        // never recomposes per frame.
+        if (initial == null) LetterTile(url, size, shape, Modifier.graphicsLayer { alpha = 1f - reveal.value })
+        if (loaded != null) {
+            Image(
+                loaded,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                filterQuality = FilterQuality.Medium,
+                modifier = Modifier.size(size).clip(shape).graphicsLayer { alpha = reveal.value },
+            )
+        }
+    }
+}
+
+private const val FADE_MS = 140
+
+@Composable
+private fun LetterTile(url: String, size: Dp, shape: RoundedCornerShape, modifier: Modifier) {
     val look = faviconLook(url)
     Box(
         modifier
             .size(size)
-            .clip(RoundedCornerShape(size * 0.28f))
+            .clip(shape)
             .background(look.color),
         contentAlignment = Alignment.Center,
     ) {

@@ -41,6 +41,12 @@ class FxAClient(
             return tokenServerCreds("Bearer $oauth", kB, rotation)
         } catch (e: Exception) {
             if (e is SyncError.TotpRequired) throw e
+            // Koan: offline or an expired session must not look like a generic auth failure, and
+            // the BrowserID fallback would fail the same way.
+            if (e is java.io.IOException) throw e
+            // Koan: errno 110 = invalid/expired session token, 102 = account gone. Only those mean
+            // "sign in again"; anything else keeps Z-Sync's BrowserID fallback.
+            if (e is SyncError.Auth && (e.errno == 110 || e.errno == 102)) throw SyncError.SessionExpired
             last = e.message ?: e.toString()
         }
         try {
@@ -86,6 +92,7 @@ class FxAClient(
             URL("$authBase/oauth/token"),
         )
         var last = "OAuth failed"
+        var lastError: Exception? = null
         for (url in urls) {
             try {
                 val obj = hawkJSON(url = url, method = "POST", token = token, tokenType = "sessionToken", json = body)
@@ -93,7 +100,15 @@ class FxAClient(
                 last = "OAuth response without access_token"
             } catch (e: Exception) {
                 last = e.message ?: e.toString()
+                lastError = e
             }
+        }
+        // Koan: when every endpoint failed the same telling way (offline, or an auth error with an
+        // errno), surface that instead of a generic message.
+        when (val e = lastError) {
+            is java.io.IOException -> throw e
+            is SyncError.Auth -> if (e.errno != null) throw SyncError.Auth(last, e.errno)
+            else -> Unit
         }
         throw SyncError.Auth(last)
     }
@@ -259,7 +274,7 @@ class FxAClient(
             val message = obj?.optString("message")?.takeIf { it.isNotEmpty() }
                 ?: obj?.optString("error")?.takeIf { it.isNotEmpty() }
                 ?: text.ifEmpty { "HTTP ${response.code}" }
-            throw SyncError.Auth(message)
+            throw SyncError.Auth(message, errno = obj?.optInt("errno", -1)?.takeIf { it >= 0 })
         }
         return parsed ?: JSONObject()
     }

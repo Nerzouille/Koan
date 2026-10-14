@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -43,7 +46,10 @@ import dev.nerzouille.koan.ui.theme.KoanColors
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlin.math.PI
+import kotlinx.coroutines.flow.first
 import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -67,21 +73,51 @@ fun DepthStack(
     val density = LocalDensity.current
     val view = LocalView.current
 
+    // What the stack shows. New data waits until no finger is down and nothing moves, then lands in
+    // one snapshot with the focused card anchored: a sync never moves what the user is looking at.
+    var shown by remember { mutableStateOf(cards) }
+
     // Order committed by a drop, shown until Room emits it back.
     var pendingOrder by remember { mutableStateOf<List<String>?>(null) }
-    val roomIds = cards.map { it.id }
+    val roomIds = shown.map { it.id }
     val ids = pendingOrder?.takeIf { it.size == roomIds.size && it.toSet() == roomIds.toSet() } ?: roomIds
     if (pendingOrder != null && pendingOrder == roomIds) pendingOrder = null
-    val byId = remember(cards) { cards.associateBy { it.id } }
+    val byId = remember(shown) { shown.associateBy { it.id } }
+    val displayed by rememberUpdatedState(ids)
+    LaunchedEffect(cards) {
+        if (cards == shown) return@LaunchedEffect
+        snapshotFlow { state.busy }.first { !it }
+        Snapshot.withMutableSnapshot {
+            val from = state.pos.roundToInt()
+            val focused = displayed.getOrNull(from)
+            val to = focused?.let { id -> cards.indexOfFirst { it.id == id } } ?: -1
+            if (to >= 0) state.shiftBy(to - from)
+            shown = cards
+        }
+    }
 
     state.last = (ids.size - 1).coerceAtLeast(0)
     state.slotPx = with(density) { StackTokens.SlotDrag.toPx() }
 
+    // Only cards near the focus are composed (a space can hold hundreds). The window moves one card
+    // at a time, so scrolling recomposes once per card crossed, never per frame.
+    val window by remember {
+        derivedStateOf {
+            val lo = floor(state.pos - DepthCurve.MAX_VISIBLE_D).toInt() - WINDOW_MARGIN
+            val hi = ceil(state.pos - DepthCurve.MIN_VISIBLE_D).toInt() + WINDOW_MARGIN
+            lo..hi
+        }
+    }
+
     LaunchedEffect(ids) {
         state.cards.keys.retainAll(ids.toSet())
+        val near = window.first - WINDOW_MARGIN..window.last + WINDOW_MARGIN
         ids.forEachIndexed { i, id ->
             val a = state.anim(id, i)
-            if (a.slot != i.toFloat() && state.liftedId != id) state.animateSlot(a, i.toFloat())
+            if (a.slot != i.toFloat() && state.liftedId != id) {
+                // Off-screen cards jump straight to their slot; only what can be seen animates.
+                if (i in near || a.slot.roundToInt() in near) state.animateSlot(a, i.toFloat()) else a.slot = i.toFloat()
+            }
         }
         if (state.pos > state.last) state.animateTo(state.last.toFloat())
     }
@@ -194,10 +230,13 @@ fun DepthStack(
                                 }
                             }
                         }
+                        state.endTouch()
                     }
                 },
         ) {
+            val visible = window
             ids.forEachIndexed { index, id ->
+                if (index !in visible && state.liftedId != id) return@forEachIndexed
                 val card = byId[id] ?: return@forEachIndexed
                 key(id) {
                     val a = state.anim(id, index)
@@ -218,6 +257,9 @@ fun DepthStack(
 }
 
 private enum class Gesture { Tap, Drag, LongPress, Cancel }
+
+/** Extra cards composed beyond the visible range on each side, so none pops in at the edges. */
+private const val WINDOW_MARGIN = 2
 
 private class Hit(val id: String, val focused: Boolean, val onClose: Boolean)
 

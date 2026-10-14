@@ -105,6 +105,12 @@ fun KoanBar(
                     }
                     break
                 }
+                // The pinned list scrolled with this drag: leave it to the list (and settle the sheet
+                // back if it had started to follow).
+                if (horizontal != true && change.isConsumed) {
+                    if (horizontal == false) drawer.release(0f, drawerFling)
+                    break
+                }
                 tracker.addPosition(change.uptimeMillis, change.position)
                 val delta = change.positionChange()
                 if (horizontal == null) {

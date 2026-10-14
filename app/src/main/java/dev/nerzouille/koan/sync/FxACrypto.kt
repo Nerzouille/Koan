@@ -9,13 +9,17 @@ import javax.crypto.spec.SecretKeySpec
 /** Ports of `Shared/SyncError` cases; UI maps these to friendly strings. */
 sealed class SyncError(message: String?) : Exception(message) {
     class Crypto(detail: String? = null) : SyncError(detail)
-    class Auth(detail: String? = null) : SyncError(detail)
+    /** Koan: [errno] = the FxA error number when the server sent one. */
+    class Auth(detail: String? = null, val errno: Int? = null) : SyncError(detail)
     class Network(detail: String? = null) : SyncError(detail)
 
     /** Conditional write lost its race twice (SPEC §7.2); caller re-reads. */
     class Conflict(detail: String? = null) : SyncError(detail)
     object NotSignedIn : SyncError(null)
     object TotpRequired : SyncError(null)
+
+    /** Koan: Mozilla accounts no longer accepts the session token: the user must sign in again. */
+    object SessionExpired : SyncError("session expired")
     object StorageUnavailable : SyncError(null)
 
     companion object {

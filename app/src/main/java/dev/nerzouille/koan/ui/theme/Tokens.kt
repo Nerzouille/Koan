@@ -33,6 +33,12 @@ object KoanColors {
     val DrawerHandle = Color.White.copy(alpha = 0.28f)
     val BarField = Color.White.copy(alpha = 0.10f)
     val PageDot = Color.White
+    val Skeleton = Color.White.copy(alpha = 0.07f)
+
+    val Notice = Color(0xF2232327)
+
+    /** Quiet sync notices: amber, never red. */
+    val Attention = Color(0xFFE8B45A)
 }
 
 /** The upright one-point-perspective card stack (docs/UI_SPEC.md "Depth stack"). Tuned to sketch-stack.png. */
@@ -138,6 +144,8 @@ object StackTokens {
 }
 
 object CardTokens {
+    val SkeletonTitle = 140.dp
+    val SkeletonBar = 10.dp
     val Radius = 28.dp
     val HeaderHeight = 44.dp
     val HeaderPaddingStart = 14.dp
@@ -169,7 +177,7 @@ object OverviewTokens {
     val TitleGap = 10.dp
     val SpaceIconBox = 32.dp
     val SpaceIconRadius = 10.dp
-    val SpaceIconSize = 16.sp
+    val SpaceIconGlyph = 20.dp
     val TitleSize = 20.sp
     val NewTabButton = 40.dp
     val NewTabGlyph = 20.dp
@@ -182,6 +190,48 @@ object OverviewTokens {
 }
 
 /** The bottom bar: a plain strip with the address row; + workspace switcher in the overview. */
+/** First-run card, placeholders and the quiet sync status. */
+object FirstRunTokens {
+    const val SKELETON_CARDS = 6
+    val SideMargin = 14.dp
+    val Padding = 24.dp
+    val Gap = 10.dp
+    val TitleSize = 20.sp
+    val BodySize = 14.sp
+    val ButtonSize = 15.sp
+    val ButtonPaddingH = 28.dp
+    val ButtonPaddingV = 12.dp
+    val CompactPadding = 12.dp
+
+    /** Placeholder cards breathe between these alphas, slowly. */
+    const val SKELETON_ALPHA_MIN = 0.55f
+    const val SKELETON_BREATH_MS = 1400
+
+    /** Crossfade from placeholders to the first real data. */
+    const val REVEAL_MS = 420
+
+    val BadgeTouch = 36.dp
+    val BadgeDot = 7.dp
+}
+
+/** The Mozilla sign-in screen. */
+object SignInTokens {
+    val HeaderHeight = 64.dp
+    val HeaderPadding = 8.dp
+    val CloseTouch = 44.dp
+    val CloseGlyph = 20.dp
+    val TitleSize = 17.sp
+    val SubtitleSize = 13.sp
+    val ProgressHeight = 2.dp
+    val NoticeMargin = 12.dp
+    val NoticePadding = 14.dp
+    val NoticeRadius = 16.dp
+    val NoticeSize = 14.sp
+
+    /** The page fades in once it has painted, so its first (white) frame is never shown. */
+    const val FADE_MS = 220
+}
+
 object BarTokens {
     val BottomMargin = 6.dp
     val AddressRowHeight = 68.dp
@@ -218,6 +268,7 @@ object BarTokens {
     // Switcher row.
     val LabelSpacing = 116.dp
     val LabelSize = 15.sp
+    val LabelIcon = 18.dp
     val LabelGap = 6.dp
     val LabelLift = 8.dp
     const val LABEL_FAR_SCALE = 0.14f
@@ -246,7 +297,13 @@ object DrawerTokens {
     val PinnedGlyph = 16.dp
     val MoreTextSize = 13.sp
     val MorePadding = 16.dp
-    const val MAX_PINNED_ROWS = 5
+
+    /** Pinned rows visible before the list scrolls; the half row hints that there is more. */
+    const val VISIBLE_PINNED_ROWS = 5.5f
+    val FolderIndent = 18.dp
+    val FolderCountSize = 13.sp
+    val StatusRowHeight = 40.dp
+    val StatusTextSize = 13.sp
 
     /** Cards behind the open drawer: black overlay alpha and blur radius at full open. */
     const val SCRIM = 0.45f
@@ -283,6 +340,10 @@ object Motion {
     val Drop: SpringSpec<Float> = spring(dampingRatio = 0.8f, stiffness = 500f)
     val PagerSettle: SpringSpec<Float> = spring(dampingRatio = 0.86f, stiffness = 300f)
     val Drawer: SpringSpec<Float> = spring(dampingRatio = 0.9f, stiffness = 420f)
+    val FolderChevron: SpringSpec<Float> = spring(dampingRatio = 0.85f, stiffness = 600f)
+
+    /** Full-screen sheets (sign-in) sliding up and down. */
+    val Sheet: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 380f)
 
     /** Overview open/close; also drives the bar morph. */
     val Overview: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)

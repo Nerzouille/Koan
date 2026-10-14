@@ -41,6 +41,13 @@ object KoanIcons {
             lineTo(14f, 10f); lineTo(14f, 4f); moveTo(12f, 14f); lineTo(12f, 20f)
         }
     }
+    val Folder: ImageVector by lazy {
+        stroked("folder") {
+            moveTo(4f, 7f); lineTo(4f, 18f); lineTo(20f, 18f); lineTo(20f, 9f); lineTo(12f, 9f)
+            lineTo(10f, 6f); lineTo(4f, 6f); lineTo(4f, 7f)
+        }
+    }
+    val ChevronDown: ImageVector by lazy { stroked("chevron-down") { moveTo(7f, 10f); lineTo(12f, 15f); lineTo(17f, 10f) } }
     val More: ImageVector by lazy {
         ImageVector.Builder("more", 24.dp, 24.dp, 24f, 24f).apply {
             for (x in listOf(5f, 12f, 19f)) {
