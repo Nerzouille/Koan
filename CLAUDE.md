@@ -71,3 +71,13 @@ The canonical Zen sync wire format lives in Z-Sync's repo: `reference/Z-Sync/sha
 - Build: `./gradlew assembleDebug` for iteration, `./gradlew assembleRelease` (signed with a local
   debug-style keystore) for anything performance-related.
 - Run unit tests: `./gradlew test`. Run them at the end of a milestone, not after every edit.
+- **Driving the phone with adb (taps, swipes, typing, key events):** the phone is the owner's daily
+  phone and may be in use. Before ANY adb input, confirm both:
+  1. Koan is the foreground app (`dumpsys activity activities | grep topResumedActivity` shows
+     `dev.nerzouille.koan`; `mCurrentFocus=null` does not count), and
+  2. a fresh screenshot shows exactly the screen you expect (right tab, right space, nothing else
+     going on such as a call or the owner mid-task).
+  If either fails, stop and ask the owner to hand over the phone. When in doubt, ask instead of
+  tapping. Never type into a page you didn't open yourself. If a screenshot shows another app or
+  private content, delete it and don't describe it. Read-only adb (installs when asked, logcat,
+  dumpsys, screenshots) is fine.
