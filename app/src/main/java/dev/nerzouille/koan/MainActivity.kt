@@ -15,6 +15,7 @@ import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.favicon.IconStore
+import dev.nerzouille.koan.thumbs.BakedBlur
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.KoanRoot
 import dev.nerzouille.koan.ui.RefreshBooster
@@ -37,6 +38,7 @@ class MainActivity : FragmentActivity() {
         app.componentsReady = true
         IconStore.initialize(this)
         ThumbnailStore.initialize(this)
+        BakedBlur.initialize(this)
         components.spaces.ensureLocalSpace()
         // Engine tabs come back from disk (no-op if this process already has them), then the last tab.
         components.tabs.start(components.sessionStorage)

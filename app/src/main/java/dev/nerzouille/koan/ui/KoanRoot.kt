@@ -31,6 +31,7 @@ import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.resolveInput
+import dev.nerzouille.koan.thumbs.BakedBlur
 import dev.nerzouille.koan.ui.bar.AddressRow
 import dev.nerzouille.koan.ui.bar.DrawerContent
 import dev.nerzouille.koan.ui.bar.drawerBackdrop
@@ -96,7 +97,10 @@ fun KoanRoot(components: Components) {
     // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph.
     val progress = remember { Animatable(if (overviewOpen) 1f else 0f) }
     LaunchedEffect(overviewOpen) {
+        // Blur bakes and uploads wait until the motion has settled (thumbs/BakedBlur).
+        BakedBlur.onOverviewMotion(running = true, open = overviewOpen)
         progress.animateTo(if (overviewOpen) 1f else 0f, Motion.Overview)
+        BakedBlur.onOverviewMotion(running = false, open = overviewOpen)
     }
     val overviewVisible by remember { derivedStateOf { overviewOpen || progress.value > 0f } }
 

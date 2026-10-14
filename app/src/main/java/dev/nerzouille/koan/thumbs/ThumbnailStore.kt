@@ -3,6 +3,8 @@ package dev.nerzouille.koan.thumbs
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.BitmapRegionDecoder
+import android.graphics.Rect
 import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -54,6 +56,20 @@ object ThumbnailStore {
         }
     }
 
+    /** Software copy of the top [heightPx] rows of [key], subsampled by [sampleSize]. Off the main thread. */
+    fun decodeTop(key: String, heightPx: Int, sampleSize: Int): Bitmap? {
+        val file = fileFor(key) ?: return null
+        return runCatching {
+            val decoder = BitmapRegionDecoder.newInstance(file.path)
+            try {
+                val opts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                decoder.decodeRegion(Rect(0, 0, decoder.width, heightPx.coerceAtMost(decoder.height)), opts)
+            } finally {
+                decoder.recycle()
+            }
+        }.getOrNull()
+    }
+
     /** Decodes [keys] ahead of time (e.g. the cards around the focus when the overview opens). */
     suspend fun prefetch(keys: List<String>) {
         for (key in keys) if (memory.get(key) == null) load(key)
@@ -80,6 +96,8 @@ object ThumbnailStore {
             scaled.recycle()
             return@withContext null
         }
+        // Its blurred copies for the pile, baked in the background, not while the overview moves.
+        BakedBlur.bakeToDisk(key, scaled)
         // The fresh image goes straight to memory: the card that asks for it next skips a decode.
         scaled.copy(Bitmap.Config.HARDWARE, false)?.let { memory.put(key, it.asImageBitmap()) }
         scaled.recycle()
@@ -89,6 +107,7 @@ object ThumbnailStore {
 
     suspend fun delete(key: String) = withContext(Dispatchers.IO) {
         memory.remove(key)
+        BakedBlur.forget(key)
         val file = fileFor(key) ?: return@withContext
         diskLock.withLock {
             val size = file.length()
@@ -101,6 +120,7 @@ object ThumbnailStore {
         val folder = dir ?: return@withContext
         diskLock.withLock {
             folder.listFiles()?.forEach { if (it.name !in keys) it.delete() }
+            BakedBlur.retainOnly(keys)
             diskBytes = -1
         }
     }
@@ -121,6 +141,7 @@ object ThumbnailStore {
             if (f.delete()) {
                 diskBytes -= size
                 memory.remove(f.name)
+                BakedBlur.forget(f.name)
                 dropped += f.name
             }
         }

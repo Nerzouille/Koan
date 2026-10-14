@@ -49,6 +49,19 @@ import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.CardTokens
+import dev.nerzouille.koan.ui.theme.StackTokens
+import dev.nerzouille.koan.thumbs.BakedBlur
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filterNotNull
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
+import dev.nerzouille.koan.favicon.IconStore
+import androidx.compose.ui.unit.IntSize
+import kotlin.math.roundToInt
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import dev.nerzouille.koan.ui.theme.KoanTheme
 
 /**
@@ -94,17 +107,70 @@ fun TabCard(
     Box(modifier.background(palette.Card).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
         // Thumbnail: only its top slice is blurred. Behind the focus line nothing below that slice is
         // ever visible, and blurring the whole card costs ~5× the GPU time (measured on the POCO).
-        val shot = card.thumb?.let { rememberScreenshot(it, depth) }
+        val shot = card.thumb?.let { rememberScreenshot(it, depth, blurFor) }
+        // Deep in the pile the placeholder is captured once (with the card colour under it) and
+        // crossfaded through baked blurred copies of that capture, like a screenshot. It blurs live
+        // until they are uploaded.
+        val tint = look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT)
+        // A layer to capture into exists only while a capture is being taken (not one per card).
+        var capturing by remember { mutableStateOf(false) }
+        val capture = if (capturing) rememberGraphicsLayer() else null
+        val captureLayer = rememberUpdatedState(capture)
+        // Keyed on everything the placeholder draws (host, favicon, split count, theme colours), so
+        // any change re-bakes instead of showing a stale blur. The title is in the header, not here.
+        val bakeKey = "placeholder:${card.id}:${card.url}:${card.icon}:${card.staticIcon}:${card.splitCount}:" +
+            "${palette.Card.value}:${palette.TextPrimary.value}:${palette.TextSecondary.value}:${palette.IconBacking.value}"
+        var baked by remember(bakeKey) { mutableStateOf(BakedBlur.cached(bakeKey)) }
+        if (baked == null && shot == null) {
+            val density = LocalDensity.current.density
+            LaunchedEffect(bakeKey) {
+                // Once it shows blurred (so it is drawn, into the capture layer once there is one).
+                snapshotFlow { blurFor(depth()) != null }.first { it }
+                // Don't bake the letter tile while the favicon is still loading: wait for it and its fade.
+                val iconKey = if (card.staticIcon) null else IconStore.keyFor(card.url, card.icon)
+                if (iconKey != null && IconStore.cached(iconKey) == null) {
+                    if (IconStore.load(card.url, card.icon) != null) delay(ICON_SETTLE_MS)
+                }
+                baked = try {
+                    BakedBlur.capture(bakeKey, BakedBlur.radii(density)) {
+                        capturing = true
+                        // Recomposed with the layer, then drawn into it.
+                        val layer = snapshotFlow { captureLayer.value }.filterNotNull().first()
+                        withFrameNanos { }
+                        withFrameNanos { }
+                        layer.toImageBitmap()
+                    }
+                } finally {
+                    capturing = false
+                }
+            }
+        }
         PlaceholderThumbnail(
             card,
             Modifier
                 .fillMaxWidth()
                 .height(blurSlice())
                 .graphicsLayer {
-                    // Once the screenshot covers it, the placeholder is skipped (no blur buffer).
+                    // Once the screenshot covers it, the placeholder is skipped.
                     val covered = shot != null && shot.reveal.value >= 1f
                     alpha = if (covered) 0f else 1f
-                    renderEffect = if (covered) null else blurFor(depth())
+                    renderEffect = if (covered || baked != null) null else blurFor(depth())
+                }
+                .drawWithContent {
+                    capture?.record {
+                        drawRect(palette.Card)
+                        drawRect(tint)
+                        this@drawWithContent.drawContent()
+                    }
+                    val levels = baked
+                    val x = if (levels == null) 0f else bakedLevel(depth(), blurFor) * levels.size
+                    if (levels == null || x < 1f) {
+                        if (capture != null) drawLayer(capture) else drawContent()
+                    }
+                    levels?.forEachIndexed { i, image ->
+                        val a = (x - i).coerceIn(0f, 1f)
+                        if (a > 0f) drawImage(image, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), alpha = a, filterQuality = FilterQuality.Low)
+                    }
                 },
         )
         if (shot != null) Screenshot(shot, depth, blurFor)
@@ -211,19 +277,29 @@ private fun PlaceholderThumbnail(card: CardModel, modifier: Modifier) {
  */
 /** A card's screenshot: decoded once near the visible range, then faded in over the placeholder. */
 @Stable
-private class ScreenshotState(initial: ImageBitmap?) {
+private class ScreenshotState(initial: ImageBitmap?, baked: List<ImageBitmap>?) {
     var image by mutableStateOf(initial)
     val reveal = Animatable(if (initial != null) 1f else 0f)
+
+    /** Pre-blurred copies of the top slice, weakest first (thumbs/BakedBlur); null until baked. */
+    var baked by mutableStateOf(baked)
 }
 
 @Composable
-private fun rememberScreenshot(key: String, depth: () -> Float): ScreenshotState {
+private fun rememberScreenshot(key: String, depth: () -> Float, blurFor: (Float) -> RenderEffect?): ScreenshotState {
     val near by remember { derivedStateOf { depth() < OFFSCREEN_DEPTH_FROM } }
-    val state = remember(key) { ScreenshotState(ThumbnailStore.cached(key)) }
+    val state = remember(key) { ScreenshotState(ThumbnailStore.cached(key), BakedBlur.cached(key)) }
     if (state.image == null && near) {
         LaunchedEffect(key) {
             state.image = ThumbnailStore.load(key) ?: return@LaunchedEffect
             state.reveal.animateTo(1f, tween(ThumbTokens.FADE_MS))
+        }
+    }
+    if (state.baked == null) {
+        LaunchedEffect(key) {
+            // Uploaded (baked at capture) once the card shows blurred; it blurs live until then.
+            snapshotFlow { blurFor(depth()) != null }.first { it }
+            state.baked = BakedBlur.screenshot(key)
         }
     }
     return state
@@ -240,25 +316,55 @@ private fun Screenshot(state: ScreenshotState, depth: () -> Float, blurFor: (Flo
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
-                alpha = if (blurFor(depth()) == null) reveal.value else 0f
+                // Hidden once the blurred slice covers it (nothing below the slice shows): the first
+                // baked copy fully faded in, or any live blur.
+                val hidden = if (state.baked != null) bakedLevel(depth(), blurFor) >= 1f else blurFor(depth()) != null
+                alpha = if (hidden) 0f else reveal.value
                 compositingStrategy = CompositingStrategy.ModulateAlpha
             }
             .then(shot),
     )
-    Image(
-        bitmap, null,
-        contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter, filterQuality = FilterQuality.Low,
-        modifier = Modifier
+    // The blurred slice: baked copies crossfaded by depth (no GPU buffer per card), or a live blur
+    // of the screenshot until they are uploaded. One plain box, so composing a card stays cheap.
+    Box(
+        Modifier
             .fillMaxWidth()
             .height(blurSlice())
+            .then(shot)
             .graphicsLayer {
-                val blur = blurFor(depth())
-                alpha = if (blur != null) reveal.value else 0f
-                renderEffect = blur
+                renderEffect = if (state.baked == null) blurFor(depth()) else null
+                clip = true
             }
-            .then(shot),
+            .drawBehind {
+                val levels = state.baked
+                if (levels == null) {
+                    if (blurFor(depth()) != null) {
+                        val h = (bitmap.height * size.width / bitmap.width).roundToInt()
+                        drawImage(bitmap, dstSize = IntSize(size.width.roundToInt(), h), alpha = reveal.value, filterQuality = FilterQuality.Low)
+                    }
+                    return@drawBehind
+                }
+                val x = bakedLevel(depth(), blurFor) * levels.size
+                levels.forEachIndexed { i, image ->
+                    val a = (x - i).coerceIn(0f, 1f) * reveal.value
+                    if (a > 0f) {
+                        val h = (image.height * size.width / image.width).roundToInt()
+                        drawImage(image, dstSize = IntSize(size.width.roundToInt(), h), alpha = a, filterQuality = FilterQuality.Low)
+                    }
+                }
+            },
     )
 }
+
+/** 0 sharp … 1 blurred as deep as the pile goes; 0 wherever [blurFor] says no blur (off screen). */
+private fun bakedLevel(d: Float, blurFor: (Float) -> RenderEffect?): Float =
+    if (blurFor(d) == null) 0f else DepthCurve.blurDp(d) / MAX_BLUR_DP
+
+private val MAX_BLUR_DP = StackTokens.BlurDp.max()
+
+
+/** Favicon fade (Favicon.kt, 140 ms) plus a few frames, before a placeholder is captured. */
+private const val ICON_SETTLE_MS = 250L
 
 @Composable
 private fun blurSlice() = with(LocalDensity.current) { CardTokens.BLUR_SLICE_PX.toDp() }

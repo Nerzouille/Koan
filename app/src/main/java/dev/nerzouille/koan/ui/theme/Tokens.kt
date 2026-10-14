@@ -527,6 +527,12 @@ object ThumbTokens {
 
     /** A card's real screenshot fades in over its placeholder. */
     const val FADE_MS = 140
+
+    /** Pre-blurred copies per thumbnail for the pile (thumbs/BakedBlur), up to the deepest blur. */
+    const val BAKED_LEVELS = 3
+
+    /** Pre-blurred copies kept in memory (GPU): ~1.1 MB per card at 3 levels. */
+    const val BAKED_CACHE_BYTES = 24 * 1024 * 1024
 }
 
 /** Page view: the cover over the engine while a tab comes up, and the dock hiding on scroll. */
