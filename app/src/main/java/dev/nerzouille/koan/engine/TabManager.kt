@@ -134,6 +134,8 @@ class TabManager(
         cancelBlank(restore = false)
         val leaving = _current.value
         if (captureLeaving && leaving != null && leaving != id) captureNow(leaving, ThumbTokens.LEAVE_CAPTURE_TIMEOUT_MS)
+        // Any screenshot still in flight now would show this tab's page, not its own.
+        switches++
 
         val engineTab = store.state.findTab(id)
         when {
@@ -227,6 +229,7 @@ class TabManager(
     }
 
     private fun setCurrent(id: String?) {
+        if (_current.value != id) switches++
         _current.value = id
         if (id != null) touch(id)
         appScope.launch { lastPlace.saveTab(id) }
@@ -280,6 +283,9 @@ class TabManager(
 
     private val pageWrites = HashMap<String, Job>()
     private var settleJob: Job? = null
+
+    /** Counts tab switches: a screenshot taken across one belongs to no tab and is dropped. */
+    private var switches = 0L
     private var lastCrashRestore = 0L
 
     private fun watchEngine() = main.launch {
@@ -413,9 +419,15 @@ class TabManager(
         val view = engineView.get() ?: return
         val tab = store.state.findTab(id) ?: return
         if (store.state.selectedTabId != id || tab.engineState.engineSession == null || !tab.content.firstContentfulPaint) return
+        val before = switches
         val bitmap = withTimeoutOrNull(timeoutMs) {
             suspendCancellableCoroutine<Bitmap?> { cont -> view.captureThumbnail { if (cont.isActive) cont.resume(it) } }
         } ?: return
+        // The pixels arrive later: if the page view switched tabs meanwhile, they may be another page's.
+        if (switches != before || store.state.selectedTabId != id) {
+            bitmap.recycle()
+            return
+        }
         appScope.launch {
             val previous = dao.tab(id)?.thumbnailKey
             val (key, dropped) = ThumbnailStore.save(id, bitmap, previous) ?: return@launch
