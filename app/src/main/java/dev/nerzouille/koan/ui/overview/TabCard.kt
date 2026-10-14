@@ -4,6 +4,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,14 +92,20 @@ fun TabCard(
     Box(modifier.background(palette.Card).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
         // Thumbnail: only its top slice is blurred. Behind the focus line nothing below that slice is
         // ever visible, and blurring the whole card costs ~5× the GPU time (measured on the POCO).
+        val shot = card.thumb?.let { rememberScreenshot(it, depth) }
         PlaceholderThumbnail(
             card,
             Modifier
                 .fillMaxWidth()
                 .height(CardTokens.BlurSlice)
-                .graphicsLayer { renderEffect = blurFor(depth()) },
+                .graphicsLayer {
+                    // Once the screenshot covers it, the placeholder is skipped (no blur buffer).
+                    val covered = shot != null && shot.reveal.value >= 1f
+                    alpha = if (covered) 0f else 1f
+                    renderEffect = if (covered) null else blurFor(depth())
+                },
         )
-        if (card.thumb != null) Screenshot(card.thumb, depth, blurFor)
+        if (shot != null) Screenshot(shot, depth, blurFor)
         Box(
             Modifier
                 .fillMaxSize()
@@ -196,18 +204,30 @@ private fun PlaceholderThumbnail(card: CardModel, modifier: Modifier) {
  * deeper in the pile (blurring the whole card costs ~5×). Decoded off the main thread, only while
  * the card is near the visible range ([depth] is constant beyond it), and faded in.
  */
+/** A card's screenshot: decoded once near the visible range, then faded in over the placeholder. */
+@Stable
+private class ScreenshotState(initial: ImageBitmap?) {
+    var image by mutableStateOf(initial)
+    val reveal = Animatable(if (initial != null) 1f else 0f)
+}
+
 @Composable
-private fun Screenshot(key: String, depth: () -> Float, blurFor: (Float) -> RenderEffect?) {
+private fun rememberScreenshot(key: String, depth: () -> Float): ScreenshotState {
     val near by remember { derivedStateOf { depth() < OFFSCREEN_DEPTH_FROM } }
-    var image by remember(key) { mutableStateOf(ThumbnailStore.cached(key)) }
-    val reveal = remember(key) { Animatable(if (image != null) 1f else 0f) }
-    if (image == null && near) {
+    val state = remember(key) { ScreenshotState(ThumbnailStore.cached(key)) }
+    if (state.image == null && near) {
         LaunchedEffect(key) {
-            image = ThumbnailStore.load(key) ?: return@LaunchedEffect
-            reveal.animateTo(1f, tween(ThumbTokens.FADE_MS))
+            state.image = ThumbnailStore.load(key) ?: return@LaunchedEffect
+            state.reveal.animateTo(1f, tween(ThumbTokens.FADE_MS))
         }
     }
-    val bitmap = image ?: return
+    return state
+}
+
+@Composable
+private fun Screenshot(state: ScreenshotState, depth: () -> Float, blurFor: (Float) -> RenderEffect?) {
+    val reveal = state.reveal
+    val bitmap = state.image ?: return
     val shot = Modifier.fillMaxWidth().padding(top = CardTokens.HeaderHeight)
     Image(
         bitmap, null,

@@ -73,6 +73,12 @@ fun DepthStack(
     onClose: (String) -> Unit,
     onReorder: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * This stack's page is on screen (read in layers). Pages composed ahead of time but not shown
+     * get no blur: the renderer would still render every blurred card into a ~4 MB buffer and cache
+     * those buffers until Koan goes to the background.
+     */
+    onScreen: () -> Boolean = { true },
 ) {
     val density = LocalDensity.current
     val view = LocalView.current
@@ -151,8 +157,14 @@ fun DepthStack(
         val steps = (StackTokens.BlurDp.max() * 2f).roundToInt() + 1
         Array(steps) { step -> if (step == 0) null else BlurEffect(step * 0.5f * density.density, step * 0.5f * density.density, TileMode.Clamp) }
     }
+    val currentOnScreen by rememberUpdatedState(onScreen)
     val blurFor: (Float) -> RenderEffect? = remember(blurs) {
-        { d -> blurs[(DepthCurve.blurDp(d) * 2f).roundToInt().coerceIn(0, blurs.size - 1)] }
+        { d ->
+            // A card that can't be seen gets no blur: every blurred layer is an offscreen buffer
+            // (~3 MB) that the renderer allocates even off screen and caches long after.
+            if (d > DepthCurve.MAX_VISIBLE_D || d < DepthCurve.MIN_VISIBLE_D || !currentOnScreen()) null
+            else blurs[(DepthCurve.blurDp(d) * 2f).roundToInt().coerceIn(0, blurs.size - 1)]
+        }
     }
 
     val palette = KoanTheme.colors

@@ -125,6 +125,7 @@ fun SpacePage(
                     onClose = onCloseTab,
                     onReorder = onReorder,
                     modifier = Modifier.fillMaxSize(),
+                    onScreen = { abs(pageOffset()) < 1f },
                 )
             }
         }
