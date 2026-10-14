@@ -105,7 +105,11 @@ object ZenRoomMapper {
                     is ZenSpaces.ZenItem.Split -> split(item.split, space.id, i, pinned = true)
                 }
             }
-            space.tabs.forEachIndexed { i, item ->
+            // The stack reads bottom-up (the card nearest the thumb comes first), so the top of
+            // Zen's sidebar goes to the bottom of the stack (owner's choice, 2026-10-14).
+            val normals = space.tabs.size
+            space.tabs.forEachIndexed { zenIndex, item ->
+                val i = normals - 1 - zenIndex
                 when (item) {
                     is ZenSpaces.ZenItem.Tab -> tab(item.tab, space.id, i * ORDER_STRIDE, pinned = false)
                     is ZenSpaces.ZenItem.Split -> split(item.split, space.id, i, pinned = false)

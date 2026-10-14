@@ -43,8 +43,10 @@ import dev.nerzouille.koan.ui.theme.KoanColors
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.math.floor
 
 /**
@@ -63,6 +65,8 @@ fun OverviewScreen(
     onReorder: (List<String>) -> Unit,
     onDismiss: () -> Unit,
     sync: SyncUi,
+    /** Space uuid → focused card id; owned by the caller so it outlives the overview. */
+    focus: MutableMap<String, String>,
     onBadge: () -> Unit,
     onConnect: () -> Unit,
     modifier: Modifier = Modifier,
@@ -103,8 +107,21 @@ fun OverviewScreen(
     // Per-space scroll state, kept while the overview is open even when a page is not composed.
     val stacks = remember { HashMap<String, StackState>() }
     fun stackFor(space: SpaceModel) = stacks.getOrPut(space.uuid) {
+        // The current tab first (UI_SPEC), else the card last focused here (survives process
+        // death via [focus]), else the newest card.
         val active = space.stack.indexOfFirst { it.active }
-        StackState((if (active >= 0) active else space.stack.lastIndex).coerceAtLeast(0).toFloat(), scope)
+        val saved = focus[space.uuid]?.let { id -> space.stack.indexOfFirst { it.id == id } } ?: -1
+        val start = when {
+            active >= 0 -> active
+            saved >= 0 -> saved
+            else -> space.stack.lastIndex
+        }
+        StackState(start.coerceAtLeast(0).toFloat(), scope).also { state ->
+            scope.launch {
+                snapshotFlow { if (state.busy) null else state.pos.roundToInt() }
+                    .collect { i -> if (i != null) space.stack.getOrNull(i)?.let { focus[space.uuid] = it.id } }
+            }
+        }
     }
 
     val density = LocalDensity.current

@@ -69,6 +69,8 @@ fun KoanRoot(components: Components) {
     val account by components.accounts.state.collectAsStateWithLifecycle()
     val syncStatus by components.sync.status.collectAsStateWithLifecycle()
     var signingIn by rememberSaveable { mutableStateOf(false) }
+    // Focused stack card per space (uuid → card id): restored after process death too.
+    val stackFocus = rememberSaveable { HashMap<String, String>() }
     var currentSpace by rememberSaveable { mutableIntStateOf(0) }
     // The space the user is on, by id: spaces added/removed on the desktop never move them.
     var currentSpaceUuid by rememberSaveable { mutableStateOf<String?>(null) }
@@ -198,6 +200,7 @@ fun KoanRoot(components: Components) {
                 onReorder = { ids -> components.spaces.reorderStack(ids.mapNotNull(::stackItem)) },
                 onDismiss = { overviewOpen = false },
                 sync = sync,
+                focus = stackFocus,
                 onBadge = ::onSyncAction,
                 onConnect = { signingIn = true },
                 modifier = Modifier

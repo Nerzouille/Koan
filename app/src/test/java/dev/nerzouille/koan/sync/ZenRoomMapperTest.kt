@@ -94,9 +94,10 @@ class ZenRoomMapperTest {
     }
 
     @Test
-    fun normalTabsAndSplitMembersStayTogether() {
+    fun normalTabsAreReversedAndSplitMembersStayTogether() {
         val stack = rows.tabs.filter { it.spaceUuid == "space-work" && !it.pinned }.sortedBy { it.order }
-        assertEquals(listOf("zen:n1", "zen:s1", "zen:s2", "zen:s3", "zen:n2"), stack.map { it.koanTabId })
+        // Zen's top tab (n1) ends at the bottom of the stack; a split keeps its panes in order.
+        assertEquals(listOf("zen:n2", "zen:s1", "zen:s2", "zen:s3", "zen:n1"), stack.map { it.koanTabId })
         assertEquals(listOf("sp", "sp", "sp"), stack.subList(1, 4).map { it.splitId })
         assertEquals(listOf("zen:s1", "zen:s2", "zen:s3"), rows.splits.single { it.splitId == "sp" }.tabIds)
         assertTrue(stack.all { it.origin == TabOrigin.ZEN && it.zenOrder == it.order })
