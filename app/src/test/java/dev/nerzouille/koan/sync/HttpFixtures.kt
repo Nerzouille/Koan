@@ -3,6 +3,7 @@
 package dev.nerzouille.koan.sync
 
 import org.json.JSONObject
+import org.junit.Assume
 
 /**
  * Loads the recorded HTTP exchanges from `shared/contract/http/` (on the test
@@ -56,10 +57,17 @@ internal object HttpFixtures {
             HttpFixtures::class.java.classLoader ?: ClassLoader.getSystemClassLoader()
         val stream = loader.getResourceAsStream(resourceName)
             ?: loader.getResourceAsStream("/$resourceName")
-            ?: throw IllegalStateException(
-                "recording resource '$resourceName' not found on test classpath " +
-                    "(classpath=${System.getProperty("java.class.path")})",
-            )
+            ?: run {
+                // reference/Z-Sync not cloned: skip. If it is there, a missing file is a real error.
+                Assume.assumeTrue(
+                    "Z-Sync contract fixtures missing, clone reference/Z-Sync to run this test",
+                    System.getProperty("koan.zsync.contract") == "true",
+                )
+                throw IllegalStateException(
+                    "recording resource '$resourceName' not found on test classpath " +
+                        "(classpath=${System.getProperty("java.class.path")})",
+                )
+            }
         return stream.use { it.readBytes() }
     }
 }

@@ -4,6 +4,7 @@ package dev.nerzouille.koan.sync
 
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.Assume
 
 /**
  * Loads the golden contract fixtures from `shared/contract/fixtures/{crypto,wire,auth}/`
@@ -84,10 +85,17 @@ internal object FixtureLoader {
             FixtureLoader::class.java.classLoader ?: ClassLoader.getSystemClassLoader()
         val stream = loader.getResourceAsStream(resourceName)
             ?: loader.getResourceAsStream("/$resourceName")
-            ?: throw IllegalStateException(
-                "fixture resource '$resourceName' not found on test classpath " +
-                    "(classpath=${System.getProperty("java.class.path")})",
-            )
+            ?: run {
+                // reference/Z-Sync not cloned: skip. If it is there, a missing file is a real error.
+                Assume.assumeTrue(
+                    "Z-Sync contract fixtures missing, clone reference/Z-Sync to run this test",
+                    System.getProperty("koan.zsync.contract") == "true",
+                )
+                throw IllegalStateException(
+                    "fixture resource '$resourceName' not found on test classpath " +
+                        "(classpath=${System.getProperty("java.class.path")})",
+                )
+            }
         return stream.use { it.readBytes() }
     }
 }

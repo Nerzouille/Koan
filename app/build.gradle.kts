@@ -69,6 +69,9 @@ android {
     testOptions {
         // Ported sync code calls android.util.Log; JVM tests get no-op stubs.
         unitTests.isReturnDefaultValues = true
+        // Without reference/Z-Sync the fixture tests skip instead of failing (see README).
+        val contractPresent = rootProject.file("reference/Z-Sync/shared/contract").isDirectory
+        unitTests.all { it.systemProperty("koan.zsync.contract", contractPresent) }
     }
     sourceSets {
         getByName("test") {
