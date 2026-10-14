@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.sp
 /*
  * Every visual value of Koan in one place: colours, sizes, the depth-stack geometry, motion.
  * Tweak here, not in the screens. Colours come in one set per theme ([KoanPalette]).
- * Sources: docs/UI_SPEC.md and docs/reference/design/Koan Screens.dc.html (v3 perspective stack).
+ * Source: docs/UI_SPEC.md (v3 perspective stack).
  */
 
 /**
@@ -177,7 +177,7 @@ object WashTokens {
     val DefaultProgress = listOf(Color(0xFFFF5FA2), Color(0xFFB46BFF), Color(0xFF4F8DFF))
 }
 
-/** The upright one-point-perspective card stack (docs/UI_SPEC.md "Depth stack"). Tuned to sketch-stack.png. */
+/** The upright one-point-perspective card stack (docs/UI_SPEC.md "Depth stack"). Tuned by hand on the phone. */
 object StackTokens {
     /** Geometric ratio per slot of depth for the pile's spacing: lower = bunches tighter, faster. */
     const val R = 0.45f

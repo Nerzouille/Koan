@@ -20,7 +20,7 @@ workspaces **are** your Zen desktop Spaces.
    with its name, icon, gradient theme, essentials, pinned tabs, folders and (if enabled in Zen)
    normal tabs.
 2. **Tabs as vertical cards.** Inside a space, tabs are tall rounded cards stacked vertically with
-   overlap (like Safari's old card view / Arc iPhone, see the reference screenshot): each card shows
+   overlap (like Safari's old card view / Arc iPhone): each card shows
    its header (favicon, title, close button) and a live thumbnail. Opening and closing a card uses
    a fluid, spring-driven zoom morph like iOS's current tab animation.
 3. **Workspace bar.** A horizontal bar under the cards. Swiping left/right on it moves between

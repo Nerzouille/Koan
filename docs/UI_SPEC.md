@@ -1,9 +1,8 @@
 # UI Spec
 
-Reference: `docs/reference/arc-iphone-space.png` (Arc for iPhone, "Work" space: stacked overlapping
-cards with a header row each, a floating "Return to Homepage" pill at the bottom).
-If a Claude Design mockup exists in `docs/reference/design/`, it overrides visual details here;
-the interaction rules below still apply.
+Inspiration: Arc for iPhone's space view (stacked overlapping cards with a header row each, a
+floating "Return to Homepage" pill at the bottom). Visual details come from design mockups kept
+outside the repo; the interaction rules below always apply.
 
 ## Screens
 
@@ -81,8 +80,7 @@ to the top of the stack.
 
 ### Depth stack (the "premium" feel) — most important visual rule
 
-Source: v3 "Upright depth stack" in `docs/reference/design/Koan Screens.dc.html`
-(`v3-perspective-stack.png`), geometry retuned to the owner's `sketch-stack.png`. All numbers
+Source: the v3 "Upright depth stack" mockup, geometry retuned by hand on the phone. All numbers
 below live in `ui/theme/Tokens.kt` (`StackTokens`).
 
 The stack is a **one-point perspective deck**: cards behind the focused one converge toward a
@@ -221,8 +219,7 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 
 ## Themes
 
-Source: section 4 "Themes" of `docs/reference/design/Koan Screens.dc.html` (Light A "soft wash"
-and Dark; Light B is not used). Setting: Light / Dark / Follow system (default), in the ⋯ menu
+Source: the "Themes" mockup (Light A "soft wash" and Dark; Light B is not used). Setting: Light / Dark / Follow system (default), in the ⋯ menu
 for now (Settings screen later). Web pages follow it too (`prefers-color-scheme`).
 
 - **Light ("soft wash"):** background `#FFFFFF` with a wash of the space colour at the top:
