@@ -498,12 +498,15 @@ object PagerTokens {
 
 /** Page screenshots (thumbs/ThumbnailStore). */
 object ThumbTokens {
-    /** Width on disk; ~2 MB per decoded image at the POCO's aspect. 720 if the focused card looks soft. */
-    const val WIDTH_PX = 480
+    /**
+     * Width on disk. 480 looked soft on the POCO's focused card (~1000 px wide on screen); 720 is
+     * ~4.7 MB per decoded image at its aspect.
+     */
+    const val WIDTH_PX = 720
     const val QUALITY = 80
     const val DISK_CAP_BYTES = 150L * 1024 * 1024
-    /** Decoded images kept in memory (GPU): ~24 at 480px, enough for the cards around the focus. */
-    const val MEMORY_CAP_BYTES = 48 * 1024 * 1024
+    /** Decoded images kept in memory (GPU): ~14 at 720px, the cards around the focus. */
+    const val MEMORY_CAP_BYTES = 64 * 1024 * 1024
 
     /** Capture this long after a page finished loading (it settles: fonts, images, layout). */
     const val SETTLE_MS = 1500L

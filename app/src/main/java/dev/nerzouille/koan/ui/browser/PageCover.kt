@@ -25,6 +25,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.search.displayHost
+import dev.nerzouille.koan.search.loadsOnPhone
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.text.style.TextAlign
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.theme.CardTokens
@@ -50,6 +53,9 @@ data class CoverTarget(
     /** A new tab waiting for its url: covered (plain surface) until it loads something. */
     val blank: Boolean,
 ) {
+    /** A Zen tab only the desktop can open (a local file…): its placeholder stays, with a note. */
+    val desktopOnly: Boolean get() = !blank && url.isNotEmpty() && !loadsOnPhone(url)
+
     companion object {
         fun of(tab: TabEntity, blank: Boolean) = CoverTarget(tab.koanTabId, tab.url, tab.iconUrl, tab.staticIcon, tab.thumbnailKey, blank)
     }
@@ -67,9 +73,10 @@ fun PageCover(target: CoverTarget?, store: BrowserStore, zoomIn: () -> Boolean, 
     val scale = remember { Animatable(1f) }
     val id = target?.id
     val blank = target?.blank == true
-    LaunchedEffect(id, blank) {
+    val stays = blank || target?.desktopOnly == true
+    LaunchedEffect(id, stays) {
         alpha.snapTo(1f)
-        if (target == null || blank) return@LaunchedEffect
+        if (target == null || stays) return@LaunchedEffect
         if (zoomIn()) {
             launch {
                 scale.snapTo(PageTokens.OPEN_ZOOM_FROM)
@@ -124,6 +131,16 @@ private fun CoverPlaceholder(target: CoverTarget) {
         Favicon(target.url, CardTokens.PlaceholderFavicon, icon = target.icon, staticIcon = target.staticIcon)
         Spacer(Modifier.height(CardTokens.PlaceholderGap))
         Text(displayHost(target.url), color = KoanTheme.colors.TextSecondary, fontSize = CardTokens.PlaceholderDomainSize, maxLines = 1)
+        if (target.desktopOnly) {
+            Spacer(Modifier.height(CardTokens.PlaceholderGap))
+            Text(
+                "This tab opens only on your computer.",
+                color = KoanTheme.colors.TextSecondary,
+                fontSize = CardTokens.PlaceholderDomainSize,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = CardTokens.PlaceholderTop),
+            )
+        }
     }
 }
 

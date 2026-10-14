@@ -218,17 +218,19 @@ private fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit,
             contentAlignment = Alignment.Center,
         ) { ZenIcon(space.icon, OverviewTokens.SpaceIconGlyph, tint = KoanTheme.colors.TextPrimary) }
         Spacer(Modifier.width(OverviewTokens.TitleGap))
-        Text(
-            space.name,
-            color = KoanTheme.colors.TextPrimary,
-            fontSize = OverviewTokens.TitleSize,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        SyncBadgeView(badge, onBadge)
-        Spacer(Modifier.weight(1f))
+        // Name + badge take the free width, so the + always sits at the right edge.
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                space.name,
+                color = KoanTheme.colors.TextPrimary,
+                fontSize = OverviewTokens.TitleSize,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            SyncBadgeView(badge, onBadge)
+        }
         Box(
             Modifier
                 .padding(end = OverviewTokens.HeaderPadding)

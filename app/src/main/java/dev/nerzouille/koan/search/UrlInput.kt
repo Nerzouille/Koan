@@ -24,13 +24,26 @@ fun resolveInput(raw: String): String {
     return searchUrl(text)
 }
 
+/**
+ * Whether the phone can load [url]. Zen tabs can point at things only the desktop has (a local
+ * file, a browser-internal page): those keep their placeholder instead of a blank page.
+ */
+fun loadsOnPhone(url: String): Boolean {
+    val scheme = url.substringBefore(':', missingDelimiterValue = "").lowercase()
+    return scheme in PHONE_SCHEMES
+}
+
+private val PHONE_SCHEMES = setOf("http", "https", "about", "data", "view-source", "blob")
+
 fun searchUrl(query: String): String = SEARCH_URL + URLEncoder.encode(query, Charsets.UTF_8)
 
 /** What the address pill shows when not editing: the bare host, no scheme, no "www.". */
 fun displayHost(url: String): String {
     if (url.isBlank() || url == "about:blank") return ""
-    val afterScheme = url.substringAfter("://", missingDelimiterValue = url)
-    if (afterScheme == url) return url // about:, data:, … show as-is
+    val scheme = url.substringBefore(':', missingDelimiterValue = "")
+    // about:, data:, … show as-is (a data: page may contain "://" further on).
+    if (scheme.isEmpty() || !url.startsWith("$scheme://")) return if (scheme == "data") "data:" else url
+    val afterScheme = url.substring(scheme.length + 3)
     val host = afterScheme.substringBefore('/').substringBefore('?').substringBefore('#')
         .substringAfter('@').substringBefore(':')
     return host.removePrefix("www.")

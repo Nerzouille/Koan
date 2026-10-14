@@ -8,6 +8,7 @@ import dev.nerzouille.koan.data.SpaceWithTabs
 import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.data.TabOrigin
 import dev.nerzouille.koan.search.displayHost
+import dev.nerzouille.koan.search.loadsOnPhone
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.theme.ThumbTokens
 import kotlinx.coroutines.CoroutineScope
@@ -130,6 +131,8 @@ class TabManager(
 
         val engineTab = store.state.findTab(id)
         when {
+            // A desktop-only page (local file…): the page view keeps its placeholder.
+            !loadsOnPhone(tab.url) && engineTab == null -> Unit
             engineTab == null -> addEngineTab(id, tab.url)
             // Zen moved this (never phone-navigated) tab elsewhere since it was last open here:
             // its saved page is stale, load Zen's.
@@ -175,7 +178,8 @@ class TabManager(
             _blank.value = null
             beforeBlank = null
             addEngineTab(id, url)
-            touch(id)
+            // Now a real tab: saved as the place to reopen on.
+            setCurrent(id)
         } else if (store.state.findTab(id) != null) {
             sessionUseCases.loadUrl(url, id)
         }
