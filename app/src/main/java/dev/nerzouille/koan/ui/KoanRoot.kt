@@ -47,6 +47,7 @@ import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.overview.SyncBadge
 import dev.nerzouille.koan.ui.overview.SyncUi
 import dev.nerzouille.koan.ui.overview.findTab
+import kotlinx.coroutines.flow.first
 import dev.nerzouille.koan.ui.overview.toModel
 import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
@@ -91,14 +92,44 @@ fun KoanRoot(components: Components) {
     pager.count = spaces.size.coerceAtLeast(1)
     val density = LocalDensity.current
     pager.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { PagerTokens.PageGap.toPx() }
+    // Cold start (e.g. after swiping Koan away): reopen on the space and tab saved on disk. After a
+    // configuration change or a background kill, the saved instance state already has them.
+    var placeRestored by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (placeRestored) return@LaunchedEffect
+        val place = components.lastPlace.read()
+        place.spaceUuid?.let { currentSpaceUuid = it }
+        val tabId = place.tabId
+        if (tabId != null) {
+            val tab = snapshotFlow { spaces }.first { it.isNotEmpty() }.firstNotNullOfOrNull { it.findTab(tabId) }
+            if (tab != null) {
+                activeTabId = tab.koanTabId
+                // The engine starts on a blank tab after a cold start; the live page itself
+                // (history, scroll) is restored by the engine from M3 on.
+                val engineUrl = components.store.state.selectedTab?.content?.url
+                if (engineUrl.isNullOrEmpty() || engineUrl == "about:blank") components.sessionUseCases.loadUrl(tab.url)
+            }
+        }
+        placeRestored = true
+    }
+    LaunchedEffect(activeTabId, placeRestored) {
+        if (placeRestored) components.lastPlace.saveTab(activeTabId)
+    }
+
     LaunchedEffect(pager) {
         snapshotFlow { pager.settled }.collect {
             currentSpace = it
             spaces.getOrNull(it)?.let { s -> currentSpaceUuid = s.space.uuid }
         }
     }
+    LaunchedEffect(currentSpaceUuid, placeRestored) {
+        val uuid = currentSpaceUuid
+        if (placeRestored && uuid != null) components.lastPlace.saveSpace(uuid)
+    }
     val spaceIds = spaces.map { it.space.uuid }
-    LaunchedEffect(spaceIds) {
+    LaunchedEffect(spaceIds, placeRestored) {
+        // Wait for the saved place, so the first Room emission doesn't anchor on the first space.
+        if (!placeRestored) return@LaunchedEffect
         val anchored = currentSpaceUuid?.let(spaceIds::indexOf) ?: -1
         val target = if (anchored >= 0) anchored else currentSpace.coerceIn(0, (spaceIds.size - 1).coerceAtLeast(0))
         if (target != pager.settled) pager.snapTo(target)
