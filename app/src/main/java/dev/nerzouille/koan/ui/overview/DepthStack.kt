@@ -117,9 +117,9 @@ fun DepthStack(
         }
     }
     LaunchedEffect(state) {
-        snapshotFlow { state.busy }.collect { busy ->
-            if (busy) return@collect
-            val focus = state.pos.roundToInt()
+        // Also when the focus jumps while idle (the overview re-centres a stack on its current tab).
+        snapshotFlow { if (state.busy) null else state.pos.roundToInt() }.collect { focus ->
+            if (focus == null) return@collect
             val target = (focus - AHEAD_BEHIND)..(focus + AHEAD_FRONT)
             // Drop what is far away at once (cheap), then compose towards the target a few cards
             // per frame, so a finger landing meanwhile still gets a prompt frame.
@@ -273,21 +273,29 @@ fun DepthStack(
                     val near = remember(a, geo) {
                         derivedStateOf { geo.depthOf(a).let { it >= DepthCurve.MIN_VISIBLE_D - 1f && it <= DepthCurve.MAX_VISIBLE_D + 1f } }
                     }
-                    // The card one slot in front casts a short contact shadow on this one.
-                    val front = ids.getOrNull(index + 1)?.let { state.anim(it, index + 1) }
+                    // This card casts a short contact shadow on the one behind it, from a layer just under it.
+                    val behind = ids.getOrNull(index - 1)?.let { state.anim(it, index - 1) }
+                    val layout = Modifier
+                        .align(Alignment.TopCenter)
+                        .zIndex(if (state.liftedId == id) 1f else 0f)
+                        .size(cardWidthDp, cardHeightDp)
+                    if (behind != null) {
+                        ContactShadow(
+                            length = { if (near.value) geo.shadowLength(a, behind) else 0f },
+                            modifier = layout.graphicsLayer {
+                                geo.applyTo(this, a)
+                                clip = false
+                                shadowElevation = 0f
+                            },
+                        )
+                    }
                     TabCard(
                         card = card,
                         depth = { if (near.value) geo.depthOf(a) else OFFSCREEN_DEPTH },
-                        frontEdge = { if (front != null && near.value) geo.frontEdge(a, front) else Float.NaN },
-                        frontShadow = { if (front != null && near.value) geo.frontShadow(front) else 0f },
                         blurFor = blurFor,
                         dimColor = dimColor,
                         accent = colors.accent,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .zIndex(if (state.liftedId == id) 1f else 0f)
-                            .size(cardWidthDp, cardHeightDp)
-                            .graphicsLayer { geo.applyTo(this, a) },
+                        modifier = layout.graphicsLayer { geo.applyTo(this, a) },
                     )
                 }
             }
@@ -358,21 +366,16 @@ private class StackGeometry(
     private fun visible(d: Float) = d <= DepthCurve.MAX_VISIBLE_D && d >= DepthCurve.MIN_VISIBLE_D
 
     /**
-     * Top edge of the card in front of [a], in [a]'s own (unscaled) coordinates: where that card
-     * casts its contact shadow. NaN when it is not on screen.
+     * How far [a]'s contact shadow rises above its top edge onto [behind], in [a]'s own px: the
+     * full length, shorter where the pile leaves only a sliver of [behind] showing. 0 = none.
      */
-    fun frontEdge(a: CardAnim, front: CardAnim): Float {
-        val f = depthOf(front)
-        if (!visible(f)) return Float.NaN
-        return (topOf(f) - topOf(depthOf(a))) / DepthCurve.scale(depthOf(a))
-    }
-
-    /** Strength of that shadow: it fades with the card in front, and as it is swiped away. */
-    fun frontShadow(front: CardAnim): Float {
-        val f = depthOf(front)
-        if (!visible(f) || front.gone) return 0f
-        val away = (1f - abs(front.swipeX) / (StackTokens.SwipeCloseDistance.value * density)).coerceIn(0f, 1f)
-        return DepthCurve.alpha(f) * away
+    fun shadowLength(a: CardAnim, behind: CardAnim): Float {
+        val d = depthOf(a)
+        val db = depthOf(behind)
+        if (!visible(d) || !visible(db) || behind.gone) return 0f
+        val s = DepthCurve.scale(d)
+        val sliver = (topOf(d) - topOf(db)) / s
+        return min(palette.ContactShadowLength.value * density, sliver * CardTokens.CONTACT_SHADOW_MAX_FRACTION).coerceAtLeast(0f)
     }
 
     fun applyTo(layer: GraphicsLayerScope, a: CardAnim) = with(layer) {

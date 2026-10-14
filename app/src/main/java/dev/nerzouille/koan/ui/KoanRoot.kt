@@ -73,8 +73,8 @@ fun KoanRoot(components: Components) {
     val account by components.accounts.state.collectAsStateWithLifecycle()
     val syncStatus by components.sync.status.collectAsStateWithLifecycle()
     var signingIn by rememberSaveable { mutableStateOf(false) }
-    // Focused stack card per space (uuid → card id): restored after process death too.
-    val stackFocus = rememberSaveable { HashMap<String, String>() }
+    // Each space's current tab (uuid → card id last opened there): the overview centres on it.
+    val currentTabs = rememberSaveable { HashMap<String, String>() }
     var currentSpace by rememberSaveable { mutableIntStateOf(0) }
     // The space the user is on, by id: spaces added/removed on the desktop never move them.
     var currentSpaceUuid by rememberSaveable { mutableStateOf<String?>(null) }
@@ -168,6 +168,11 @@ fun KoanRoot(components: Components) {
     }
     fun openTab(index: Int, tab: TabEntity) {
         currentSpace = index
+        spaces.getOrNull(index)?.let { s ->
+            // A split view's card has its own id.
+            val card = s.stack.firstOrNull { item -> item.tabs.any { it.koanTabId == tab.koanTabId } }?.id
+            currentTabs[s.space.uuid] = card ?: tab.koanTabId
+        }
         // Also load when the engine shows nothing (blank after a cold start), even for the current card.
         if (tab.koanTabId != activeTabId || engineIsBlank()) {
             activeTabId = tab.koanTabId
@@ -177,7 +182,9 @@ fun KoanRoot(components: Components) {
     }
     fun newTab(index: Int) {
         currentSpace = index
-        activeTabId = components.spaces.addTab(spaces[index].space.uuid, "about:blank", "New tab")
+        val id = components.spaces.addTab(spaces[index].space.uuid, "about:blank", "New tab")
+        activeTabId = id
+        currentTabs[spaces[index].space.uuid] = id
         loadInLiveTab("about:blank")
         overviewOpen = false
         editing = true
@@ -245,7 +252,8 @@ fun KoanRoot(components: Components) {
                 onReorder = { ids -> components.spaces.reorderStack(ids.mapNotNull(::stackItem)) },
                 onDismiss = { overviewOpen = false },
                 sync = sync,
-                focus = stackFocus,
+                open = overviewOpen,
+                currentTabs = currentTabs,
                 onBadge = ::onSyncAction,
                 onConnect = { signingIn = true },
                 modifier = Modifier

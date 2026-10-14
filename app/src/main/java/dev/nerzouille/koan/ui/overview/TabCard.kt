@@ -22,14 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -38,9 +32,7 @@ import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.CardTokens
-import dev.nerzouille.koan.ui.theme.KoanPalette
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import kotlin.math.min
 
 /**
  * What a card needs to draw itself. Immutable so unchanged cards skip recomposition. [pinned] =
@@ -63,16 +55,14 @@ data class CardModel(
 )
 
 /**
- * One card of the depth stack. Depth-dependent effects (blur, dim, ✕ visibility, the contact
- * shadow of the card in front at local y [frontEdge]) are read inside draw/layer lambdas only, so
- * scrolling never recomposes the card. Back cards fade towards [dimColor].
+ * One card of the depth stack. Depth-dependent effects (blur, dim, ✕ visibility) are read inside
+ * draw/layer lambdas only, so scrolling never recomposes the card. Back cards fade towards
+ * [dimColor]. The contact shadow it casts is a separate layer: [ContactShadow].
  */
 @Composable
 fun TabCard(
     card: CardModel,
     depth: () -> Float,
-    frontEdge: () -> Float,
-    frontShadow: () -> Float,
     blurFor: (Float) -> RenderEffect?,
     dimColor: Color,
     accent: Color,
@@ -80,10 +70,9 @@ fun TabCard(
 ) {
     val palette = KoanTheme.colors
     val dimOf = { d: Float -> (DepthCurve.dim(d) * palette.DimGain).coerceAtMost(palette.DimMax) }
-    val withShadow = modifier.contactShadow(frontEdge, frontShadow, palette)
-    if (card.skeleton) return SkeletonCard(depth, dimColor, dimOf, withShadow)
+    if (card.skeleton) return SkeletonCard(depth, dimColor, dimOf, modifier)
     val look = faviconLook(card.url)
-    Box(withShadow.background(palette.Card).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
+    Box(modifier.background(palette.Card).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
         // Thumbnail: only its top slice is blurred. Behind the focus line nothing below that slice is
         // ever visible, and blurring the whole card costs ~5× the GPU time (measured on the POCO).
         PlaceholderThumbnail(
@@ -107,29 +96,6 @@ fun TabCard(
 }
 
 private val CardShape = RoundedCornerShape(CardTokens.Radius)
-
-/**
- * The short, soft shadow the card in front casts on this one, just above its top edge (light
- * theme: never a grey fog over the card). Shorter where the pile leaves only a sliver showing.
- */
-private fun Modifier.contactShadow(edge: () -> Float, strength: () -> Float, palette: KoanPalette): Modifier =
-    drawWithCache {
-        val len = palette.ContactShadowLength.toPx()
-        val brush = Brush.verticalGradient(0f to Color.Transparent, 1f to palette.ContactShadow, startY = 0f, endY = len)
-        onDrawWithContent {
-            drawContent()
-            val y = edge()
-            if (y.isNaN() || y <= 0f) return@onDrawWithContent
-            val a = strength()
-            if (a < 0.01f) return@onDrawWithContent
-            val h = min(len, y * CardTokens.CONTACT_SHADOW_MAX_FRACTION)
-            translate(top = y - h) {
-                scale(scaleX = 1f, scaleY = h / len, pivot = Offset.Zero) {
-                    drawRect(brush, size = Size(size.width, len), alpha = a)
-                }
-            }
-        }
-    }
 
 @Composable
 private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color, accent: Color) {

@@ -140,6 +140,13 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         }
     }
 
+    /** Jumps to [index] without motion, e.g. to re-centre on the current tab while off screen. */
+    fun snapTo(index: Int) {
+        scrollJob?.cancel()
+        pos = index.toFloat()
+        dragStart = pos
+    }
+
     /** Exponential glide to [target]: fast start, no overshoot, like the prototype. */
     fun animateTo(target: Float) {
         startScroll {

@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
@@ -43,9 +44,9 @@ import dev.nerzouille.koan.ui.theme.WashTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlin.math.abs
-import kotlin.math.roundToInt
 import kotlin.math.floor
 
 /**
@@ -64,8 +65,10 @@ fun OverviewScreen(
     onReorder: (List<String>) -> Unit,
     onDismiss: () -> Unit,
     sync: SyncUi,
-    /** Space uuid → focused card id; owned by the caller so it outlives the overview. */
-    focus: MutableMap<String, String>,
+    /** The overview is open (false while its closing motion still shows it). */
+    open: Boolean,
+    /** Space uuid → that space's current tab (card id last opened there); owned by the caller. */
+    currentTabs: Map<String, String>,
     onBadge: () -> Unit,
     onConnect: () -> Unit,
     modifier: Modifier = Modifier,
@@ -105,20 +108,37 @@ fun OverviewScreen(
     val scope = rememberCoroutineScope()
     // Per-space scroll state, kept while the overview is open even when a page is not composed.
     val stacks = remember { HashMap<String, StackState>() }
-    fun stackFor(space: SpaceModel) = stacks.getOrPut(space.uuid) {
-        // The current tab first (UI_SPEC), else the card last focused here (survives process
-        // death via [focus]), else the newest card.
+    // The stack opens centred on the space's current tab (UI_SPEC): the live tab, else the card
+    // last opened in that space, else the newest card.
+    fun currentIndex(space: SpaceModel): Int {
         val active = space.stack.indexOfFirst { it.active }
-        val saved = focus[space.uuid]?.let { id -> space.stack.indexOfFirst { it.id == id } } ?: -1
-        val start = when {
+        val last = currentTabs[space.uuid]?.let { id -> space.stack.indexOfFirst { it.id == id } } ?: -1
+        val i = when {
             active >= 0 -> active
-            saved >= 0 -> saved
+            last >= 0 -> last
             else -> space.stack.lastIndex
         }
-        StackState(start.coerceAtLeast(0).toFloat(), scope).also { state ->
-            scope.launch {
-                snapshotFlow { if (state.busy) null else state.pos.roundToInt() }
-                    .collect { i -> if (i != null) space.stack.getOrNull(i)?.let { focus[space.uuid] = it.id } }
+        return i.coerceAtLeast(0)
+    }
+    fun stackFor(space: SpaceModel) = stacks.getOrPut(space.uuid) { StackState(currentIndex(space).toFloat(), scope) }
+
+    // A scrolled stack never stays scrolled: reopening the overview, or coming back to a space,
+    // finds it centred on its current tab again. Done without motion, while it is off screen.
+    val latestModels by rememberUpdatedState(models)
+    fun recentre(space: SpaceModel) {
+        val stack = stacks[space.uuid] ?: return
+        if (!stack.busy) stack.snapTo(currentIndex(space))
+    }
+    LaunchedEffect(open) {
+        if (open) latestModels.forEach(::recentre)
+    }
+    LaunchedEffect(pager) {
+        snapshotFlow { pager.settled }.collectLatest {
+            // One space per idle frame (a far jump may compose a few cards), never one in view.
+            for ((i, space) in latestModels.withIndex()) {
+                snapshotFlow { pager.moving }.first { !it }
+                if (i != pager.settled) recentre(space)
+                withFrameNanos { }
             }
         }
     }
