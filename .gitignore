@@ -9,6 +9,7 @@ captures/
 
 # Local, machine-specific
 local.properties
+CLAUDE.local.md
 
 # Signing & secrets — never commit
 *.jks

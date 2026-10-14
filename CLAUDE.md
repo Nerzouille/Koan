@@ -11,6 +11,21 @@ the owner won't personally use.
 > "Koan" is a working codename. Never call the app "Zen", never use the Zen logo. Zen is an
 > independent project and this app is not affiliated with it.
 
+## Public repo
+
+This repository is **public**. Everything committed (code, docs, tests, commit messages) is public.
+
+- Never commit or mention the owner's personal browsing data: real tab titles/URLs, space names,
+  folder names, sites they visit, account emails, Mozilla/Zen data, phone screenshots, logcat/adb
+  dumps, trace files.
+- Commit messages describe the change generically ("blank screenshot on a slow page"), never with
+  the owner's real tabs or sites.
+- Test data, seed data and fixtures must be fake (`example.com`, made-up titles).
+- Measurements, screenshots and logs stay in gitignored folders (`app/build`, `reference/`) and are
+  never committed.
+- Before every commit, check the diff for anything personal; if in doubt, ask the owner.
+- Personal context needed locally goes in a gitignored file (`CLAUDE.local.md`), not in the repo.
+
 ## Read these before doing anything
 
 | File | What it is |
