@@ -1,3 +1,5 @@
 <resources>
     <color name="koan_base">#0E0E10</color>
+    <!-- Fill of the Zen space/folder icon drawables; the UI tints them anyway. -->
+    <color name="zen_icon_fill">#FFFFFFFF</color>
 </resources>

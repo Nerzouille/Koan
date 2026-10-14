@@ -1,0 +1,9 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path
+        android:fillColor="@color/zen_icon_fill"
+        android:pathData="m 160,389 a 20.91,20.91 0 0 1 -13.82,-5.2 l -128,-112 a 21,21 0 0 1 0,-31.6 l 128,-112 a 21.001593,21.001593 0 0 1 27.66,31.61 L 63.89,256 173.83,352.19 A 21,21 0 0 1 160,389 Z m 192,0 A 21,21 0 0 1 338.16,352.19 L 448.11,256 338.17,159.81 a 21.001593,21.001593 0 0 1 27.66,-31.61 l 128,112 a 21,21 0 0 1 0,31.6 l -128,112 A 20.89,20.89 0 0 1 352,389 Z" />
+</vector>

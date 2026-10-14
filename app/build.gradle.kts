@@ -66,6 +66,19 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        // Ported sync code calls android.util.Log; JVM tests get no-op stubs.
+        unitTests.isReturnDefaultValues = true
+    }
+    sourceSets {
+        getByName("test") {
+            // Z-Sync's golden fixtures, read in place (never copied or edited). Leaf dirs so the
+            // JSON lands at the classpath root, as Z-Sync's FixtureLoader expects.
+            val contract = rootProject.file("reference/Z-Sync/shared/contract")
+            listOf("fixtures/crypto", "fixtures/wire", "fixtures/auth", "http")
+                .forEach { resources.srcDir(contract.resolve(it)) }
+        }
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -99,6 +112,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidsvg)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
@@ -113,4 +128,6 @@ dependencies {
     implementation(libs.mozilla.lib.state)
 
     testImplementation(libs.junit)
+    testImplementation(libs.org.json)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

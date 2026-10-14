@@ -13,6 +13,9 @@ ksp = "2.3.12"
 mozillaComponents = "157.0.1"
 geckoview = "157.0.20261005135250"
 junit = "4.13.2"
+datastore = "1.2.1"
+androidsvg = "1.4"
+orgJson = "20260814"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -32,6 +35,9 @@ room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+androidsvg = { module = "com.caverock:androidsvg-aar", version.ref = "androidsvg" }
 
 geckoview = { module = "org.mozilla.geckoview:geckoview-omni", version.ref = "geckoview" }
 mozilla-browser-engine-gecko = { module = "org.mozilla.components:browser-engine-gecko", version.ref = "mozillaComponents" }
@@ -42,6 +48,7 @@ mozilla-feature-tabs = { module = "org.mozilla.components:feature-tabs", version
 mozilla-lib-state = { module = "org.mozilla.components:lib-state", version.ref = "mozillaComponents" }
 
 junit = { module = "junit:junit", version.ref = "junit" }
+org-json = { module = "org.json:json", version.ref = "orgJson" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
