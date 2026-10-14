@@ -88,7 +88,11 @@ fun BrowserScreen(
     LaunchedEffect(engineView) {
         // Near the top of a page the dock always shows (once the finger is off: a fling, a jump).
         val nearTop = with(density) { PageTokens.DockNearTop.toPx() }
-        engineView.verticalScrollPosition.collect { y -> if (y < nearTop && !dock.touching) dock.show() }
+        engineView.verticalScrollPosition.collect { y ->
+            if (y < nearTop && !dock.touching) dock.show()
+            // Scrolling changes what the card should show: a screenshot follows once it stops.
+            components.tabs.pageScrolled()
+        }
     }
 
     Box(

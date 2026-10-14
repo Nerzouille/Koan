@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.IntSize
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import dev.nerzouille.koan.ui.theme.KoanTheme
 
 /**
@@ -275,11 +276,23 @@ private fun PlaceholderThumbnail(card: CardModel, modifier: Modifier) {
  * deeper in the pile (blurring the whole card costs ~5×). Decoded off the main thread, only while
  * the card is near the visible range ([depth] is constant beyond it), and faded in.
  */
-/** A card's screenshot: decoded once near the visible range, then faded in over the placeholder. */
+/**
+ * A card's screenshot: decoded once near the visible range, then faded in over the placeholder.
+ * A fresher screenshot (new key) fades in over the one shown: once a card has a screenshot it never
+ * goes back to its placeholder.
+ */
 @Stable
-private class ScreenshotState(initial: ImageBitmap?, baked: List<ImageBitmap>?) {
+private class ScreenshotState(key: String, initial: ImageBitmap?, baked: List<ImageBitmap>?) {
+    /** The key of [image] (it lags the card's key while a fresher screenshot loads). */
+    var shownKey by mutableStateOf(key)
     var image by mutableStateOf(initial)
     val reveal = Animatable(if (initial != null) 1f else 0f)
+
+    /** The screenshot being replaced, drawn under [image] while it fades in. */
+    var previous by mutableStateOf<ImageBitmap?>(null)
+
+    /** A screenshot is fading in (keeps the effect that runs the fade alive until it ends). */
+    var fading by mutableStateOf(false)
 
     /** Pre-blurred copies of the top slice, weakest first (thumbs/BakedBlur); null until baked. */
     var baked by mutableStateOf(baked)
@@ -288,11 +301,21 @@ private class ScreenshotState(initial: ImageBitmap?, baked: List<ImageBitmap>?) 
 @Composable
 private fun rememberScreenshot(key: String, depth: () -> Float, blurFor: (Float) -> RenderEffect?): ScreenshotState {
     val near by remember { derivedStateOf { depth() < OFFSCREEN_DEPTH_FROM } }
-    val state = remember(key) { ScreenshotState(ThumbnailStore.cached(key), BakedBlur.cached(key)) }
-    if (state.image == null && near) {
+    val state = remember { ScreenshotState(key, ThumbnailStore.cached(key), BakedBlur.cached(key)) }
+    if (state.shownKey != key || state.image == null || state.fading) {
         LaunchedEffect(key) {
-            state.image = ThumbnailStore.load(key) ?: return@LaunchedEffect
+            snapshotFlow { near }.first { it }
+            // Until it is decoded, the screenshot shown (if any) stays.
+            val next = ThumbnailStore.load(key) ?: return@LaunchedEffect
+            state.fading = true
+            state.previous = state.image.takeIf { state.shownKey != key }
+            state.image = next
+            state.baked = BakedBlur.cached(key)
+            state.shownKey = key
+            state.reveal.snapTo(0f)
             state.reveal.animateTo(1f, tween(ThumbTokens.FADE_MS))
+            state.previous = null
+            state.fading = false
         }
     }
     if (state.baked == null) {
@@ -310,19 +333,24 @@ private fun Screenshot(state: ScreenshotState, depth: () -> Float, blurFor: (Flo
     val reveal = state.reveal
     val bitmap = state.image ?: return
     val shot = Modifier.fillMaxWidth().padding(top = CardTokens.HeaderHeight)
-    Image(
-        bitmap, null,
-        contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter, filterQuality = FilterQuality.Medium,
-        modifier = Modifier
+    // The sharp screenshot, full width from the top; a screenshot being replaced stays under it
+    // while it fades in.
+    Box(
+        Modifier
             .fillMaxSize()
             .graphicsLayer {
                 // Hidden once the blurred slice covers it (nothing below the slice shows): the first
                 // baked copy fully faded in, or any live blur.
                 val hidden = if (state.baked != null) bakedLevel(depth(), blurFor) >= 1f else blurFor(depth()) != null
-                alpha = if (hidden) 0f else reveal.value
+                alpha = if (hidden) 0f else 1f
+                clip = true
                 compositingStrategy = CompositingStrategy.ModulateAlpha
             }
-            .then(shot),
+            .then(shot)
+            .drawBehind {
+                state.previous?.let { drawTopWidth(it, 1f, FilterQuality.Medium) }
+                drawTopWidth(bitmap, reveal.value, FilterQuality.Medium)
+            },
     )
     // The blurred slice: baked copies crossfaded by depth (no GPU buffer per card), or a live blur
     // of the screenshot until they are uploaded. One plain box, so composing a card stays cheap.
@@ -354,6 +382,13 @@ private fun Screenshot(state: ScreenshotState, depth: () -> Float, blurFor: (Flo
                 }
             },
     )
+}
+
+/** Draws [image] scaled to the full width, from the top (clipped by the layer below). */
+private fun DrawScope.drawTopWidth(image: ImageBitmap, alpha: Float, quality: FilterQuality) {
+    if (alpha <= 0f) return
+    val h = (image.height * size.width / image.width).roundToInt()
+    drawImage(image, dstSize = IntSize(size.width.roundToInt(), h), alpha = alpha, filterQuality = quality)
 }
 
 /** 0 sharp … 1 blurred as deep as the pile goes; 0 wherever [blurFor] says no blur (off screen). */

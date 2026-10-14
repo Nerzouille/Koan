@@ -162,7 +162,7 @@ fun KoanRoot(components: Components) {
     fun openOverview() {
         editing = false
         tabs.cancelBlank()
-        tabs.captureCurrent()
+        tabs.captureCurrent("overview opening")
         val index = currentSpace.coerceIn(0, pager.count - 1)
         pager.snapTo(index)
         spaces.getOrNull(index)?.let { s ->

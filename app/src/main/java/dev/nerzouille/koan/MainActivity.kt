@@ -101,7 +101,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onPause() {
         // Leaving Koan: screenshot the page, so the next start (or a restore) shows it at once.
-        (application as KoanApp).components.tabs.captureCurrent()
+        (application as KoanApp).components.tabs.captureCurrent("app hidden")
         refresh.stop()
         super.onPause()
     }

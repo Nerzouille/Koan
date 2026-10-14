@@ -133,7 +133,7 @@ class TabManager(
         val id = tab.koanTabId
         cancelBlank(restore = false)
         val leaving = _current.value
-        if (captureLeaving && leaving != null && leaving != id) captureNow(leaving, ThumbTokens.LEAVE_CAPTURE_TIMEOUT_MS)
+        if (captureLeaving && leaving != null && leaving != id) captureNow(leaving, ThumbTokens.LEAVE_CAPTURE_TIMEOUT_MS, "leaving")
         // Any screenshot still in flight now would show this tab's page, not its own.
         switches++
 
@@ -282,7 +282,12 @@ class TabManager(
     // ---- engine → Room -----------------------------------------------------------------------
 
     private val pageWrites = HashMap<String, Job>()
-    private var settleJob: Job? = null
+    private var captureJob: Job? = null
+    private var scrollJob: Job? = null
+    private var lastScrollAt = 0L
+
+    /** When each tab was last screenshotted: background captures are throttled per tab. */
+    private val lastCapture = HashMap<String, Long>()
 
     /** Counts tab switches: a screenshot taken across one belongs to no tab and is dropped. */
     private var switches = 0L
@@ -291,11 +296,15 @@ class TabManager(
     private fun watchEngine() = main.launch {
         var known = store.state.tabs.associate { it.id to it.pageKey() }
         var loading = false
+        var painted: String? = null
         var selected = store.state.selectedTabId
         store.flow().collect { state ->
             for (tab in state.tabs) {
                 val key = tab.pageKey()
-                if (known[tab.id] != key) schedulePageWrite(tab)
+                if (known[tab.id] != key) {
+                    schedulePageWrite(tab)
+                    if (tab.id == state.selectedTabId && known[tab.id] != null) captureSoon(tab.id, "content changed", ThumbTokens.SETTLE_MS)
+                }
                 // A page opened a new tab (target=_blank, window.open): it joins the stack next to its opener.
                 if (tab.id !in known && tab.id !in ownTabs) adoptWindowTab(tab)
             }
@@ -318,16 +327,13 @@ class TabManager(
                 lastCrashRestore = System.currentTimeMillis()
                 store.dispatch(CrashAction.RestoreCrashedSessionAction(current.id))
             }
-            // Screenshot once the page has settled after loading.
+            // Screenshots taken ahead of the overview: soon after the first paint, then once the
+            // page has settled after loading.
+            val nowPainted = current?.takeIf { it.content.firstContentfulPaint }?.id
+            if (nowPainted != null && nowPainted != painted) captureSoon(nowPainted, "first paint", ThumbTokens.PAINT_SETTLE_MS)
+            painted = nowPainted
             val nowLoading = current?.content?.loading == true
-            if (loading && !nowLoading && current != null) {
-                settleJob?.cancel()
-                val id = current.id
-                settleJob = main.launch {
-                    delay(ThumbTokens.SETTLE_MS)
-                    if (store.state.selectedTabId == id) captureNow(id, timeoutMs = 1000)
-                }
-            }
+            if (loading && !nowLoading && current != null) captureSoon(current.id, "loaded", ThumbTokens.SETTLE_MS)
             loading = nowLoading
         }
     }
@@ -406,31 +412,73 @@ class TabManager(
     }
 
     /** Screenshots the current tab (overview opening, app hidden). */
-    fun captureCurrent() {
+    fun captureCurrent(reason: String) {
         val id = _current.value ?: return
-        main.launch { captureNow(id, timeoutMs = 1000) }
+        main.launch { captureNow(id, timeoutMs = 1000, reason) }
+    }
+
+    /** The page view scrolled: the current tab is screenshotted once it has been still a moment. */
+    fun pageScrolled() {
+        lastScrollAt = System.currentTimeMillis()
+        if (scrollJob?.isActive == true) return
+        scrollJob = main.launch {
+            while (true) {
+                val wait = lastScrollAt + ThumbTokens.SCROLL_SETTLE_MS - System.currentTimeMillis()
+                if (wait <= 0) break
+                delay(wait)
+            }
+            _current.value?.let { captureSoon(it, "scroll stopped", 0) }
+        }
+    }
+
+    /**
+     * Screenshots tab [id] in the background [delayMs] from now, so the overview finds a recent
+     * screenshot ready. A newer request replaces a pending one; at most one capture per tab every
+     * [ThumbTokens.CAPTURE_MIN_INTERVAL_MS].
+     */
+    private fun captureSoon(id: String, reason: String, delayMs: Long) {
+        captureJob?.cancel()
+        captureJob = main.launch {
+            delay(delayMs)
+            val wait = (lastCapture[id] ?: 0L) + ThumbTokens.CAPTURE_MIN_INTERVAL_MS - System.currentTimeMillis()
+            if (wait > 0) delay(wait)
+            if (_current.value == id) captureNow(id, timeoutMs = 1000, reason)
+        }
     }
 
     /**
      * Screenshots tab [id] if it is the one on screen and has painted; stores it and points Room at
      * it. Waits at most [timeoutMs] for the engine (the encode runs in the background).
      */
-    private suspend fun captureNow(id: String, timeoutMs: Long) {
-        val view = engineView.get() ?: return
-        val tab = store.state.findTab(id) ?: return
-        if (store.state.selectedTabId != id || tab.engineState.engineSession == null || !tab.content.firstContentfulPaint) return
+    private suspend fun captureNow(id: String, timeoutMs: Long, reason: String) {
+        capLog(id, "requested ($reason)")
+        val view = engineView.get() ?: return capLog(id, "skipped: no page view")
+        val tab = store.state.findTab(id) ?: return capLog(id, "skipped: no engine tab")
+        if (store.state.selectedTabId != id) return capLog(id, "skipped: not on screen")
+        if (tab.engineState.engineSession == null) return capLog(id, "skipped: not live")
+        if (!tab.content.firstContentfulPaint) return capLog(id, "skipped: not painted yet")
         val before = switches
+        val url = tab.content.url
+        lastCapture[id] = System.currentTimeMillis()
         val bitmap = withTimeoutOrNull(timeoutMs) {
             suspendCancellableCoroutine<Bitmap?> { cont -> view.captureThumbnail { if (cont.isActive) cont.resume(it) } }
-        } ?: return
-        // The pixels arrive later: if the page view switched tabs meanwhile, they may be another page's.
-        if (switches != before || store.state.selectedTabId != id) {
+        } ?: return capLog(id, "no bitmap within ${timeoutMs}ms")
+        // The engine sends the pixels the page view shows when it gets to it, not the tab's: if the
+        // view switched tabs or this tab navigated meanwhile, they may be another page's.
+        val why = when {
+            switches != before || store.state.selectedTabId != id -> "tab switched"
+            store.state.findTab(id)?.content?.url != url -> "navigated"
+            else -> null
+        }
+        if (why != null) {
             bitmap.recycle()
-            return
+            return capLog(id, "discarded: $why while capturing")
         }
         appScope.launch {
             val previous = dao.tab(id)?.thumbnailKey
-            val (key, dropped) = ThumbnailStore.save(id, bitmap, previous) ?: return@launch
+            val (key, dropped) = ThumbnailStore.save(id, bitmap, previous)
+                ?: return@launch capLog(id, "not saved: blank (or write failed)")
+            capLog(id, "saved $key")
             if (dao.tab(id) == null) {
                 ThumbnailStore.delete(key)
                 return@launch
@@ -445,6 +493,11 @@ class TabManager(
         val keys = space.stack.map { it.first.thumbnailKey }
         val around = (index - PREFETCH_BEHIND..index + PREFETCH_FRONT).mapNotNull { keys.getOrNull(it) }
         appScope.launch { ThumbnailStore.prefetch(around) }
+    }
+
+    // TEMPORARY (capture debugging): remove before the next release.
+    private fun capLog(id: String, event: String) {
+        android.util.Log.i("KoanCapture", "${id.take(8)} $event")
     }
 
     companion object {

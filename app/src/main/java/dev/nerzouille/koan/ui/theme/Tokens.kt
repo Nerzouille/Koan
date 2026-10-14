@@ -522,6 +522,15 @@ object ThumbTokens {
     /** Capture this long after a page finished loading (it settles: fonts, images, layout). */
     const val SETTLE_MS = 1500L
 
+    /** Capture this long after a page's first paint (an early screenshot for the overview). */
+    const val PAINT_SETTLE_MS = 800L
+
+    /** Capture once the page has not scrolled for this long. */
+    const val SCROLL_SETTLE_MS = 1000L
+
+    /** Background captures of a tab are at least this far apart. */
+    const val CAPTURE_MIN_INTERVAL_MS = 4000L
+
     /** Switching tabs waits at most this long for the outgoing page's screenshot. */
     const val LEAVE_CAPTURE_TIMEOUT_MS = 150L
 
