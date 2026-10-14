@@ -278,18 +278,20 @@ private fun FolderRow(row: DrawerRow.Folder, interactive: Boolean, onToggle: () 
             }
         }
         Spacer(Modifier.width(DrawerTokens.PinnedPadding))
-        Text(
-            row.name.ifBlank { "Folder" },
-            color = KoanColors.TextPrimary,
-            fontSize = DrawerTokens.PinnedTitleSize,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        Spacer(Modifier.width(DrawerTokens.Gap))
-        Text("${row.count}", color = KoanColors.TextSecondary, fontSize = DrawerTokens.FolderCountSize)
-        Spacer(Modifier.weight(1f))
+        // Name and count take the free width, so the chevron always sits at the right edge.
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                row.name.ifBlank { "Folder" },
+                color = KoanColors.TextPrimary,
+                fontSize = DrawerTokens.PinnedTitleSize,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Spacer(Modifier.width(DrawerTokens.Gap))
+            Text("${row.count}", color = KoanColors.TextSecondary, fontSize = DrawerTokens.FolderCountSize)
+        }
         Icon(
             KoanIcons.ChevronDown, null, tint = KoanColors.TextSecondary,
             modifier = Modifier.size(DrawerTokens.PinnedGlyph).graphicsLayer { rotationZ = turn.value },

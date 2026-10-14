@@ -5,6 +5,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
@@ -28,6 +29,10 @@ class SpacePager(initial: Int, private val scope: CoroutineScope) {
         private set
     var count = 1
 
+    /** A finger is on the switcher or a switch is landing. Background work waits for this. */
+    var moving by mutableStateOf(false)
+        private set
+
     /** One page of travel: the page width plus the gap between spaces, so pages follow the finger 1:1. */
     var pageWidthPx = 1f
     private var job: Job? = null
@@ -37,12 +42,14 @@ class SpacePager(initial: Int, private val scope: CoroutineScope) {
         job?.cancel()
         pos = index.toFloat()
         settled = index
+        moving = false
     }
 
     /** Finger down on the switcher: freeze. A switch that was still landing counts as landed. */
     fun grab() {
         job?.cancel()
         settled = pos.roundToInt().coerceIn(0, count - 1)
+        moving = true
     }
 
     /** 1:1 with the finger; never more than one page away from the settled one. */
@@ -79,9 +86,11 @@ class SpacePager(initial: Int, private val scope: CoroutineScope) {
 
     fun animateTo(index: Int, velocity: Float = 0f) {
         job?.cancel()
+        moving = true
         job = scope.launch {
             animate(pos, index.toFloat(), velocity, Motion.PagerSettle) { v, _ -> pos = v }
             settled = index
+            moving = false
         }
     }
 }

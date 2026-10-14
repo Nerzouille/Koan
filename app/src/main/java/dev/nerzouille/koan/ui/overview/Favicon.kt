@@ -106,13 +106,23 @@ fun Favicon(url: String, size: Dp, modifier: Modifier = Modifier, icon: String? 
         // never recomposes per frame.
         if (initial == null) LetterTile(url, size, shape, Modifier.graphicsLayer { alpha = 1f - reveal.value })
         if (loaded != null) {
-            Image(
-                loaded,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                filterQuality = FilterQuality.Medium,
-                modifier = Modifier.size(size).clip(shape).graphicsLayer { alpha = reveal.value },
-            )
+            Box(
+                Modifier
+                    .size(size)
+                    .graphicsLayer { alpha = reveal.value }
+                    .clip(shape)
+                    // Dark icons get a light tile, like Zen's light sidebar gives them.
+                    .then(if (loaded.dark) Modifier.background(KoanColors.IconBacking) else Modifier),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    loaded.image,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    filterQuality = FilterQuality.Medium,
+                    modifier = Modifier.size(if (loaded.dark) size * 0.72f else size),
+                )
+            }
         }
     }
 }

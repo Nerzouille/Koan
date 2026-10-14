@@ -135,6 +135,19 @@ class SpacesSync(
             // Zen always has at least one space; an empty pull means a broken or partial
             // collection. Keep what Room has rather than emptying the overview.
             Log.w(TAG, "spaces pull returned no spaces; keeping local data")
+            // Metadata only (collection names and last-modified times): shows whether Zen has
+            // ever uploaded its Spaces to this account.
+            runCatching { client.infoCollections() }
+                .onSuccess { Log.w(TAG, "server collections: " + it.entries.joinToString { (k, v) -> "$k@${v.toLong()}" }) }
+                .onFailure { Log.w(TAG, "info/collections failed: ${it.javaClass.simpleName}") }
+            // meta/global is plain JSON: which engines are on, and which the user declined.
+            runCatching {
+                val global = client.getRecords("meta").first { it.optString("id") == "global" }
+                val payload = org.json.JSONObject(global.optString("payload"))
+                val engines = payload.optJSONObject("engines")?.keys()?.asSequence()?.toList().orEmpty()
+                val declined = payload.optJSONArray("declined")?.let { a -> List(a.length()) { a.optString(it) } }.orEmpty()
+                Log.w(TAG, "meta/global engines=$engines declined=$declined")
+            }.onFailure { Log.w(TAG, "meta/global read failed: ${it.javaClass.simpleName}") }
         } else {
             val inUse = rows.tabs.mapNotNullTo(HashSet()) { it.iconUrl?.takeIf { k -> k.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX) } }
             IconStore.storeInline(rows.inlineIcons, inUse)

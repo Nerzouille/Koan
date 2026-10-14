@@ -17,6 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -39,6 +42,8 @@ import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.KoanColors
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlin.math.abs
 import kotlin.math.floor
 
@@ -64,6 +69,21 @@ fun OverviewScreen(
 ) {
     BackHandler(onBack = onDismiss)
     if (spaces.isEmpty() || models.size != spaces.size) return
+
+    // Composing a space's page costs ~40 ms (measured on the POCO). Doing it when a switch lands
+    // was a visible hitch, so pages are composed ahead of time, one per idle moment, and kept
+    // while the overview is open: switching spaces then composes nothing.
+    val precomposed = remember { mutableStateListOf<String>() }
+    LaunchedEffect(models.map { it.uuid }) {
+        delay(PRECOMPOSE_START_MS)
+        while (true) {
+            snapshotFlow { pager.moving }.first { !it }
+            val next = models.firstOrNull { it.uuid !in precomposed }?.uuid ?: break
+            precomposed += next
+            // Let that frame render before the next page; yield to gestures in between.
+            repeat(PRECOMPOSE_GAP_FRAMES) { withFrameNanos { } }
+        }
+    }
 
     // The first real spaces fade in over the placeholders instead of replacing them abruptly.
     val zenReady = models.any { it.zen }
@@ -118,8 +138,10 @@ fun OverviewScreen(
                     .statusBarsPadding(),
             ) {
                 val settled = pager.settled
-                for (i in (settled - 1)..(settled + 1)) {
-                    val space = models.getOrNull(i) ?: continue
+                for (i in models.indices) {
+                    val space = models[i]
+                    // The settled page and its neighbours, plus every page composed ahead of time.
+                    if (abs(i - settled) > 1 && space.uuid !in precomposed) continue
                     key(space.uuid) {
                         val offset = { i - pager.pos }
                         SpacePage(
@@ -158,6 +180,10 @@ fun OverviewScreen(
         }
     }
 }
+
+/** Pages are composed ahead of time only after the overview's opening motion. */
+private const val PRECOMPOSE_START_MS = 450L
+private const val PRECOMPOSE_GAP_FRAMES = 3
 
 /** What the overview shows about the account and sync. */
 @Immutable

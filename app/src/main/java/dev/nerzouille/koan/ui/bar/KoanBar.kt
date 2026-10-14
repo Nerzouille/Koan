@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
@@ -48,6 +49,8 @@ import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanColors
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlin.math.abs
+
+private const val OFFSCREEN_PX = 100_000
 
 /** Space the bar takes at the bottom (above the navigation bar), so screens can end above it. */
 fun barZone(overview: Boolean): Dp =
@@ -171,7 +174,18 @@ fun KoanBar(
             .padding(bottom = BarTokens.BottomMargin),
     ) {
         if (overviewOpen) {
-            drawerContent(if (drawer.open) overviewGestures else Modifier)
+            drawerContent(
+                (if (drawer.open) overviewGestures else Modifier).layout { measurable, constraints ->
+                    val p = measurable.measure(constraints)
+                    layout(p.width, p.height) {
+                        // Fully closed, the (invisible) sheet still takes its height so drags know
+                        // their distance, but sits off-screen: its pinned list must never catch the
+                        // touches meant for the stack behind it. Placement only, no recomposition.
+                        val shown = drawer.open || drawer.progress > 0f
+                        p.place(if (shown) 0 else -OFFSCREEN_PX, 0)
+                    }
+                },
+            )
         }
         Column(if (overviewOpen) overviewGestures else Modifier) {
             Box(

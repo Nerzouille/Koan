@@ -23,11 +23,18 @@ import java.io.File
  */
 object IconStore {
     const val MAX_PX = 128
+    private const val FILE_VERSION = 2
+
+    /**
+     * A decoded icon. [dark] = mostly dark pixels (GitHub's black octocat…): it would vanish on
+     * Koan's dark surfaces, so it is drawn on a light backing.
+     */
+    class Icon(val image: ImageBitmap, val dark: Boolean)
 
     private var dir: File? = null
 
-    private val memory = object : LruCache<String, ImageBitmap>(16 * 1024 * 1024) {
-        override fun sizeOf(key: String, value: ImageBitmap) = (value.width * value.height * 4).coerceAtLeast(1)
+    private val memory = object : LruCache<String, Icon>(16 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: Icon) = (value.image.width * value.image.height * 4).coerceAtLeast(1)
     }
 
     fun initialize(context: Context) {
@@ -41,21 +48,21 @@ object IconStore {
         icon?.takeIf { it.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX) }
             ?: FaviconResolver.cacheKey(url, null, null)
 
-    fun cached(key: String): ImageBitmap? = memory.get(key)
+    fun cached(key: String): Icon? = memory.get(key)
 
     /** Loads (and caches) a tab's icon off the main thread. Null if it has none. */
-    suspend fun load(url: String, icon: String?): ImageBitmap? {
+    suspend fun load(url: String, icon: String?): Icon? {
         val key = keyFor(url, icon) ?: return null
         memory.get(key)?.let { return it }
         return withContext(Dispatchers.IO) {
             val bitmap = if (key.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX)) {
                 fileFor(key)?.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.path) }
                     // Synced inline icon not on disk (cleared storage): try the site instead.
-                    ?: FaviconLoader.image(url, null, null)?.let(::scaled)
+                    ?: FaviconLoader.image(url, null, null)?.let(::normalized)
             } else {
-                FaviconLoader.image(url, null, null)?.let(::scaled)
+                FaviconLoader.image(url, null, null)?.let(::normalized)
             }
-            bitmap?.asImageBitmap()?.also { memory.put(key, it) }
+            bitmap?.let { Icon(it.asImageBitmap(), isDark(it)) }?.also { memory.put(key, it) }
         }
     }
 
@@ -81,7 +88,7 @@ object IconStore {
             val bitmap = decodeDataUrl(dataUrl, key) ?: continue
             val tmp = File(folder, file.name + ".tmp")
             runCatching {
-                tmp.outputStream().use { scaled(bitmap).compress(Bitmap.CompressFormat.PNG, 100, it) }
+                tmp.outputStream().use { normalized(bitmap).compress(Bitmap.CompressFormat.PNG, 100, it) }
                 tmp.renameTo(file)
             }
         }
@@ -93,7 +100,8 @@ object IconStore {
         val folder = dir ?: return null
         val hash = key.removePrefix(ZenRoomMapper.INLINE_ICON_PREFIX).takeIf { h -> h.isNotEmpty() && h.all { it.isLetterOrDigit() } }
             ?: return null
-        return File(folder, "$hash.png")
+        // The version changes whenever stored icons are processed differently, so they get rebuilt.
+        return File(folder, "$hash.$FILE_VERSION.png")
     }
 
     private fun decodeDataUrl(dataUrl: String, key: String): Bitmap? {
@@ -104,10 +112,60 @@ object IconStore {
         return SvgRasterizer.rasterize(svg, size = MAX_PX, cacheKey = key)
     }
 
-    private fun scaled(bitmap: Bitmap): Bitmap {
-        val longest = maxOf(bitmap.width, bitmap.height)
-        if (longest <= MAX_PX) return bitmap
+    /**
+     * Crops an icon whose visible part fills less than half its canvas (padded or mis-sized
+     * favicons would otherwise show as a speck), then caps it at [MAX_PX].
+     */
+    private fun normalized(bitmap: Bitmap): Bitmap {
+        val content = opaqueBounds(bitmap)
+        val cropped = if (content != null && content.width() < bitmap.width / 2 && content.height() < bitmap.height / 2) {
+            val pad = (maxOf(content.width(), content.height()) * 0.08f).toInt()
+            val l = (content.left - pad).coerceAtLeast(0)
+            val t = (content.top - pad).coerceAtLeast(0)
+            val r = (content.right + pad).coerceAtMost(bitmap.width)
+            val b = (content.bottom + pad).coerceAtMost(bitmap.height)
+            Bitmap.createBitmap(bitmap, l, t, r - l, b - t)
+        } else {
+            bitmap
+        }
+        val longest = maxOf(cropped.width, cropped.height)
+        if (longest == MAX_PX) return cropped
         val f = MAX_PX.toFloat() / longest
-        return Bitmap.createScaledBitmap(bitmap, (bitmap.width * f).toInt().coerceAtLeast(1), (bitmap.height * f).toInt().coerceAtLeast(1), true)
+        return Bitmap.createScaledBitmap(cropped, (cropped.width * f).toInt().coerceAtLeast(1), (cropped.height * f).toInt().coerceAtLeast(1), true)
+    }
+
+    /** Bounds of the pixels that are not (nearly) transparent; null if there are none. */
+    private fun opaqueBounds(bitmap: Bitmap): android.graphics.Rect? {
+        val w = bitmap.width
+        val h = bitmap.height
+        val px = IntArray(w * h).also { bitmap.getPixels(it, 0, w, 0, 0, w, h) }
+        var l = w; var t = h; var r = -1; var b = -1
+        for (y in 0 until h) for (x in 0 until w) {
+            if ((px[y * w + x] ushr 24) > 16) {
+                if (x < l) l = x
+                if (x > r) r = x
+                if (y < t) t = y
+                if (y > b) b = y
+            }
+        }
+        return if (r < 0) null else android.graphics.Rect(l, t, r + 1, b + 1)
+    }
+
+    /** Mostly-dark visible pixels: average luminance of the opaque ones below ~0.25. */
+    private fun isDark(bitmap: Bitmap): Boolean {
+        val w = bitmap.width
+        val h = bitmap.height
+        val px = IntArray(w * h).also { bitmap.getPixels(it, 0, w, 0, 0, w, h) }
+        var sum = 0.0
+        var n = 0
+        for (c in px) {
+            if ((c ushr 24) < 128) continue
+            val r = (c shr 16) and 0xFF
+            val g = (c shr 8) and 0xFF
+            val bl = c and 0xFF
+            sum += (0.2126 * r + 0.7152 * g + 0.0722 * bl) / 255.0
+            n++
+        }
+        return n > 0 && sum / n < 0.25
     }
 }

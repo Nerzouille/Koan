@@ -19,6 +19,15 @@ internal object SvgRasterizer {
     /** Rasterize [svg] into a [size]×[size] bitmap. Null on parse/failure. */
     fun rasterize(svg: String, size: Int, cacheKey: String): Bitmap? = runCatching {
         val parsed = SVG.getFromString(svg)
+        // Koan: an SVG with width/height but no viewBox renders at its intrinsic size (often 16 px)
+        // in the corner of the canvas. Give it a viewBox so it scales to fill.
+        if (parsed.documentViewBox == null) {
+            val w = parsed.documentWidth
+            val h = parsed.documentHeight
+            if (w > 0f && h > 0f) parsed.setDocumentViewBox(0f, 0f, w, h)
+        }
+        parsed.setDocumentWidth("100%")
+        parsed.setDocumentHeight("100%")
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         parsed.renderToCanvas(canvas, RectF(0f, 0f, size.toFloat(), size.toFloat()))

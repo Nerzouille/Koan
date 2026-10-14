@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -99,13 +100,33 @@ fun DepthStack(
     state.last = (ids.size - 1).coerceAtLeast(0)
     state.slotPx = with(density) { StackTokens.SlotDrag.toPx() }
 
-    // Only cards near the focus are composed (a space can hold hundreds). The window moves one card
-    // at a time, so scrolling recomposes once per card crossed, never per frame.
+    // Only cards near the focus are composed (a space can hold hundreds). Composing a card and
+    // recording its first frame costs ~4–7 ms, enough to miss a 120 Hz frame, so it happens while
+    // the stack is idle: [ahead] grows a few cards per frame around the focus and does not move
+    // during a gesture. The window only extends mid-gesture when a long fling outruns it.
+    var ahead by remember { mutableStateOf(IntRange.EMPTY) }
     val window by remember {
         derivedStateOf {
             val lo = floor(state.pos - DepthCurve.MAX_VISIBLE_D).toInt() - WINDOW_MARGIN
             val hi = ceil(state.pos - DepthCurve.MIN_VISIBLE_D).toInt() + WINDOW_MARGIN
-            lo..hi
+            val a = ahead
+            if (a.isEmpty()) lo..hi else minOf(lo, a.first)..maxOf(hi, a.last)
+        }
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { state.busy }.collect { busy ->
+            if (busy) return@collect
+            val focus = state.pos.roundToInt()
+            val target = (focus - AHEAD_BEHIND)..(focus + AHEAD_FRONT)
+            // Drop what is far away at once (cheap), then compose towards the target a few cards
+            // per frame, so a finger landing meanwhile still gets a prompt frame.
+            var cur = window.first.coerceAtLeast(target.first)..window.last.coerceAtMost(target.last)
+            ahead = cur
+            while (cur != target && !state.busy) {
+                withFrameNanos { }
+                cur = (cur.first - AHEAD_STEP).coerceAtLeast(target.first)..(cur.last + AHEAD_STEP).coerceAtMost(target.last)
+                ahead = cur
+            }
         }
     }
 
@@ -240,9 +261,14 @@ fun DepthStack(
                 val card = byId[id] ?: return@forEachIndexed
                 key(id) {
                     val a = state.anim(id, index)
+                    // Off-screen cards (composed ahead of time) must not redraw every frame: their
+                    // inner effects read the live depth only while the card is near the visible range.
+                    val near = remember(a, geo) {
+                        derivedStateOf { geo.depthOf(a).let { it >= DepthCurve.MIN_VISIBLE_D - 1f && it <= DepthCurve.MAX_VISIBLE_D + 1f } }
+                    }
                     TabCard(
                         card = card,
-                        depth = { geo.depthOf(a) },
+                        depth = { if (near.value) geo.depthOf(a) else OFFSCREEN_DEPTH },
                         blurFor = blurFor,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
@@ -260,6 +286,16 @@ private enum class Gesture { Tap, Drag, LongPress, Cancel }
 
 /** Extra cards composed beyond the visible range on each side, so none pops in at the edges. */
 private const val WINDOW_MARGIN = 2
+
+/** Cards kept composed around the focus while idle: deeper into the pile, and in front. */
+private const val AHEAD_BEHIND = 16
+private const val AHEAD_FRONT = 10
+
+/** What an off-screen card's inner effects see: a constant, so they never redraw. */
+private const val OFFSCREEN_DEPTH = 99f
+
+/** Cards added to each side per idle frame. */
+private const val AHEAD_STEP = 1
 
 private class Hit(val id: String, val focused: Boolean, val onClose: Boolean)
 

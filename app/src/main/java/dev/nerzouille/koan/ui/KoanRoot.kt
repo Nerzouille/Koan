@@ -160,6 +160,14 @@ fun KoanRoot(components: Components) {
             is SyncStatus.Idle -> DrawerStatus.Synced(st.lastSyncAt)
         }
     }
+    // First run (no account, nothing open yet): start in the overview, on the Connect card.
+    var firstRunHandled by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(account, spaces) {
+        if (firstRunHandled || account == AccountState.Loading || spaces.isEmpty()) return@LaunchedEffect
+        firstRunHandled = true
+        if (account == AccountState.SignedOut && spaces.none { it.space.zenOrigin || it.stack.isNotEmpty() }) openOverview()
+    }
+
     fun onSyncAction() {
         when {
             account == AccountState.SignedOut || syncStatus == SyncStatus.NeedsSignIn -> signingIn = true

@@ -35,6 +35,9 @@ object KoanColors {
     val PageDot = Color.White
     val Skeleton = Color.White.copy(alpha = 0.07f)
 
+    /** Behind favicons too dark to read on Koan's dark surfaces. */
+    val IconBacking = Color(0xFFE9E9EE)
+
     val Notice = Color(0xF2232327)
 
     /** Quiet sync notices: amber, never red. */

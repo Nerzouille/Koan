@@ -85,6 +85,7 @@ class ZenRoomMapperTest {
         val folder = rows.folders.single { it.folderId == "f1" }
         assertEquals(ORDER_STRIDE, folder.order)
         assertNull(folder.parentFolderId)
+        assertFalse("folders start open on the phone", rows.folders.any { it.collapsed })
         assertEquals("f1", rows.folders.single { it.folderId == "f2" }.parentFolderId)
         assertEquals(listOf("f1", "f1"), listOf(row("zen:f1a").folderId, row("zen:f1b").folderId))
         assertEquals("f2", row("zen:f2a").folderId)
