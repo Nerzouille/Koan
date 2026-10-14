@@ -156,5 +156,18 @@ androidsvg (favicons, as in Z-Sync), baselineprofile, JUnit, Turbine, Robolectri
 - 2026-10-12 — Live pinned tabs get a card while loaded; closing it unloads, never deletes/unpins
   (see `UI_SPEC.md`).
 
+- 2026-10-14 — **M2 sync is read-only by construction**: only the read half of Z-Sync's
+  `SpacesSyncService` is ported; write paths arrive with M6. Ported files carry small `Koan:` edits
+  (offline vs expired session via FxA errno 110/102, redacted `TokenServerCreds.toString`).
+- 2026-10-14 — **Room ids for Zen rows**: `zen:<tabId>`, essentials `zen:<spaceUuid>:<tabId>` (they
+  repeat across spaces). `order` uses a stride of 8 so split members sort with their split. A pull
+  writes only changed rows (`ZenDiff`); phone-side reorder, folder collapse and closes survive.
+  Closing a Zen tab on the phone hides it (`closed`) until Zen closes it too (no write-back yet).
+- 2026-10-14 — **Favicons**: Zen's inline `data:` icons are normalised to ≤128 px PNGs on disk at
+  sync time (Room holds only a key); other sites go through Z-Sync's `FaviconLoader`, whose last
+  resort asks Google's favicon service for the domain. Decoded icons are prewarmed at start/sync.
+- 2026-10-14 — **Stack scale**: the depth stack composes only cards near the focus and applies data
+  updates only when the stack is idle, anchored on the focused card.
+
 _(Claude Code: append dated decisions here, e.g. "2026-10-20 — chose android-components over raw
 GeckoView because …")_
