@@ -94,6 +94,8 @@ fun KoanRoot(components: Components) {
     pager.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { PagerTokens.PageGap.toPx() }
     // Cold start (e.g. after swiping Koan away): reopen on the space and tab saved on disk. After a
     // configuration change or a background kill, the saved instance state already has them.
+    /** The live engine tab shows nothing yet (cold start). */
+    fun engineIsBlank() = components.store.state.selectedTab?.content?.url.let { it.isNullOrEmpty() || it == "about:blank" }
     var placeRestored by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (placeRestored) return@LaunchedEffect
@@ -106,8 +108,12 @@ fun KoanRoot(components: Components) {
                 activeTabId = tab.koanTabId
                 // The engine starts on a blank tab after a cold start; the live page itself
                 // (history, scroll) is restored by the engine from M3 on.
-                val engineUrl = components.store.state.selectedTab?.content?.url
-                if (engineUrl.isNullOrEmpty() || engineUrl == "about:blank") components.sessionUseCases.loadUrl(tab.url)
+                // A loadUrl sent now could reach the start-up blank tab before its engine session
+                // exists and get lost, so open the page as a fresh engine tab instead.
+                if (engineIsBlank()) {
+                    components.tabsUseCases.removeAllTabs()
+                    components.tabsUseCases.addTab(tab.url, selectTab = true)
+                }
             }
         }
         placeRestored = true
@@ -155,7 +161,8 @@ fun KoanRoot(components: Components) {
     }
     fun openTab(index: Int, tab: TabEntity) {
         currentSpace = index
-        if (tab.koanTabId != activeTabId) {
+        // Also load when the engine shows nothing (blank after a cold start), even for the current card.
+        if (tab.koanTabId != activeTabId || engineIsBlank()) {
             activeTabId = tab.koanTabId
             loadInLiveTab(tab.url)
         }
