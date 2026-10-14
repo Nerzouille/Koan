@@ -165,7 +165,8 @@ androidsvg (favicons, as in Z-Sync), baselineprofile, JUnit, Turbine, Robolectri
   Closing a Zen tab on the phone hides it (`closed`) until Zen closes it too (no write-back yet).
 - 2026-10-14 — **Favicons**: Zen's inline `data:` icons are normalised to ≤128 px PNGs on disk at
   sync time (Room holds only a key); other sites go through Z-Sync's `FaviconLoader`, whose last
-  resort asks Google's favicon service for the domain. Decoded icons are prewarmed at start/sync.
+  resort asks DuckDuckGo's icon service (`icons.duckduckgo.com/ip3/<host>.ico`) for the domain,
+  never Google's (owner's choice). Decoded icons are prewarmed at start/sync.
 - 2026-10-14 — **Stack scale**: the depth stack composes only cards near the focus and applies data
   updates only when the stack is idle, anchored on the focused card.
 

@@ -177,10 +177,12 @@ object FaviconLoader {
         }
         // Last resort: the site blocks scraping or has no discoverable icon
         // (login redirect, 403, no <link>). Ask a public logo service for the
-        // domain — but never for a private/LAN host. See docs/privacy.md.
+        // domain — but never for a private/LAN host.
+        // Koan: DuckDuckGo's icon service instead of Google's (owner's choice, 2026-10-14). It
+        // answers 404 for unknown domains, so a miss still falls back to the letter tile.
         val host = page?.host?.lowercase().orEmpty()
         if (page != null && host.isNotEmpty() && !FaviconDiscovery.isLoopback(page) && !isPrivateHost(host)) {
-            val service = "https://www.google.com/s2/favicons?domain=$host&sz=128"
+            val service = "https://icons.duckduckgo.com/ip3/$host.ico"
             fetch(service)?.let {
                 remember(siteKey, service)
                 return it
@@ -189,7 +191,7 @@ object FaviconLoader {
         return null
     }
 
-    /** Loopback, RFC1918/LAN, `.local`/`.internal` and single-label hosts: keep off Google. */
+    /** Loopback, RFC1918/LAN, `.local`/`.internal` and single-label hosts: never sent to a logo service. */
     private fun isPrivateHost(host: String): Boolean {
         val h = host.removePrefix("[").removeSuffix("]").lowercase()
         if (h.isEmpty()) return true
