@@ -191,7 +191,7 @@ private fun AddressField(
             Modifier.graphicsLayer {
                 val f = swipe()
                 translationX = -f * size.width * SWIPE_TRAVEL
-                alpha = (1f - overview()) * (1f - spaceMode.value) * (1f - abs(f) * SWIPE_FADE).coerceIn(0f, 1f)
+                alpha = (1f - overview()) * (1f - spaceMode.value) * swipeOut(f)
             },
         )
         lastSpace?.let { current ->
@@ -213,8 +213,7 @@ private fun SwipeLabel(target: SwipeTarget, side: Float, swipe: () -> Float, ove
         modifier.graphicsLayer {
             val f = swipe()
             translationX = (side - f) * size.width * SWIPE_TRAVEL
-            val shown = if (side == 0f) 1f - abs(f) * SWIPE_FADE else f * side * SWIPE_FADE
-            alpha = (1f - overview()) * shown.coerceIn(0f, 1f)
+            alpha = (1f - overview()) * if (side == 0f) swipeOut(f) else swipeIn(f * side)
         },
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -230,7 +229,13 @@ private fun SwipeLabel(target: SwipeTarget, side: Float, swipe: () -> Float, ove
 
 /** How far (share of the text's width) the host and the space name travel during a swipe. */
 private const val SWIPE_TRAVEL = 0.6f
-private const val SWIPE_FADE = 2.5f
+
+/**
+ * The label leaving fades out over the first quarter of the swipe; the one coming in fades in only
+ * once it is nearly gone, so the two never read on top of each other.
+ */
+private fun swipeOut(f: Float) = (1f - abs(f) * 4f).coerceIn(0f, 1f)
+private fun swipeIn(f: Float) = ((f - 0.18f) * 4f).coerceIn(0f, 1f)
 
 @Composable
 private fun FieldText(text: String, primary: Boolean, modifier: Modifier) {
