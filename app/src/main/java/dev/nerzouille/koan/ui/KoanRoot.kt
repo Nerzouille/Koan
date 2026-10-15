@@ -95,12 +95,7 @@ fun KoanRoot(components: Components) {
     var overviewOpen by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     // A new tab always starts with the search sheet open.
-    LaunchedEffect(blankId) {
-        if (blankId != null) {
-            android.util.Log.i("KoanTap", "editing on: new blank tab") // TEMP debug (m4-gestures)
-            editing = true
-        }
-    }
+    LaunchedEffect(blankId) { if (blankId != null) editing = true }
     val palette = KoanTheme.colors
     val themeMode by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
     val models = remember(spaces, activeTabId, palette) { spaces.map { it.toModel(activeTabId, palette) } }
@@ -463,7 +458,6 @@ fun KoanRoot(components: Components) {
                     overviewOpen = overviewOpen,
                     overview = { motion.progress },
                     onEditingChange = { on ->
-                        android.util.Log.i("KoanTap", "editing $on (address row)") // TEMP debug (m4-gestures)
                         editing = on
                         // Closing the sheet of a new tab that never got a url discards it.
                         if (!on) tabs.cancelBlank()
@@ -472,10 +466,7 @@ fun KoanRoot(components: Components) {
                         editing = false
                         tabs.load(resolveInput(input))
                     },
-                    onSearchFromOverview = {
-                        android.util.Log.i("KoanTap", "new tab from the overview pill") // TEMP debug (m4-gestures)
-                        newTab(pager.settled)
-                    },
+                    onSearchFromOverview = { newTab(pager.settled) },
                     onBack = { session.goBack(activeTabId) },
                     onForward = { session.goForward(activeTabId) },
                     onReload = { session.reload(activeTabId) },
