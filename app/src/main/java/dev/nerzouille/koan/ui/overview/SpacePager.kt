@@ -27,6 +27,10 @@ class SpacePager(initial: Int, private val scope: CoroutineScope) {
         private set
     var settled by mutableIntStateOf(initial)
         private set
+
+    /** Where a switch is landing; equals [settled] at rest and while dragging. */
+    var target by mutableIntStateOf(initial)
+        private set
     var count = 1
 
     /** A finger is on the switcher or a switch is landing. Background work waits for this. */
@@ -42,6 +46,7 @@ class SpacePager(initial: Int, private val scope: CoroutineScope) {
         job?.cancel()
         pos = index.toFloat()
         settled = index
+        target = index
         moving = false
     }
 
@@ -49,6 +54,7 @@ class SpacePager(initial: Int, private val scope: CoroutineScope) {
     fun grab() {
         job?.cancel()
         settled = pos.roundToInt().coerceIn(0, count - 1)
+        target = settled
         moving = true
     }
 
@@ -93,6 +99,7 @@ class SpacePager(initial: Int, private val scope: CoroutineScope) {
     fun animateTo(index: Int, velocity: Float = 0f) {
         job?.cancel()
         moving = true
+        target = index
         job = scope.launch {
             animate(pos, index.toFloat(), velocity, Motion.PagerSettle) { v, _ -> pos = v }
             settled = index

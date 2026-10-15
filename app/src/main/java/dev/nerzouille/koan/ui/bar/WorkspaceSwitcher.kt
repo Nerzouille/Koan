@@ -38,7 +38,6 @@ import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import kotlin.math.abs
-import kotlin.math.floor
 
 /**
  * Zen-style space row (design 4a): one icon per space, the active one in a pill tinted with its
@@ -54,6 +53,12 @@ fun WorkspaceSwitcher(
     modifier: Modifier = Modifier,
     /** Where the active pill sits (fractional while moving); the pager's position by default. */
     pos: () -> Float = { pager.pos },
+    /**
+     * The switch being animated, from → to (equal while dragging or at rest). A jump only opens and
+     * closes those two pills, never the ones it passes, and a spring overshoot opens nothing.
+     */
+    from: () -> Int = { pager.settled },
+    to: () -> Int = { pager.target },
 ) {
     if (spaces.isEmpty()) return
     val view = LocalView.current
@@ -84,7 +89,8 @@ fun WorkspaceSwitcher(
                     if (enabled) {
                         Modifier.pointerInput(pager, geo) {
                             detectTapGestures { p ->
-                                val target = geo.hit(p.x, pager.settled.toFloat())
+                                val s = pager.settled
+                                val target = geo.hit(p.x, s.toFloat(), s, s)
                                 if (target >= 0 && target != pager.settled) {
                                     pager.animateTo(target)
                                     view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
@@ -104,11 +110,11 @@ fun WorkspaceSwitcher(
                     .padding(bottom = BarTokens.SwitcherBottom)
                     .width(pillWidth)
                     .height(BarTokens.SwitcherItem)
-                    .graphicsLayer { translationX = geo.left(i, pos()) }
+                    .graphicsLayer { translationX = geo.left(i, pos(), from(), to()) }
                     .drawWithContent {
                         val p = pos()
-                        val e = geo.open(i, p)
-                        val w = geo.width(i, p)
+                        val e = geo.open(i, p, from(), to())
+                        val w = geo.width(i, p, from(), to())
                         val h = BarTokens.SwitcherPillHeight.toPx()
                         if (e > 0.01f) {
                             drawRoundRect(
@@ -129,7 +135,7 @@ fun WorkspaceSwitcher(
                     Modifier
                         .size(BarTokens.SwitcherIcon)
                         .graphicsLayer {
-                            val e = geo.open(i, pos())
+                            val e = geo.open(i, pos(), from(), to())
                             alpha = BarTokens.SWITCHER_INACTIVE_ALPHA + (1f - BarTokens.SWITCHER_INACTIVE_ALPHA) * e
                             compositingStrategy = CompositingStrategy.ModulateAlpha
                         },
@@ -152,7 +158,7 @@ fun WorkspaceSwitcher(
                     modifier = Modifier
                         .widthIn(max = BarTokens.SwitcherNameMax)
                         .graphicsLayer {
-                            val e = geo.open(i, pos())
+                            val e = geo.open(i, pos(), from(), to())
                             alpha = ((e - BarTokens.SWITCHER_NAME_FROM) / (1f - BarTokens.SWITCHER_NAME_FROM)).coerceIn(0f, 1f)
                             compositingStrategy = CompositingStrategy.ModulateAlpha
                         },
@@ -163,43 +169,54 @@ fun WorkspaceSwitcher(
 }
 
 /**
- * Item positions as a function of the pager position (all px). Item i is [item] wide, plus
- * [extra]`[i]` times how open its pill is: 1 on the settled space, sharing between two while dragging.
+ * Item positions as a function of the pill's position [pos] and the switch it belongs to ([from] →
+ * [to], equal while dragging or at rest) (all px). Item i is [item] wide, plus [extra]`[i]` times how
+ * open its pill is: 1 on the settled space, sharing between two while dragging or switching.
  */
 private class SwitcherGeometry(val extra: FloatArray, val item: Float, val rowWidth: Float) {
-    fun open(i: Int, pos: Float) = (1f - abs(i - pos)).coerceIn(0f, 1f)
+    fun open(i: Int, pos: Float, from: Int, to: Int): Float {
+        // Dragging or at rest: shared with the neighbour under the finger.
+        if (from == to) return (1f - abs(i - pos)).coerceIn(0f, 1f)
+        // Switching: only the two ends, clamped so an overshoot past [to] opens nothing.
+        val t = ((pos - from) / (to - from)).coerceIn(0f, 1f)
+        return when (i) {
+            from -> 1f - t
+            to -> t
+            else -> 0f
+        }
+    }
 
-    fun width(i: Int, pos: Float) = item + extra[i] * open(i, pos)
+    fun width(i: Int, pos: Float, from: Int, to: Int) = item + extra[i] * open(i, pos, from, to)
 
-    fun left(i: Int, pos: Float): Float {
-        var x = start(pos)
-        for (j in 0 until i) x += width(j, pos)
+    fun left(i: Int, pos: Float, from: Int, to: Int): Float {
+        var x = start(pos, from, to)
+        for (j in 0 until i) x += width(j, pos, from, to)
         return x
     }
 
-    /** Centred when the row fits; otherwise the active pill is kept centred, ends clamped. */
-    private fun start(pos: Float): Float {
+    /** Centred when the row fits; otherwise the open pill(s) kept centred, ends clamped. */
+    private fun start(pos: Float, from: Int, to: Int): Float {
         var total = 0f
-        for (j in extra.indices) total += width(j, pos)
+        var centre = 0f
+        var weight = 0f
+        for (j in extra.indices) {
+            val w = width(j, pos, from, to)
+            val e = open(j, pos, from, to)
+            centre += e * (total + w / 2f)
+            weight += e
+            total += w
+        }
         if (total <= rowWidth) return (rowWidth - total) / 2f
-        val p = pos.coerceIn(0f, (extra.size - 1).toFloat())
-        val a = floor(p).toInt()
-        val b = (a + 1).coerceAtMost(extra.size - 1)
-        val centre = centreOf(a, pos) + (centreOf(b, pos) - centreOf(a, pos)) * (p - a)
-        return (rowWidth / 2f - centre).coerceIn(rowWidth - total, 0f)
-    }
-
-    private fun centreOf(i: Int, pos: Float): Float {
-        var x = 0f
-        for (j in 0 until i) x += width(j, pos)
-        return x + width(i, pos) / 2f
+        // Rubber band past an end: no pill open, keep that end in view.
+        if (weight < 0.01f) return if (pos < 0f) 0f else rowWidth - total
+        return (rowWidth / 2f - centre / weight).coerceIn(rowWidth - total, 0f)
     }
 
     /** The item under [x], or -1. */
-    fun hit(x: Float, pos: Float): Int {
+    fun hit(x: Float, pos: Float, from: Int, to: Int): Int {
         for (i in extra.indices) {
-            val l = left(i, pos)
-            if (x >= l && x < l + width(i, pos)) return i
+            val l = left(i, pos, from, to)
+            if (x >= l && x < l + width(i, pos, from, to)) return i
         }
         return -1
     }

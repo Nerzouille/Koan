@@ -95,7 +95,12 @@ fun KoanRoot(components: Components) {
     var overviewOpen by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     // A new tab always starts with the search sheet open.
-    LaunchedEffect(blankId) { if (blankId != null) editing = true }
+    LaunchedEffect(blankId) {
+        if (blankId != null) {
+            android.util.Log.i("KoanTap", "editing on: new blank tab") // TEMP debug (m4-gestures)
+            editing = true
+        }
+    }
     val palette = KoanTheme.colors
     val themeMode by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
     val models = remember(spaces, activeTabId, palette) { spaces.map { it.toModel(activeTabId, palette) } }
@@ -185,6 +190,9 @@ fun KoanRoot(components: Components) {
         overviewOpen = true
     }
     fun openTab(index: Int, tab: TabEntity) {
+        // From the page view (a scrub, a swipe to a card in another space) the pager follows too:
+        // the next scrub starts from it and it saves the place.
+        if (index != pager.settled) pager.snapTo(index)
         currentSpace = index
         spaces.getOrNull(index)?.let { s ->
             // A split view's card has its own id.
@@ -215,16 +223,6 @@ fun KoanRoot(components: Components) {
         val item = currentTabs[s.space.uuid]?.let { id -> s.stack.firstOrNull { it.id == id } } ?: s.stack.lastOrNull()
         return item?.first
     }
-    /** Leaving the overview without picking a card: back to the current tab, or the space's newest. */
-    fun dismissOverview() {
-        if (activeTabId != null && tabById(activeTabId!!) != null) {
-            zoomIn.value = false
-            overviewOpen = false
-            return
-        }
-        val index = pager.settled
-        lastTabOf(index)?.let { openTab(index, it) }
-    }
     /**
      * The space holding the current tab's card (a live pinned tab or essential has one too, and an
      * essential's card may live in another space than the one it was opened from), and the card's
@@ -236,6 +234,28 @@ fun KoanRoot(components: Components) {
             if (i >= 0) return si to i
         }
         return null
+    }
+    /** Leaving the overview without picking a card: back to the current tab, or the space's newest. */
+    fun dismissOverview() {
+        if (activeTabId != null && tabById(activeTabId!!) != null) {
+            zoomIn.value = false
+            overviewOpen = false
+            return
+        }
+        val index = pager.settled
+        lastTabOf(index)?.let { openTab(index, it) }
+    }
+    // Back on a page: its space is the current one again (the overview may have been left on
+    // another), so the tab count and the next scrub match the page. Once the overview is gone,
+    // so it never jumps to another space while it fades out. Also at launch, once the spaces and
+    // the saved place are in.
+    LaunchedEffect(overviewOpen, activeTabId, spaces.isEmpty(), placeRestored) {
+        if (overviewOpen || spaces.isEmpty() || !placeRestored) return@LaunchedEffect
+        snapshotFlow { motion.progress }.first { it <= 0f }
+        currentCard()?.first?.let { index ->
+            if (index != pager.settled) pager.snapTo(index)
+            currentSpace = index
+        }
     }
     /** The current tab's neighbours in its stack (previous, next), for a swipe on the dock. */
     fun tabNeighbours(): Pair<TabEntity?, TabEntity?> {
@@ -423,7 +443,11 @@ fun KoanRoot(components: Components) {
                 // Over the page view it is the scrub's row (nothing switches until release).
                 WorkspaceSwitcher(
                     models, pager, enabled = overviewOpen, modifier = modifier,
-                    pos = { if (overviewOpen) pager.pos else bar.scrub.pos },
+                    // While the scrub row shows it follows the scrub (space by space under the
+                    // finger, shared like a drag), otherwise the pager.
+                    pos = { if (bar.scrub.shown > 0f) bar.scrub.pos else pager.pos },
+                    from = { if (bar.scrub.shown > 0f) bar.scrub.index else pager.settled },
+                    to = { if (bar.scrub.shown > 0f) bar.scrub.index else pager.target },
                 )
             },
             address = { modifier ->
@@ -435,6 +459,7 @@ fun KoanRoot(components: Components) {
                     overviewOpen = overviewOpen,
                     overview = { motion.progress },
                     onEditingChange = { on ->
+                        android.util.Log.i("KoanTap", "editing $on (address row)") // TEMP debug (m4-gestures)
                         editing = on
                         // Closing the sheet of a new tab that never got a url discards it.
                         if (!on) tabs.cancelBlank()
@@ -443,7 +468,10 @@ fun KoanRoot(components: Components) {
                         editing = false
                         tabs.load(resolveInput(input))
                     },
-                    onSearchFromOverview = { newTab(pager.settled) },
+                    onSearchFromOverview = {
+                        android.util.Log.i("KoanTap", "new tab from the overview pill") // TEMP debug (m4-gestures)
+                        newTab(pager.settled)
+                    },
                     onBack = { session.goBack(activeTabId) },
                     onForward = { session.goForward(activeTabId) },
                     onReload = { session.reload(activeTabId) },
