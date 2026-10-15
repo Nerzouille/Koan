@@ -56,17 +56,27 @@ to the top of the stack.
 - **Default state when opening the overview:** compact header + the stack centred on the current
   tab. Swiping down **on the compact header** closes the overview back to the current tab.
 - **Open:** in the overview, swipe **up** on the bottom bar (anywhere on it) or tap the small handle
-  at its top. The bar grows upward into a sheet (≈ half the screen, sized to the tallest space's
-  content, 28dp top corners): essentials grid on top (favicon tiles, 4 per row, max 2 rows), pinned
-  rows below (Arc-style compact rows, max 5 visible, then "+N more"), the switcher and address row
-  stay at the bottom. Tap = open the tab (closes drawer and overview).
-- The drawer follows the finger 1:1 and settles with a spring (position past half, or a fling,
-  decides open/closed).
+  at its top. The bar grows upward into a sheet (28dp top corners): essentials grid on top (favicon
+  tiles, 4 per row, max 2 rows), pinned rows and Zen folders below (Arc-style compact rows), the
+  sync status row last; the switcher and address row stay at the bottom. Tap = open the tab (closes
+  drawer and overview).
+- **A sheet with detents** (iOS / Google Maps style), sized to the current space's content:
+  - **Compact:** fits its content, capped so the whole dock (sheet + bar) takes at most ~55% of the
+    screen. **Never scrolls** in this state, so a swipe down always moves the sheet. Taller content
+    is cut off at the bar.
+  - **Full:** only when the content is taller than compact: swipe up again and the sheet grows to
+    nearly full screen (12dp below the status bar). If the content is still longer than that, the
+    list scrolls, and only here.
+  - **Nested scroll:** in full, a drag up first grows the sheet, then scrolls the list; a drag down
+    first scrolls the list back to its top, then collapses the sheet, all in one gesture. A fling of
+    a scrolled list keeps scrolling it (decay); at the top, a fling down collapses the sheet.
+  - Switching spaces with the drawer open slides its content with the space; once the switch lands
+    the sheet springs to the new space's height for the same detent.
+- The sheet follows the finger 1:1 and settles on a detent with a spring: a fling goes to the next
+  detent that way; a slow release commits to the neighbouring detent past 25% of the gap.
 - Behind it the overview dims (light: `rgba(28,28,40,.16)`, dark: black 45%) and blurs (up to
-  14dp), both driven by the drawer's progress.
-- **Close:** swipe down on the sheet or the bar, tap outside it, tap the handle, or Back.
-- On the bar, horizontal drags still switch spaces and vertical drags drive the drawer (axis picked
-  after the touch slop). Switching spaces with the drawer open slides its content with the space.
+  14dp), both driven by the sheet's height up to the compact detent.
+- **Close:** swipe down (full → compact → closed), tap outside it, tap the handle, or Back.
 
 ## Cards
 
@@ -153,12 +163,45 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
 
 ## Interactions and gesture ownership (important)
 
+### The bottom bar: one gesture model everywhere
+
+**Swipe UP = one level deeper, swipe DOWN = one level back.**
+
+```
+Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
+     up →          up →                 up →
+     ← down        ← down               ← down
+```
+
+- One swipe = one step. Everything follows the finger 1:1 and settles with a spring; a step
+  commits past ~25% of its travel or on a fling, otherwise it springs back.
+- **One light haptic tick per committed step**, on release (never while dragging).
+- The axis is picked once the finger passes the touch slop: vertical = levels, horizontal = tabs
+  (page view) or spaces (overview, or page view in space mode).
+
+| Where | Gesture | Result |
+|---|---|---|
+| **Page view** (the dock) | Swipe up | Overview opens under the finger (morph follows the drag) |
+| | Swipe down | Nothing (already the top level) |
+| | Horizontal swipe on the address row | Previous / next **tab** in the current space (Safari-style): the page and the pill follow the finger, the neighbour tab's screenshot slides in beside it. Commit past 25% of the width or a fling. First/last tab: rubber band, no wrap |
+| | Long-press the address row | **Space mode** (haptic tick): the pill shows the current space's icon and name |
+| | …then swipe horizontally | Switch **space**, the neighbour space's icon and name slide into the pill; landing opens that space's current tab (or its overview if it has none). Lifting without a swipe leaves space mode |
+| | Tap the pill | Edit the address (as before) |
+| **Overview**, drawer closed | Swipe up on the dock | Drawer opens (compact) |
+| | Swipe down on the dock | Back to the page of the current tab (morph follows the drag) |
+| | Horizontal swipe on the dock | Switch space (pager, as before) |
+| | Tap the handle | Toggle the drawer |
+| **Drawer** (sheet or dock) | Swipe up | Compact → full (only when the content is taller than compact); in full, scrolls a list longer than the screen |
+| | Swipe down | Full → compact → closed (in full, a scrolled list first scrolls back to its top) |
+| | Horizontal swipe | Switch space |
+| | Tap outside / Back / handle | Close |
+
+### Card area (overview)
+
 | Gesture | Where | Result |
 |---|---|---|
 | Vertical drag | card area | scroll the stack |
-| Horizontal swipe | card area | swipe-to-close **the focused card** (prototype): follows the finger with a slight tilt and fade; past 100dp it flies off (280ms, 8°); the card in front rises into focus |
-| Horizontal swipe | **bottom bar only** | switch space |
-| Vertical swipe | bottom bar (overview) | open / close the essentials & pinned drawer |
+| Horizontal swipe | card area | swipe-to-close **the focused card**: follows the finger with a slight tilt and fade; past 100dp it flies off (280ms, 8°); the card in front rises into focus |
 | Tap focused card | card | open tab (zoom morph) |
 | Tap a pile or peek card | card | bring it into focus |
 | Long-press card | card | lift (scale 1.03 + shadow), then drag to reorder; drop on the workspace bar to move tab to another space |
@@ -175,7 +218,8 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 `Tokens.kt` (`BarTokens`, `DrawerTokens`, `PagerTokens`).
 
 - **Page view:** the dock, full width, square: back · big address field (50dp, 17sp, domain
-  only) · tab count · menu. Swipe up on the bar (or tap the tab count) opens the overview.
+  only) · tab count · menu. Swipe up on the bar (or tap the tab count) opens the overview;
+  sideways switches tab; long-press then sideways switches space (see the gesture model above).
 - **Loading line** (design 4d): a 2dp gradient line on the dock's top edge, from the left, in the
   space's gradient colours (pink → violet → blue when the space has fewer than two usable
   colours), with a soft glow. It eases towards the engine's progress (800ms, never backwards), a
@@ -200,9 +244,10 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   - **Exactly one light haptic tick per committed switch**, on release. Never while dragging.
 - Tap a space icon = jump to it (one tick). Long-press bar = grid of all spaces (pick, reorder,
   create) — later.
-- In the page view, horizontal swipe on the address field switches space too: the host slides out,
-  the target space's icon and name slide in; landing opens that space's current (else newest) tab,
-  or its overview with an empty state (message + big "New tab" button) if it has no cards.
+- In the page view, space mode (long-press the address row, then swipe) switches space: the host
+  gives way to the space's icon and name, the target space's slide in; landing opens that space's
+  current (else newest) tab, or its overview with an empty state (message + big "New tab" button)
+  if it has no cards. A plain horizontal swipe there switches **tab** instead.
 
 ## Open / close transition (the hero animation)
 
