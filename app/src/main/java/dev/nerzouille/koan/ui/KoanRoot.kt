@@ -25,6 +25,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.nerzouille.koan.BuildConfig
 import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
@@ -488,12 +489,15 @@ fun KoanRoot(components: Components) {
                             AccountState.SignedOut -> add("Sign in to Mozilla account" to { signingIn = true })
                             AccountState.Loading -> Unit
                         }
-                        for (n in listOf(50, 150)) {
-                            add("Fill space to $n tabs (dev)" to {
-                                spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
-                            })
+                        // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
+                        if (BuildConfig.DEBUG) {
+                            for (n in listOf(50, 150)) {
+                                add("Fill space to $n tabs (dev)" to {
+                                    spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
+                                })
+                            }
+                            add("Remove fake tabs (dev)" to { components.spaces.removeFakeTabs() })
                         }
-                        add("Remove fake tabs (dev)" to { components.spaces.removeFakeTabs() })
                     },
                     modifier = modifier,
                     swipe = { if (overviewOpen) 0f else tabSwipe.fraction },

@@ -26,8 +26,9 @@ android {
         applicationId = "dev.nerzouille.koan"
         minSdk = 34
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.0.2-m1"
+        // versionCode only goes up: 2 was the m3 build already on the phone.
+        versionCode = 3
+        versionName = "0.1.0"
         // GeckoView-omni ships every ABI; both owner phones are arm64.
         ndk { abiFilters += "arm64-v8a" }
     }
@@ -58,6 +59,14 @@ android {
         debug {
             applicationIdSuffix = ".debug"
         }
+        // The release build under its own id, debug-signed: a clean side install for first-run
+        // checks that never touches the real app's data.
+        create("staging") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".staging"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -65,6 +74,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // BuildConfig.DEBUG gates the dev menu items.
+        buildConfig = true
     }
     testOptions {
         // Ported sync code calls android.util.Log; JVM tests get no-op stubs.

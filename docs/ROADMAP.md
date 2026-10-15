@@ -3,6 +3,10 @@
 Work strictly in order. Each milestone ends with: acceptance criteria met on the real phone, unit
 tests green, a short summary to the owner, and a git tag `m<N>`.
 
+**Order (changed 2026-10-15):** M0 → M1 → M2 → M3 → **v0.1.0 pre-release** → **M5** → **M4** → M6 →
+M7. Browser essentials come before the motion polish, so Koan can become the daily browser sooner.
+Milestone numbers are kept as they are.
+
 ## M0 — Skeleton browser (≈ 2–4 days)
 - Gradle project, package `dev.nerzouille.koan` (rename if owner prefers), Compose, single activity.
 - GeckoView via android-components rendering one tab; bottom toolbar with address pill, back, menu.
@@ -35,12 +39,14 @@ System Trace during scroll and space switching.
 - State survives process death (restore last space/tab).
 **Done when:** daily browsing across spaces works for a few days without lost tabs or crashes.
 
-## M4 — Motion polish (≈ 1–2 weeks, iterate with owner)
-- Hero open/close morph per `UI_SPEC.md` (springs, thumbnail → live swap, pre-scroll on close).
-- Stack compression/elastic trailing while scrolling.
-- New-tab grow animation, card lift/drop, close collapse.
-- Baseline profile; JankStats logging in debug.
-**Done when:** owner signs off on the feel. Expect several rounds of tweaks.
+## v0.1.0 — First pre-release (after M3)
+- Release hygiene: dev menu items and fake stress-fill data exist in debug builds only. A fresh
+  install without a Mozilla account is a plain browser with one local space and an optional
+  "Connect your Zen Spaces".
+- versionName 0.1.0, `CHANGELOG.md` with what works and the known limitations.
+- Signed arm64-v8a release APK, attached to a GitHub **pre-release** tagged `v0.1.0`.
+**Done when:** first run checked on a clean install, the APK updates the owner's install without
+losing data, and the owner has approved and published the release.
 
 ## M5 — Browser essentials (≈ 1–2 weeks)
 - Read-only passwords from Firefox Sync → login autofill. History + bookmarks → search suggestions.
@@ -48,6 +54,13 @@ System Trace during scroll and space switching.
 - Downloads, site permissions, context menu (open in new tab / in Glance later / copy link),
   find in page, share, default-browser intent filters.
 **Done when:** owner can uninstall Opera.
+
+## M4 — Motion polish (≈ 1–2 weeks, iterate with owner)
+- Hero open/close morph per `UI_SPEC.md` (springs, thumbnail → live swap, pre-scroll on close).
+- Stack compression/elastic trailing while scrolling.
+- New-tab grow animation, card lift/drop, close collapse.
+- Baseline profile; JankStats logging in debug.
+**Done when:** owner signs off on the feel. Expect several rounds of tweaks.
 
 ## M6 — Write-back to Zen (≈ 1 week, careful)
 - `writeBackEnabled` setting (off by default), undo journal, conditional writes per spec §7.2.

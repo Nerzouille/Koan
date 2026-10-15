@@ -11,7 +11,8 @@ folders you have on the desktop.
 
 A one-person hobby project, built for my own phone and shared as-is.
 
-- Sideloaded only: no Play Store, no releases, no support. Issues and PRs may go unanswered.
+- Sideloaded only: no Play Store, no support. Issues and PRs may go unanswered.
+- Occasional APKs as GitHub pre-releases; see [`CHANGELOG.md`](CHANGELOG.md).
 - Android 14+ (minSdk 34).
 - Work in progress. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what is done and what is planned.
 

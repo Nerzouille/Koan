@@ -495,9 +495,9 @@ class TabManager(
         appScope.launch { ThumbnailStore.prefetch(around) }
     }
 
-    // TEMPORARY (capture debugging): remove before the next release.
+    // TEMPORARY (capture debugging): debug builds only; remove once captures have proven stable.
     private fun capLog(id: String, event: String) {
-        android.util.Log.i("KoanCapture", "${id.take(8)} $event")
+        if (dev.nerzouille.koan.BuildConfig.DEBUG) android.util.Log.i("KoanCapture", "${id.take(8)} $event")
     }
 
     companion object {
