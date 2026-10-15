@@ -43,6 +43,7 @@ import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
 import dev.nerzouille.koan.ui.bar.barZone
 import dev.nerzouille.koan.ui.bar.SwipeTarget
 import dev.nerzouille.koan.ui.bar.BarGestures
+import dev.nerzouille.koan.ui.bar.SpaceScrub
 import dev.nerzouille.koan.ui.bar.Detent
 import dev.nerzouille.koan.ui.browser.TabSwipe
 import dev.nerzouille.koan.thumbs.ThumbnailStore
@@ -224,24 +225,35 @@ fun KoanRoot(components: Components) {
         val index = pager.settled
         lastTabOf(index)?.let { openTab(index, it) }
     }
-    /** The current tab's neighbours in its space's stack (previous, next), for a swipe on the dock. */
+    /**
+     * The space holding the current tab's card (a live pinned tab or essential has one too, and an
+     * essential's card may live in another space than the one it was opened from), and the card's
+     * index in its stack.
+     */
+    fun currentCard(): Pair<Int, Int>? {
+        for ((si, s) in spaces.withIndex()) {
+            val i = s.stack.indexOfFirst { item -> item.tabs.any { it.koanTabId == activeTabId } }
+            if (i >= 0) return si to i
+        }
+        return null
+    }
+    /** The current tab's neighbours in its stack (previous, next), for a swipe on the dock. */
     fun tabNeighbours(): Pair<TabEntity?, TabEntity?> {
-        val s = spaces.getOrNull(currentSpace) ?: return null to null
-        val i = s.stack.indexOfFirst { item -> item.tabs.any { it.koanTabId == activeTabId } }
-        if (i < 0) return null to null
-        return s.stack.getOrNull(i - 1)?.first to s.stack.getOrNull(i + 1)?.first
+        val (si, i) = currentCard() ?: return null to null
+        val stack = spaces[si].stack
+        return stack.getOrNull(i - 1)?.first to stack.getOrNull(i + 1)?.first
     }
     // Their screenshots are decoded ahead, so a swipe shows them from its first frame.
     LaunchedEffect(activeTabId, spaces) {
         val (previous, next) = tabNeighbours()
         ThumbnailStore.prefetch(listOfNotNull(previous?.thumbnailKey, next?.thumbnailKey))
     }
-    val bar = remember { BarGestures(pager, drawer, motion, tabSwipe) }
+    val bar = remember { BarGestures(pager, drawer, motion, tabSwipe, SpaceScrub(scope)) }
     bar.overviewOpen = { overviewOpen }
     bar.onOverviewDragStart = ::openOverview
     bar.onOverviewSettle = { open -> if (!open) dismissOverview() }
     bar.tabNeighbours = ::tabNeighbours
-    bar.onTabSwipe = { tab -> openTab(currentSpace, tab) }
+    bar.onTabSwipe = { tab -> openTab(currentCard()?.first ?: currentSpace, tab) }
     bar.onSpaceSwipe = { index ->
         currentSpace = index
         val tab = lastTabOf(index)
@@ -381,8 +393,8 @@ fun KoanRoot(components: Components) {
             }
         }
         val currentPage = page
-        // Page view space mode: held from the long press until the switch has landed.
-        val spaceMode = !overviewOpen && (bar.spaceMode || pager.moving)
+        // Page view space mode: the scrub, from the long press until the finger lifts.
+        val spaceMode = !overviewOpen && bar.scrub.active
         fun spaceTarget(index: Int) = models.getOrNull(index)?.let { SwipeTarget(it.name, spaceIcon = it.icon) }
         fun tabTarget(tab: TabEntity) = SwipeTarget(displayHost(tab.url).ifEmpty { tab.title }, url = tab.url, favicon = tab.iconUrl, staticIcon = tab.staticIcon)
         // A new page load brings the dock back.
@@ -408,7 +420,11 @@ fun KoanRoot(components: Components) {
                 )
             },
             switcher = { modifier ->
-                WorkspaceSwitcher(models, pager, enabled = overviewOpen, modifier = modifier)
+                // Over the page view it is the scrub's row (nothing switches until release).
+                WorkspaceSwitcher(
+                    models, pager, enabled = overviewOpen, modifier = modifier,
+                    pos = { if (overviewOpen) pager.pos else bar.scrub.pos },
+                )
             },
             address = { modifier ->
                 AddressRow(
@@ -457,16 +473,10 @@ fun KoanRoot(components: Components) {
                         add("Remove fake tabs (dev)" to { components.spaces.removeFakeTabs() })
                     },
                     modifier = modifier,
-                    swipe = {
-                        when {
-                            overviewOpen -> 0f
-                            spaceMode -> pager.pos - pager.settled
-                            else -> tabSwipe.fraction
-                        }
-                    },
-                    previous = if (spaceMode) spaceTarget(pager.settled - 1) else tabSwipe.previous?.let(::tabTarget),
-                    next = if (spaceMode) spaceTarget(pager.settled + 1) else tabSwipe.next?.let(::tabTarget),
-                    space = if (spaceMode) spaceTarget(pager.settled) else null,
+                    swipe = { if (overviewOpen) 0f else tabSwipe.fraction },
+                    previous = tabSwipe.previous?.let(::tabTarget),
+                    next = tabSwipe.next?.let(::tabTarget),
+                    space = if (spaceMode) spaceTarget(bar.scrub.index) else null,
                 )
             },
             modifier = Modifier.align(Alignment.BottomCenter),

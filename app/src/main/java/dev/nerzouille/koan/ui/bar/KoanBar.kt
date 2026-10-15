@@ -114,6 +114,7 @@ fun KoanBar(
         drawer.compactCapPx = windowPx * DrawerTokens.COMPACT_MAX_FRACTION - rows - below
         drawer.fullCapPx = windowPx - top - rows - below
         drawer.minStepPx = DrawerTokens.MinDetentStep.toPx()
+        bar.scrub.stepPx = BarTokens.ScrubStep.toPx()
     }
     val gestures = Modifier.barGestures(bar, view)
 
@@ -129,9 +130,11 @@ fun KoanBar(
                     val o = overview()
                     val d = drawer.progress
                     val sheetTop = if (overviewOpen) drawer.sheetTop() else 0f
-                    val top = sheetTop + BarTokens.SwitcherRowHeight.toPx() * (1f - o)
+                    // The switcher row shows in the overview, and over the page while scrubbing spaces.
+                    val row = maxOf(o, bar.scrub.shown)
+                    val top = sheetTop + BarTokens.SwitcherRowHeight.toPx() * (1f - row)
                     // Square under a page, rounded in the overview, a little more as the drawer.
-                    val r = BarTokens.DockRadius.toPx() * o * (1f - d) + DrawerTokens.TopRadius.toPx() * d
+                    val r = BarTokens.DockRadius.toPx() * row * (1f - d) + DrawerTokens.TopRadius.toPx() * d
                     // Soft shadow cast upward over the content; it wraps the rounded corners.
                     drawRect(
                         Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DockShadow, startY = top - shadowPx, endY = top + r),
@@ -142,7 +145,7 @@ fun KoanBar(
                     drawPath(dockPath(top, r), palette.DockHairline)
                     drawPath(dockPath(top + hairline, r), palette.Dock)
                     // Page load line on the top edge, page view only.
-                    val a = line.alpha.value * (1f - o)
+                    val a = line.alpha.value * (1f - row)
                     if (a > 0.01f) drawLoadLine(top, line, a, shimmerPx, c0.value, c1.value, c2.value)
                 }
             }
@@ -168,7 +171,7 @@ fun KoanBar(
                 (if (overviewOpen) gestures else Modifier)
                     .height(BarTokens.SwitcherRowHeight)
                     .graphicsLayer {
-                        val p = overview()
+                        val p = maxOf(overview(), bar.scrub.shown)
                         alpha = ((p - 0.35f) / 0.65f).coerceIn(0f, 1f)
                         compositingStrategy = CompositingStrategy.ModulateAlpha
                         translationY = (1f - p) * BarTokens.MorphSlide.toPx()

@@ -438,6 +438,9 @@ object BarTokens {
     /** Release faster than this (vertical) goes page ↔ overview regardless of position. */
     val OverviewFling = 600.dp // per second
 
+    /** Page view space scrub: finger travel from one space to the next. */
+    val ScrubStep = 56.dp
+
     /** Page view: tabs slide this far apart while a swipe on the dock switches tab. */
     val TabSwipeGap = 24.dp
 
@@ -592,6 +595,9 @@ object Motion {
 
     /** Page view: the swiped page sliding out, the neighbour tab sliding in (or back). */
     val TabSwipe: SpringSpec<Float> = spring(dampingRatio = 0.9f, stiffness = 400f)
+
+    /** Page view space scrub: the highlight springing to the space under the finger. */
+    val ScrubHighlight: SpringSpec<Float> = spring(dampingRatio = 0.85f, stiffness = 900f)
 
     /** Page view: the address pill crossfading to the space's name in space mode. */
     const val SPACE_MODE_FADE_MS = 140

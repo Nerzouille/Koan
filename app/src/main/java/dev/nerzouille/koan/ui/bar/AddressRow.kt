@@ -30,9 +30,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -172,6 +180,7 @@ private fun AddressField(
     modifier: Modifier = Modifier,
 ) {
     val host = displayHost(page.url)
+    val tap = rememberUpdatedState(onClick)
     // The last space shown stays composed while it fades out.
     var lastSpace by remember { mutableStateOf(space) }
     if (space != null) lastSpace = space
@@ -181,7 +190,7 @@ private fun AddressField(
             .height(BarTokens.FieldHeight)
             .clip(CircleShape)
             .background(KoanTheme.colors.BarField)
-            .clickable(onClick = onClick)
+            .cleanTap { tap.value() }
             .padding(horizontal = BarTokens.FieldPadding),
         contentAlignment = Alignment.Center,
     ) {
@@ -224,6 +233,32 @@ private fun SwipeLabel(target: SwipeTarget, side: Float, swipe: () -> Float, ove
         }
         Spacer(Modifier.width(BarTokens.SwitcherNameGap))
         FieldText(target.name, primary = true, Modifier)
+    }
+}
+
+/**
+ * A tap that is only ever a tap: the finger lifts before the long-press timeout, never having moved
+ * past the touch slop, and no drag on the bar took the gesture. A drag that springs back, or a long
+ * press, never opens the address.
+ */
+private fun Modifier.cleanTap(onTap: () -> Unit): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        val down = awaitFirstDown()
+        val tapped = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) { awaitCleanUp(down.id) }
+        if (tapped == true) onTap()
+    }
+}
+
+/** True when pointer [id] lifts without moving past the slop or being taken by the bar's drags. */
+private suspend fun AwaitPointerEventScope.awaitCleanUp(id: PointerId): Boolean {
+    var total = Offset.Zero
+    while (true) {
+        // The Final pass: the bar's drag handler (a parent) has had its say.
+        val change = awaitPointerEvent(PointerEventPass.Final).changes.firstOrNull { it.id == id } ?: return false
+        if (change.isConsumed) return false
+        if (!change.pressed) return true
+        total += change.position - change.previousPosition
+        if (total.getDistance() > viewConfiguration.touchSlop) return false
     }
 }
 

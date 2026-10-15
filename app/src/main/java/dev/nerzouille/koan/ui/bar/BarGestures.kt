@@ -5,9 +5,6 @@ import android.view.View
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
@@ -30,7 +27,7 @@ import kotlin.math.abs
 /**
  * Everything a drag on the bar can move. One rule everywhere: up = one level deeper, down = one
  * level back (page → overview → drawer compact → drawer full), sideways = tabs in the page view,
- * spaces in the overview (or in the page view after a long press). The callbacks are set by the
+ * spaces in the overview; in the page view a long press scrubs across the spaces. The callbacks are set by the
  * caller on every composition.
  */
 @Stable
@@ -39,11 +36,9 @@ class BarGestures(
     val drawer: DrawerState,
     val overview: OverviewMotion,
     val tabSwipe: TabSwipe,
+    /** Page view: a long press on the dock scrubs across the spaces until the finger lifts. */
+    val scrub: SpaceScrub,
 ) {
-    /** Page view: a long press on the dock turned it into the space switcher until the finger lifts. */
-    var spaceMode by mutableStateOf(false)
-        private set
-
     var overviewOpen: () -> Boolean = { false }
 
     /** Page → overview: open it under the finger (its progress follows the drag). */
@@ -56,15 +51,11 @@ class BarGestures(
     var tabNeighbours: () -> Pair<TabEntity?, TabEntity?> = { null to null }
     var onTabSwipe: (TabEntity) -> Unit = {}
 
-    /** Page view: a space-mode swipe landed on another space (its index). */
+    /** Page view: a scrub let go on another space (its index). */
     var onSpaceSwipe: (Int) -> Unit = {}
-
-    internal fun enterSpaceMode(on: Boolean) {
-        spaceMode = on
-    }
 }
 
-private enum class Drag { PageSpace, Space, Tab, OverviewOpen, OverviewClose, Drawer }
+private enum class Drag { Scrub, Space, Tab, OverviewOpen, OverviewClose, Drawer }
 
 /** The finger passed the touch slop: the change that did, and the total travel so far. */
 private class Slop(val change: PointerInputChange, val total: Offset) {
@@ -92,6 +83,7 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
         val inOverview = g.overviewOpen()
         val outside = drawerArea && down.position.y < g.drawer.sheetTop()
 
+        var scrubbing = false
         val start: Slop? = if (inOverview) {
             awaitSlop(down.id, tracker, PointerEventPass.Main)
         } else {
@@ -101,22 +93,21 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
             if (first != null) {
                 first.slop
             } else {
-                // Held still: space mode. From here the address pill's own tap must not fire, so
-                // this gesture reads events before it does.
-                g.enterSpaceMode(true)
+                // Held still: space mode, a scrubber across all spaces, from the first move on.
+                scrubbing = true
+                g.scrub.begin(g.pager.settled, g.pager.count)
                 tick()
-                awaitSlop(down.id, tracker, PointerEventPass.Initial, consumeUp = true)
-                    ?: return@awaitEachGesture g.enterSpaceMode(false)
+                null
             }
         }
-        if (start == null) {
+        if (start == null && !scrubbing) {
             if (outside) g.drawer.animateTo(Detent.Closed)
             return@awaitEachGesture
         }
 
         val drawerShown = g.drawer.open || g.drawer.height > 0f
         val kind = when {
-            g.spaceMode -> Drag.PageSpace
+            scrubbing || start == null -> Drag.Scrub
             start.horizontal -> if (inOverview) Drag.Space else Drag.Tab
             inOverview && drawerShown -> Drag.Drawer
             inOverview -> if (start.total.y > 0f) Drag.OverviewClose else Drag.Drawer
@@ -124,9 +115,9 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
             // Down on the page's dock: nothing to go back to.
             else -> return@awaitEachGesture
         }
-        val fromSpace = g.pager.settled
         when (kind) {
-            Drag.PageSpace, Drag.Space -> g.pager.grab()
+            Drag.Scrub -> Unit
+            Drag.Space -> g.pager.grab()
             Drag.Tab -> {
                 val (previous, next) = g.tabNeighbours()
                 if (!g.tabSwipe.grab(previous, next)) return@awaitEachGesture
@@ -141,7 +132,8 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
 
         fun drag(delta: Offset) {
             when (kind) {
-                Drag.PageSpace, Drag.Space -> g.pager.dragBy(delta.x)
+                Drag.Scrub -> if (g.scrub.dragBy(delta.x)) tick()
+                Drag.Space -> g.pager.dragBy(delta.x)
                 Drag.Tab -> g.tabSwipe.dragBy(delta.x)
                 Drag.OverviewOpen, Drag.OverviewClose -> g.overview.dragBy(delta.y)
                 Drag.Drawer -> g.drawer.dragBy(delta.y)
@@ -152,14 +144,7 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
         fun release(v: Velocity) {
             released = true
             when (kind) {
-                Drag.PageSpace -> {
-                    val to = g.pager.releaseTo(v.x, pagerFling)
-                    g.enterSpaceMode(false)
-                    if (to != fromSpace) {
-                        tick()
-                        g.onSpaceSwipe(to)
-                    }
-                }
+                Drag.Scrub -> g.scrub.end()?.let(g.onSpaceSwipe)
                 Drag.Space -> if (g.pager.release(v.x, pagerFling)) tick()
                 Drag.Tab -> if (g.tabSwipe.release(v.x, pagerFling, g.onTabSwipe)) tick()
                 Drag.OverviewOpen, Drag.OverviewClose -> {
@@ -171,10 +156,13 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
             }
         }
 
-        val pass = if (g.spaceMode) PointerEventPass.Initial else PointerEventPass.Main
+        // While scrubbing, events are read (and consumed) before the pill's own tap sees them.
+        val pass = if (kind == Drag.Scrub) PointerEventPass.Initial else PointerEventPass.Main
         try {
-            drag(start.change.positionChange())
-            start.change.consume()
+            if (start != null) {
+                drag(start.change.positionChange())
+                start.change.consume()
+            }
             while (true) {
                 val change = awaitPointerEvent(pass).changes.firstOrNull { it.id == down.id }
                 if (change == null || !change.pressed) {
@@ -193,24 +181,12 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
     }
 }
 
-/**
- * Waits for pointer [id] to pass the touch slop. Null when it lifts (or is taken) first; with
- * [consumeUp] the lift is consumed, so a tap handler under it does not fire.
- */
-private suspend fun AwaitPointerEventScope.awaitSlop(
-    id: PointerId,
-    tracker: VelocityTracker,
-    pass: PointerEventPass,
-    consumeUp: Boolean = false,
-): Slop? {
+/** Waits for pointer [id] to pass the touch slop. Null when it lifts (or is taken) first. */
+private suspend fun AwaitPointerEventScope.awaitSlop(id: PointerId, tracker: VelocityTracker, pass: PointerEventPass): Slop? {
     var total = Offset.Zero
     while (true) {
         val change = awaitPointerEvent(pass).changes.firstOrNull { it.id == id } ?: return null
-        if (!change.pressed) {
-            if (consumeUp) change.consume()
-            return null
-        }
-        if (change.isConsumed) return null
+        if (!change.pressed || change.isConsumed) return null
         tracker.addPosition(change.uptimeMillis, change.position)
         total += change.positionChange()
         if (total.getDistance() > viewConfiguration.touchSlop) return Slop(change, total)

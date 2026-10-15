@@ -42,12 +42,19 @@ import kotlin.math.floor
 
 /**
  * Zen-style space row (design 4a): one icon per space, the active one in a pill tinted with its
- * colour, with its name. The pill follows the pager continuously, so a drag on the bar (handled by
+ * colour, with its name. The pill follows the pager (or the page view's scrub) continuously, so a drag on the bar (handled by
  * KoanBar) slides it along. Taps jump to a space (one tick). Every item is laid out at its full
  * pill width once; positions, pill widths and fades are read from the pager in layer/draw lambdas.
  */
 @Composable
-fun WorkspaceSwitcher(spaces: List<SpaceModel>, pager: SpacePager, enabled: Boolean, modifier: Modifier = Modifier) {
+fun WorkspaceSwitcher(
+    spaces: List<SpaceModel>,
+    pager: SpacePager,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    /** Where the active pill sits (fractional while moving); the pager's position by default. */
+    pos: () -> Float = { pager.pos },
+) {
     if (spaces.isEmpty()) return
     val view = LocalView.current
     val density = LocalDensity.current
@@ -97,9 +104,9 @@ fun WorkspaceSwitcher(spaces: List<SpaceModel>, pager: SpacePager, enabled: Bool
                     .padding(bottom = BarTokens.SwitcherBottom)
                     .width(pillWidth)
                     .height(BarTokens.SwitcherItem)
-                    .graphicsLayer { translationX = geo.left(i, pager.pos) }
+                    .graphicsLayer { translationX = geo.left(i, pos()) }
                     .drawWithContent {
-                        val p = pager.pos
+                        val p = pos()
                         val e = geo.open(i, p)
                         val w = geo.width(i, p)
                         val h = BarTokens.SwitcherPillHeight.toPx()
@@ -122,7 +129,7 @@ fun WorkspaceSwitcher(spaces: List<SpaceModel>, pager: SpacePager, enabled: Bool
                     Modifier
                         .size(BarTokens.SwitcherIcon)
                         .graphicsLayer {
-                            val e = geo.open(i, pager.pos)
+                            val e = geo.open(i, pos())
                             alpha = BarTokens.SWITCHER_INACTIVE_ALPHA + (1f - BarTokens.SWITCHER_INACTIVE_ALPHA) * e
                             compositingStrategy = CompositingStrategy.ModulateAlpha
                         },
@@ -145,7 +152,7 @@ fun WorkspaceSwitcher(spaces: List<SpaceModel>, pager: SpacePager, enabled: Bool
                     modifier = Modifier
                         .widthIn(max = BarTokens.SwitcherNameMax)
                         .graphicsLayer {
-                            val e = geo.open(i, pager.pos)
+                            val e = geo.open(i, pos())
                             alpha = ((e - BarTokens.SWITCHER_NAME_FROM) / (1f - BarTokens.SWITCHER_NAME_FROM)).coerceIn(0f, 1f)
                             compositingStrategy = CompositingStrategy.ModulateAlpha
                         },
