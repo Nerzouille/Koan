@@ -51,7 +51,6 @@ class KoanPalette(
     val FocusRing: Color,
     /** The dock: the bottom bar's own surface (also the drawer sheet). */
     val Dock: Color,
-    val DockHairline: Color,
     /** Soft shadow the dock casts upward over the content. */
     val DockShadow: Color,
     val DrawerHandle: Color,
@@ -104,7 +103,6 @@ class KoanPalette(
             ToggleOff = Color(0xFFE5E5EA),
             FocusRing = Color(0xFFB4B4BA),
             Dock = Color(0xFFFFFFFF),
-            DockHairline = Color(0xFFECECF0),
             DockShadow = Color(0xFF3C281E).copy(alpha = 0.07f),
             DrawerHandle = Color.Black.copy(alpha = 0.16f),
             BarField = Color(0xFFF1F1F4),
@@ -147,7 +145,6 @@ class KoanPalette(
             ToggleOff = Color(0xFF3A3A3C),
             FocusRing = Color.White.copy(alpha = 0.30f),
             Dock = Color(0xFF252527),
-            DockHairline = Color.White.copy(alpha = 0.08f),
             DockShadow = Color.Black.copy(alpha = 0.35f),
             DrawerHandle = Color.White.copy(alpha = 0.20f),
             BarField = Color.White.copy(alpha = 0.08f),
@@ -191,9 +188,6 @@ object BrandTokens {
     val Blue = Color(0xFF4F8DFF)
     val Colors = listOf(Pink, Violet, Blue)
 
-    /** The current-tab marker: a small gradient dot next to the title. */
-    val Marker = 7.dp
-
     /** Syncing indicator: a gradient arc that turns. */
     val SpinnerStroke = 2.dp
     const val SPINNER_SWEEP = 270f
@@ -228,8 +222,20 @@ object ButtonTokens {
 object SearchFieldTokens {
     val Ring = 1.5.dp
     val AtRing = 2.dp
-    val Glow = 10.dp
-    const val GLOW_ALPHA = 0.22f
+
+    /** A very faint halo kept tight to the stroke (never a glow bleeding around the field). */
+    val Halo = 1.5.dp
+    const val HALO_ALPHA = 0.14f
+
+    /**
+     * "@" mode is alive: the gradient turns slowly around the ring, its speed drifting with two
+     * out-of-phase slow oscillations (degrees, seconds). Speed never drops below ~10°/s.
+     */
+    const val TURN_DEG_PER_S = 48f
+    const val WOBBLE_1_DEG = 14f
+    const val WOBBLE_1_S = 3.1f
+    const val WOBBLE_2_DEG = 10f
+    const val WOBBLE_2_S = 4.7f
     val Glyph = 18.dp
     val GlyphGap = 10.dp
     val Flow: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 140f)
@@ -315,8 +321,11 @@ object StackTokens {
     /** Overscroll resistance past both ends. */
     const val RUBBER_BAND = 0.45f
 
-    /** Fade to the background at the bottom of the viewport; short, so the peek's header stays crisp. */
-    val BottomFade = 16.dp
+    /**
+     * The stack's viewport runs this far under the dock (its rounded top corners), so cards show
+     * right up to the dock's edge and the dock covers them. The layout ends at the edge itself.
+     */
+    val UnderDock = 24.dp
 
     // Long-press reorder.
     const val LIFT_SCALE = 0.03f
@@ -455,7 +464,6 @@ object BarTokens {
     val TabsBadgeRadius = 8.dp
     val TabsBadgeBorder = 2.dp
     val TabsCountSize = 12.sp
-    val Hairline = 1.dp
 
     /** The dock: top corners in the overview (design 4a: 24) and its upward shadow. */
     val DockRadius = 24.dp
@@ -479,9 +487,6 @@ object BarTokens {
 
     /** Rows slide this far while they crossfade during the page ↔ overview morph. */
     val MorphSlide = 12.dp
-
-    /** Space between the bar and the stack above it in the overview. */
-    val GapAbove = 12.dp
 
     /** Page ↔ overview follows the finger: this much vertical travel is the whole morph. */
     val OverviewDrag = 220.dp

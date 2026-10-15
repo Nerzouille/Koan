@@ -64,7 +64,6 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.BrandDot
 
 /**
  * What a card needs to draw itself. Immutable so unchanged cards skip recomposition. [pinned] =
@@ -225,7 +224,7 @@ private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
             }
             if (card.active) {
                 Spacer(Modifier.width(CardTokens.HeaderGap))
-                BrandDot()
+                CurrentTabDot()
             }
         }
         // ✕ only on the focused card; the stack's gesture handler does the hit-testing.
@@ -432,4 +431,10 @@ private fun SkeletonCard(depth: () -> Float, dimColor: Color, dimOf: (Float) -> 
         }
         Box(Modifier.fillMaxSize().border(CardTokens.Hairline, KoanTheme.colors.CardBorder, CardShape))
     }
+}
+
+/** The current tab is a state, not a moment: a small neutral dot, never the brand gradient. */
+@Composable
+internal fun CurrentTabDot() {
+    Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanTheme.colors.TextSecondary))
 }

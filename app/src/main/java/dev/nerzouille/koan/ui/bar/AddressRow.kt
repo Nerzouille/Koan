@@ -59,6 +59,10 @@ import dev.nerzouille.koan.ui.theme.BrandHorizontal
 import dev.nerzouille.koan.ui.theme.SearchFieldTokens
 import dev.nerzouille.koan.ui.kit.KoanToggle
 import androidx.compose.animation.core.Animatable
+import android.provider.Settings
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.platform.LocalContext
 import kotlin.math.abs
 
 /** What the address row shows about the live page. */
@@ -276,6 +280,19 @@ private fun AddressInput(
     val at = value.text.trimStart().startsWith("@")
     val flow = remember { Animatable(0f) }
     LaunchedEffect(at) { flow.animateTo(if (at) 1f else 0f, SearchFieldTokens.Flow) }
+    // While in "@" mode the gradient turns slowly; only the shader moves (drawn, never recomposed).
+    // Off when the system removes animations.
+    val turn = remember { mutableFloatStateOf(0f) }
+    val resolver = LocalContext.current.contentResolver
+    LaunchedEffect(at) {
+        if (!at) return@LaunchedEffect
+        if (Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f) return@LaunchedEffect
+        val start = withFrameNanos { it }
+        val from = turn.floatValue
+        while (true) {
+            withFrameNanos { now -> turn.floatValue = from + ringTurn((now - start) / 1e9f) }
+        }
+    }
     val palette = KoanTheme.colors
 
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -283,7 +300,7 @@ private fun AddressInput(
             Modifier
                 .weight(1f)
                 .height(BarTokens.FieldHeight)
-                .then(if (focused) Modifier.searchRing(palette.FocusRing, SearchFieldTokens.Ring) { flow.value } else Modifier)
+                .then(if (focused) Modifier.searchRing(palette.FocusRing, SearchFieldTokens.Ring, flow = { flow.value }, turn = { turn.floatValue }) else Modifier)
                 .clip(CircleShape)
                 .background(palette.BarField)
                 .padding(start = BarTokens.FieldPadding - SearchFieldTokens.GlyphGap / 2, end = BarTokens.FieldPadding),

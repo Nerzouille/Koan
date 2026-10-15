@@ -51,7 +51,7 @@ import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.BrandDot
+import dev.nerzouille.koan.ui.overview.CurrentTabDot
 import dev.nerzouille.koan.ui.theme.BrandSpinner
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.Motion
@@ -390,7 +390,7 @@ private fun PinnedRow(row: DrawerRow.Tab, interactive: Boolean, onOpenTab: (Stri
             modifier = Modifier.weight(1f),
         )
         if (tab.active) {
-            BrandDot()
+            CurrentTabDot()
             Spacer(Modifier.width(DrawerTokens.PinnedPadding))
         }
         if (row.depth == 0) Icon(KoanIcons.Pin, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(DrawerTokens.PinnedGlyph))

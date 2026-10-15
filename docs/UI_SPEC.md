@@ -85,8 +85,9 @@ to the top of the stack.
   is visible depends on its depth.
 - Thumbnail fills the card, top-aligned, cropped (not letterboxed). Header and placeholder rules:
   see "Visual restraint".
-- The currently active tab's card is marked by a small **brand-gradient dot** (7dp) next to its
-  title, not a stroke. Same marker on the live pinned row in the drawer.
+- The currently active tab's card is marked by a small **neutral dot** (6dp, secondary text
+  colour) next to its title, not a stroke. Same marker on the live pinned row in the drawer. The
+  current tab is a state, not a moment: never the brand gradient.
 
 ### Depth stack (the "premium" feel) — most important visual rule
 
@@ -149,17 +150,16 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
 - The space colour is only a small accent (see "Themes"); cards stay neutral so the thumbnails are
   the color.
 
-### The stack never goes behind the bottom bar
+### The dock covers the bottom of the stack
 
-- The stack viewport ends **12dp above the top of the workspace bar**. Cards are clipped to this
-  viewport; the bar sits in its own reserved zone and nothing scrolls underneath it.
-- The bottom 24dp of the viewport has a fade mask (content alpha 1 → 0 toward the bar) so cards
-  leaving downward dissolve before the bar instead of being cut sharply. It is shorter than the
-  peek so the peeking card's header stays crisp.
-- The bar is **the dock**: its own surface (light `#FFFFFF`, dark `#252527`) with a 1dp hairline
-  on top (light `#ECECF0`, dark white 8%) and a soft upward shadow (28dp; light `rgba(60,40,30,.07)`,
-  dark black 35%). Square under a page, 24dp top corners in the overview, 28dp as the drawer. The
-  stack fades out into the background just above it.
+- The stack's layout ends **at the dock's top edge**: the peeking card's header sits just above it.
+  The viewport runs on 24dp under the dock (its rounded top corners), so cards show right up to
+  the dock's edge and the opaque dock simply covers them. No fade band, no empty strip between
+  the cards and the dock. (Still never a translucent bar with cards visible through it, v1.)
+- The bar is **the dock**: its own opaque surface (light `#FFFFFF`, dark `#252527`) with a soft
+  upward shadow (28dp; light `rgba(60,40,30,.07)`, dark black 35%) attached to its top edge, no
+  hairline between them. The same shadow falls on the page (page view) and on the cards
+  (overview). Square under a page, 24dp top corners in the overview, 28dp as the drawer.
 
 ## Interactions and gesture ownership (important)
 
@@ -228,7 +228,7 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   appears on top, the address field stays underneath (tap = new tab with search). Back and menu
   fade out. From here it can grow further into the drawer (see "Essentials & pinned drawer").
   The morph only draws/transforms (no relayout per frame).
-- Nothing scrolls underneath the bar: the stack ends 12dp above it.
+- The dock covers the bottom of the stack (see "The dock covers the bottom of the stack").
 - The switcher is Zen's icon row (design 4a): one icon per space (initial if it has none), the
   active one in a pill tinted with its colour (accent at 14% light / 18% dark) showing its name in
   the space's ink colour. Inactive icons: 44dp touch targets, 70% opacity. The pill follows the
@@ -284,12 +284,11 @@ your focus**, used only for:
 
 - the page loading line; the download completion moment; download progress bars in the list;
 - the syncing indicator (a small turning gradient arc);
-- the current-tab marker (stack card and drawer row);
 - toggles ON; the "@" search mode (ring + cursor);
 - Settings' aurora glow, the account card outline, About, and the first-run "Connect your Zen
   Spaces" card (gradient outline).
 
-**Never** on login or password UI, permission prompts, destructive actions, body text, or behind
+**Never** as a passive "this is the current one" marker (the current tab is a state, not a moment), on login or password UI, permission prompts, destructive actions, body text, or behind
 web content. Primary buttons are never gradient.
 
 ### Controls
@@ -303,8 +302,12 @@ web content. Primary buttons are never gradient.
 - **Search field:** docked right above the keyboard (the bar follows the IME), search glyph on the
   left, ✕ on the right. While typing: a neutral 1.5dp ring (`#B4B4BA` light / white 30% dark) and
   a plain cursor. Typing "@" first makes the brand gradient flow in from the left around both
-  halves of the ring (2dp, soft glow, gradient cursor) on a soft spring; deleting the "@" flows it
-  back out to neutral.
+  halves of the ring (2dp, crisp, gradient cursor) on a soft spring; deleting the "@" flows it
+  back out to neutral. No glow bleeding around the field: at most a very faint halo (14%) kept
+  1.5dp around the stroke. In "@" mode the ring is alive: the gradient (a sweep around the
+  field's centre) turns slowly, ~48°/s, its speed drifting with two out-of-phase slow
+  oscillations (±14° over 3.1s, ±10° over 4.7s), never mechanical. Only the shader moves, only
+  while "@" mode is on, and not at all when the system removes animations.
 
 ## Visual tokens (starting point, tweak freely)
 

@@ -41,6 +41,7 @@ import dev.nerzouille.koan.ui.theme.KoanPalette
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.SpaceColors
 import dev.nerzouille.koan.ui.theme.PagerTokens
+import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
@@ -226,7 +227,8 @@ fun OverviewScreen(
                     }
                 }
             }
-            Spacer(Modifier.navigationBarsPadding().height(dock))
+            // The stack runs on under the dock's rounded top: the dock covers the cards, no gap.
+            Spacer(Modifier.navigationBarsPadding().height(dock - StackTokens.UnderDock))
         }
         // The placeholders fade out while the real spaces fade in (one-off, after the first sync).
         val revealing by remember { derivedStateOf { reveal.value < 1f } }
@@ -234,7 +236,7 @@ fun OverviewScreen(
             Column(Modifier.fillMaxSize().statusBarsPadding().graphicsLayer { alpha = 1f - reveal.value }) {
                 Spacer(Modifier.height(OverviewTokens.HeaderHeight))
                 SkeletonStack(Modifier.weight(1f))
-                Spacer(Modifier.navigationBarsPadding().height(dock))
+                Spacer(Modifier.navigationBarsPadding().height(dock - StackTokens.UnderDock))
             }
         }
     }

@@ -122,6 +122,7 @@ fun SpacePage(
                     onReorder = onReorder,
                     modifier = Modifier.fillMaxSize(),
                     onScreen = { abs(pageOffset()) < 1f },
+                    pageFade = { 1f - abs(pageOffset()).coerceAtMost(1f) },
                     settled = settled,
                 )
             }

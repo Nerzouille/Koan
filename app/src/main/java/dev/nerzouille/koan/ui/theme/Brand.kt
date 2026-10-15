@@ -6,11 +6,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -30,15 +28,6 @@ import androidx.compose.ui.unit.Dp
 
 /** Left → right across whatever it fills. */
 val BrandHorizontal: Brush = Brush.horizontalGradient(BrandTokens.Colors)
-
-/** Top-left → bottom-right: small round things (the current-tab marker). */
-val BrandDiagonal: Brush = Brush.linearGradient(BrandTokens.Colors)
-
-/** The current-tab marker: a small gradient dot. */
-@Composable
-fun BrandDot(modifier: Modifier = Modifier, size: Dp = BrandTokens.Marker) {
-    Box(modifier.size(size).background(BrandDiagonal, CircleShape))
-}
 
 /** A gradient outline around something that holds your focus (first-run card, account card). */
 fun Modifier.brandOutline(shape: Shape, width: Dp = BrandTokens.Outline): Modifier =

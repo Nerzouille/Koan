@@ -62,7 +62,7 @@ private const val OFFSCREEN_PX = 100_000
 /** Space the bar takes at the bottom (above the navigation bar), so screens can end above it. */
 fun barZone(overview: Boolean): Dp =
     if (overview) {
-        BarTokens.GapAbove + BarTokens.SwitcherRowHeight + BarTokens.AddressRowHeight + BarTokens.BottomMargin
+        BarTokens.SwitcherRowHeight + BarTokens.AddressRowHeight + BarTokens.BottomMargin
     } else {
         BarTokens.AddressRowHeight + BarTokens.BottomMargin
     }
@@ -115,7 +115,6 @@ fun KoanBar(
             .graphicsLayer { translationY = if (overviewOpen) 0f else dockHide() }
             .drawWithCache {
                 val shadowPx = BarTokens.DockShadowHeight.toPx()
-                val hairline = BarTokens.Hairline.toPx()
                 val shimmerPx = BarTokens.ShimmerWidth.toPx()
                 onDrawBehind {
                     val o = overview()
@@ -126,15 +125,14 @@ fun KoanBar(
                     val top = sheetTop + BarTokens.SwitcherRowHeight.toPx() * (1f - row)
                     // Square under a page, rounded in the overview, a little more as the drawer.
                     val r = BarTokens.DockRadius.toPx() * row * (1f - d) + DrawerTokens.TopRadius.toPx() * d
-                    // Soft shadow cast upward over the content; it wraps the rounded corners.
+                    // Soft shadow cast upward over the content (page or cards), attached to the
+                    // surface's edge: no hairline between them. It wraps the rounded corners.
                     drawRect(
                         Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DockShadow, startY = top - shadowPx, endY = top + r),
                         topLeft = Offset(0f, top - shadowPx),
                         size = Size(size.width, shadowPx + r),
                     )
-                    // The hairline is the surface itself, peeking out 1px above its fill.
-                    drawPath(dockPath(top, r), palette.DockHairline)
-                    drawPath(dockPath(top + hairline, r), palette.Dock)
+                    drawPath(dockPath(top, r), palette.Dock)
                     // Page load line on the top edge, page view only.
                     val a = line.alpha.value * (1f - row)
                     if (a > 0.01f) drawLoadLine(top, line, a, shimmerPx)
