@@ -47,8 +47,8 @@ class BarGestures(
     /** A page ↔ overview drag let go: true = the overview stays, false = back to the page. */
     var onOverviewSettle: (Boolean) -> Unit = {}
 
-    /** The current tab's neighbours in its space (previous, next). */
-    var tabNeighbours: () -> Pair<TabEntity?, TabEntity?> = { null to null }
+    /** Page view: the current tab's stack (front tab of each card, oldest first) and its index in it. */
+    var tabStrip: () -> Pair<List<TabEntity>, Int>? = { null }
     var onTabSwipe: (TabEntity) -> Unit = {}
 
     /** Page view: a scrub let go on another space (its index). */
@@ -118,10 +118,7 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
         when (kind) {
             Drag.Scrub -> Unit
             Drag.Space -> g.pager.grab()
-            Drag.Tab -> {
-                val (previous, next) = g.tabNeighbours()
-                if (!g.tabSwipe.grab(previous, next)) return@awaitEachGesture
-            }
+            Drag.Tab -> if (!g.tabSwipe.grab(g.tabStrip)) return@awaitEachGesture
             Drag.OverviewOpen -> {
                 g.overview.grab(open = false)
                 g.onOverviewDragStart()

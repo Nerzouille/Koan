@@ -343,22 +343,17 @@ private class Hit(val id: String, val focused: Boolean, val onClose: Boolean)
 
 private val CardShape = RoundedCornerShape(CardTokens.Radius)
 
-/** Positions of everything in the stack, in px, as functions of the scroll state. */
-private class StackGeometry(
-    val state: StackState,
-    val width: Float,
-    val viewportHeight: Float,
-    val density: Float,
-    val palette: KoanPalette,
-) {
+/**
+ * The stack's frame in px, independent of any scroll state: card size and where a card at depth d
+ * sits. Shared by the real stack and the overview's ghost of a space not composed yet.
+ */
+internal class StackFrame(width: Float, private val viewportHeight: Float, density: Float) {
     val cardWidth = width - 2 * StackTokens.CardSideMargin.value * density
 
     /** The focused card gets all the height left by the top gap, the pile (A = fraction × height) and the peek. */
     val cardHeight = (
         viewportHeight - (StackTokens.PileTopGap + StackTokens.PeekVisible - StackTokens.PeekOverlap).value * density
         ) / (1f + StackTokens.PILE_DEPTH_FRACTION)
-    private val headerPx = CardTokens.HeaderHeight.value * density
-    private val closePx = CardTokens.CloseTouch.value * density
 
     /** Top of the card in front (d = -1): only its header and a hint of thumbnail show. */
     private val peekTop = viewportHeight - StackTokens.PeekVisible.value * density
@@ -372,8 +367,6 @@ private class StackGeometry(
         focusTop - StackTokens.PileTopGap.value * density,
     ).coerceAtLeast(0f)
 
-    fun depthOf(a: CardAnim): Float = state.pos - a.slot
-
     /**
      * Visual top of a card at depth [d]. Behind the focus it climbs the perspective curve; in front
      * it slides straight down to the peek slot, then on out of the viewport.
@@ -383,6 +376,25 @@ private class StackGeometry(
         d >= -1f -> focusTop + (peekTop - focusTop) * DepthCurve.drop(d)
         else -> peekTop + (-1f - d) * (viewportHeight - peekTop)
     }
+}
+
+/** Positions of everything in the stack, in px, as functions of the scroll state. */
+private class StackGeometry(
+    val state: StackState,
+    val width: Float,
+    val viewportHeight: Float,
+    val density: Float,
+    val palette: KoanPalette,
+) {
+    private val frame = StackFrame(width, viewportHeight, density)
+    val cardWidth = frame.cardWidth
+    val cardHeight = frame.cardHeight
+    private val headerPx = CardTokens.HeaderHeight.value * density
+    private val closePx = CardTokens.CloseTouch.value * density
+
+    fun topOf(d: Float): Float = frame.topOf(d)
+
+    fun depthOf(a: CardAnim): Float = state.pos - a.slot
 
     private fun visible(d: Float) = d <= DepthCurve.MAX_VISIBLE_D && d >= DepthCurve.MIN_VISIBLE_D
 

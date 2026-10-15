@@ -2,6 +2,13 @@ package dev.nerzouille.koan.ui.overview
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -96,6 +103,12 @@ fun OverviewScreen(
         }
     }
 
+    // A space once settled on stays composed while the overview is open.
+    LaunchedEffect(pager.settled, models.map { it.uuid }) {
+        val uuid = models.getOrNull(pager.settled)?.uuid ?: return@LaunchedEffect
+        if (uuid !in precomposed) precomposed += uuid
+    }
+
     // The first real spaces fade in over the placeholders instead of replacing them abruptly.
     val zenReady = models.any { it.zen }
     val reveal = remember { Animatable(1f) }
@@ -149,26 +162,33 @@ fun OverviewScreen(
     }
 
     val palette = KoanTheme.colors
+    val density = LocalDensity.current
+    val statusTop = WindowInsets.statusBars.getTop(density).toFloat()
+    var overviewHeight by remember { mutableFloatStateOf(0f) }
+    // Light: a soft wash of the space colour at the top, crossfading with the drag. [top] = where
+    // the drawing starts in the overview, so a page can draw the same backdrop over itself.
+    fun backdrop(top: Float): Brush? {
+        if (palette.WashTop <= 0f) return null
+        val p = pager.pos.coerceIn(0f, (models.size - 1).toFloat())
+        val i = floor(p).toInt()
+        val f = p - i
+        val a = models[i].colors
+        val b = models[(i + 1).coerceAtMost(models.size - 1)].colors
+        return Brush.verticalGradient(
+            0f to lerp(a.washTop, b.washTop, f),
+            WashTokens.MID_STOP to lerp(a.washMid, b.washMid, f),
+            WashTokens.END_STOP to palette.Base,
+            startY = -top,
+            endY = overviewHeight - top,
+        )
+    }
     Box(
         modifier
             .fillMaxSize()
+            .onSizeChanged { overviewHeight = it.height.toFloat() }
             .drawBehind {
                 drawRect(palette.Base)
-                if (palette.WashTop <= 0f) return@drawBehind
-                // Light: a soft wash of the space colour at the top, crossfading with the drag.
-                val p = pager.pos.coerceIn(0f, (models.size - 1).toFloat())
-                val i = floor(p).toInt()
-                val f = p - i
-                val a = models[i].colors
-                val b = models[(i + 1).coerceAtMost(models.size - 1)].colors
-                drawRect(
-                    Brush.verticalGradient(
-                        0f to lerp(a.washTop, b.washTop, f),
-                        WashTokens.MID_STOP to lerp(a.washMid, b.washMid, f),
-                        WashTokens.END_STOP to palette.Base,
-                        endY = size.height,
-                    ),
-                )
+                backdrop(0f)?.let { drawRect(it) }
             },
     ) {
         Column(Modifier.fillMaxSize()) {
@@ -181,33 +201,64 @@ fun OverviewScreen(
                 val current = pager.settled
                 for (i in models.indices) {
                     val space = models[i]
-                    // The settled page, its neighbours as soon as a swipe starts, and every page
-                    // composed ahead of time.
-                    val near = i == current || (abs(i - current) == 1 && pager.moving)
-                    if (!near && space.uuid !in precomposed) continue
+                    // A real page: composed ahead of time, or the settled one (a switch only lands
+                    // once the motion is over: composing a page never costs a moving frame). Beside
+                    // the settled space, a ghost stands in until then, laid out from the first frame.
+                    val real = space.uuid in precomposed || i == current
+                    val ghost = abs(i - current) <= 1
+                    if (!real && !ghost) continue
                     key(space.uuid) {
                         val offset = { i - pager.pos }
-                        SpacePage(
-                            space = space,
-                            stack = stackFor(space),
-                            active = i == current,
-                            sync = sync,
-                            pageOffset = offset,
-                            onDismiss = onDismiss,
-                            onNewTab = { onNewTab(i) },
-                            onOpenTab = { id -> spaces[i].findTab(id)?.let { onOpenTab(i, it) } },
-                            onCloseTab = onCloseTab,
-                            onReorder = onReorder,
-                            onBadge = onBadge,
-                            onConnect = onConnect,
-                            settled = settled,
-                            modifier = Modifier.graphicsLayer {
-                                // The whole space moves as one unit, with a small gap between spaces.
-                                val f = offset()
-                                translationX = f * (size.width + PagerTokens.PageGap.toPx())
-                                alpha = (if (abs(f) >= 1f) 0f else 1f) * reveal.value
-                            },
-                        )
+                        // The whole space moves as one unit, a gap between spaces, and fades into
+                        // the backdrop (drawn over it, never an offscreen layer) as it leaves.
+                        val motion = Modifier.graphicsLayer {
+                            val f = offset()
+                            translationX = f * (size.width + PagerTokens.PageGap.toPx())
+                            alpha = if (abs(f) >= 1f) 0f else 1f
+                        }
+                        val fade = Modifier.drawWithContent {
+                            drawContent()
+                            val e = abs(offset()).coerceIn(0f, 1f)
+                            if (e > 0f) {
+                                val brush = backdrop(statusTop)
+                                if (brush != null) drawRect(brush, alpha = e) else drawRect(palette.Base, alpha = e)
+                            }
+                        }
+                        // Back to a ghost (a page dropped off): its next real page fades in over it again.
+                        var ghostGone by remember(real) { mutableStateOf(false) }
+                        if (real) {
+                            // Composed while on screen (just landed): it fades in over its ghost.
+                            val appear = remember { Animatable(if (!latestSettled || abs(offset()) >= 1f) 1f else 0f) }
+                            LaunchedEffect(Unit) {
+                                appear.animateTo(1f, tween(PagerTokens.PAGE_APPEAR_MS))
+                                ghostGone = true
+                            }
+                            if (!ghostGone) GhostSpace(space, sync.badge, currentIndex(space), offset, motion.then(fade))
+                            SpacePage(
+                                space = space,
+                                stack = stackFor(space),
+                                active = i == current,
+                                sync = sync,
+                                pageOffset = offset,
+                                onDismiss = onDismiss,
+                                onNewTab = { onNewTab(i) },
+                                onOpenTab = { id -> spaces[i].findTab(id)?.let { onOpenTab(i, it) } },
+                                onCloseTab = onCloseTab,
+                                onReorder = onReorder,
+                                onBadge = onBadge,
+                                onConnect = onConnect,
+                                settled = settled,
+                                modifier = motion
+                                    .graphicsLayer {
+                                        alpha = appear.value * reveal.value
+                                        // Only the fade-in after a landing uses a layer at partial alpha.
+                                        compositingStrategy = CompositingStrategy.Auto
+                                    }
+                                    .then(fade),
+                            )
+                        } else {
+                            GhostSpace(space, sync.badge, currentIndex(space), offset, motion.then(fade))
+                        }
                     }
                 }
             }

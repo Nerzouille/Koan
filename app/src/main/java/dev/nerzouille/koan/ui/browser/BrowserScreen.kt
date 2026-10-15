@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -27,6 +28,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.bar.barZone
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.PageTokens
@@ -120,17 +122,35 @@ fun BrowserScreen(
                 }
             },
     ) {
-        // A swipe on the dock: the page (and its cover) follows the finger, the neighbour tab's
-        // screenshot slides in beside it.
-        Box(Modifier.fillMaxSize().graphicsLayer { translationX = swipe.offset }) {
+        // A swipe on the dock: the tabs of the stack form a strip that follows the finger. The live
+        // page (and its cover) sits in its slot, the tabs around the screen show their screenshots.
+        Box(
+            Modifier.fillMaxSize().graphicsLayer {
+                translationX = if (swipe.active) (swipe.live - swipe.pos) * swipe.pageWidthPx else 0f
+            },
+        ) {
             AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())
             PageCover(cover, store, zoomIn)
         }
-        swipe.previous?.let { tab ->
-            PagePreview(CoverTarget.of(tab, blank = false), Modifier.graphicsLayer { translationX = swipe.offset - swipe.pageWidthPx })
+        if (swipe.active) {
+            val strip = swipe.strip
+            for (i in (swipe.anchor - 1)..(swipe.anchor + 1)) {
+                if (i == swipe.live) continue
+                val tab = strip.getOrNull(i) ?: continue
+                key(tab.koanTabId) {
+                    PagePreview(
+                        CoverTarget.of(tab, blank = false),
+                        Modifier.graphicsLayer { translationX = (i - swipe.pos) * swipe.pageWidthPx },
+                    )
+                }
+            }
         }
-        swipe.next?.let { tab ->
-            PagePreview(CoverTarget.of(tab, blank = false), Modifier.graphicsLayer { translationX = swipe.offset + swipe.pageWidthPx })
-        }
+    }
+    // The screenshots one more tab out are decoded ahead, so the next swipe of a chain shows them
+    // from its first frame.
+    LaunchedEffect(swipe.anchor, swipe.strip) {
+        val strip = swipe.strip
+        val a = swipe.anchor
+        ThumbnailStore.prefetch(((a - 2)..(a + 2)).mapNotNull { strip.getOrNull(it)?.thumbnailKey })
     }
 }

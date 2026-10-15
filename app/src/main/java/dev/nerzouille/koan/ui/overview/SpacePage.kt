@@ -105,14 +105,7 @@ fun SpacePage(
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .graphicsLayer {
-                    // The incoming stack trails the header slightly (0.85× speed) and grows 0.96 → 1.
-                    val f = pageOffset()
-                    translationX = -f * size.width * PagerTokens.PARALLAX
-                    val s = 1f - PagerTokens.INCOMING_SCALE * abs(f).coerceAtMost(1f)
-                    scaleX = s
-                    scaleY = s
-                },
+                .stackParallax(pageOffset),
         ) {
             when {
                 space.stack.isEmpty() && sync.firstSync -> SkeletonStack()
@@ -133,6 +126,15 @@ fun SpacePage(
             }
         }
     }
+}
+
+/** The incoming stack trails the header (parallax) and grows to full size as it comes in. */
+internal fun Modifier.stackParallax(pageOffset: () -> Float): Modifier = graphicsLayer {
+    val f = pageOffset()
+    translationX = -f * size.width * PagerTokens.PARALLAX
+    val s = 1f - PagerTokens.INCOMING_SCALE * abs(f).coerceAtMost(1f)
+    scaleX = s
+    scaleY = s
 }
 
 /**
@@ -197,7 +199,7 @@ internal fun SkeletonStack(modifier: Modifier = Modifier) {
 
 /** Compact header: back, space icon + name, sync badge, new tab. Swipe down on it = back to the current tab. */
 @Composable
-private fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit, onNewTab: () -> Unit, onBadge: () -> Unit) {
+internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit, onNewTab: () -> Unit, onBadge: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()

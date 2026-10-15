@@ -109,6 +109,8 @@ fun AddressRow(
     swipe: () -> Float = { 0f },
     previous: SwipeTarget? = null,
     next: SwipeTarget? = null,
+    /** Page view: a tab swipe rests on a tab that is not live yet; the pill shows its url. */
+    shownUrl: String? = null,
     /** Page view space mode: the pill shows this space instead of the page's domain. */
     space: SwipeTarget? = null,
 ) {
@@ -136,6 +138,7 @@ fun AddressRow(
                 swipe = swipe,
                 previous = previous,
                 next = next,
+                shownUrl = shownUrl,
                 space = space,
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 modifier = Modifier.weight(1f),
@@ -166,11 +169,12 @@ private fun AddressField(
     swipe: () -> Float,
     previous: SwipeTarget?,
     next: SwipeTarget?,
+    shownUrl: String?,
     space: SwipeTarget?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val host = displayHost(page.url)
+    val host = displayHost(shownUrl ?: page.url)
     // The last space shown stays composed while it fades out.
     var lastSpace by remember { mutableStateOf(space) }
     if (space != null) lastSpace = space

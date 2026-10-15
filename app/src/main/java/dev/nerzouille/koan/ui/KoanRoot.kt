@@ -178,6 +178,8 @@ fun KoanRoot(components: Components) {
     LaunchedEffect(activeTabId) { dock.snapShown() }
 
     fun openOverview() {
+        // A chain of tab swipes still resting: the overview shows the live tab, nothing opens later.
+        tabSwipe.cancel()
         editing = false
         tabs.cancelBlank()
         tabs.captureCurrent("overview opening")
@@ -272,7 +274,9 @@ fun KoanRoot(components: Components) {
     bar.overviewOpen = { overviewOpen }
     bar.onOverviewDragStart = ::openOverview
     bar.onOverviewSettle = { open -> if (!open) dismissOverview() }
-    bar.tabNeighbours = ::tabNeighbours
+    bar.tabStrip = {
+        currentCard()?.let { (si, i) -> spaces[si].stack.map { it.first } to i }
+    }
     bar.onTabSwipe = { tab -> openTab(currentCard()?.first ?: currentSpace, tab) }
     bar.onSpaceSwipe = { index ->
         currentSpace = index
@@ -504,6 +508,7 @@ fun KoanRoot(components: Components) {
                     swipe = { if (overviewOpen) 0f else tabSwipe.fraction },
                     previous = tabSwipe.previous?.let(::tabTarget),
                     next = tabSwipe.next?.let(::tabTarget),
+                    shownUrl = if (overviewOpen) null else tabSwipe.shown?.url,
                     space = if (spaceMode) spaceTarget(bar.scrub.index) else null,
                 )
             },

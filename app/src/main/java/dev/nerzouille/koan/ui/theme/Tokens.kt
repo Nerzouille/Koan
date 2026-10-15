@@ -444,6 +444,12 @@ object BarTokens {
     /** Page view: tabs slide this far apart while a swipe on the dock switches tab. */
     val TabSwipeGap = 24.dp
 
+    /**
+     * Page view tab swipes: the tab the strip rests on goes live only after this long without a
+     * new swipe, so a chain of swipes shows screenshots and loads nothing on the way.
+     */
+    const val TAB_SWIPE_REST_MS = 300L
+
     // Switcher row: Zen-style space icons, the active one in a tinted pill with its name (design 4a).
     /** Touch target of an inactive icon; icons sit side by side, no gap. */
     val SwitcherItem = 44.dp
@@ -519,11 +525,14 @@ object PagerTokens {
 
     /** …or fling faster than this in the drag direction. */
     val FlingVelocity = 500.dp // per second
-    val PageGap = 24.dp
+    val PageGap = 40.dp
 
-    /** The incoming stack trails the header (0.85× speed) and grows from 0.96. */
-    const val PARALLAX = 0.15f
-    const val INCOMING_SCALE = 0.04f
+    /** The incoming stack trails the header (0.8× speed) and grows from 0.94. */
+    const val PARALLAX = 0.2f
+    const val INCOMING_SCALE = 0.06f
+
+    /** A space's real page fading in over its ghost when it is composed on screen (after a landing). */
+    const val PAGE_APPEAR_MS = 160
     const val RUBBER_BAND = 0.3f
 }
 
