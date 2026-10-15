@@ -57,7 +57,29 @@ System Trace during scroll and space switching.
 conflict is handled without data loss.
 
 ## M7 — Delights (open-ended)
-- Glance (long-press link → floating sheet; swipe up to promote to tab).
-- Long press then slide down -> open link in a new window (in background)
 - Pull-down for new tab, `@engine` search shortcuts, space menu (rename/icon/theme) if write-back
   for `space` records is added, "send to Zen" from share sheet, home-screen widget for a space.
+
+### M7 ideas (to refine when we get there)
+
+**Link gestures** (all start with a long-press on a link, so they never conflict with scrolling; a small link chip follows the finger, labelled with the action, haptic tick at the threshold; everything works one-handed from the bottom of the screen)
+- **Glance**: long-press a link + drag UP → the page opens in a floating sheet over the current tab.
+  - Controls live at the bottom of the sheet (thumb zone): a handle + two buttons, "Open as tab" and "✕". Android back also closes it.
+  - Flick on the bottom handle: one direction promotes to a real tab, the other dismisses. Direction is a token, decide by testing (option A: up = open / down = dismiss, like the rest of Koan; option B: up = throw away / down = open, like the iOS app switcher).
+- **Open in background**: long-press a link + drag DOWN → opens in a new background tab in the current space.
+- **Open in another space**: while dragging a link down, the dock shows the space icons; dropping the link on one opens it in that space (in background).
+
+**Tabs**
+- **Undo close**: after closing a card (swipe or ✕), a small "Undo" toast for a few seconds.
+- **Recently closed**: long-press the tab button → list of recently closed tabs, tap to reopen.
+- **Previous tab**: double-tap the tab button → switch back to the previous tab (Alt-Tab style).
+- **Glance a card** (maybe): long-press a card in the overview to preview it larger without switching. Same sheet as Glance. To evaluate.
+- **Auto-archive**: phone-only tabs untouched for N days (setting) move to an "Archived" list instead of piling up. Never touches tabs that come from Zen.
+
+**Media**
+- **Background audio**: audio/video keeps playing with the screen off or Koan in the background, with media controls in the notification.
+- **Picture-in-picture** for video when leaving Koan.
+
+**Phone → PC**
+- **Send to PC now**: use Firefox Accounts "Send Tab to Device" (Koan registers as a device on the Mozilla account) so the page opens immediately on Zen desktop. Needs verification that Zen receives sent tabs (it's Firefox-based, so it should).
+- **Add to a Zen space**: write the tab into a chosen Zen space via sync (requires M6 write-back); appears on desktop at the next sync.
