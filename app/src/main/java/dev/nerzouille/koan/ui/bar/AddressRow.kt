@@ -55,6 +55,10 @@ import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.BrandHorizontal
+import dev.nerzouille.koan.ui.theme.SearchFieldTokens
+import dev.nerzouille.koan.ui.kit.KoanToggle
+import androidx.compose.animation.core.Animatable
 import kotlin.math.abs
 
 /** What the address row shows about the live page. */
@@ -65,6 +69,7 @@ data class PageInfo(
     val progress: Float,
     val canGoBack: Boolean,
     val canGoForward: Boolean,
+    val desktopSite: Boolean = false,
 )
 
 private const val SEARCH_HINT = "Search or type URL"
@@ -90,8 +95,6 @@ data class SwipeTarget(
 fun AddressRow(
     page: PageInfo,
     tabCount: Int,
-    /** The current space's accent: cursor and focus ring. */
-    accent: Color,
     editing: Boolean,
     overviewOpen: Boolean,
     overview: () -> Float,
@@ -104,6 +107,8 @@ fun AddressRow(
     onStop: () -> Unit,
     onTabs: () -> Unit,
     menuExtras: List<Pair<String, () -> Unit>>,
+    desktopSite: Boolean,
+    onDesktopSite: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     /** Page view swipe: -1..1 towards [previous] / [next]; read in layers only. */
     swipe: () -> Float = { 0f },
@@ -125,7 +130,6 @@ fun AddressRow(
         if (editing) {
             AddressInput(
                 initial = if (page.url == "about:blank") "" else page.url,
-                accent = accent,
                 onSubmit = onSubmit,
                 onCancel = { onEditingChange(false) },
                 modifier = Modifier.weight(1f),
@@ -150,6 +154,8 @@ fun AddressRow(
                 onForward = onForward,
                 onReload = onReload,
                 onStop = onStop,
+                desktopSite = desktopSite,
+                onDesktopSite = onDesktopSite,
                 extras = menuExtras,
                 modifier = pageOnly,
             )
@@ -257,7 +263,6 @@ private fun FieldText(text: String, primary: Boolean, modifier: Modifier) {
 @Composable
 private fun AddressInput(
     initial: String,
-    accent: Color,
     onSubmit: (String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -267,34 +272,41 @@ private fun AddressInput(
     var hadFocus by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    // "@" = pick an engine or a scope: the brand gradient flows in around the ring.
+    val at = value.text.trimStart().startsWith("@")
+    val flow = remember { Animatable(0f) }
+    LaunchedEffect(at) { flow.animateTo(if (at) 1f else 0f, SearchFieldTokens.Flow) }
+    val palette = KoanTheme.colors
 
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier
                 .weight(1f)
                 .height(BarTokens.FieldHeight)
+                .then(if (focused) Modifier.searchRing(palette.FocusRing, SearchFieldTokens.Ring) { flow.value } else Modifier)
                 .clip(CircleShape)
-                .background(KoanTheme.colors.BarField)
-                .then(if (focused) Modifier.border(BarTokens.FocusRing, accent, CircleShape) else Modifier)
-                .padding(horizontal = BarTokens.FieldPadding),
+                .background(palette.BarField)
+                .padding(start = BarTokens.FieldPadding - SearchFieldTokens.GlyphGap / 2, end = BarTokens.FieldPadding),
             contentAlignment = Alignment.CenterStart,
         ) {
+            Icon(KoanIcons.Search, null, tint = palette.FieldHint, modifier = Modifier.size(SearchFieldTokens.Glyph))
+            val textStart = Modifier.padding(start = SearchFieldTokens.Glyph + SearchFieldTokens.GlyphGap)
             if (value.text.isEmpty()) {
-                Text(SEARCH_HINT, color = KoanTheme.colors.FieldHint, fontSize = BarTokens.FieldTextSize)
+                Text(SEARCH_HINT, color = palette.FieldHint, fontSize = BarTokens.FieldTextSize, modifier = textStart)
             }
             BasicTextField(
                 value = value,
                 onValueChange = { value = it },
                 singleLine = true,
                 textStyle = TextStyle(color = KoanTheme.colors.TextPrimary, fontSize = BarTokens.FieldTextSize),
-                cursorBrush = SolidColor(accent),
+                cursorBrush = if (at) BrandHorizontal else SolidColor(palette.TextPrimary),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Uri,
                     imeAction = ImeAction.Go,
                     autoCorrectEnabled = false,
                 ),
                 keyboardActions = KeyboardActions(onGo = { onSubmit(value.text) }),
-                modifier = Modifier
+                modifier = textStart
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
                     .onFocusChanged {
@@ -335,6 +347,8 @@ private fun BarMenu(
     onForward: () -> Unit,
     onReload: () -> Unit,
     onStop: () -> Unit,
+    desktopSite: Boolean,
+    onDesktopSite: (Boolean) -> Unit,
     extras: List<Pair<String, () -> Unit>>,
     modifier: Modifier = Modifier,
 ) {
@@ -352,6 +366,11 @@ private fun BarMenu(
                 text = { Text(if (page.loading) "Stop" else "Reload") },
                 leadingIcon = { Icon(if (page.loading) KoanIcons.Close else KoanIcons.Reload, null, Modifier.size(BarTokens.MenuGlyph)) },
                 onClick = { open = false; if (page.loading) onStop() else onReload() },
+            )
+            DropdownMenuItem(
+                text = { Text("Desktop site") },
+                trailingIcon = { KoanToggle(checked = desktopSite, onCheckedChange = null) },
+                onClick = { onDesktopSite(!desktopSite) },
             )
             // Dev-only items (50-card check, bar comparison) until M1 is signed off.
             extras.forEach { (label, action) ->

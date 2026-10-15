@@ -134,6 +134,7 @@ material3), Room, DataStore, WorkManager, kotlinx.coroutines, kotlinx.serializat
 androidx.security / Keystore, Coil 3 (images), Mozilla android-components + GeckoView (incl.
 `browser-session-storage`, approved for M3),
 androidsvg (favicons, as in Z-Sync), baselineprofile, JUnit, Turbine, Robolectric (if needed).
+Approved for M5 (2026-10-16): AC `feature-readerview`, AC `concept-storage`, `androidx.biometric`.
 
 ## Decisions log
 
@@ -186,6 +187,10 @@ androidsvg (favicons, as in Z-Sync), baselineprofile, JUnit, Turbine, Robolectri
   placeholder) until the engine reports a fresh first paint; no white flash on open, restore or
   cold start. Dock hides with GeckoView's dynamic toolbar (`setDynamicToolbarMaxHeight` +
   `setVerticalClipping`), driven by GeckoView's nested scrolling through Compose.
+
+- 2026-10-16 — **M5 visual system**: light theme fully neutral (no space wash); the brand gradient
+  (`BrandTokens`) marks only "Koan is working / active / your focus" (UI_SPEC "Brand gradient").
+  `SpaceColors` shrank to the switcher pill's accent and ink. Shared controls live in `ui/kit`.
 
 _(Claude Code: append dated decisions here, e.g. "2026-10-20 — chose android-components over raw
 GeckoView because …")_

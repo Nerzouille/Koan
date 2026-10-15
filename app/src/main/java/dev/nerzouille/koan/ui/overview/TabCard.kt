@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.BrandDot
 
 /**
  * What a card needs to draw itself. Immutable so unchanged cards skip recomposition. [pinned] =
@@ -98,7 +99,6 @@ fun TabCard(
     depth: () -> Float,
     blurFor: (Float) -> RenderEffect?,
     dimColor: Color,
-    accent: Color,
     modifier: Modifier = Modifier,
 ) {
     val palette = KoanTheme.colors
@@ -183,7 +183,7 @@ fun TabCard(
                     if (dim > 0.01f) drawRect(dimColor, alpha = dim)
                 },
         )
-        CardHeader(card, depth, dimColor, accent)
+        CardHeader(card, depth, dimColor)
         Box(Modifier.fillMaxSize().border(CardTokens.Hairline, palette.CardBorder, CardShape))
     }
 }
@@ -191,7 +191,7 @@ fun TabCard(
 private val CardShape = RoundedCornerShape(CardTokens.Radius)
 
 @Composable
-private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color, accent: Color) {
+private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
     val palette = KoanTheme.colors
     Row(
         Modifier
@@ -225,7 +225,7 @@ private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color, acc
             }
             if (card.active) {
                 Spacer(Modifier.width(CardTokens.HeaderGap))
-                Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(accent))
+                BrandDot()
             }
         }
         // ✕ only on the focused card; the stack's gesture handler does the hit-testing.

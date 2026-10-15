@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.bar
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
@@ -53,8 +52,7 @@ import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.Motion
-import dev.nerzouille.koan.ui.theme.SpaceColors
+import dev.nerzouille.koan.ui.theme.BrandTokens
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -84,8 +82,6 @@ fun KoanBar(
     bar: BarGestures,
     loading: Boolean,
     loadProgress: Float,
-    /** The current space's colours: the load line uses its gradient. */
-    colors: SpaceColors,
     /** Page view: how far the dock has slid down as the page scrolls (px); read in a layer. */
     dockHide: () -> Float,
     drawerContent: @Composable (Modifier) -> Unit,
@@ -97,11 +93,6 @@ fun KoanBar(
     val drawer = bar.drawer
     val palette = KoanTheme.colors
     val line = rememberLoadLine(loading, loadProgress)
-    // The space colours crossfade when the current space changes; read only while drawing.
-    val fade = tween<Color>(Motion.ACCENT_FADE_MS)
-    val c0 = animateColorAsState(colors.progress[0], fade, label = "progress0")
-    val c1 = animateColorAsState(colors.progress[1], fade, label = "progress1")
-    val c2 = animateColorAsState(colors.progress[2], fade, label = "progress2")
 
     // The drawer's caps from the window: compact keeps the whole dock under ~55% of the screen,
     // full stops just below the status bar.
@@ -146,7 +137,7 @@ fun KoanBar(
                     drawPath(dockPath(top + hairline, r), palette.Dock)
                     // Page load line on the top edge, page view only.
                     val a = line.alpha.value * (1f - row)
-                    if (a > 0.01f) drawLoadLine(top, line, a, shimmerPx, c0.value, c1.value, c2.value)
+                    if (a > 0.01f) drawLoadLine(top, line, a, shimmerPx)
                 }
             }
             .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
@@ -257,12 +248,13 @@ private fun rememberLoadLine(loading: Boolean, progress: Float): LoadLine {
     return line
 }
 
-private fun DrawScope.drawLoadLine(top: Float, line: LoadLine, alpha: Float, shimmerPx: Float, c0: Color, c1: Color, c2: Color) {
+/** The brand gradient: Koan is working. It spans the filled part, so the blue end leads. */
+private fun DrawScope.drawLoadLine(top: Float, line: LoadLine, alpha: Float, shimmerPx: Float) {
     val w = size.width * line.progress.value
     if (w < 1f) return
     val h = BarTokens.ProgressHeight.toPx()
     val glow = BarTokens.ProgressGlow.toPx()
-    val brush = Brush.horizontalGradient(listOf(c0, c1, c2), startX = 0f, endX = w)
+    val brush = Brush.horizontalGradient(BrandTokens.Colors, startX = 0f, endX = w)
     // A soft glow: two wider, fainter passes of the same gradient under the line.
     drawRect(brush, topLeft = Offset(0f, top + h / 2f - glow / 2f), size = Size(w, glow), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA * 0.35f)
     drawRect(brush, topLeft = Offset(0f, top + h / 2f - glow / 4f), size = Size(w, glow / 2f), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA)

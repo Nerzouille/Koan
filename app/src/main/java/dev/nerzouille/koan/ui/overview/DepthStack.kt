@@ -46,7 +46,6 @@ import androidx.compose.ui.zIndex
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.KoanPalette
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.SpaceColors
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlin.math.PI
@@ -67,7 +66,6 @@ import kotlin.math.sin
 @Composable
 fun DepthStack(
     cards: List<CardModel>,
-    colors: SpaceColors,
     state: StackState,
     enabled: Boolean,
     onOpen: (String) -> Unit,
@@ -177,8 +175,8 @@ fun DepthStack(
     }
 
     val palette = KoanTheme.colors
-    // Light: back cards fade into the wash where the pile sits; dark: they darken.
-    val dimColor = if (palette.DimFromHaze) colors.haze else Color.Black
+    // Light: back cards fade into the background (a haze); dark: they darken.
+    val dimColor = if (palette.DimToBase) palette.Base else Color.Black
 
     BoxWithConstraints(modifier.clipToBounds()) {
         val width = constraints.maxWidth.toFloat()
@@ -315,7 +313,6 @@ fun DepthStack(
                         depth = { if (near.value) geo.depthOf(a) else OFFSCREEN_DEPTH },
                         blurFor = blurFor,
                         dimColor = dimColor,
-                        accent = colors.accent,
                         modifier = layout.graphicsLayer { geo.applyTo(this, a) },
                     )
                 }

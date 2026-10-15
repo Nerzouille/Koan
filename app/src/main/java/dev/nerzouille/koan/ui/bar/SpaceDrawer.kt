@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
@@ -52,6 +51,9 @@ import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.BrandDot
+import dev.nerzouille.koan.ui.theme.BrandSpinner
+import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlinx.coroutines.CoroutineScope
@@ -355,7 +357,7 @@ private fun DrawerPage(
                 space.pinned.forEach { row ->
                     key(row.key) {
                         when (row) {
-                            is DrawerRow.Tab -> PinnedRow(row, space.colors.accent, interactive, onOpenTab)
+                            is DrawerRow.Tab -> PinnedRow(row, interactive, onOpenTab)
                             is DrawerRow.Folder -> FolderRow(row, interactive) { onToggleFolder(row.id, !row.collapsed) }
                         }
                     }
@@ -367,7 +369,7 @@ private fun DrawerPage(
 }
 
 @Composable
-private fun PinnedRow(row: DrawerRow.Tab, accent: Color, interactive: Boolean, onOpenTab: (String) -> Unit) {
+private fun PinnedRow(row: DrawerRow.Tab, interactive: Boolean, onOpenTab: (String) -> Unit) {
     val tab = row.card
     Row(
         Modifier
@@ -388,7 +390,7 @@ private fun PinnedRow(row: DrawerRow.Tab, accent: Color, interactive: Boolean, o
             modifier = Modifier.weight(1f),
         )
         if (tab.active) {
-            Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(accent))
+            BrandDot()
             Spacer(Modifier.width(DrawerTokens.PinnedPadding))
         }
         if (row.depth == 0) Icon(KoanIcons.Pin, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(DrawerTokens.PinnedGlyph))
@@ -463,6 +465,9 @@ private fun StatusRow(status: DrawerStatus, interactive: Boolean, onClick: () ->
     ) {
         if (attention) {
             Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanTheme.colors.Attention))
+            Spacer(Modifier.width(DrawerTokens.Gap))
+        } else if (status == DrawerStatus.Syncing) {
+            BrandSpinner(FirstRunTokens.BadgeSpinner)
             Spacer(Modifier.width(DrawerTokens.Gap))
         }
         Text(text, color = KoanTheme.colors.TextSecondary, fontSize = DrawerTokens.StatusTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)

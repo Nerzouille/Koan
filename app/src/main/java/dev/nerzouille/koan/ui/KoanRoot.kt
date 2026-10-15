@@ -68,7 +68,6 @@ import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.SpaceColors
 import kotlinx.coroutines.launch
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
@@ -100,8 +99,6 @@ fun KoanRoot(components: Components) {
     val palette = KoanTheme.colors
     val themeMode by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
     val models = remember(spaces, activeTabId, palette) { spaces.map { it.toModel(activeTabId, palette) } }
-    val defaultColors = remember(palette) { SpaceColors.of(emptyList(), palette) }
-    val currentColors = models.getOrNull(currentSpace)?.colors ?: defaultColors
 
     // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph. A swipe on the
     // dock drives it 1:1; otherwise it springs.
@@ -409,6 +406,7 @@ fun KoanRoot(components: Components) {
                     progress = (c?.progress ?: 0) / 100f,
                     canGoBack = c?.canGoBack == true,
                     canGoForward = c?.canGoForward == true,
+                    desktopSite = c?.desktopMode == true,
                 )
             }
         }
@@ -425,7 +423,6 @@ fun KoanRoot(components: Components) {
             bar = bar,
             loading = currentPage.loading,
             loadProgress = currentPage.progress,
-            colors = currentColors,
             dockHide = { dock.offset },
             drawerContent = { modifier ->
                 DrawerContent(
@@ -454,7 +451,8 @@ fun KoanRoot(components: Components) {
                 AddressRow(
                     page = currentPage,
                     tabCount = models.getOrNull(currentSpace)?.stack?.size ?: 0,
-                    accent = currentColors.accent,
+                    desktopSite = currentPage.desktopSite,
+                    onDesktopSite = { on -> activeTabId?.let { session.requestDesktopSite(on, it) } },
                     editing = editing,
                     overviewOpen = overviewOpen,
                     overview = { motion.progress },

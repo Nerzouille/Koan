@@ -21,6 +21,8 @@ import androidx.compose.ui.text.style.TextAlign
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.brandOutline
+import dev.nerzouille.koan.ui.kit.PrimaryButton
 
 /** Cards the stack shows while the very first sync runs, so the overview is never blank. */
 val SkeletonCards: List<CardModel> = List(FirstRunTokens.SKELETON_CARDS) { i ->
@@ -39,7 +41,8 @@ fun ConnectCard(onConnect: () -> Unit, compact: Boolean, modifier: Modifier = Mo
                 .padding(horizontal = FirstRunTokens.SideMargin)
                 .fillMaxWidth()
                 .clip(CircleShape)
-                .background(KoanTheme.colors.Glass)
+                .background(KoanTheme.colors.Card)
+                .brandOutline(CircleShape)
                 .clickable(onClick = onConnect)
                 .padding(vertical = FirstRunTokens.CompactPadding),
             contentAlignment = Alignment.Center,
@@ -54,6 +57,7 @@ fun ConnectCard(onConnect: () -> Unit, compact: Boolean, modifier: Modifier = Mo
             .fillMaxWidth()
             .clip(RoundedCornerShape(CardTokens.Radius))
             .background(KoanTheme.colors.Card)
+            .brandOutline(RoundedCornerShape(CardTokens.Radius))
             .padding(FirstRunTokens.Padding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FirstRunTokens.Gap),
@@ -73,14 +77,6 @@ fun ConnectCard(onConnect: () -> Unit, compact: Boolean, modifier: Modifier = Mo
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(FirstRunTokens.Gap))
-        Box(
-            Modifier
-                .clip(CircleShape)
-                .background(KoanTheme.colors.NewTabButton)
-                .clickable(onClick = onConnect)
-                .padding(horizontal = FirstRunTokens.ButtonPaddingH, vertical = FirstRunTokens.ButtonPaddingV),
-        ) {
-            Text("Sign in", color = KoanTheme.colors.NewTabIcon, fontSize = FirstRunTokens.ButtonSize, fontWeight = FontWeight.Bold)
-        }
+        PrimaryButton("Sign in", onClick = onConnect)
     }
 }

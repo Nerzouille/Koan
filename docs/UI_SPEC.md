@@ -36,8 +36,8 @@ outside the repo; the interaction rules below always apply.
 └──────────────────────────────┘
 ```
 
-- Background: see "Themes". Light = near-white with a soft wash of the space colour at the top;
-  Dark = plain dark grey. The wash crossfades with the drag when switching spaces.
+- Background: see "Themes". Plain neutral in both themes (light `#F5F5F7`, dark `#1C1C1E`): no
+  space-colour wash anywhere.
 - Essentials and pinned tabs live in the **drawer** (see below), not in the overview itself.
 - The card stack: folders (a labelled group that can collapse to a single "deck"
   card), then normal tabs, most recent last (bottom, closest to the thumb).
@@ -85,8 +85,8 @@ to the top of the stack.
   is visible depends on its depth.
 - Thumbnail fills the card, top-aligned, cropped (not letterboxed). Header and placeholder rules:
   see "Visual restraint".
-- The currently active tab's card is marked by a small dot in the space's accent next to its title,
-  not a stroke.
+- The currently active tab's card is marked by a small **brand-gradient dot** (7dp) next to its
+  title, not a stroke. Same marker on the live pinned row in the drawer.
 
 ### Depth stack (the "premium" feel) — most important visual rule
 
@@ -108,7 +108,7 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
   with sMin = 0.58, r_s = 0.52 → .80 · .69 · .64 · .61. Thumbnail darkness (brightness 1 → .84 →
   .72 → .62 …) and blur (σ 0, 0, .5, 1, 1.6, 2.2, 2.8 dp) increase with depth, keyframes joined
   linearly; cards fade out from d ≈ 5 and are gone by d = 8. In Light the "darkness" is a haze
-  towards the space's wash colour instead (1.25× the dim, at most 85%), like the design.
+  towards the neutral background (`#F5F5F7`) instead (1.25× the dim, at most 85%).
 - **Card in front (d = −1):** closer to the viewer, so slightly **bigger** (scale 1.05) and drawn
   over the focused card: it overlaps the focused card's bottom by 40dp, no gap between them. Only
   its header strip and a hint of thumbnail show (60dp); the bottom fade is 16dp so it stays crisp. Cards past it fade out
@@ -220,9 +220,8 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 - **Page view:** the dock, full width, square: back · big address field (50dp, 17sp, domain
   only) · tab count · menu. Swipe up on the bar (or tap the tab count) opens the overview;
   sideways switches tab; long-press then sideways switches space (see the gesture model above).
-- **Loading line** (design 4d): a 2dp gradient line on the dock's top edge, from the left, in the
-  space's gradient colours (pink → violet → blue when the space has fewer than two usable
-  colours), with a soft glow. It eases towards the engine's progress (800ms, never backwards), a
+- **Loading line** (design 4d, 7g): a 2dp line in the **brand gradient** on the dock's top edge,
+  from the left, with a soft glow. It eases towards the engine's progress (800ms, never backwards), a
   lighter streak sweeps along it while it waits, and on completion it runs to the end and fades
   out (350ms). Page view only.
 - **Overview:** the same strip grows upward; the workspace switcher row (with the drawer handle)
@@ -238,7 +237,7 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 - **Switching is a simple pager**, driven by horizontal drags anywhere on the bar:
   - The whole space follows the finger 1:1 (header and stack move as one unit; the stack trails
     slightly with parallax 0.85× and scale 0.96 → 1).
-  - The background (light: the wash; the switcher pill) interpolates between the two spaces by drag fraction.
+  - The switcher pill interpolates between the two spaces by drag fraction.
   - Release: dragged past **25% of the width**, or flung in the drag direction, commits to the
     neighbour; otherwise it springs back.
   - **Exactly one light haptic tick per committed switch**, on release. Never while dragging.
@@ -264,28 +263,61 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 
 ## Themes
 
-Source: the "Themes" mockup (Light A "soft wash" and Dark; Light B is not used). Setting: Light / Dark / Follow system (default), in the ⋯ menu
-for now (Settings screen later). Web pages follow it too (`prefers-color-scheme`).
+Source: `docs/reference/design/Koan Essentials.html` section 7 ("M5 · Browser essentials — brand
+gradient"). It supersedes the theme sections of `Koan Screens.dc.html` (the "soft wash" light theme
+is gone). Setting: Light / Dark / Follow system (default). Web pages follow it too
+(`prefers-color-scheme`).
 
-- **Light ("soft wash"):** background `#FFFFFF` with a wash of the space colour at the top:
-  accent mixed into white at 16% at the top, 9% at 24% of the height, plain white from 50%.
-- **Dark:** plain `#1C1C1E` background, cards `#2C2C2E`, dock `#252527`. No wash.
-- **The space colour is only a small accent:** the loading line, the active space pill, the
-  current-tab dot, the address field's focus ring and cursor, and the light wash. It is derived
-  from the Zen gradient's first colour (hue kept; saturation ≥ 55%; lightness pulled into
-  45–62% light, 62–74% dark; ink text 38% / 80%). A grey or missing theme uses the default accent
-  (`#5B6CFF` light, `#8EA2FF` dark). It crossfades on space switch (with the drag in the overview,
-  400ms elsewhere).
+- **Light, fully neutral:** base `#F5F5F7`, white surfaces (cards, dock, sheets), grey grouped
+  rows, black text. No space-colour wash anywhere.
+- **Dark:** base `#1C1C1E`, surfaces `#2C2C2E`, dock `#252527`.
+- **Space colours stay only on tiny space indicators:** space icons and the active space pill in
+  the switcher (accent from the Zen gradient's first colour: hue kept, saturation ≥ 55%, lightness
+  45–62% light / 62–74% dark; pill tint 14% / 18%; ink text 38% / 80%; grey or missing theme uses
+  `#5B6CFF` light / `#8EA2FF` dark).
+
+### Brand gradient
+
+Pink → violet → blue (`#FF5FA2` → `#B46BFF` → `#4F8DFF`, `BrandTokens`, helpers in
+`ui/theme/Brand.kt`). A design-language element that means **Koan is working, active, or holds
+your focus**, used only for:
+
+- the page loading line; the download completion moment; download progress bars in the list;
+- the syncing indicator (a small turning gradient arc);
+- the current-tab marker (stack card and drawer row);
+- toggles ON; the "@" search mode (ring + cursor);
+- Settings' aurora glow, the account card outline, About, and the first-run "Connect your Zen
+  Spaces" card (gradient outline).
+
+**Never** on login or password UI, permission prompts, destructive actions, body text, or behind
+web content. Primary buttons are never gradient.
+
+### Controls
+
+- **Toggles** (`ui/kit/KoanToggle`, 50×30dp): ON = the gradient track at 90% (slightly softened)
+  with a white knob and a soft shadow; OFF = `#E5E5EA` light / `#3A3A3C` dark. On a tap the knob
+  springs across and the gradient flows in behind it, from the left edge up to the knob. Light
+  haptic tick. Draw-only animation.
+- **Buttons** (`ui/kit/Buttons`): primary = black pill with white text in light, white with black
+  text in dark, 50dp tall. Destructive = red text only on a neutral row, never a red fill.
+- **Search field:** docked right above the keyboard (the bar follows the IME), search glyph on the
+  left, ✕ on the right. While typing: a neutral 1.5dp ring (`#B4B4BA` light / white 30% dark) and
+  a plain cursor. Typing "@" first makes the brand gradient flow in from the left around both
+  halves of the ring (2dp, soft glow, gradient cursor) on a soft spring; deleting the "@" flows it
+  back out to neutral.
 
 ## Visual tokens (starting point, tweak freely)
 
 All values live in `ui/theme/Tokens.kt`: one `KoanPalette` per theme (colours), plus the shared
 size/motion objects.
 
-- Light: base/cards/dock `#FFFFFF`, small surfaces `#F2F2F5`, field `#F1F1F4`, text `#1C1C1E`,
-  secondary/icons `#6E6E73`, hints `#8E8E93`.
+- Light: base `#F5F5F7`, cards/dock/sheets `#FFFFFF`, small surfaces `#EBEBEF`, grouped rows
+  `#F2F2F5`, field `#F1F1F4`, text `#1C1C1E`, secondary/icons `#6E6E73`, hints `#8E8E93`, toggle
+  OFF `#E5E5EA`, destructive `#E5342B`.
 - Dark: base `#1C1C1E`, cards `#2C2C2E`, dock `#252527`, small surfaces and field `white @ 8%`,
-  text `#FFFFFF`, secondary `white @ 62%`, icons `#98989D`, hints `white @ 60%`.
+  grouped rows `white @ 7%`, text `#FFFFFF`, secondary `white @ 62%`, icons `#98989D`, hints
+  `white @ 60%`, toggle OFF `#3A3A3C`, destructive `#FF5A50`.
+- Brand gradient: `#FF5FA2` → `#B46BFF` → `#4F8DFF` (see "Brand gradient").
 - Typography: one geometric sans (e.g. Inter or Google Sans Flex if bundled); titles 20sp bold,
   card titles 16sp semibold, body 14sp.
 - Radii: cards 28dp, pills full, sheets 32dp top.
