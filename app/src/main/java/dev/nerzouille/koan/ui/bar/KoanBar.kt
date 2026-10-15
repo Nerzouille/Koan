@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.bar
 
-import android.view.HapticFeedbackConstants
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
@@ -8,8 +7,6 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
@@ -47,14 +45,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.Velocity
-import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -63,8 +58,6 @@ import dev.nerzouille.koan.ui.theme.SpaceColors
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.max
-import dev.nerzouille.koan.ui.theme.PagerTokens
-import kotlin.math.abs
 
 private const val OFFSCREEN_PX = 100_000
 
@@ -82,30 +75,26 @@ fun barZone(overview: Boolean): Dp =
  * upward and the workspace switcher appears on top; in the overview it grows further into the
  * essentials/pinned drawer. The morphs never relayout per frame: rows are laid out, the surface is drawn.
  *
- * Input in the overview: horizontal drags anywhere on the bar switch spaces, vertical drags open and
- * close the drawer.
+ * Input: see [barGestures] (up = one level deeper, down = one level back, sideways = tabs or spaces).
  */
 @Composable
 fun KoanBar(
     overviewOpen: Boolean,
     overview: () -> Float,
-    pager: SpacePager,
-    drawer: DrawerState,
+    bar: BarGestures,
     loading: Boolean,
     loadProgress: Float,
     /** The current space's colours: the load line uses its gradient. */
     colors: SpaceColors,
-    onSwipeUp: () -> Unit,
     /** Page view: how far the dock has slid down as the page scrolls (px); read in a layer. */
     dockHide: () -> Float,
-    /** Page view: a swipe on the address row landed on another space (its index). */
-    onSpaceSwipe: (Int) -> Unit,
     drawerContent: @Composable (Modifier) -> Unit,
     switcher: @Composable (Modifier) -> Unit,
     address: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
+    val drawer = bar.drawer
     val palette = KoanTheme.colors
     val line = rememberLoadLine(loading, loadProgress)
     // The space colours crossfade when the current space changes; read only while drawing.
@@ -114,89 +103,19 @@ fun KoanBar(
     val c1 = animateColorAsState(colors.progress[1], fade, label = "progress1")
     val c2 = animateColorAsState(colors.progress[2], fade, label = "progress2")
 
-    val overviewGestures = Modifier.pointerInput(pager, drawer) {
-        val pagerFling = PagerTokens.FlingVelocity.toPx()
-        val drawerFling = DrawerTokens.FlingVelocity.toPx()
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false)
-            val tracker = VelocityTracker()
-            tracker.addPosition(down.uptimeMillis, down.position)
-            var total = Offset.Zero
-            var horizontal: Boolean? = null
-            while (true) {
-                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id }
-                if (change == null || !change.pressed) {
-                    val v = if (change == null) Velocity.Zero else tracker.calculateVelocity()
-                    when (horizontal) {
-                        // Exactly one light tick per committed space switch, on release.
-                        true -> if (pager.release(v.x, pagerFling)) view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                        false -> drawer.release(v.y, drawerFling)
-                        null -> Unit
-                    }
-                    break
-                }
-                // The pinned list scrolled with this drag: leave it to the list (and settle the sheet
-                // back if it had started to follow).
-                if (horizontal != true && change.isConsumed) {
-                    if (horizontal == false) drawer.release(0f, drawerFling)
-                    break
-                }
-                tracker.addPosition(change.uptimeMillis, change.position)
-                val delta = change.positionChange()
-                if (horizontal == null) {
-                    total += delta
-                    if (total.getDistance() <= viewConfiguration.touchSlop) continue
-                    horizontal = abs(total.x) > abs(total.y)
-                    if (horizontal) pager.grab() else drawer.grab()
-                }
-                if (horizontal) pager.dragBy(delta.x) else drawer.dragBy(delta.y)
-                change.consume()
-            }
-        }
+    // The drawer's caps from the window: compact keeps the whole dock under ~55% of the screen,
+    // full stops just below the status bar.
+    val density = LocalDensity.current
+    val windowPx = LocalWindowInfo.current.containerSize.height.toFloat()
+    with(density) {
+        val rows = (BarTokens.SwitcherRowHeight + BarTokens.AddressRowHeight).toPx()
+        val below = WindowInsets.navigationBars.getBottom(density) + BarTokens.BottomMargin.toPx()
+        val top = WindowInsets.statusBars.getTop(density) + DrawerTokens.FullTopGap.toPx()
+        drawer.compactCapPx = windowPx * DrawerTokens.COMPACT_MAX_FRACTION - rows - below
+        drawer.fullCapPx = windowPx - top - rows - below
+        drawer.minStepPx = DrawerTokens.MinDetentStep.toPx()
     }
-    val pageGestures = Modifier.pointerInput(pager) {
-        // Up on the address row opens the overview; sideways switches space (the pill follows).
-        val pagerFling = PagerTokens.FlingVelocity.toPx()
-        val openPx = BarTokens.SwipeUpToOpen.toPx()
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = false)
-            val tracker = VelocityTracker()
-            tracker.addPosition(down.uptimeMillis, down.position)
-            var total = Offset.Zero
-            var horizontal: Boolean? = null
-            val from = pager.settled
-            while (true) {
-                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id }
-                if (change == null || !change.pressed) {
-                    if (horizontal == true) {
-                        val v = if (change == null) Velocity.Zero else tracker.calculateVelocity()
-                        val to = pager.releaseTo(v.x, pagerFling)
-                        if (to != from) {
-                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                            onSpaceSwipe(to)
-                        }
-                    }
-                    break
-                }
-                tracker.addPosition(change.uptimeMillis, change.position)
-                val delta = change.positionChange()
-                total += delta
-                if (horizontal == null) {
-                    if (total.getDistance() <= viewConfiguration.touchSlop) continue
-                    horizontal = abs(total.x) > abs(total.y)
-                    if (horizontal) pager.grab()
-                }
-                if (horizontal) {
-                    pager.dragBy(delta.x)
-                } else if (total.y < -openPx) {
-                    change.consume()
-                    onSwipeUp()
-                    break
-                }
-                change.consume()
-            }
-        }
-    }
+    val gestures = Modifier.barGestures(bar, view)
 
     Column(
         modifier
@@ -209,8 +128,8 @@ fun KoanBar(
                 onDrawBehind {
                     val o = overview()
                     val d = drawer.progress
-                    val drawerPx = if (overviewOpen) drawer.heightPx else 0f
-                    val top = drawerPx * (1f - d) + BarTokens.SwitcherRowHeight.toPx() * (1f - o)
+                    val sheetTop = if (overviewOpen) drawer.sheetTop() else 0f
+                    val top = sheetTop + BarTokens.SwitcherRowHeight.toPx() * (1f - o)
                     // Square under a page, rounded in the overview, a little more as the drawer.
                     val r = BarTokens.DockRadius.toPx() * o * (1f - d) + DrawerTokens.TopRadius.toPx() * d
                     // Soft shadow cast upward over the content; it wraps the rounded corners.
@@ -232,21 +151,21 @@ fun KoanBar(
     ) {
         if (overviewOpen) {
             drawerContent(
-                (if (drawer.open) overviewGestures else Modifier).layout { measurable, constraints ->
+                (if (drawer.open) Modifier.barGestures(bar, view, drawerArea = true) else Modifier).layout { measurable, constraints ->
                     val p = measurable.measure(constraints)
                     layout(p.width, p.height) {
                         // Fully closed, the (invisible) sheet still takes its height so drags know
                         // their distance, but sits off-screen: its pinned list must never catch the
                         // touches meant for the stack behind it. Placement only, no recomposition.
-                        val shown = drawer.open || drawer.progress > 0f
+                        val shown = drawer.open || drawer.height > 0f
                         p.place(if (shown) 0 else -OFFSCREEN_PX, 0)
                     }
                 },
             )
         }
-        Column(if (overviewOpen) overviewGestures else Modifier) {
+        Column {
             Box(
-                Modifier
+                (if (overviewOpen) gestures else Modifier)
                     .height(BarTokens.SwitcherRowHeight)
                     .graphicsLayer {
                         val p = overview()
@@ -257,10 +176,11 @@ fun KoanBar(
             ) {
                 switcher(Modifier.fillMaxSize())
                 if (overviewOpen) {
-                    DrawerHandle(onClick = { drawer.animateTo(!drawer.open) }, modifier = Modifier.align(Alignment.TopCenter))
+                    DrawerHandle(onClick = drawer::toggle, modifier = Modifier.align(Alignment.TopCenter))
                 }
             }
-            address(Modifier.height(BarTokens.AddressRowHeight).then(if (overviewOpen) Modifier else pageGestures))
+            // The same handler instance in both screens: a drag that opens the overview keeps going.
+            address(Modifier.height(BarTokens.AddressRowHeight).then(gestures))
         }
     }
 }

@@ -41,7 +41,14 @@ import dev.nerzouille.koan.ui.bar.KoanBar
 import dev.nerzouille.koan.ui.bar.PageInfo
 import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
 import dev.nerzouille.koan.ui.bar.barZone
-import dev.nerzouille.koan.ui.bar.SwipeSpace
+import dev.nerzouille.koan.ui.bar.SwipeTarget
+import dev.nerzouille.koan.ui.bar.BarGestures
+import dev.nerzouille.koan.ui.bar.Detent
+import dev.nerzouille.koan.ui.browser.TabSwipe
+import dev.nerzouille.koan.thumbs.ThumbnailStore
+import dev.nerzouille.koan.search.displayHost
+import dev.nerzouille.koan.ui.theme.BarTokens
+import androidx.compose.animation.splineBasedDecay
 import dev.nerzouille.koan.ui.browser.BrowserScreen
 import dev.nerzouille.koan.ui.browser.CoverTarget
 import dev.nerzouille.koan.ui.browser.DockState
@@ -94,19 +101,21 @@ fun KoanRoot(components: Components) {
     val defaultColors = remember(palette) { SpaceColors.of(emptyList(), palette) }
     val currentColors = models.getOrNull(currentSpace)?.colors ?: defaultColors
 
-    // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph.
-    val progress = remember { Animatable(if (overviewOpen) 1f else 0f) }
+    // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph. A swipe on the
+    // dock drives it 1:1; otherwise it springs.
+    val motion = remember { OverviewMotion(overviewOpen) }
     // The open motion has finished: the overview may now do the work it put off (thumbs/BakedBlur,
     // composing the neighbouring spaces).
     var overviewSettled by remember { mutableStateOf(false) }
-    LaunchedEffect(overviewOpen) {
+    LaunchedEffect(overviewOpen, motion.dragging) {
         overviewSettled = false
         BakedBlur.onOverviewMotion(running = true, open = overviewOpen)
-        progress.animateTo(if (overviewOpen) 1f else 0f, Motion.Overview)
+        if (motion.dragging) return@LaunchedEffect
+        motion.settle(overviewOpen)
         BakedBlur.onOverviewMotion(running = false, open = overviewOpen)
         overviewSettled = overviewOpen
     }
-    val overviewVisible by remember { derivedStateOf { overviewOpen || progress.value > 0f } }
+    val overviewVisible by remember { derivedStateOf { overviewOpen || motion.progress > 0f } }
 
     val scope = rememberCoroutineScope()
     val pager = remember { SpacePager(currentSpace, scope) }
@@ -143,7 +152,8 @@ fun KoanRoot(components: Components) {
         currentSpace = target
         spaceIds.getOrNull(target)?.let { currentSpaceUuid = it }
     }
-    val drawer = remember { DrawerState(scope) }
+    motion.distancePx = with(density) { BarTokens.OverviewDrag.toPx() }
+    val drawer = remember(density) { DrawerState(scope, splineBasedDecay(density)) }
     LaunchedEffect(overviewOpen) { if (!overviewOpen) drawer.snapClosed() }
 
     // Blur radii baked for the cards behind the open drawer (weakest first, see drawerBackdrop).
@@ -156,6 +166,8 @@ fun KoanRoot(components: Components) {
     // The page cover zooms the tapped card's screenshot in (read when the cover starts).
     val zoomIn = remember { mutableStateOf(false) }
     val dock = remember { DockState(scope) }
+    val tabSwipe = remember { TabSwipe(scope, tabs.current) }
+    tabSwipe.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { BarTokens.TabSwipeGap.toPx() }
     SideEffect { dock.locked = overviewOpen || editing }
     LaunchedEffect(activeTabId) { dock.snapShown() }
 
@@ -212,6 +224,30 @@ fun KoanRoot(components: Components) {
         val index = pager.settled
         lastTabOf(index)?.let { openTab(index, it) }
     }
+    /** The current tab's neighbours in its space's stack (previous, next), for a swipe on the dock. */
+    fun tabNeighbours(): Pair<TabEntity?, TabEntity?> {
+        val s = spaces.getOrNull(currentSpace) ?: return null to null
+        val i = s.stack.indexOfFirst { item -> item.tabs.any { it.koanTabId == activeTabId } }
+        if (i < 0) return null to null
+        return s.stack.getOrNull(i - 1)?.first to s.stack.getOrNull(i + 1)?.first
+    }
+    // Their screenshots are decoded ahead, so a swipe shows them from its first frame.
+    LaunchedEffect(activeTabId, spaces) {
+        val (previous, next) = tabNeighbours()
+        ThumbnailStore.prefetch(listOfNotNull(previous?.thumbnailKey, next?.thumbnailKey))
+    }
+    val bar = remember { BarGestures(pager, drawer, motion, tabSwipe) }
+    bar.overviewOpen = { overviewOpen }
+    bar.onOverviewDragStart = ::openOverview
+    bar.onOverviewSettle = { open -> if (!open) dismissOverview() }
+    bar.tabNeighbours = ::tabNeighbours
+    bar.onTabSwipe = { tab -> openTab(currentSpace, tab) }
+    bar.onSpaceSwipe = { index ->
+        currentSpace = index
+        val tab = lastTabOf(index)
+        if (tab != null) openTab(index, tab) else openOverview()
+    }
+
     // No tab to show (first run, or the last one was closed in Zen): the overview.
     LaunchedEffect(tabsStarted, activeTabId, spaces.isEmpty()) {
         if (tabsStarted && activeTabId == null && spaces.isNotEmpty() && !overviewOpen) openOverview()
@@ -276,6 +312,7 @@ fun KoanRoot(components: Components) {
                 }
             },
             zoomIn = { zoomIn.value },
+            swipe = tabSwipe,
         )
         if (overviewVisible) {
             OverviewScreen(
@@ -300,7 +337,7 @@ fun KoanRoot(components: Components) {
                 onConnect = { signingIn = true },
                 modifier = Modifier
                     .graphicsLayer {
-                        val p = progress.value
+                        val p = motion.progress
                         alpha = p
                         val s = 1f + Motion.OVERVIEW_ZOOM * (1f - p)
                         scaleX = s
@@ -316,14 +353,14 @@ fun KoanRoot(components: Components) {
         }
         if (drawer.open) {
             // Tap outside the drawer closes it; nothing behind it takes input meanwhile.
-            BackHandler { drawer.animateTo(false) }
+            BackHandler { drawer.animateTo(Detent.Closed) }
             Box(
                 Modifier
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         awaitEachGesture {
                             awaitFirstDown().consume()
-                            drawer.animateTo(false)
+                            drawer.animateTo(Detent.Closed)
                         }
                     },
             )
@@ -344,23 +381,20 @@ fun KoanRoot(components: Components) {
             }
         }
         val currentPage = page
+        // Page view space mode: held from the long press until the switch has landed.
+        val spaceMode = !overviewOpen && (bar.spaceMode || pager.moving)
+        fun spaceTarget(index: Int) = models.getOrNull(index)?.let { SwipeTarget(it.name, spaceIcon = it.icon) }
+        fun tabTarget(tab: TabEntity) = SwipeTarget(displayHost(tab.url).ifEmpty { tab.title }, url = tab.url, favicon = tab.iconUrl, staticIcon = tab.staticIcon)
         // A new page load brings the dock back.
         LaunchedEffect(currentPage.loading) { if (currentPage.loading) dock.show() }
         KoanBar(
             overviewOpen = overviewOpen,
-            overview = { progress.value },
-            pager = pager,
-            drawer = drawer,
+            overview = { motion.progress },
+            bar = bar,
             loading = currentPage.loading,
             loadProgress = currentPage.progress,
             colors = currentColors,
-            onSwipeUp = ::openOverview,
             dockHide = { dock.offset },
-            onSpaceSwipe = { index ->
-                currentSpace = index
-                val tab = lastTabOf(index)
-                if (tab != null) openTab(index, tab) else openOverview()
-            },
             drawerContent = { modifier ->
                 DrawerContent(
                     spaces = models,
@@ -383,7 +417,7 @@ fun KoanRoot(components: Components) {
                     accent = currentColors.accent,
                     editing = editing,
                     overviewOpen = overviewOpen,
-                    overview = { progress.value },
+                    overview = { motion.progress },
                     onEditingChange = { on ->
                         editing = on
                         // Closing the sheet of a new tab that never got a url discards it.
@@ -423,9 +457,16 @@ fun KoanRoot(components: Components) {
                         add("Remove fake tabs (dev)" to { components.spaces.removeFakeTabs() })
                     },
                     modifier = modifier,
-                    swipe = { if (overviewOpen) 0f else pager.pos - pager.settled },
-                    previous = models.getOrNull(currentSpace - 1)?.let { SwipeSpace(it.name, it.icon) },
-                    next = models.getOrNull(currentSpace + 1)?.let { SwipeSpace(it.name, it.icon) },
+                    swipe = {
+                        when {
+                            overviewOpen -> 0f
+                            spaceMode -> pager.pos - pager.settled
+                            else -> tabSwipe.fraction
+                        }
+                    },
+                    previous = if (spaceMode) spaceTarget(pager.settled - 1) else tabSwipe.previous?.let(::tabTarget),
+                    next = if (spaceMode) spaceTarget(pager.settled + 1) else tabSwipe.next?.let(::tabTarget),
+                    space = if (spaceMode) spaceTarget(pager.settled) else null,
                 )
             },
             modifier = Modifier.align(Alignment.BottomCenter),

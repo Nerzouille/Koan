@@ -95,27 +95,32 @@ fun PageCover(target: CoverTarget?, store: BrowserStore, zoomIn: () -> Boolean, 
             .background(palette.Base),
     ) {
         if (current == null || current.blank) return@Box
-        val image = rememberThumbnail(current.thumb)
-        Box(
-            Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = scale.value
-                    scaleY = scale.value
-                },
-        ) {
-            if (image != null) {
-                Image(
-                    image,
-                    contentDescription = null,
-                    contentScale = ContentScale.FillWidth,
-                    alignment = Alignment.TopCenter,
-                    filterQuality = FilterQuality.Medium,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                CoverPlaceholder(current)
-            }
+        PagePreview(
+            current,
+            Modifier.graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            },
+        )
+    }
+}
+
+/** A tab as the page view would show it before it is live: its screenshot, else its placeholder. */
+@Composable
+fun PagePreview(target: CoverTarget, modifier: Modifier = Modifier) {
+    val image = rememberThumbnail(target.thumb)
+    Box(modifier.fillMaxSize().background(KoanTheme.colors.Base)) {
+        if (image != null) {
+            Image(
+                image,
+                contentDescription = null,
+                contentScale = ContentScale.FillWidth,
+                alignment = Alignment.TopCenter,
+                filterQuality = FilterQuality.Medium,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            CoverPlaceholder(target)
         }
     }
 }

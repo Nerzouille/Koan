@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -45,6 +46,7 @@ fun BrowserScreen(
     dock: DockState,
     cover: CoverTarget?,
     zoomIn: () -> Boolean,
+    swipe: TabSwipe,
 ) {
     val context = LocalContext.current
     val store = components.store
@@ -118,7 +120,17 @@ fun BrowserScreen(
                 }
             },
     ) {
-        AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())
-        PageCover(cover, store, zoomIn)
+        // A swipe on the dock: the page (and its cover) follows the finger, the neighbour tab's
+        // screenshot slides in beside it.
+        Box(Modifier.fillMaxSize().graphicsLayer { translationX = swipe.offset }) {
+            AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())
+            PageCover(cover, store, zoomIn)
+        }
+        swipe.previous?.let { tab ->
+            PagePreview(CoverTarget.of(tab, blank = false), Modifier.graphicsLayer { translationX = swipe.offset - swipe.pageWidthPx })
+        }
+        swipe.next?.let { tab ->
+            PagePreview(CoverTarget.of(tab, blank = false), Modifier.graphicsLayer { translationX = swipe.offset + swipe.pageWidthPx })
+        }
     }
 }

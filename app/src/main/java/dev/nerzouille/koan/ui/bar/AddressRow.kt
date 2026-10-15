@@ -1,6 +1,8 @@
 package dev.nerzouille.koan.ui.bar
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -50,7 +52,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.theme.BarTokens
+import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import kotlin.math.abs
 
@@ -66,9 +70,18 @@ data class PageInfo(
 
 private const val SEARCH_HINT = "Search or type URL"
 
-/** A neighbour space, named in the address pill while a swipe heads to it. */
+/**
+ * What the address pill shows for a neighbour while a swipe heads to it: a tab (favicon and domain)
+ * or a space (its icon and name).
+ */
 @Immutable
-data class SwipeSpace(val name: String, val icon: String)
+data class SwipeTarget(
+    val name: String,
+    val spaceIcon: String? = null,
+    val url: String = "",
+    val favicon: String? = null,
+    val staticIcon: Boolean = false,
+)
 
 /**
  * back · address field · tabs · menu. In the page view, tapping the field turns it into an input.
@@ -93,10 +106,12 @@ fun AddressRow(
     onTabs: () -> Unit,
     menuExtras: List<Pair<String, () -> Unit>>,
     modifier: Modifier = Modifier,
-    /** Page view space swipe: -1..1 towards [previous] / [next]; read in layers only. */
+    /** Page view swipe: -1..1 towards [previous] / [next]; read in layers only. */
     swipe: () -> Float = { 0f },
-    previous: SwipeSpace? = null,
-    next: SwipeSpace? = null,
+    previous: SwipeTarget? = null,
+    next: SwipeTarget? = null,
+    /** Page view space mode: the pill shows this space instead of the page's domain. */
+    space: SwipeTarget? = null,
 ) {
     val pageOnly = Modifier.graphicsLayer { alpha = 1f - overview() }
     Row(
@@ -122,6 +137,7 @@ fun AddressRow(
                 swipe = swipe,
                 previous = previous,
                 next = next,
+                space = space,
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 modifier = Modifier.weight(1f),
             )
@@ -140,20 +156,26 @@ fun AddressRow(
 }
 
 /**
- * Host of the page, crossfading to the search hint in the overview. While a swipe switches space,
- * the host slides away and the space it heads to slides in.
+ * Host of the page, crossfading to the search hint in the overview. While a swipe switches tab or
+ * space, the host slides away and the one it heads to slides in. In space mode ([space]) the host
+ * gives way to the current space's icon and name.
  */
 @Composable
 private fun AddressField(
     page: PageInfo,
     overview: () -> Float,
     swipe: () -> Float,
-    previous: SwipeSpace?,
-    next: SwipeSpace?,
+    previous: SwipeTarget?,
+    next: SwipeTarget?,
+    space: SwipeTarget?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val host = displayHost(page.url)
+    // The last space shown stays composed while it fades out.
+    var lastSpace by remember { mutableStateOf(space) }
+    if (space != null) lastSpace = space
+    val spaceMode = animateFloatAsState(if (space != null) 1f else 0f, tween(Motion.SPACE_MODE_FADE_MS), label = "spaceMode")
     Box(
         modifier
             .height(BarTokens.FieldHeight)
@@ -169,29 +191,40 @@ private fun AddressField(
             Modifier.graphicsLayer {
                 val f = swipe()
                 translationX = -f * size.width * SWIPE_TRAVEL
-                alpha = (1f - overview()) * (1f - abs(f) * SWIPE_FADE).coerceIn(0f, 1f)
+                alpha = (1f - overview()) * (1f - spaceMode.value) * (1f - abs(f) * SWIPE_FADE).coerceIn(0f, 1f)
             },
         )
+        lastSpace?.let { current ->
+            SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode.value })
+        }
         FieldText(SEARCH_HINT, primary = false, Modifier.graphicsLayer { alpha = overview() })
         previous?.let { SwipeLabel(it, -1f, swipe, overview) }
         next?.let { SwipeLabel(it, 1f, swipe, overview) }
     }
 }
 
-/** The space a page-view swipe heads to: icon and name, sliding in from its side. */
+/**
+ * A tab or space in the pill: icon and name. [side] -1 / 1: a neighbour a swipe heads to, sliding
+ * in from that side; 0: the one in the middle, sliding out as the swipe goes.
+ */
 @Composable
-private fun SwipeLabel(space: SwipeSpace, side: Float, swipe: () -> Float, overview: () -> Float) {
+private fun SwipeLabel(target: SwipeTarget, side: Float, swipe: () -> Float, overview: () -> Float, modifier: Modifier = Modifier) {
     Row(
-        Modifier.graphicsLayer {
+        modifier.graphicsLayer {
             val f = swipe()
             translationX = (side - f) * size.width * SWIPE_TRAVEL
-            alpha = (1f - overview()) * (f * side * SWIPE_FADE).coerceIn(0f, 1f)
+            val shown = if (side == 0f) 1f - abs(f) * SWIPE_FADE else f * side * SWIPE_FADE
+            alpha = (1f - overview()) * shown.coerceIn(0f, 1f)
         },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ZenIcon(space.icon, BarTokens.SwitcherIcon, tint = KoanTheme.colors.TextPrimary)
+        if (target.spaceIcon != null) {
+            ZenIcon(target.spaceIcon, BarTokens.SwitcherIcon, tint = KoanTheme.colors.TextPrimary)
+        } else {
+            Favicon(target.url, BarTokens.SwitcherIcon, icon = target.favicon, staticIcon = target.staticIcon)
+        }
         Spacer(Modifier.width(BarTokens.SwitcherNameGap))
-        FieldText(space.name, primary = true, Modifier)
+        FieldText(target.name, primary = true, Modifier)
     }
 }
 

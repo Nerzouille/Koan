@@ -431,7 +431,15 @@ object BarTokens {
 
     /** Space between the bar and the stack above it in the overview. */
     val GapAbove = 12.dp
-    val SwipeUpToOpen = 40.dp
+
+    /** Page ↔ overview follows the finger: this much vertical travel is the whole morph. */
+    val OverviewDrag = 220.dp
+
+    /** Release faster than this (vertical) goes page ↔ overview regardless of position. */
+    val OverviewFling = 600.dp // per second
+
+    /** Page view: tabs slide this far apart while a swipe on the dock switches tab. */
+    val TabSwipeGap = 24.dp
 
     // Switcher row: Zen-style space icons, the active one in a tinted pill with its name (design 4a).
     /** Touch target of an inactive icon; icons sit side by side, no gap. */
@@ -472,8 +480,17 @@ object DrawerTokens {
     val MoreTextSize = 13.sp
     val MorePadding = 16.dp
 
-    /** Pinned rows visible before the list scrolls; the half row hints that there is more. */
-    const val VISIBLE_PINNED_ROWS = 5.5f
+    /** Compact detent: the whole dock (drawer + bar) takes at most this share of the screen. */
+    const val COMPACT_MAX_FRACTION = 0.55f
+
+    /** Full detent: the sheet stops this far below the status bar. */
+    val FullTopGap = 12.dp
+
+    /** A full detent less than this above the compact one is not worth a step: one open detent. */
+    val MinDetentStep = 48.dp
+
+    /** Drag past this share of the gap to the next detent to commit to it (as the pager). */
+    const val COMMIT_FRACTION = 0.25f
     val FolderIndent = 18.dp
     val FolderCountSize = 13.sp
     val StatusRowHeight = 40.dp
@@ -572,6 +589,12 @@ object Motion {
     val Drop: SpringSpec<Float> = spring(dampingRatio = 0.8f, stiffness = 500f)
     val PagerSettle: SpringSpec<Float> = spring(dampingRatio = 0.86f, stiffness = 300f)
     val Drawer: SpringSpec<Float> = spring(dampingRatio = 0.9f, stiffness = 420f)
+
+    /** Page view: the swiped page sliding out, the neighbour tab sliding in (or back). */
+    val TabSwipe: SpringSpec<Float> = spring(dampingRatio = 0.9f, stiffness = 400f)
+
+    /** Page view: the address pill crossfading to the space's name in space mode. */
+    const val SPACE_MODE_FADE_MS = 140
     val FolderChevron: SpringSpec<Float> = spring(dampingRatio = 0.85f, stiffness = 600f)
 
     /** Full-screen sheets (sign-in) sliding up and down. */
