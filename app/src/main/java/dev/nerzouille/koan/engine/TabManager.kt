@@ -247,6 +247,16 @@ class TabManager(
         }
     }
 
+    /** Closes a tab that only held a download, back to the tab used before it. */
+    private fun dropDownloadTab(id: String) = main.launch {
+        val row = dao.tab(id)
+        if (_current.value == id) {
+            val back = recent.firstOrNull { it != id && store.state.findTab(it) != null }?.let { dao.tab(it) }
+            if (back != null) open(back, captureLeaving = false).join()
+        }
+        close(listOf(id), listOfNotNull(row))
+    }
+
     /** Ids of every tab that exists in the engine (live or suspended): opened on the phone. */
     fun liveIds(): Set<String> = store.state.tabs.mapTo(HashSet()) { it.id }
 
@@ -322,6 +332,7 @@ class TabManager(
 
     private fun watchEngine() = main.launch {
         var known = store.state.tabs.associate { it.id to it.pageKey() }
+        var knownDownloads = store.state.downloads.keys
         var loading = false
         var painted: String? = null
         var selected = store.state.selectedTabId
@@ -334,6 +345,15 @@ class TabManager(
                 }
                 // A page opened a new tab (target=_blank, window.open): it joins the stack next to its opener.
                 if (tab.id !in known && tab.id !in ownTabs) adoptWindowTab(tab)
+            }
+            // A tab opened straight onto a file (a link from another app, a download link in a
+            // new tab) shows nothing and would download it again on every restore: it goes.
+            if (state.downloads.keys != knownDownloads) {
+                state.downloads.values.filter { it.id !in knownDownloads }.forEach { d ->
+                    val tab = d.sessionId?.let { state.findTab(it) }
+                    if (tab != null && tab.content.url == d.url && !tab.content.firstContentfulPaint) dropDownloadTab(tab.id)
+                }
+                knownDownloads = state.downloads.keys
             }
             known = state.tabs.associate { it.id to it.pageKey() }
             windowTabs.retainAll(known.keys)

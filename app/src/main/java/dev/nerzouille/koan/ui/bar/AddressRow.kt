@@ -29,13 +29,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.unit.dp
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
 import dev.nerzouille.koan.ui.theme.DownloadTokens
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
@@ -211,45 +213,72 @@ private fun AddressField(
     var lastSpace by remember { mutableStateOf(space) }
     if (space != null) lastSpace = space
     val spaceMode = animateFloatAsState(if (space != null) 1f else 0f, tween(Motion.SPACE_MODE_FADE_MS), label = "spaceMode")
+    // Two hit areas side by side, never overlapping: the text (tap = edit) and, while something
+    // downloads, the ring at the end (tap = Downloads).
     Box(
         modifier
             .height(BarTokens.FieldHeight)
             .clip(CircleShape)
-            .background(KoanTheme.colors.BarField)
-            .cleanTap(onTap = onClick)
-            .padding(horizontal = BarTokens.FieldPadding),
-        contentAlignment = Alignment.Center,
+            .background(KoanTheme.colors.BarField),
     ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(end = if (download != null) BarTokens.IconTouch - BarTokens.FieldPadding else 0.dp)
+                .cleanTap(onTap = onClick)
+                .padding(horizontal = BarTokens.FieldPadding),
+            contentAlignment = Alignment.Center,
+        ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, spaceMode.value) }
+        if (download != null) DownloadRing(download, onDownloads, Modifier.align(Alignment.CenterEnd))
+    }
+}
+
+/** The pill's text: the host, the space in space mode, the search hint, the swipe neighbours. */
+@Composable
+private fun FieldLabels(
+    host: String,
+    overview: () -> Float,
+    swipe: () -> Float,
+    previous: SwipeTarget?,
+    next: SwipeTarget?,
+    lastSpace: SwipeTarget?,
+    spaceMode: Float,
+) {
+    Box(contentAlignment = Alignment.Center) {
         FieldText(
             host.ifEmpty { SEARCH_HINT },
             primary = host.isNotEmpty(),
             Modifier.graphicsLayer {
                 val f = swipe()
                 translationX = -f * size.width * SWIPE_TRAVEL
-                alpha = (1f - overview()) * (1f - spaceMode.value) * swipeOut(f)
+                alpha = (1f - overview()) * (1f - spaceMode) * swipeOut(f)
             },
         )
         lastSpace?.let { current ->
-            SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode.value })
+            SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode })
         }
         FieldText(SEARCH_HINT, primary = false, Modifier.graphicsLayer { alpha = overview() })
         previous?.let { SwipeLabel(it, -1f, swipe, overview) }
         next?.let { SwipeLabel(it, 1f, swipe, overview) }
-        if (download != null) DownloadRing(download, onDownloads, Modifier.align(Alignment.CenterEnd))
     }
 }
 
 /**
  * A download is running (design 7g): a small neutral ring at the end of the pill, filling with
- * its progress; tap = Downloads. Its tap consumes the lift, so the pill doesn't start editing.
+ * its progress. Its own 48dp hit target, outside the text's: tap = Downloads, with a light tick.
  */
 @Composable
 private fun DownloadRing(progress: Float, onClick: () -> Unit, modifier: Modifier) {
     val palette = KoanTheme.colors
+    val view = LocalView.current
     Box(
         modifier
             .size(BarTokens.IconTouch)
-            .pointerInput(Unit) { detectTapGestures { onClick() } },
+            .clip(CircleShape)
+            .cleanTap {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                onClick()
+            },
         contentAlignment = Alignment.Center,
     ) {
         Box(

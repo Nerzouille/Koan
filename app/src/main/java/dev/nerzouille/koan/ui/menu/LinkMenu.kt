@@ -2,6 +2,14 @@ package dev.nerzouille.koan.ui.menu
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -113,19 +121,30 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions) {
     }
 }
 
-/** The pressed image, small, on top of the card; nothing while it loads or if it can't be read. */
+/**
+ * The pressed image on top of the card. Its slot (fixed height, neutral grey) is there from the
+ * first frame, so the card never changes size; the image fades in inside it once it's loaded.
+ */
 @Composable
 private fun LinkImage(url: String) {
     val image by produceState<ImageBitmap?>(null, url) { value = withContext(Dispatchers.IO) { loadPreview(url) } }
-    val bitmap = image ?: return
-    Image(
-        bitmap, null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
+    val shown = remember(url) { Animatable(0f) }
+    LaunchedEffect(image) { if (image != null) shown.animateTo(1f, tween(SheetTokens.IMAGE_FADE_MS)) }
+    Box(
+        Modifier
             .fillMaxWidth()
             .height(SheetTokens.LinkImageHeight)
-            .clip(RoundedCornerShape(SheetTokens.GroupRadius)),
-    )
+            .clip(RoundedCornerShape(SheetTokens.GroupRadius))
+            .background(KoanTheme.colors.GroupedRow),
+    ) {
+        image?.let { bitmap ->
+            Image(
+                bitmap, null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().graphicsLayer { alpha = shown.value },
+            )
+        }
+    }
 }
 
 /** Downloads [url] (small images only) and decodes it scaled down for the preview. */

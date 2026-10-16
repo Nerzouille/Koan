@@ -367,4 +367,5 @@ fun sizeText(bytes: Long): String = when {
 }
 
 /** Where it came from: the page that linked it, else the file's own host. */
-fun host(d: DownloadState): String? = displayHost(d.referrerUrl ?: d.url).ifEmpty { null }
+fun host(d: DownloadState): String? =
+    d.referrerUrl?.let(::displayHost)?.takeIf { it.isNotBlank() && "." in it } ?: displayHost(d.url).ifBlank { null }
