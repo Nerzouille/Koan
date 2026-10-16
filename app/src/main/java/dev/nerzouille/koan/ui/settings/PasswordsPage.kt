@@ -7,7 +7,19 @@ import android.content.Context
 import android.os.PersistableBundle
 import androidx.biometric.BiometricManager.Authenticators
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,20 +43,25 @@ import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 
-/** What the Passwords pages need. [unlocked]: the logins opened after the fingerprint or PIN, else null. */
+/**
+ * What the Passwords pages need. [unlocked]: the logins opened so far after the fingerprint or PIN
+ * (they fill in progressively), null while locked. [onUnlock]: asks for the fingerprint, then
+ * opens the login [then] if given.
+ */
 class PasswordsUi(
     val summaries: List<LoginSummary>,
-    val unlocked: List<Login>?,
-    val onUnlock: () -> Unit,
+    val unlocked: Map<String, Login>?,
+    val onUnlock: (then: String?) -> Unit,
 )
 
 /**
- * Settings › Passwords: the sites only, until the owner unlocks with the fingerprint or the device
- * PIN; then usernames show and a login opens to reveal or copy its password.
+ * Settings › Passwords: the sites, searchable; usernames and passwords only once unlocked with the
+ * fingerprint or the device PIN. Tapping a site while locked unlocks and opens it.
  */
 @Composable
 internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpen: (String) -> Unit) {
     val palette = KoanTheme.colors
+    var query by remember { mutableStateOf("") }
     SettingsPageFrame("Passwords", on, onBack) {
         if (ui.summaries.isEmpty()) {
             Text(
@@ -56,28 +73,74 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
             return@SettingsPageFrame
         }
         val unlocked = ui.unlocked
+        SearchBox(query, "Search passwords") { query = it }
+        Spacer(Modifier.height(SettingsTokens.RowInset))
         if (unlocked == null) {
             Text(
                 "${ui.summaries.size} saved. Unlock to see usernames and passwords.",
                 color = palette.TextSecondary,
                 fontSize = SettingsTokens.RowValueSize,
             )
-            Spacer(Modifier.height(SettingsTokens.SectionTop / 2))
-            PrimaryButton("Unlock", onClick = { if (on) ui.onUnlock() }, modifier = Modifier.fillMaxWidth())
-            SettingsSection("Sites")
-            ui.summaries.forEachIndexed { i, s ->
-                if (i > 0) SettingsDivider()
-                SettingsRow(KoanIcons.Key, displayHost(s.origin).ifEmpty { s.origin }, on, value = if (s.local) "This phone" else null)
-            }
-        } else {
-            unlocked.forEachIndexed { i, login ->
-                if (i > 0) SettingsDivider()
-                SettingsRow(
-                    KoanIcons.Key, displayHost(login.origin).ifEmpty { login.origin }, on,
-                    subtitle = login.username.ifEmpty { "No username" },
-                    chevron = true,
-                    onClick = { onOpen(login.guid) },
-                )
+            Spacer(Modifier.height(SettingsTokens.RowInset))
+            PrimaryButton("Unlock", onClick = { if (on) ui.onUnlock(null) }, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(SettingsTokens.RowInset))
+        }
+        val q = query.trim()
+        val shown = ui.summaries.filter { s ->
+            q.isEmpty() || s.origin.contains(q, ignoreCase = true) ||
+                unlocked?.get(s.guid)?.username?.contains(q, ignoreCase = true) == true
+        }
+        if (shown.isEmpty()) {
+            Text("No password matches “$q”.", color = palette.TextSecondary, fontSize = SettingsTokens.RowValueSize)
+        }
+        shown.forEachIndexed { i, s ->
+            if (i > 0) SettingsDivider()
+            val login = unlocked?.get(s.guid)
+            SettingsRow(
+                KoanIcons.Key, displayHost(s.origin).ifEmpty { s.origin }, on,
+                subtitle = when {
+                    unlocked == null -> null
+                    login == null -> "…"
+                    else -> login.username.ifEmpty { "No username" }
+                },
+                value = if (s.local) "This phone" else null,
+                chevron = true,
+                // Locked: the fingerprint first, then straight to this login.
+                onClick = { if (unlocked == null) ui.onUnlock(s.guid) else onOpen(s.guid) },
+            )
+        }
+    }
+}
+
+/** A search field in a settings page. */
+@Composable
+internal fun SearchBox(value: String, hint: String, onChange: (String) -> Unit) {
+    val palette = KoanTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(SettingsTokens.SegmentHeight + SettingsTokens.RowInset / 2)
+            .clip(CircleShape)
+            .background(palette.Glass)
+            .padding(horizontal = SettingsTokens.RowInset + SettingsTokens.Divider * 4),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(KoanIcons.Search, null, tint = palette.FieldHint, modifier = Modifier.size(SettingsTokens.RowGlyph))
+        Spacer(Modifier.width(SettingsTokens.RowInset))
+        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            if (value.isEmpty()) Text(hint, color = palette.FieldHint, fontSize = SettingsTokens.RowTitleSize)
+            BasicTextField(
+                value = value,
+                onValueChange = onChange,
+                singleLine = true,
+                textStyle = TextStyle(color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize),
+                cursorBrush = SolidColor(palette.TextPrimary),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (value.isNotEmpty()) {
+            Box(Modifier.size(SettingsTokens.RowGlyph + SettingsTokens.RowInset).clip(CircleShape).clickable { onChange("") }, contentAlignment = Alignment.Center) {
+                Icon(KoanIcons.Close, null, tint = palette.FieldHint, modifier = Modifier.size(SettingsTokens.RowGlyph * 0.8f))
             }
         }
     }
@@ -86,6 +149,7 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
 /** One login: where, who, and the password hidden until Reveal; Copy marks it sensitive. */
 @Composable
 internal fun PasswordDetailPage(login: Login?, on: Boolean, onBack: () -> Unit) {
+    // Opened right after the fingerprint: the login may arrive a moment after the page.
     val context = LocalContext.current
     var shown by remember(login?.guid) { mutableStateOf(false) }
     SettingsPageFrame(login?.let { displayHost(it.origin) } ?: "Password", on, onBack) {

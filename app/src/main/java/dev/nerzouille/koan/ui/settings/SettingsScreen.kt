@@ -118,7 +118,7 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.About -> AboutPage(ui, interactive, back)
                         SettingsPage.DownloadFolder -> FolderPage(ui, interactive, back)
                         SettingsPage.Passwords -> PasswordsPage(ui.passwords, interactive, back) { nav.push(SettingsPage.PasswordDetail(it)) }
-                        is SettingsPage.PasswordDetail -> PasswordDetailPage(ui.passwords.unlocked?.firstOrNull { it.guid == page.guid }, interactive, back)
+                        is SettingsPage.PasswordDetail -> PasswordDetailPage(ui.passwords.unlocked?.get(page.guid), interactive, back)
                     }
                 }
             }

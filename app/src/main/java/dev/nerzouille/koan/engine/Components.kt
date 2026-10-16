@@ -47,7 +47,10 @@ class Components(context: Context) {
         val settings = GeckoRuntimeSettings.Builder()
             .configFilePath(GeckoPrefs.write(appContext).absolutePath)
             .build()
-        GeckoRuntime.create(appContext, settings)
+        GeckoRuntime.create(appContext, settings).also {
+            // Pages' login forms are filled from Koan's sealed logins.
+            it.autocompleteStorageDelegate = LoginAutofill(logins, appScope)
+        }
     }
 
     val engine by lazy {

@@ -3,6 +3,19 @@ package dev.nerzouille.koan.ui
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.Alignment
+import dev.nerzouille.koan.ui.bar.barZone
+import dev.nerzouille.koan.ui.menu.LoginChips
+import dev.nerzouille.koan.ui.menu.LoginSheet
+import dev.nerzouille.koan.ui.menu.SaveLoginCard
+import mozilla.components.concept.engine.prompt.PromptRequest
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.compose.runtime.produceState
@@ -94,6 +107,10 @@ class Overlays(scope: CoroutineScope, density: Density) {
     var downloadsOpen by mutableStateOf(false)
     val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
     val clearSiteCard = SheetState(scope, splineBasedDecay(density))
+
+    /** Logins: the full "Sign in with" list (7e), and "Save in Koan". */
+    val loginCard = SheetState(scope, splineBasedDecay(density))
+    val saveLoginCard = SheetState(scope, splineBasedDecay(density))
 
     /** A site's request waiting on the card, and what it asks for. */
     val permissionCard = SheetState(scope, splineBasedDecay(density))
@@ -352,6 +369,72 @@ fun KoanOverlays(
         }
     }
 
+    // ---- logins: fill from a chip (7f) or the full list (7e); save a new one on the phone ----
+    val loginPrompt by components.store.observeSlice(activeTabId) { s ->
+        activeTabId?.let { s.findTab(it) }?.content?.promptRequests
+            ?.firstOrNull { it is PromptRequest.SelectLoginPrompt || it is PromptRequest.SaveLoginPrompt }
+    }
+    fun consumePrompt(p: PromptRequest) { activeTabId?.let { components.store.dispatch(ContentAction.ConsumePromptRequestAction(it, p)) } }
+    val select = loginPrompt as? PromptRequest.SelectLoginPrompt
+    if (select != null && select.logins.isNotEmpty()) {
+        fun use(login: mozilla.components.concept.storage.Login) {
+            overlays.loginCard.animateTo(Detent.Closed)
+            select.onConfirm(login)
+            consumePrompt(select)
+        }
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
+            LoginChips(
+                select.logins, onPick = ::use,
+                onMore = { overlays.loginCard.animateTo(Detent.Compact) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
+                    .padding(bottom = barZone(overview = false)),
+            )
+        }
+        KoanCard(overlays.loginCard) { interactive ->
+            LoginSheet(
+                origin = select.logins.first().origin, logins = select.logins, interactive = interactive,
+                onUse = ::use,
+                onNotNow = {
+                    overlays.loginCard.animateTo(Detent.Closed)
+                    select.onDismiss()
+                    consumePrompt(select)
+                },
+            )
+        }
+    }
+    val save = loginPrompt as? PromptRequest.SaveLoginPrompt
+    val entry = save?.logins?.firstOrNull()
+    var savedBefore by remember { mutableStateOf(false) }
+    LaunchedEffect(save) {
+        if (save == null || entry == null) return@LaunchedEffect
+        savedBefore = components.logins.forOrigin(entry.origin).any { it.username == entry.username }
+        overlays.saveLoginCard.animateTo(Detent.Compact)
+    }
+    KoanCard(overlays.saveLoginCard) { interactive ->
+        if (save == null || entry == null) return@KoanCard
+        SaveLoginCard(
+            origin = entry.origin, username = entry.username, update = savedBefore, interactive = interactive,
+            onSave = {
+                overlays.saveLoginCard.animateTo(Detent.Closed)
+                scope.launch {
+                    components.logins.saveLocal(
+                        entry.origin, entry.formActionOrigin, entry.httpRealm, entry.usernameField, entry.passwordField,
+                        entry.username, entry.password,
+                    )
+                }
+                save.onConfirm(entry)
+                consumePrompt(save)
+            },
+            onNotNow = {
+                overlays.saveLoginCard.animateTo(Detent.Closed)
+                save.onDismiss()
+                consumePrompt(save)
+            },
+        )
+    }
+
     // ---- long press on a link or an image ----
     val hit by components.store.observeSlice(activeTabId) { s -> activeTabId?.let { s.findTab(it) }?.content?.hitResult }
     LaunchedEffect(hit) {
@@ -399,7 +482,7 @@ fun KoanOverlays(
     // Passwords: the sites are listed freely; usernames and passwords only once unlocked, and only
     // while the Passwords pages are open.
     val loginSummaries by components.logins.summaries.collectAsStateWithLifecycle(emptyList())
-    var unlockedLogins by remember { mutableStateOf<List<Login>?>(null) }
+    var unlockedLogins by remember { mutableStateOf<Map<String, Login>?>(null) }
     val inPasswords = overlays.settingsOpen && overlays.settingsNav.pages.any { it == SettingsPage.Passwords }
     LaunchedEffect(inPasswords) { if (!inPasswords) unlockedLogins = null }
     val slide = remember { Animatable(0f) }
@@ -441,10 +524,20 @@ fun KoanOverlays(
                 passwords = PasswordsUi(
                     summaries = loginSummaries,
                     unlocked = unlockedLogins,
-                    onUnlock = {
+                    onUnlock = { then ->
                         (context as? FragmentActivity)?.let { activity ->
                             authenticate(activity, "Unlock your passwords") {
-                                scope.launch { unlockedLogins = components.logins.all() }
+                                // Unlocked at once; the logins fill in as they're opened (the tapped one first).
+                                unlockedLogins = emptyMap()
+                                if (then != null) overlays.settingsNav.push(SettingsPage.PasswordDetail(then))
+                                scope.launch {
+                                    fun add(logins: List<Login>) {
+                                        val current = unlockedLogins ?: return
+                                        unlockedLogins = current + logins.associateBy { it.guid }
+                                    }
+                                    then?.let { components.logins.openOne(it) }?.let { add(listOf(it)) }
+                                    components.logins.openAll(::add)
+                                }
                             }
                         }
                     },

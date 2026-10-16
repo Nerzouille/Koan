@@ -145,6 +145,8 @@ dependencies {
     implementation(libs.mozilla.lib.state)
     implementation(libs.mozilla.feature.readerview)
     implementation(libs.mozilla.feature.downloads)
+    // Login prompts carry its Login types (approved for M5).
+    implementation(libs.mozilla.concept.storage)
     // Already shipped with feature-downloads; declared to compile against its DownloadFileUtils.
     implementation(libs.mozilla.support.utils)
 
