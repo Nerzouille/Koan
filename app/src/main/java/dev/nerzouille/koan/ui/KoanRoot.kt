@@ -37,7 +37,7 @@ import dev.nerzouille.koan.ui.bar.AddressRow
 import dev.nerzouille.koan.ui.bar.DrawerContent
 import dev.nerzouille.koan.ui.bar.drawerBackdrop
 import dev.nerzouille.koan.ui.bar.DrawerStatus
-import dev.nerzouille.koan.ui.bar.DrawerState
+import dev.nerzouille.koan.ui.sheet.SheetState
 import dev.nerzouille.koan.ui.bar.KoanBar
 import dev.nerzouille.koan.ui.bar.PageInfo
 import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
@@ -45,7 +45,18 @@ import dev.nerzouille.koan.ui.bar.barZone
 import dev.nerzouille.koan.ui.bar.SwipeTarget
 import dev.nerzouille.koan.ui.bar.BarGestures
 import dev.nerzouille.koan.ui.bar.SpaceScrub
-import dev.nerzouille.koan.ui.bar.Detent
+import dev.nerzouille.koan.ui.sheet.Detent
+import dev.nerzouille.koan.ui.sheet.KoanCard
+import dev.nerzouille.koan.ui.sheet.KoanSheet
+import dev.nerzouille.koan.ui.sheet.SheetNav
+import dev.nerzouille.koan.ui.menu.AccountRow
+import dev.nerzouille.koan.ui.menu.MenuActions
+import dev.nerzouille.koan.ui.menu.MenuPage
+import dev.nerzouille.koan.ui.menu.MenuRoot
+import dev.nerzouille.koan.ui.menu.SettingsPage
+import dev.nerzouille.koan.ui.menu.SignOutConfirm
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import dev.nerzouille.koan.ui.browser.TabSwipe
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.search.displayHost
@@ -152,8 +163,14 @@ fun KoanRoot(components: Components) {
         spaceIds.getOrNull(target)?.let { currentSpaceUuid = it }
     }
     motion.distancePx = with(density) { BarTokens.OverviewDrag.toPx() }
-    val drawer = remember(density) { DrawerState(scope, splineBasedDecay(density)) }
+    val drawer = remember(density) { SheetState(scope, splineBasedDecay(density)) }
     LaunchedEffect(overviewOpen) { if (!overviewOpen) drawer.snapClosed() }
+
+    // The ⋯ menu sheet and the sign-out confirmation (a floating card).
+    val menu = remember(density) { SheetState(scope, splineBasedDecay(density)) }
+    val menuNav = remember { SheetNav<MenuPage>(scope, MenuPage.Root) }
+    val signOutCard = remember(density) { SheetState(scope, splineBasedDecay(density)) }
+    LaunchedEffect(overviewOpen) { if (overviewOpen) menu.snapClosed() }
 
     // Blur radii baked for the cards behind the open drawer (weakest first, see drawerBackdrop).
     val drawerBlurs = remember(density) {
@@ -451,8 +468,6 @@ fun KoanRoot(components: Components) {
                 AddressRow(
                     page = currentPage,
                     tabCount = models.getOrNull(currentSpace)?.stack?.size ?: 0,
-                    desktopSite = currentPage.desktopSite,
-                    onDesktopSite = { on -> activeTabId?.let { session.requestDesktopSite(on, it) } },
                     editing = editing,
                     overviewOpen = overviewOpen,
                     overview = { motion.progress },
@@ -467,36 +482,8 @@ fun KoanRoot(components: Components) {
                     },
                     onSearchFromOverview = { newTab(pager.settled) },
                     onBack = { session.goBack(activeTabId) },
-                    onForward = { session.goForward(activeTabId) },
-                    onReload = { session.reload(activeTabId) },
-                    onStop = { session.stopLoading(activeTabId) },
                     onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
-                    menuExtras = buildList {
-                        add("Theme: ${themeMode.label}" to {
-                            val next = ThemeMode.entries[(themeMode.ordinal + 1) % ThemeMode.entries.size]
-                            scope.launch { components.settings.setThemeMode(next) }
-                        })
-                        when (val a = account) {
-                            is AccountState.SignedIn -> {
-                                add("Sync now" to { components.sync.syncNow() })
-                                add("Sign out (${a.email})" to {
-                                    FxAWeb.wipeWebSession()
-                                    components.sync.signOut()
-                                })
-                            }
-                            AccountState.SignedOut -> add("Sign in to Mozilla account" to { signingIn = true })
-                            AccountState.Loading -> Unit
-                        }
-                        // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
-                        if (BuildConfig.DEBUG) {
-                            for (n in listOf(50, 150)) {
-                                add("Fill space to $n tabs (dev)" to {
-                                    spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
-                                })
-                            }
-                            add("Remove fake tabs (dev)" to { components.spaces.removeFakeTabs() })
-                        }
-                    },
+                    onMenu = { menu.animateTo(Detent.Compact) },
                     modifier = modifier,
                     swipe = { if (overviewOpen) 0f else tabSwipe.fraction },
                     previous = tabSwipe.previous?.let(::tabTarget),
@@ -507,6 +494,77 @@ fun KoanRoot(components: Components) {
             },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+
+        // The ⋯ menu: a sheet over the page, Settings pushed inside it.
+        val clipboard = LocalClipboardManager.current
+        KoanSheet(menu, menuNav) { p, pageScope ->
+            when (p) {
+                MenuPage.Root -> MenuRoot(
+                    page = currentPage,
+                    scope = pageScope,
+                    actions = MenuActions(
+                        back = { session.goBack(activeTabId) },
+                        forward = { session.goForward(activeTabId) },
+                        reload = { session.reload(activeTabId) },
+                        stop = { session.stopLoading(activeTabId) },
+                        editAddress = {
+                            menu.animateTo(Detent.Closed)
+                            editing = true
+                        },
+                        copyLink = {
+                            clipboard.setText(AnnotatedString(currentPage.url))
+                            menu.animateTo(Detent.Closed)
+                        },
+                        newTab = {
+                            menu.animateTo(Detent.Closed)
+                            newTab(currentSpace)
+                        },
+                        desktopSite = { on -> activeTabId?.let { session.requestDesktopSite(on, it) } },
+                        settings = { menuNav.push(MenuPage.Settings) },
+                    ),
+                )
+                MenuPage.Settings -> SettingsPage(
+                    scope = pageScope,
+                    theme = themeMode,
+                    onTheme = { mode -> scope.launch { components.settings.setThemeMode(mode) } },
+                    account = when (val a = account) {
+                        is AccountState.SignedIn -> AccountRow(
+                            email = a.email,
+                            onSyncNow = { components.sync.syncNow() },
+                            onSignIn = {},
+                            onSignOut = { signOutCard.animateTo(Detent.Compact) },
+                        )
+                        AccountState.SignedOut -> AccountRow(null, {}, onSignIn = {
+                            menu.animateTo(Detent.Closed)
+                            signingIn = true
+                        }, onSignOut = {})
+                        AccountState.Loading -> null
+                    },
+                    // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
+                    devActions = if (!BuildConfig.DEBUG) emptyList() else buildList {
+                        for (n in listOf(50, 150)) {
+                            add("Fill space to $n tabs" to {
+                                spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
+                                Unit
+                            })
+                        }
+                        add("Remove fake tabs" to { components.spaces.removeFakeTabs(); Unit })
+                    },
+                )
+            }
+        }
+        KoanCard(signOutCard) { interactive ->
+            SignOutConfirm(
+                interactive = interactive,
+                onSignOut = {
+                    signOutCard.animateTo(Detent.Closed)
+                    menu.animateTo(Detent.Closed)
+                    FxAWeb.wipeWebSession()
+                    components.sync.signOut()
+                },
+                onCancel = { signOutCard.animateTo(Detent.Closed) },
+            )
+        }
 
         // Sign-in slides up over everything and back down when done.
         val signIn = remember { Animatable(0f) }

@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
+import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.BrandTokens
 import kotlinx.coroutines.flow.collectLatest
@@ -101,10 +102,10 @@ fun KoanBar(
     with(density) {
         val rows = (BarTokens.SwitcherRowHeight + BarTokens.AddressRowHeight).toPx()
         val below = WindowInsets.navigationBars.getBottom(density) + BarTokens.BottomMargin.toPx()
-        val top = WindowInsets.statusBars.getTop(density) + DrawerTokens.FullTopGap.toPx()
-        drawer.compactCapPx = windowPx * DrawerTokens.COMPACT_MAX_FRACTION - rows - below
+        val top = WindowInsets.statusBars.getTop(density) + SheetTokens.FullTopGap.toPx()
+        drawer.compactCapPx = windowPx * SheetTokens.COMPACT_MAX_FRACTION - rows - below
         drawer.fullCapPx = windowPx - top - rows - below
-        drawer.minStepPx = DrawerTokens.MinDetentStep.toPx()
+        drawer.minStepPx = SheetTokens.MinDetentStep.toPx()
         bar.scrub.stepPx = BarTokens.ScrubStep.toPx()
     }
     val gestures = Modifier.barGestures(bar, view)

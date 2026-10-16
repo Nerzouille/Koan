@@ -19,8 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,7 +55,6 @@ import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.BrandHorizontal
 import dev.nerzouille.koan.ui.theme.SearchFieldTokens
-import dev.nerzouille.koan.ui.kit.KoanToggle
 import androidx.compose.animation.core.Animatable
 import android.provider.Settings
 import androidx.compose.runtime.mutableFloatStateOf
@@ -106,13 +103,9 @@ fun AddressRow(
     onSubmit: (String) -> Unit,
     onSearchFromOverview: () -> Unit,
     onBack: () -> Unit,
-    onForward: () -> Unit,
-    onReload: () -> Unit,
-    onStop: () -> Unit,
     onTabs: () -> Unit,
-    menuExtras: List<Pair<String, () -> Unit>>,
-    desktopSite: Boolean,
-    onDesktopSite: (Boolean) -> Unit,
+    /** ⋯: opens the menu sheet. */
+    onMenu: () -> Unit,
     modifier: Modifier = Modifier,
     /** Page view swipe: -1..1 towards [previous] / [next]; read in layers only. */
     swipe: () -> Float = { 0f },
@@ -152,17 +145,7 @@ fun AddressRow(
                 modifier = Modifier.weight(1f),
             )
             TabsButton(count = tabCount, onClick = onTabs)
-            BarMenu(
-                page = page,
-                interactive = !overviewOpen,
-                onForward = onForward,
-                onReload = onReload,
-                onStop = onStop,
-                desktopSite = desktopSite,
-                onDesktopSite = onDesktopSite,
-                extras = menuExtras,
-                modifier = pageOnly,
-            )
+            BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly)
         }
     }
 }
@@ -353,50 +336,6 @@ private fun TabsButton(count: Int, onClick: () -> Unit) {
                 fontSize = BarTokens.TabsCountSize,
                 fontWeight = FontWeight.SemiBold,
             )
-        }
-    }
-}
-
-@Composable
-private fun BarMenu(
-    page: PageInfo,
-    interactive: Boolean,
-    onForward: () -> Unit,
-    onReload: () -> Unit,
-    onStop: () -> Unit,
-    desktopSite: Boolean,
-    onDesktopSite: (Boolean) -> Unit,
-    extras: List<Pair<String, () -> Unit>>,
-    modifier: Modifier = Modifier,
-) {
-    var open by remember { mutableStateOf(false) }
-    Box(modifier) {
-        BarIcon(KoanIcons.More, interactive = interactive, onClick = { open = true })
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            DropdownMenuItem(
-                text = { Text("Forward") },
-                leadingIcon = { Icon(KoanIcons.Forward, null, Modifier.size(BarTokens.MenuGlyph)) },
-                enabled = page.canGoForward,
-                onClick = { open = false; onForward() },
-            )
-            DropdownMenuItem(
-                text = { Text(if (page.loading) "Stop" else "Reload") },
-                leadingIcon = { Icon(if (page.loading) KoanIcons.Close else KoanIcons.Reload, null, Modifier.size(BarTokens.MenuGlyph)) },
-                onClick = { open = false; if (page.loading) onStop() else onReload() },
-            )
-            DropdownMenuItem(
-                text = { Text("Desktop site") },
-                trailingIcon = { KoanToggle(checked = desktopSite, onCheckedChange = null) },
-                onClick = { onDesktopSite(!desktopSite) },
-            )
-            // Dev-only items (50-card check, bar comparison) until M1 is signed off.
-            extras.forEach { (label, action) ->
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    leadingIcon = { Icon(KoanIcons.Plus, null, Modifier.size(BarTokens.MenuGlyph)) },
-                    onClick = { open = false; action() },
-                )
-            }
         }
     }
 }

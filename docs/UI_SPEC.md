@@ -78,6 +78,18 @@ to the top of the stack.
   14dp), both driven by the sheet's height up to the compact detent.
 - **Close:** swipe down (full → compact → closed), tap outside it, tap the handle, or Back.
 
+### One sheet everywhere (`ui/sheet`)
+Every sheet shares the drawer's detent engine (`SheetState`): same detents, 1:1 drag, 25% commit,
+fling, nested scroll only in full, same spring. Up = expand, down = compact then close.
+- **Sheet over the page** (the ⋯ menu, design 7k / 7l): rises from the bottom edge, 32dp top
+  corners, compact = 55% of the screen (the drawer's compact height), the page dimmed
+  (light `rgba(28,28,40,.30)`, dark black 50%), no blur (the page is a live surface).
+- **Pushed pages** (Settings, later Site settings): slide in from the right at the sheet's height,
+  the page under trails behind (30%); ‹ in the header or Back pops, then Back closes.
+- **Floating card** (confirmations, permission prompts, the link menu): sized to its content, 10dp
+  side and bottom margins, the page dimmed; drag down, tap outside or Back closes it. Never the
+  brand gradient on prompts.
+
 ## Cards
 
 - Width: screen width − 2×12dp. Corner radius 28dp (continuous/squircle-like if possible).

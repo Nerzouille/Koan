@@ -35,6 +35,22 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     }
 }
 
+/** A secondary action (Cancel): plain text, no surface. */
+@Composable
+fun QuietButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .height(ButtonTokens.Height)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = ButtonTokens.PaddingH),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Text(text, color = KoanTheme.colors.TextPrimary, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.Medium)
+    }
+}
+
 /** A destructive action: red text only, on a neutral row. */
 @Composable
 fun DestructiveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {

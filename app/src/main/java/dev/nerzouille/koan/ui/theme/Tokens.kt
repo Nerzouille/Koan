@@ -64,6 +64,8 @@ class KoanPalette(
     val Attention: Color,
     /** Over the overview while the drawer is open, at full open. */
     val DrawerScrim: Color,
+    /** Over the page while a sheet or a floating card is open (the menu, prompts). */
+    val SheetScrim: Color,
     // Depth stack.
     /** Back cards fade towards Base (light: a haze) instead of black (dark: brightness). */
     val DimToBase: Boolean,
@@ -112,6 +114,7 @@ class KoanPalette(
             Notice = Color(0xF2F2F2F5),
             Attention = Color(0xFFC0841A),
             DrawerScrim = Color(0xFF1C1C28).copy(alpha = 0.16f),
+            SheetScrim = Color(0xFF1C1C28).copy(alpha = 0.30f),
             DimToBase = true,
             DimGain = 1.25f,
             DimMax = 0.85f,
@@ -154,6 +157,7 @@ class KoanPalette(
             Notice = Color(0xF22C2C2E),
             Attention = Color(0xFFE8B45A),
             DrawerScrim = Color.Black.copy(alpha = 0.45f),
+            SheetScrim = Color.Black.copy(alpha = 0.50f),
             DimToBase = false,
             DimGain = 1f,
             DimMax = 1f,
@@ -459,7 +463,6 @@ object BarTokens {
     val RowGap = 2.dp
     val IconTouch = 48.dp
     val Icon = 24.dp
-    val MenuGlyph = 20.dp
     val TabsBadge = 26.dp
     val TabsBadgeRadius = 8.dp
     val TabsBadgeBorder = 2.dp
@@ -545,17 +548,6 @@ object DrawerTokens {
     val MoreTextSize = 13.sp
     val MorePadding = 16.dp
 
-    /** Compact detent: the whole dock (drawer + bar) takes at most this share of the screen. */
-    const val COMPACT_MAX_FRACTION = 0.55f
-
-    /** Full detent: the sheet stops this far below the status bar. */
-    val FullTopGap = 12.dp
-
-    /** A full detent less than this above the compact one is not worth a step: one open detent. */
-    val MinDetentStep = 48.dp
-
-    /** Drag past this share of the gap to the next detent to commit to it (as the pager). */
-    const val COMMIT_FRACTION = 0.25f
     val FolderIndent = 18.dp
     val FolderCountSize = 13.sp
     val StatusRowHeight = 40.dp
@@ -570,9 +562,69 @@ object DrawerTokens {
      * makes it read as blur. Each one is a full-screen bitmap while the drawer is open.
      */
     const val BLUR_LEVELS = 2
+}
+
+/**
+ * Every sheet's detents and gestures (ui/sheet: the pins drawer, the menu, floating cards). One
+ * engine, so they all move and settle the same way.
+ */
+object SheetTokens {
+    /** Compact detent: the whole sheet (with the bar, for the drawer) takes at most this share of the screen. */
+    const val COMPACT_MAX_FRACTION = 0.55f
+
+    /** Full detent: the sheet stops this far below the status bar. */
+    val FullTopGap = 12.dp
+
+    /** A full detent less than this above the compact one is not worth a step: one open detent. */
+    val MinDetentStep = 48.dp
+
+    /** Drag past this share of the gap to the next detent to commit to it (as the pager). */
+    const val COMMIT_FRACTION = 0.25f
 
     /** Release faster than this (vertical) opens/closes regardless of position. */
     val FlingVelocity = 600.dp // per second
+
+    /** Sheets over a page (the menu): top corners, handle, the page's dim at compact. */
+    val TopRadius = 32.dp
+    val HandleTop = 8.dp
+    val HandleZone = 22.dp
+    val Padding = 14.dp
+    val Gap = 10.dp
+
+    /** A pushed page slides in from the right over this spring; the page under it trails. */
+    const val PUSH_PARALLAX = 0.3f
+
+    /** Floating card: side and bottom margins, corners. */
+    val CardMargin = 10.dp
+    val CardRadius = 28.dp
+    val CardPadding = 20.dp
+
+    // Rows, groups and tiles on a sheet (design 7k / 7l).
+    val GroupRadius = 18.dp
+    val RowHeight = 50.dp
+    val RowTallHeight = 58.dp
+    val RowPadding = 12.dp
+    val RowIconBox = 30.dp
+    val RowIconRadius = 9.dp
+    val RowGlyph = 18.dp
+    val RowTitleSize = 16.sp
+    val RowSubtitleSize = 12.sp
+    val RowTrailingSize = 14.sp
+    val Divider = 1.dp
+    val TileHeight = 66.dp
+    val TileRadius = 16.dp
+    val TileGap = 8.dp
+    val TileGlyph = 22.dp
+    val TileLabelSize = 13.sp
+    val TileLabelGap = 4.dp
+    val NavRowHeight = 56.dp
+    val NavFieldHeight = 44.dp
+    val NavFieldTextSize = 16.sp
+    val NavLockGlyph = 14.dp
+    val HeaderHeight = 52.dp
+    val HeaderTitleSize = 17.sp
+    val CardTitleSize = 18.sp
+    val CardTextSize = 14.sp
 }
 
 object PagerTokens {
@@ -667,6 +719,9 @@ object Motion {
     /** Page view: the address pill crossfading to the space's name in space mode. */
     const val SPACE_MODE_FADE_MS = 140
     val FolderChevron: SpringSpec<Float> = spring(dampingRatio = 0.85f, stiffness = 600f)
+
+    /** A page pushed into a sheet sliding in, or popped. */
+    val SheetPush: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 520f)
 
     /** Full-screen sheets (sign-in) sliding up and down. */
     val Sheet: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 380f)

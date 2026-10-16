@@ -21,6 +21,9 @@ import dev.nerzouille.koan.ui.browser.TabSwipe
 import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
+import dev.nerzouille.koan.ui.theme.SheetTokens
+import dev.nerzouille.koan.ui.sheet.Detent
+import dev.nerzouille.koan.ui.sheet.SheetState
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlin.math.abs
 
@@ -33,7 +36,7 @@ import kotlin.math.abs
 @Stable
 class BarGestures(
     val pager: SpacePager,
-    val drawer: DrawerState,
+    val drawer: SheetState,
     val overview: OverviewMotion,
     val tabSwipe: TabSwipe,
     /** Page view: a long press on the dock scrubs across the spaces until the finger lifts. */
@@ -71,7 +74,7 @@ private class SlopWait(val slop: Slop?)
  */
 fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false): Modifier = pointerInput(g, drawerArea) {
     val pagerFling = PagerTokens.FlingVelocity.toPx()
-    val drawerFling = DrawerTokens.FlingVelocity.toPx()
+    val drawerFling = SheetTokens.FlingVelocity.toPx()
     val overviewFling = BarTokens.OverviewFling.toPx()
     // One light tick per committed step, on release (and when space mode starts).
     fun tick() = view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
