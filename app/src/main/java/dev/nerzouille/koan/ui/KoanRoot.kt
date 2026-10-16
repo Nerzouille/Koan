@@ -43,6 +43,9 @@ import dev.nerzouille.koan.ui.bar.KoanBar
 import dev.nerzouille.koan.ui.bar.PageInfo
 import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
 import dev.nerzouille.koan.ui.bar.barZone
+import dev.nerzouille.koan.ui.kit.KoanToastHost
+import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.kit.ToastState
 import dev.nerzouille.koan.ui.bar.SwipeTarget
 import dev.nerzouille.koan.ui.bar.BarGestures
 import dev.nerzouille.koan.ui.bar.SpaceScrub
@@ -158,6 +161,7 @@ fun KoanRoot(components: Components) {
 
     // The ⋯ menu, the long-press menu, find, Settings (see KoanOverlays).
     val overlays = remember(density) { Overlays(scope, density) }
+    val toasts = remember { ToastState() }
     LaunchedEffect(overviewOpen, activeTabId) { overlays.dismissAll() }
 
     // Blur radii baked for the cards behind the open drawer (weakest first, see drawerBackdrop).
@@ -223,7 +227,16 @@ fun KoanRoot(components: Components) {
         val space = spaces.getOrNull(index) ?: return
         val opener = if (nextToCurrent) activeTabId?.let(::tabById) else null
         val id = tabs.openNew(space.space.uuid, url, opener, select)
-        if (!select) return
+        if (!select) {
+            toasts.show(
+                Toast("Opened in background", "Switch") {
+                    spaces.withIndex().firstNotNullOfOrNull { (i, s) ->
+                        s.stack.firstNotNullOfOrNull { item -> item.tabs.firstOrNull { it.koanTabId == id } }?.let { i to it }
+                    }?.let { (i, tab) -> openTab(i, tab) }
+                },
+            )
+            return
+        }
         currentTabs[space.space.uuid] = id
         editing = false
         zoomIn.value = false
@@ -532,6 +545,8 @@ fun KoanRoot(components: Components) {
                 add("Remove fake tabs" to { components.spaces.removeFakeTabs(); Unit })
             },
         )
+
+        KoanToastHost(toasts, bottom = barZone(overviewOpen), modifier = Modifier.align(Alignment.BottomCenter))
 
         // Sign-in slides up over everything and back down when done.
         val signIn = remember { Animatable(0f) }

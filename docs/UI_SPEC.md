@@ -57,7 +57,7 @@ to the top of the stack.
   tab. Swiping down **on the compact header** closes the overview back to the current tab.
 - **Open:** in the overview, swipe **up** on the bottom bar (anywhere on it) or tap the small handle
   at its top. The bar grows upward into a sheet (28dp top corners): essentials grid on top (favicon
-  tiles, 4 per row, max 2 rows), pinned rows and Zen folders below (Arc-style compact rows), the
+  tiles, 4 per row, as many rows as Zen sends: no Koan-side cap), pinned rows and Zen folders below (Arc-style compact rows), the
   sync status row last; the switcher and address row stay at the bottom. Tap = open the tab (closes
   drawer and overview).
 - **A sheet with detents** (iOS / Google Maps style), sized to the current space's content:

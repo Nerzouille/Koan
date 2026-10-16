@@ -32,7 +32,10 @@ class Components(context: Context) {
     private val appContext = context.applicationContext
 
     val runtime: GeckoRuntime by lazy {
-        GeckoRuntime.create(appContext, GeckoRuntimeSettings.Builder().build())
+        val settings = GeckoRuntimeSettings.Builder()
+            .configFilePath(GeckoPrefs.write(appContext).absolutePath)
+            .build()
+        GeckoRuntime.create(appContext, settings)
     }
 
     val engine by lazy {

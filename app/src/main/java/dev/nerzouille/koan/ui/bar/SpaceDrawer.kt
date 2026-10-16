@@ -152,7 +152,8 @@ private fun DrawerPage(
                 modifier = Modifier.padding(vertical = DrawerTokens.Padding),
             )
         }
-        space.essentials.take(8).chunked(4).forEach { row ->
+        // Every essential Zen sends, 4 per row: no Koan-side cap (the full detent shows them all).
+        space.essentials.chunked(4).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(DrawerTokens.EssentialGap)) {
                 row.forEach { tab ->
                     Box(

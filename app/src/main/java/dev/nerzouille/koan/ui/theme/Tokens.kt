@@ -637,6 +637,10 @@ object SettingsTokens {
     val SectionTitleSize = 13.sp
     val RowHeight = 54.dp
     val RowTallHeight = 62.dp
+
+    /** A row's pressed highlight reaches this far past its text on both sides, rounded. */
+    val RowInset = 12.dp
+    val RowRadius = 14.dp
     val RowGlyph = 20.dp
     val RowGlyphGap = 14.dp
     val RowTitleSize = 16.sp
@@ -663,6 +667,20 @@ object SettingsTokens {
     val AppNameSize = 30.sp
     val VersionSize = 14.sp
     val FooterSize = 12.sp
+}
+
+/** The bottom toast ("Opened in background · Switch", later "Closed · Undo"). */
+object ToastTokens {
+    val Margin = 12.dp
+    val Gap = 10.dp
+    val Height = 50.dp
+    val Radius = 16.dp
+    val PaddingH = 18.dp
+    val TextSize = 15.sp
+    const val SHOW_MS = 3000L
+
+    /** Slides up this far as it appears. */
+    val Rise = 16.dp
 }
 
 object PagerTokens {
@@ -760,6 +778,9 @@ object Motion {
 
     /** A page pushed into a sheet sliding in, or popped. */
     val SheetPush: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 520f)
+
+    /** The bottom toast rising in and sinking away. */
+    val Toast: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 700f)
 
     /** Full-screen sheets (sign-in) sliding up and down. */
     val Sheet: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 380f)

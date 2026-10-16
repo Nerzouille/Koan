@@ -32,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
@@ -136,9 +137,8 @@ fun SettingsRow(
     val palette = KoanTheme.colors
     Row(
         Modifier
-            .fillMaxWidth()
-            .height(if (subtitle != null) SettingsTokens.RowTallHeight else SettingsTokens.RowHeight)
-            .then(if (interactive && enabled && onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+            .rowArea(if (interactive && enabled) onClick else null)
+            .height(if (subtitle != null) SettingsTokens.RowTallHeight else SettingsTokens.RowHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
@@ -173,6 +173,22 @@ fun SettingsRow(
         }
     }
 }
+
+/**
+ * Every settings row's touch area: the full width of the row plus [SettingsTokens.RowInset] on
+ * each side, rounded, so the pressed highlight always covers the whole row the same way. The
+ * content stays aligned with the page's text and dividers.
+ */
+private fun Modifier.rowArea(onClick: (() -> Unit)?): Modifier =
+    layout { measurable, constraints ->
+        val inset = SettingsTokens.RowInset.roundToPx()
+        val width = constraints.maxWidth + 2 * inset
+        val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+        layout(constraints.maxWidth, placeable.height) { placeable.place(-inset, 0) }
+    }
+        .clip(RoundedCornerShape(SettingsTokens.RowRadius))
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .padding(horizontal = SettingsTokens.RowInset)
 
 /** A few mutually exclusive options side by side; the chosen one sits on a white pill. */
 @Composable
