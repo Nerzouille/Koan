@@ -121,7 +121,17 @@ fun SearchSheet(
                 .pointerInput(Unit) { detectTapGestures { } },
             verticalArrangement = Arrangement.spacedBy(SearchTokens.GroupGap, Alignment.Bottom),
         ) {
-            // Top to bottom = least to most relevant: the last one sits on the field.
+            // Top to bottom = furthest to closest to the thumb: history and bookmarks, then open
+            // tabs, then the engine's suggestions right on the field.
+            if (results.pages.isNotEmpty()) {
+                val label = when {
+                    results.pages.all { it.source == Source.Bookmark } -> "Bookmarks"
+                    results.pages.any { it.source == Source.Bookmark } -> "History & bookmarks"
+                    else -> "History"
+                }
+                Group(label, KoanIcons.Reload) { results.pages.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
+            }
+            if (results.tabs.isNotEmpty()) Group("Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
             if (suggestions.isNotEmpty()) {
                 Group(search.suggestionsFrom, null) {
                     Row(
@@ -138,9 +148,6 @@ fun SearchSheet(
                     }
                 }
             }
-            if (results.bookmarks.isNotEmpty()) Group("Bookmarks", KoanIcons.Star) { results.bookmarks.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
-            if (results.history.isNotEmpty()) Group("History", KoanIcons.Reload) { results.history.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
-            if (results.tabs.isNotEmpty()) Group("Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
             if (shortcut != null && parsed.rest.isNotEmpty()) {
                 Group(null, null) {
                     Row(
@@ -157,39 +164,7 @@ fun SearchSheet(
                     }
                 }
             }
-            results.top?.let { top -> TopHit(top, actions) }
         }
-    }
-}
-
-/** The page the field completes to, first in reach: tap = go (or Go on the keyboard). */
-@Composable
-private fun TopHit(hit: Hit, actions: SearchActions) {
-    val palette = KoanTheme.colors
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(SearchTokens.GroupRadius))
-            .background(palette.Card)
-            .clickable { actions.open(hit) }
-            .padding(SearchTokens.RowPadding),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Favicon(hit.url, SearchTokens.Favicon + SearchTokens.ChipGap)
-        Spacer(Modifier.width(SearchTokens.RowPadding))
-        Column(Modifier.weight(1f)) {
-            Text(bareUrl(hit.url).substringBefore('/'), color = palette.TextPrimary, fontSize = SearchTokens.TitleSize, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                listOf("Top hit", if (hit.source == Source.Tab) "Open tab" else hit.title).filter { it.isNotBlank() }.joinToString(" · "),
-                color = palette.TextSecondary, fontSize = SearchTokens.UrlSize, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Box(
-            Modifier
-                .clip(RoundedCornerShape(SearchTokens.ChipGap))
-                .background(palette.GroupedRow)
-                .padding(horizontal = SearchTokens.ChipGap, vertical = SearchTokens.ChipGap / 3),
-        ) { Text("Go ↵", color = palette.TextSecondary, fontSize = SearchTokens.UrlSize) }
     }
 }
 

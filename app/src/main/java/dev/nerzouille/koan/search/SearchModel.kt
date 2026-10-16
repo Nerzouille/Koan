@@ -77,19 +77,26 @@ data class Hit(
     val payload: Any? = null,
 )
 
-/** The sheet's groups, top to bottom (design 7a). */
+/**
+ * The sheet's groups. [top]: the best page whose address starts with what was typed (inline
+ * completion shows it; it also leads its group). [pages]: history and bookmarks together.
+ */
 data class Results(
     val top: Hit? = null,
     val tabs: List<Hit> = emptyList(),
-    val history: List<Hit> = emptyList(),
-    val bookmarks: List<Hit> = emptyList(),
+    val pages: List<Hit> = emptyList(),
 ) {
-    val isEmpty: Boolean get() = top == null && tabs.isEmpty() && history.isEmpty() && bookmarks.isEmpty()
+    val isEmpty: Boolean get() = tabs.isEmpty() && pages.isEmpty()
 }
 
 /** The url without scheme and "www.", as typed: "github.com/koan". */
 fun bareUrl(url: String): String =
     url.substringAfter("://", url).removePrefix("www.").removeSuffix("/")
+
+private fun Hit.host() = bareUrl(url).substringBefore('/').lowercase()
+
+/** One row per page: the address without query or fragment ("?usp=…", "?hl=…", "#…"). */
+fun pageKey(url: String): String = bareUrl(url).substringBefore('#').substringBefore('?').removeSuffix("/").lowercase()
 
 /** Words of a title or address: "Pull request #42 · GitHub" → pull, request, 42, github. */
 private fun words(s: String): List<String> = s.lowercase().split(NON_WORD).filter { it.isNotEmpty() }
@@ -97,60 +104,84 @@ private fun words(s: String): List<String> = s.lowercase().split(NON_WORD).filte
 private val NON_WORD = Regex("[^\\p{L}\\p{N}]+")
 
 /**
- * What was typed starts the address, or every typed word starts a word of the title or of the
- * host ("hub" doesn't match github.com, "git" does). No loose substrings.
+ * Under [MIN_WORD_QUERY] characters only the start of the host counts ("sa" → samsung.com, never a
+ * title word). From there: the start of the address, or every typed word starting a word of the
+ * title or of the host. No loose substrings.
  */
 private fun Hit.matches(q: String): Boolean {
+    if (host().startsWith(q, ignoreCase = true)) return true
+    if (q.length < MIN_WORD_QUERY) return false
     if (prefixMatches(q)) return true
     val terms = words(q)
     if (terms.isEmpty()) return false
-    val host = bareUrl(url).substringBefore('/')
-    val candidates = words(title) + words(host)
+    val candidates = words(title) + words(host())
     return terms.all { t -> candidates.any { it.startsWith(t) } }
 }
 private fun Hit.prefixMatches(q: String) = bareUrl(url).startsWith(q, ignoreCase = true)
 
 /**
- * Ranks [tabs], [history] and [bookmarks] for [query] ([scope]: only that source). The top hit is
- * the most used page whose address starts with what was typed (it is what inline completion
- * shows); the rest are grouped by source, each page once, open tabs first.
+ * Frecency: how often and how recently. Visits count with diminishing weight within a recency
+ * bucket (the last days count most); a bookmark weighs a bit more than a plain visit.
  */
-fun rank(query: String, tabs: List<Hit>, history: List<Hit>, bookmarks: List<Hit>, scope: Scope? = null): Results {
+fun frecency(hit: Hit, now: Long): Double {
+    val days = (now - hit.lastUsed).coerceAtLeast(0) / 86_400_000.0
+    val recency = when {
+        days < 4 -> 1.0
+        days < 14 -> 0.7
+        days < 31 -> 0.5
+        days < 90 -> 0.3
+        else -> 0.1
+    }
+    val kind = if (hit.source == Source.Bookmark) 1.4 else 1.0
+    return (1 + hit.visits) * recency * kind
+}
+
+/**
+ * Ranks [tabs], [history] and [bookmarks] for [query] ([scope]: only that source). Each page once
+ * (by [pageKey]); a page open in a tab is only ever offered as that tab. Few rows: [TAB_LIMIT] tabs,
+ * [PAGE_LIMIT] history/bookmarks (a scope shows more of its one source).
+ */
+fun rank(
+    query: String,
+    tabs: List<Hit>,
+    history: List<Hit>,
+    bookmarks: List<Hit>,
+    scope: Scope? = null,
+    now: Long = System.currentTimeMillis(),
+): Results {
     val q = query.trim()
     if (q.isEmpty() && scope == null) return Results()
-    val visits = history.associate { it.url to it.visits }
+    val visits = HashMap<String, Int>().apply { history.forEach { h -> merge(pageKey(h.url), h.visits, ::maxOf) } }
     fun pick(hits: List<Hit>) = hits.filter { q.isEmpty() || it.matches(q) }
-    val inTabs = if (scope == null || scope == Scope.Tabs) pick(tabs).map { it.copy(visits = visits[it.url] ?: it.visits) } else emptyList()
-    val inHistory = if (scope == null || scope == Scope.History) pick(history) else emptyList()
-    val inBookmarks = if (scope == null || scope == Scope.Bookmarks) pick(bookmarks) else emptyList()
+    fun best(hits: List<Hit>) = hits
+        .sortedByDescending { frecency(it, now) }
+        .distinctBy { pageKey(it.url) }
+    val inTabs = if (scope == null || scope == Scope.Tabs) {
+        best(pick(tabs).map { it.copy(visits = visits[pageKey(it.url)] ?: it.visits) })
+    } else {
+        emptyList()
+    }
+    // A page open in a tab (any tab, matching or not) is never a history or bookmark row.
+    val open = tabs.mapTo(HashSet()) { pageKey(it.url) }
+    val inPages = best(
+        (if (scope == null || scope == Scope.History) pick(history) else emptyList()) +
+            (if (scope == null || scope == Scope.Bookmarks) pick(bookmarks) else emptyList()),
+    ).filter { pageKey(it.url) !in open }
 
+    val many = scope != null
+    val tabGroup = inTabs.take(if (many) SCOPE_LIMIT else TAB_LIMIT)
+    val pageGroup = inPages.take(if (many) SCOPE_LIMIT else PAGE_LIMIT)
     val top = if (scope != null || q.isEmpty() || ' ' in q) {
         null
     } else {
-        (inTabs + inHistory + inBookmarks)
-            .filter { it.prefixMatches(q) }
-            .maxWithOrNull(compareBy<Hit>({ it.visits }, { it.source == Source.Tab }, { it.lastUsed }))
+        (tabGroup + pageGroup).filter { it.prefixMatches(q) }.maxByOrNull { frecency(it, now) + if (it.source == Source.Tab) 0.5 else 0.0 }
     }
-    val shown = HashSet<String>().apply { top?.let { add(it.url) } }
-    // Fewer, better: a scope shows more of its one source.
-    fun take(hits: List<Hit>, limit: Int) = hits
-        .sortedWith(compareByDescending<Hit> { it.prefixMatches(q) }.thenByDescending { it.visits }.thenByDescending { it.lastUsed })
-        .filter { shown.add(it.url) }
-        .take(limit)
-    // A page open in a tab is offered as that tab, never again as history or a bookmark.
-    val many = scope != null
-    val tabGroup = take(inTabs, if (many) SCOPE_LIMIT else TAB_LIMIT)
-    inTabs.forEach { shown.add(it.url) }
-    return Results(
-        top = top,
-        tabs = tabGroup,
-        history = take(inHistory, if (many) SCOPE_LIMIT else PAGE_LIMIT),
-        bookmarks = take(inBookmarks, if (many) SCOPE_LIMIT else PAGE_LIMIT),
-    )
+    return Results(top = top, tabs = tabGroup, pages = pageGroup)
 }
 
+private const val MIN_WORD_QUERY = 3
 private const val TAB_LIMIT = 2
-private const val PAGE_LIMIT = 3
+private const val PAGE_LIMIT = 2
 private const val SCOPE_LIMIT = 8
 
 /**

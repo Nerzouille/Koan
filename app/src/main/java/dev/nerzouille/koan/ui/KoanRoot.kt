@@ -288,7 +288,7 @@ fun KoanRoot(components: Components) {
                 editing = false
                 tabs.load(if (parsed.rest.isEmpty()) parsed.shortcut.home else parsed.shortcut.searchUrl(parsed.rest))
             }
-            parsed.scope != null -> search.results.let { r -> (r.tabs + r.history + r.bookmarks).firstOrNull() }?.let(::openHit)
+            parsed.scope != null -> search.results.let { r -> (r.tabs + r.pages).firstOrNull() }?.let(::openHit)
             top != null && input.equals(completion(searchField.typed, top) ?: "\u0000", ignoreCase = true) -> openHit(top)
             else -> {
                 editing = false

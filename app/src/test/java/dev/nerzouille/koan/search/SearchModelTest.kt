@@ -7,13 +7,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SearchModelTest {
+    private val now = 100L * 86_400_000L
+    private fun daysAgo(d: Int) = now - d * 86_400_000L
+
     private val history = listOf(
-        Hit("https://www.example.com/docs", "Example docs", Source.History, visits = 12, lastUsed = 5),
-        Hit("https://example.org/", "Example org", Source.History, visits = 3, lastUsed = 9),
-        Hit("https://news.example.net/today", "Made-up news", Source.History, visits = 1, lastUsed = 1),
+        Hit("https://www.example.com/docs", "Example docs", Source.History, visits = 12, lastUsed = daysAgo(1)),
+        Hit("https://example.org/", "Example org", Source.History, visits = 3, lastUsed = daysAgo(2)),
+        Hit("https://news.example.net/today", "Made-up news", Source.History, visits = 1, lastUsed = daysAgo(3)),
     )
     private val tabs = listOf(Hit("https://example.org/", "Example org", Source.Tab, payload = "tab-1"))
-    private val bookmarks = listOf(Hit("https://example.com/docs", "Docs (bookmark)", Source.Bookmark))
 
     @Test fun `parses shortcuts, scopes and the picker`() {
         assertTrue(parseQuery("@").picking)
@@ -24,46 +26,68 @@ class SearchModelTest {
         assertEquals(Parsed(rest = "plain words"), parseQuery(" plain words "))
     }
 
-    @Test fun `top hit is the most visited page starting with what was typed`() {
-        val r = rank("exa", tabs, history, bookmarks)
-        assertEquals("https://www.example.com/docs", r.top?.url)
-        // The open tab is offered as a tab, not again as history.
-        assertEquals(listOf("https://example.org/"), r.tabs.map { it.url })
-        assertFalse(r.history.any { it.url == "https://example.org/" })
-        assertFalse(r.history.any { it.url == r.top?.url })
-    }
-
-    @Test fun `scopes keep only their source and have no top hit`() {
-        val r = rank("example", tabs, history, bookmarks, scope = Scope.Bookmarks)
-        assertNull(r.top)
-        assertTrue(r.tabs.isEmpty() && r.history.isEmpty())
-        assertEquals(1, r.bookmarks.size)
-        // An empty scoped query lists everything there.
-        assertEquals(3, rank("", tabs, history, bookmarks, scope = Scope.History).history.size)
+    @Test fun `under three characters only the host's start counts`() {
+        val pages = listOf(
+            Hit("https://samsung.example/", "Phones", Source.History, visits = 1, lastUsed = daysAgo(1)),
+            Hit("https://other.example/", "Sale of the year", Source.History, visits = 9, lastUsed = daysAgo(1)),
+        )
+        assertEquals(listOf("https://samsung.example/"), rank("sa", emptyList(), pages, emptyList(), now = now).pages.map { it.url })
+        // From three characters a title word counts too.
+        assertEquals(2, rank("sal", emptyList(), pages, emptyList(), now = now).pages.size + rank("sam", emptyList(), pages, emptyList(), now = now).pages.size)
     }
 
     @Test fun `matches word starts, not loose substrings`() {
         val pages = listOf(
-            Hit("https://github.com/koan", "Pull request #42", Source.History, visits = 2),
-            Hit("https://mail.example.com/", "Inbox", Source.History, visits = 1),
+            Hit("https://github.com/koan", "Pull request #42", Source.History, visits = 2, lastUsed = daysAgo(1)),
+            Hit("https://mail.example.com/", "Inbox", Source.History, visits = 1, lastUsed = daysAgo(1)),
         )
-        assertTrue(rank("hub", emptyList(), pages, emptyList()).isEmpty)
-        assertEquals(1, rank("req", emptyList(), pages, emptyList()).history.size)
-        assertEquals(1, rank("pull req", emptyList(), pages, emptyList()).history.size)
-        // A host label counts as a word: "example" finds mail.example.com.
-        assertEquals("https://mail.example.com/", rank("example", emptyList(), pages, emptyList()).history.firstOrNull()?.url)
+        assertTrue(rank("hub", emptyList(), pages, emptyList(), now = now).isEmpty)
+        assertEquals(1, rank("req", emptyList(), pages, emptyList(), now = now).pages.size)
+        assertEquals(1, rank("pull req", emptyList(), pages, emptyList(), now = now).pages.size)
+        assertEquals("https://mail.example.com/", rank("example", emptyList(), pages, emptyList(), now = now).pages.firstOrNull()?.url)
     }
 
-    @Test fun `at most two tabs and three pages per group`() {
-        val many = (1..6).map { Hit("https://example.com/p$it", "Example $it", Source.History, visits = it) }
-        val tabs = (1..5).map { Hit("https://example.org/t$it", "Example tab $it", Source.Tab) }
-        val r = rank("example", tabs, many, emptyList())
+    @Test fun `one row per page, query ignored, and an open tab hides its history`() {
+        val pages = listOf(
+            Hit("https://docs.example.com/d/1?usp=sharing", "Doc one", Source.History, visits = 5, lastUsed = daysAgo(1)),
+            Hit("https://docs.example.com/d/1?hl=fr", "Doc one", Source.History, visits = 2, lastUsed = daysAgo(1)),
+            Hit("https://example.org/?ref=x", "Example org", Source.History, visits = 4, lastUsed = daysAgo(1)),
+        )
+        val r = rank("doc", tabs, pages, emptyList(), now = now)
+        assertEquals(1, r.pages.count { it.url.startsWith("https://docs.example.com/d/1") })
+        val s = rank("exa", tabs, pages, emptyList(), now = now)
+        assertFalse(s.pages.any { pageKey(it.url) == "example.org" })
+        assertEquals(listOf("https://example.org/"), s.tabs.map { it.url })
+    }
+
+    @Test fun `frecency puts recent and frequent first`() {
+        val pages = listOf(
+            Hit("https://example.com/old", "Example old", Source.History, visits = 20, lastUsed = daysAgo(200)),
+            Hit("https://example.com/new", "Example new", Source.History, visits = 3, lastUsed = daysAgo(1)),
+        )
+        assertEquals("https://example.com/new", rank("example", emptyList(), pages, emptyList(), now = now).pages.first().url)
+    }
+
+    @Test fun `at most two tabs and two pages`() {
+        val many = (1..6).map { Hit("https://example.com/p$it", "Example $it", Source.History, visits = it, lastUsed = daysAgo(1)) }
+        val manyTabs = (1..5).map { Hit("https://example.org/t$it", "Example tab $it", Source.Tab) }
+        val r = rank("example", manyTabs, many, emptyList(), now = now)
         assertEquals(2, r.tabs.size)
-        assertEquals(3, r.history.size)
+        assertEquals(2, r.pages.size)
+    }
+
+    @Test fun `scopes keep only their source and have no top hit`() {
+        val bookmarks = listOf(Hit("https://example.com/docs", "Docs (bookmark)", Source.Bookmark))
+        val r = rank("example", tabs, history, bookmarks, scope = Scope.Bookmarks, now = now)
+        assertNull(r.top)
+        assertTrue(r.tabs.isEmpty())
+        assertTrue(r.pages.all { it.source == Source.Bookmark })
+        // An empty "@history" lists it all, except the page open in a tab.
+        assertEquals(2, rank("", tabs, history, emptyList(), scope = Scope.History, now = now).pages.size)
     }
 
     @Test fun `nothing typed, nothing shown`() {
-        assertTrue(rank("  ", tabs, history, bookmarks).isEmpty)
+        assertTrue(rank("  ", tabs, history, emptyList(), now = now).isEmpty)
     }
 
     @Test fun `completion fills the host first, then the address`() {
