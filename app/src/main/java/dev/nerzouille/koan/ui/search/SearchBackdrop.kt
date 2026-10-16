@@ -25,21 +25,27 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import dev.nerzouille.koan.ui.bar.bakeBlur
-import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SearchTokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Behind the search sheet: the page, blurred progressively (like iOS's variable blur). Fully
- * blurred and dimmed from the top of the results ([solidTop], px from the top of the screen) down,
- * through the field to the keyboard; fading back to the sharp page over [SearchTokens.BlurFade]
- * above. No live blur: the page is captured once ([snapshot]), halved, and baked into two blur
- * levels (the drawer's technique), each drawn through a vertical gradient mask. [shown] fades it
- * all in and out with the sheet. Until the blur is baked, a stronger plain dim keeps page text away.
+ * Behind the search sheet: the page, lightly blurred under the results only (its text still
+ * faintly there), fading back to the untouched page over [fade] px above [solidTop] (px from the
+ * top of the screen), plus a soft shadow the sheet casts upward from the field ([fieldTop]): black,
+ * [SearchTokens.SHADOW] at the field, none at the top of the fade. No wash, no tint otherwise. No
+ * live blur: the page is captured once ([snapshot]), halved, and baked into two blur levels (the
+ * drawer's technique), each drawn through a vertical gradient mask. [shown] fades it in and out.
  */
 @Composable
-fun SearchBackdrop(snapshot: suspend () -> Bitmap?, solidTop: () -> Float, shown: () -> Float, modifier: Modifier = Modifier) {
+fun SearchBackdrop(
+    snapshot: suspend () -> Bitmap?,
+    solidTop: () -> Float,
+    fieldTop: () -> Float,
+    fade: () -> Float,
+    shown: () -> Float,
+    modifier: Modifier = Modifier,
+) {
     val density = LocalDensity.current
     val blurLayer = rememberGraphicsLayer()
     val outLayer = rememberGraphicsLayer()
@@ -52,28 +58,25 @@ fun SearchBackdrop(snapshot: suspend () -> Bitmap?, solidTop: () -> Float, shown
         // Radii for the half-size copy: drawn back at twice the size, they read twice as strong.
         levels = SearchTokens.BlurRadii.map { r -> bakeBlur(half, with(density) { r.toPx() } / 2f, blurLayer, outLayer, density) }
     }
-    val palette = KoanTheme.colors
-    val dim = palette.Base
     Canvas(modifier.fillMaxSize()) {
         val a = shown()
         if (a <= 0f) return@Canvas
-        val solid = solidTop().coerceIn(0f, size.height)
-        val fade = SearchTokens.BlurFade.toPx()
-        val top = solid - fade
-        val mid = solid - fade / 2f
+        val field = fieldTop().coerceIn(0f, size.height)
+        val solid = solidTop().coerceIn(0f, field)
+        val top = solid - fade()
+        val mid = (top + solid) / 2f
         val baked = levels
         if (baked.size == 2) {
-            // The weaker blur fades in over the upper half of the fade, the stronger one over the lower half.
+            // The lighter blur over the upper half of the fade, the full one from its middle down.
             masked(baked[0], top, mid, a)
             masked(baked[1], mid, solid, a)
         }
-        // The frosted tint, same gradient: page text never competes with a result.
-        val strength = if (baked.size == 2) SearchTokens.DIM else SearchTokens.DIM_UNBLURRED
+        // The sheet's shadow, cast upward from the field.
         drawRect(
-            Brush.verticalGradient(0f to dim.copy(alpha = 0f), 1f to dim.copy(alpha = strength), startY = top, endY = solid),
-            topLeft = Offset(0f, top), size = size.copy(height = fade), alpha = a,
+            Brush.verticalGradient(0f to Color.Transparent, 1f to Color.Black.copy(alpha = SearchTokens.SHADOW), startY = top, endY = field),
+            topLeft = Offset(0f, top), size = size.copy(height = field - top), alpha = a,
         )
-        drawRect(dim.copy(alpha = strength), topLeft = Offset(0f, solid), size = size.copy(height = size.height - solid), alpha = a)
+        drawRect(Color.Black.copy(alpha = SearchTokens.SHADOW), topLeft = Offset(0f, field), size = size.copy(height = size.height - field), alpha = a)
     }
 }
 

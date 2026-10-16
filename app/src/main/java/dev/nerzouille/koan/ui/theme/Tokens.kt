@@ -741,13 +741,17 @@ object SearchTokens {
     /** The results never go higher than the status bar plus this. */
     val StatusGap = 16.dp
 
-    /** The blurred page behind: two baked blur levels, fading out over [BlurFade] above the results. */
-    val BlurRadii = listOf(10.dp, 28.dp)
-    val BlurFade = 120.dp
+    /**
+     * The page behind: lightly blurred (two baked levels, text still faintly readable) over the
+     * results only, fading back to the sharp page over [BlurFade] above the top card, or
+     * [BlurFadeEmpty] above the field when nothing shows.
+     */
+    val BlurRadii = listOf(4.dp, 9.dp)
+    val BlurFade = 48.dp
+    val BlurFadeEmpty = 40.dp
 
-    /** The frosted tint over the blurred page (stronger while the blur is still being baked). */
-    const val DIM = 0.62f
-    const val DIM_UNBLURRED = 0.88f
+    /** The shadow the sheet casts upward: black, this strong right above the field, fading to none. */
+    const val SHADOW = 0.18f
 
     /** The sheet and its backdrop fading in and out with editing. */
     const val SHOW_MS = 180

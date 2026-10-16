@@ -104,11 +104,14 @@ fun SearchSheet(
             .fillMaxSize()
             .pointerInput(Unit) { detectTapGestures { actions.cancel() } },
     ) {
-        if (parsed.picking) {
+        val pickable = parsed.picking && (
+            Shortcut.entries.any { pickMatch(parsed.rest, it.key, it.label) } || Scope.entries.any { pickMatch(parsed.rest, it.key, it.label) }
+            )
+        if (pickable) {
             Picker(parsed.rest, engine, actions, reportTop.align(Alignment.BottomCenter).padding(bottom = bottom).heightIn(max = cap))
             return@Box
         }
-        val showing = !results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty())
+        val showing = !parsed.picking && (!results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty()))
         if (!showing) {
             // Nothing to show: the blur still sits behind the field.
             Box(reportTop.align(Alignment.BottomCenter).padding(bottom = bottom))
@@ -293,8 +296,8 @@ private fun Chip(text: String, icon: ImageVector?, background: Color = KoanTheme
 @Composable
 private fun Picker(typed: String, engine: SearchEngine, actions: SearchActions, modifier: Modifier) {
     val palette = KoanTheme.colors
-    val engines = Shortcut.entries.filter { typed.isEmpty() || it.key.startsWith(typed, true) || it.label.startsWith(typed, true) }
-    val scopes = Scope.entries.filter { typed.isEmpty() || it.key.startsWith(typed, true) }
+    val engines = Shortcut.entries.filter { pickMatch(typed, it.key, it.label) }
+    val scopes = Scope.entries.filter { pickMatch(typed, it.key, it.label) }
     Column(
         modifier
             .fillMaxWidth()
@@ -345,3 +348,7 @@ private fun Picker(typed: String, engine: SearchEngine, actions: SearchActions, 
         }
     }
 }
+
+/** "@wi" picks Wikipedia: what's typed after "@" starts its key or its name. */
+private fun pickMatch(typed: String, key: String, label: String) =
+    typed.isEmpty() || key.startsWith(typed, ignoreCase = true) || label.startsWith(typed, ignoreCase = true)

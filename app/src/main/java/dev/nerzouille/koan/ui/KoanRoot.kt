@@ -42,6 +42,7 @@ import dev.nerzouille.koan.ui.search.SearchBackdrop
 import dev.nerzouille.koan.ui.theme.SearchTokens
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.runtime.mutableFloatStateOf
 import dev.nerzouille.koan.ui.search.TabTarget
 import dev.nerzouille.koan.ui.search.rememberSearch
@@ -186,6 +187,7 @@ fun KoanRoot(components: Components) {
     val searchShown = animateFloatAsState(if (editing && !overviewOpen) 1f else 0f, tween(SearchTokens.SHOW_MS), label = "search")
     val searchVisible by remember { derivedStateOf { searchShown.value > 0f } }
     val searchTop = remember { mutableFloatStateOf(Float.MAX_VALUE) }
+    // A new edit starts with nothing above the field (the zone grows from there).
     LaunchedEffect(editing) { if (editing) searchTop.floatValue = Float.MAX_VALUE }
     // The address field's text while editing, and what it finds.
     val searchField = remember { SearchField() }
@@ -547,9 +549,16 @@ fun KoanRoot(components: Components) {
         // in and out with editing), the dock's own surface gone.
         val searchBottom = barZone(overview = false) + WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
         if (searchVisible) {
+            val fieldTop = with(density) { LocalWindowInfo.current.containerSize.height - searchBottom.toPx() }
+            // The blurred zone follows the results' top smoothly; nothing to show = just above the field.
+            val top = searchTop.floatValue.coerceAtMost(fieldTop)
+            val solid = animateFloatAsState(top, spring(dampingRatio = 1f, stiffness = 500f), label = "searchTop")
+            val fadePx = with(density) { (if (top < fieldTop - 1f) SearchTokens.BlurFade else SearchTokens.BlurFadeEmpty).toPx() }
             SearchBackdrop(
                 snapshot = { tabs.snapshot() },
-                solidTop = { searchTop.floatValue },
+                solidTop = { solid.value },
+                fieldTop = { fieldTop },
+                fade = { fadePx },
                 shown = { searchShown.value },
             )
         }
