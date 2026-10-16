@@ -11,8 +11,8 @@ import java.io.File
 object GeckoPrefs {
     /**
      * Find in page in Koan's blue (the brand gradient's blue end) instead of Gecko's green: every
-     * match softly, the current one strongly with white text. Translucent, so it reads on light
-     * and dark pages alike.
+     * match softly (translucent, so it reads on light and dark pages alike; see GeckoFinder), the
+     * current one strongly.
      */
     private fun prefs(): Map<String, String> {
         val blue = BrandTokens.Blue
@@ -20,7 +20,6 @@ object GeckoPrefs {
         return mapOf(
             "ui.textHighlightBackground" to "rgba($r, $g, $b, 0.32)",
             "ui.textSelectAttentionBackground" to "rgb($r, $g, $b)",
-            "ui.textSelectAttentionForeground" to "#ffffff",
         )
     }
 

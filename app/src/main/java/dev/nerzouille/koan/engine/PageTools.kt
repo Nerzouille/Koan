@@ -50,6 +50,7 @@ class PageTools(context: Context, engine: Engine, private val store: BrowserStor
             store.dispatch(ContentAction.ClearFindResultsAction(tabId))
         } else {
             store.dispatch(ContentAction.ClearFindResultsAction(tabId))
+            GeckoFinder.highlightAll(session)
             session.findAll(text)
         }
     }

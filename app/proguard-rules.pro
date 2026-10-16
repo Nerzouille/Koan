@@ -9,3 +9,8 @@
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
+
+# GeckoView reads Koan's config file (engine/GeckoPrefs) with SnakeYAML, whose static setup reads
+# its own package name: once R8 moved its classes out of their package, Koan crashed at start.
+-keep class org.yaml.snakeyaml.** { *; }
+-dontwarn org.yaml.snakeyaml.**
