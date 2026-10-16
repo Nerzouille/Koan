@@ -60,6 +60,7 @@ class MainActivity : FragmentActivity() {
         lifecycle.addObserver(WindowFeature(components.store, components.tabsUseCases))
         components.sync.start()
         components.pageTools.start()
+        components.startExtensions()
         components.watchDownloadLocation()
         startDownloads(components)
         // A fresh start from a link (default browser, share); a recreated activity already had it.

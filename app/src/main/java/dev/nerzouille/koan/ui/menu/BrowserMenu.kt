@@ -42,6 +42,7 @@ import dev.nerzouille.koan.ui.theme.SheetTokens
 sealed interface MenuPage {
     data object Root : MenuPage
     data object SiteSettings : MenuPage
+    data object UBlock : MenuPage
 }
 
 /** What "Add to Essentials" can do for the current tab. */
@@ -56,6 +57,7 @@ data class MenuState(
     val essentials: EssentialsAction = EssentialsAction.None,
     val activeDownloads: Int = 0,
     val secure: Boolean = false,
+    val ublock: UBlockUi? = null,
 )
 
 /** What the menu's root page does. Rows without an action yet show as "Soon". */
@@ -77,6 +79,9 @@ class MenuActions(
     val settings: () -> Unit,
     val downloads: () -> Unit,
     val siteSettings: () -> Unit,
+    val ublockToggle: (Boolean) -> Unit,
+    val ublockOpen: () -> Unit,
+    val ublockInstall: () -> Unit,
 )
 
 /**
@@ -134,9 +139,7 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
             SheetDivider()
             SheetRow(KoanIcons.Settings, "Settings", on, onClick = actions.settings) { RowChevron() }
         }
-        SheetGroup {
-            SheetRow(KoanIcons.Shield, "uBlock Origin", on, subtitle = "Blocks ads and trackers", enabled = false)
-        }
+        UBlockCard(state.ublock, on, actions.ublockToggle, actions.ublockOpen, actions.ublockInstall)
     }
 }
 

@@ -627,6 +627,9 @@ object SheetTokens {
 
     /** Long press on an image: its preview on top of the link menu. */
     val LinkImageHeight = 140.dp
+
+    /** uBlock's own panel, pushed in the menu sheet. */
+    val UBlockPanelHeight = 520.dp
     const val IMAGE_FADE_MS = 180
     val CardTextSize = 14.sp
 }

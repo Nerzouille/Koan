@@ -13,6 +13,10 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.Alignment
 import dev.nerzouille.koan.ui.bar.barZone
 import dev.nerzouille.koan.ui.menu.LoginChips
+import dev.nerzouille.koan.ui.menu.UBlockPage
+import dev.nerzouille.koan.ui.menu.UBlockUi
+import dev.nerzouille.koan.engine.UBlock
+import mozilla.components.browser.state.action.WebExtensionAction
 import dev.nerzouille.koan.ui.menu.LoginSheet
 import dev.nerzouille.koan.ui.menu.SaveLoginCard
 import mozilla.components.concept.engine.prompt.PromptRequest
@@ -169,6 +173,16 @@ fun KoanOverlays(
     val engine by components.settings.searchEngine.collectAsStateWithLifecycle(SearchEngine.DuckDuckGo)
     val suggestionsOn by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
+    // uBlock Origin on this page: on or off, and its badge (the tab's own, else the default).
+    val ublockUi by components.store.observeSlice(activeTabId) { s ->
+        s.extensions[UBlock.ID]?.let { ext ->
+            val badge = activeTabId?.let { s.findTab(it) }?.extensionState?.get(UBlock.ID)?.browserAction?.badgeText
+                ?: ext.browserAction?.badgeText
+            UBlockUi(ext.enabled, UBlock.count(badge))
+        }
+    }
+    val ublockPopup by components.store.observeSlice(Unit) { s -> s.extensions[UBlock.ID]?.popupSession }
+    val blockedWeek by components.settings.blockedByDay.collectAsStateWithLifecycle(emptyMap())
     // Gecko's verdict; unknown (a download, a page still loading) falls back to the scheme.
     val secure by components.store.observeSlice(activeTabId) { s ->
         val content = activeTabId?.let { s.findTab(it) }?.content
@@ -213,6 +227,7 @@ fun KoanOverlays(
         },
         activeDownloads = downloads.count { !it.private && it.status in ACTIVE },
         secure = secure,
+        ublock = ublockUi,
     )
     KoanSheet(menu, overlays.menuNav) { p, pageScope ->
         when (p) {
@@ -257,8 +272,22 @@ fun KoanOverlays(
                         overlays.downloadsOpen = true
                     },
                     siteSettings = { overlays.menuNav.push(MenuPage.SiteSettings) },
+                    ublockToggle = components.ublock::setEnabled,
+                    ublockOpen = {
+                        overlays.menuNav.push(MenuPage.UBlock)
+                        // Its button opens its panel; the panel arrives in the store as a session.
+                        val s = components.store.state
+                        val tabAction = activeTabId?.let { s.findTab(it) }?.extensionState?.get(UBlock.ID)?.browserAction
+                        (tabAction ?: s.extensions[UBlock.ID]?.browserAction)?.onClick?.invoke()
+                    },
+                    ublockInstall = components.ublock::install,
                 ),
             )
+            MenuPage.UBlock -> UBlockPage(ublockPopup, pageScope) {
+                // The panel closed with its page: so does its session.
+                components.store.state.extensions[UBlock.ID]?.popupSession?.close()
+                components.store.dispatch(WebExtensionAction.UpdatePopupSessionAction(UBlock.ID, popupSession = null))
+            }
             MenuPage.SiteSettings -> SiteSettingsPage(
                 SiteSettingsUi(
                     url = page.url,
@@ -521,6 +550,10 @@ fun KoanOverlays(
                 onPickDownloadFolder = { pickFolder.launch(null) },
                 onDefaultDownloadFolder = { scope.launch { components.settings.setDownloadLocation(null) } },
                 onShowDownloads = { overlays.downloadsOpen = true },
+                ublock = ublockUi,
+                ublockWeek = blockedWeek.values.sum(),
+                onUblock = components.ublock::setEnabled,
+                onInstallUblock = components.ublock::install,
                 passwords = PasswordsUi(
                     summaries = loginSummaries,
                     unlocked = unlockedLogins,

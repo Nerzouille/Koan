@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import mozilla.components.browser.state.state.content.DownloadState
 import kotlinx.coroutines.launch
+import mozilla.components.support.webextensions.WebExtensionSupport
 import android.os.Environment
 import dev.nerzouille.koan.engine.downloads.Downloads
 import dev.nerzouille.koan.engine.downloads.KoanDownloadService
@@ -98,6 +99,19 @@ class Components(context: Context) {
 
     fun watchDownloadLocation() = appScope.launch {
         settings.downloadLocation.collect { pickedDownloadFolder = it }
+    }
+
+    /** uBlock Origin (C5). [startExtensions] once per process. */
+    val ublock by lazy { UBlock(engine, store, settings, appScope) }
+
+    private var extensionsStarted = false
+
+    /** Add-on support (installed list, badges, popups into the store), then uBlock. */
+    fun startExtensions() {
+        if (extensionsStarted) return
+        extensionsStarted = true
+        WebExtensionSupport.initialize(engine, store, openPopupInTab = false)
+        ublock.start()
     }
 
     /** What sites may do: answers to their requests, and Site settings. */

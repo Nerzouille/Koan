@@ -160,6 +160,8 @@ dependencies {
     implementation(libs.mozilla.concept.storage)
     // Already shipped with feature-downloads; declared to compile against its DownloadFileUtils.
     implementation(libs.mozilla.support.utils)
+    // Already shipped with feature-readerview; declared for uBlock Origin (WebExtensionSupport).
+    implementation(libs.mozilla.support.webextensions)
 
     testImplementation(libs.junit)
     testImplementation(libs.org.json)

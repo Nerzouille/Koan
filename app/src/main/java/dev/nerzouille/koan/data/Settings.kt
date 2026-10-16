@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import dev.nerzouille.koan.search.SearchEngine
 
@@ -49,6 +50,32 @@ class Settings(context: Context) {
     suspend fun setSearchSuggestions(on: Boolean) {
         store.edit { it[suggest] = on }
     }
+
+    private val ublockOffered = booleanPreferencesKey("ublock_offered")
+
+    /** uBlock Origin was installed once already (removed or turned off since = the owner's choice). */
+    suspend fun ublockOffered(): Boolean = store.data.first()[ublockOffered] ?: false
+
+    suspend fun markUblockOffered() {
+        store.edit { it[ublockOffered] = true }
+    }
+
+    private val blocked = stringPreferencesKey("ublock_blocked_days")
+
+    /** Requests uBlock blocked, per day ("yyyymmdd" → count), the last 7 days. */
+    val blockedByDay: Flow<Map<String, Int>> = store.data.map { prefs -> parseDays(prefs[blocked]) }
+
+    suspend fun addBlocked(day: String, count: Int) {
+        if (count <= 0) return
+        store.edit { prefs ->
+            val days = parseDays(prefs[blocked]).toMutableMap()
+            days[day] = (days[day] ?: 0) + count
+            prefs[blocked] = days.entries.sortedByDescending { it.key }.take(7).joinToString(",") { "${it.key}:${it.value}" }
+        }
+    }
+
+    private fun parseDays(raw: String?): Map<String, Int> =
+        raw.orEmpty().split(',').mapNotNull { e -> e.split(':').takeIf { it.size == 2 }?.let { (d, c) -> c.toIntOrNull()?.let { d to it } } }.toMap()
 
     private val engine = stringPreferencesKey("search_engine")
 

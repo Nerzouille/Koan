@@ -53,6 +53,7 @@ mozilla-feature-readerview = { module = "org.mozilla.components:feature-readervi
 mozilla-feature-downloads = { module = "org.mozilla.components:feature-downloads", version.ref = "mozillaComponents" }
 mozilla-concept-storage = { module = "org.mozilla.components:concept-storage", version.ref = "mozillaComponents" }
 mozilla-support-utils = { module = "org.mozilla.components:support-utils", version.ref = "mozillaComponents" }
+mozilla-support-webextensions = { module = "org.mozilla.components:support-webextensions", version.ref = "mozillaComponents" }
 
 junit = { module = "junit:junit", version.ref = "junit" }
 org-json = { module = "org.json:json", version.ref = "orgJson" }

@@ -32,6 +32,7 @@ import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.bar.label
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.KoanToggle
+import dev.nerzouille.koan.ui.menu.UBlockUi
 import dev.nerzouille.koan.ui.sheet.SheetNav
 import dev.nerzouille.koan.ui.theme.BrandSpinner
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
@@ -81,6 +82,12 @@ class SettingsUi(
     val onDefaultDownloadFolder: () -> Unit,
     val onShowDownloads: () -> Unit,
     val passwords: PasswordsUi,
+    /** uBlock Origin: null = not installed. */
+    val ublock: UBlockUi?,
+    /** Requests it blocked over the last 7 days. */
+    val ublockWeek: Int,
+    val onUblock: (Boolean) -> Unit,
+    val onInstallUblock: () -> Unit,
 )
 
 /**
@@ -163,7 +170,16 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
             onClick = { push(SettingsPage.Passwords) },
         )
         SettingsDivider()
-        SettingsRow(KoanIcons.Shield, "uBlock Origin", on, enabled = false)
+        val ublock = ui.ublock
+        if (ublock == null) {
+            SettingsRow(KoanIcons.Shield, "uBlock Origin", on, subtitle = "Blocks ads and trackers", value = "Install", onClick = ui.onInstallUblock)
+        } else {
+            SettingsRow(
+                KoanIcons.Shield, "uBlock Origin", on,
+                subtitle = if (!ublock.enabled) "Off" else "%,d requests blocked this week".format(ui.ublockWeek),
+                onClick = { ui.onUblock(!ublock.enabled) },
+            ) { KoanToggle(checked = ublock.enabled, onCheckedChange = if (on) ui.onUblock else null) }
+        }
 
         SettingsSection("Koan")
         SettingsRow(KoanIcons.Download, "Downloads", on, chevron = true, onClick = ui.onShowDownloads)
