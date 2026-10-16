@@ -271,7 +271,8 @@ fun KoanOverlays(
                     val done = components.sitePermissions.clearSiteData(page.url)
                     decisionsVersion++
                     session.reload(activeTabId)
-                    onToast(Toast(if (done) "Cleared $host" else "Couldn't clear all of $host's data", detail = if (done) "Cookies, data and permissions" else null))
+                    // Success needs no toast: the card asked first and the list empties. Only a failure says so.
+                    if (!done) onToast(Toast("Couldn't clear all of $host's data"))
                 }
             },
             onCancel = { clearSite.animateTo(Detent.Closed) },
