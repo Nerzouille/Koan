@@ -1,7 +1,7 @@
 # Koan
 
-A personal Android web browser built on **GeckoView** (Firefox's engine). Tabs live in an
-Arc-for-iPhone-style stack of cards, and the workspaces are your **Zen Browser Spaces**, synced
+A personal Android web browser built on **GeckoView** (Firefox's engine): a card stack of tabs
+with depth, one-handed gestures, and workspaces that are your **Zen Browser Spaces**, synced
 read-only from your Mozilla account: the same spaces, icons, colours, essentials, pinned tabs and
 folders you have on the desktop.
 
@@ -86,7 +86,6 @@ with the debug key so that it still installs.
 - [Zen Browser](https://github.com/zen-browser/desktop): the Spaces concept, and the space/folder
   icons (MPL 2.0, most of them [Ionicons](https://ionic.io/ionicons) glyphs).
 - [GeckoView and Mozilla Android Components](https://github.com/mozilla-firefox/firefox) (MPL 2.0).
-- Arc for iPhone, for the look this tries to live up to.
 
 Full notices: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
