@@ -380,6 +380,8 @@ private fun AddressInput(
     var hadFocus by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    // Back closes the search field, not just the keyboard.
+    CloseWithKeyboard(focused = { focused }, onClose = onCancel)
     // "@" = pick an engine or a scope: the brand gradient flows in around the ring.
     val at = value.text.trimStart().startsWith("@")
     val flow = remember { Animatable(0f) }
@@ -435,6 +437,7 @@ private fun AddressInput(
                 modifier = textStart
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
+                    .backBeforeKeyboard(onCancel)
                     .onFocusChanged {
                         focused = it.isFocused
                         // Losing focus (keyboard dismissed, tap elsewhere) cancels the edit.
@@ -468,6 +471,34 @@ private class TitleAfter(private val title: String, private val color: Color) : 
     override fun hashCode() = title.hashCode() * 31 + color.hashCode()
 }
 
+/**
+ * One Back closes a bar field (search, find) together with its keyboard. A back gesture goes to
+ * the keyboard first and only hides it: the keyboard going away while the field still has focus
+ * is that Back, so [onClose] follows.
+ */
+@Composable
+private fun CloseWithKeyboard(focused: () -> Boolean, onClose: () -> Unit) {
+    val ime = WindowInsets.ime
+    val density = LocalDensity.current
+    val close by rememberUpdatedState(onClose)
+    val isFocused by rememberUpdatedState(focused)
+    LaunchedEffect(ime, density) {
+        var shown = false
+        snapshotFlow { ime.getBottom(density) > 0 }.collect { visible ->
+            if (shown && !visible && isFocused()) close()
+            shown = visible
+        }
+    }
+}
+
+/** A Back key (not a gesture) reaches the field before the keyboard: one press closes both. */
+private fun Modifier.backBeforeKeyboard(onClose: () -> Unit): Modifier =
+    onPreInterceptKeyBeforeSoftKeyboard { e ->
+        if (e.key != Key.Back) return@onPreInterceptKeyBeforeSoftKeyboard false
+        if (e.type == KeyEventType.KeyUp) onClose()
+        true
+    }
+
 /** Find in page: the query, how many matches, previous / next, close. Back closes it too. */
 @Composable
 private fun FindBar(find: FindUi, modifier: Modifier = Modifier) {
@@ -475,19 +506,9 @@ private fun FindBar(find: FindUi, modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
     var focused by remember { mutableStateOf(false) }
-    // A Back gesture goes to the keyboard first and only hides it. The keyboard going away while
-    // the field still has focus is that Back: find closes with it. A tap on the page moves focus
-    // away first, so hiding the keyboard that way (then ↑ / ↓) keeps find open.
-    val ime = WindowInsets.ime
-    val density = LocalDensity.current
-    val onClose by rememberUpdatedState(find.onClose)
-    LaunchedEffect(ime, density) {
-        var shown = false
-        snapshotFlow { ime.getBottom(density) > 0 }.collect { visible ->
-            if (shown && !visible && focused) onClose()
-            shown = visible
-        }
-    }
+    // A tap on the page moves focus away first, so hiding the keyboard that way (then ↑ / ↓)
+    // keeps find open; Back closes it.
+    CloseWithKeyboard(focused = { focused }, onClose = find.onClose)
     val palette = KoanTheme.colors
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Row(
@@ -518,13 +539,7 @@ private fun FindBar(find: FindUi, modifier: Modifier = Modifier) {
                         .fillMaxWidth()
                         .focusRequester(focusRequester)
                         .onFocusChanged { focused = it.isFocused }
-                        // A Back key (not a gesture) reaches the field before the keyboard: one
-                        // press closes find and the keyboard together.
-                        .onPreInterceptKeyBeforeSoftKeyboard { e ->
-                            if (e.key != Key.Back) return@onPreInterceptKeyBeforeSoftKeyboard false
-                            if (e.type == KeyEventType.KeyUp) find.onClose()
-                            true
-                        },
+                        .backBeforeKeyboard(find.onClose),
                 )
             }
             if (find.count.isNotEmpty()) {
