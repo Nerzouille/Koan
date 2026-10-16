@@ -124,8 +124,7 @@ fun SearchSheet(
             if (results.history.isNotEmpty()) Group("History", KoanIcons.Reload) { results.history.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, actions) } }
             if (results.bookmarks.isNotEmpty()) Group("Bookmarks", KoanIcons.Star) { results.bookmarks.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, actions) } }
             if (suggestions.isNotEmpty()) {
-                val via = shortcut ?: Shortcut.DuckDuckGo
-                Group("DuckDuckGo", null) {
+                Group(search.suggestionsFrom, null) {
                     Row(
                         Modifier
                             .horizontalScroll(rememberScrollState())
@@ -134,7 +133,7 @@ fun SearchSheet(
                     ) {
                         suggestions.forEach { s ->
                             Chip(s, KoanIcons.Search) {
-                                actions.search(if (shortcut != null) via.searchUrl(s) else engine.searchUrl(s))
+                                actions.search(shortcut?.searchUrl(s) ?: engine.searchUrl(s))
                             }
                         }
                     }

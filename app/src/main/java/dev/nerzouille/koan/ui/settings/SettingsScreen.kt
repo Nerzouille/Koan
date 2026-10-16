@@ -31,6 +31,7 @@ import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.bar.label
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.sheet.SheetNav
 import dev.nerzouille.koan.ui.theme.BrandSpinner
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
@@ -56,6 +57,9 @@ class SettingsUi(
     val onTheme: (ThemeMode) -> Unit,
     val engine: SearchEngine,
     val onEngine: (SearchEngine) -> Unit,
+    /** Suggestions from the search engine while typing. */
+    val suggestions: Boolean,
+    val onSuggestions: (Boolean) -> Unit,
     val email: String?,
     val status: DrawerStatus,
     val onSyncNow: () -> Unit,
@@ -124,6 +128,12 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
 
         SettingsSection("General")
         SettingsRow(KoanIcons.Search, "Search engine", on, value = ui.engine.label, chevron = true, onClick = { push(SettingsPage.SearchEngines) })
+        SettingsDivider()
+        SettingsRow(
+            KoanIcons.Reader, "Search suggestions", on,
+            subtitle = "From ${ui.engine.label} while you type",
+            onClick = { ui.onSuggestions(!ui.suggestions) },
+        ) { KoanToggle(checked = ui.suggestions, onCheckedChange = if (on) ui.onSuggestions else null) }
         SettingsDivider()
         SettingsRow(KoanIcons.Contrast, "Theme", on)
         Segmented(

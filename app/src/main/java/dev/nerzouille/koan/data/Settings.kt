@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +39,15 @@ class Settings(context: Context) {
 
     suspend fun setDownloadLocation(value: String?) {
         store.edit { if (value == null) it.remove(downloads) else it[downloads] = value }
+    }
+
+    private val suggest = booleanPreferencesKey("search_suggestions")
+
+    /** Suggestions from the search engine while typing (on by default). */
+    val searchSuggestions: Flow<Boolean> = store.data.map { it[suggest] ?: true }
+
+    suspend fun setSearchSuggestions(on: Boolean) {
+        store.edit { it[suggest] = on }
     }
 
     private val engine = stringPreferencesKey("search_engine")

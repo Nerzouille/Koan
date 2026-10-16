@@ -12,6 +12,7 @@ import dev.nerzouille.koan.data.KoanDao
 import dev.nerzouille.koan.data.SpaceWithTabs
 import dev.nerzouille.koan.search.Hit
 import dev.nerzouille.koan.search.Results
+import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.search.Source
 import dev.nerzouille.koan.search.Suggestions
 import dev.nerzouille.koan.search.completion
@@ -28,6 +29,10 @@ class SearchState {
     var suggestions by mutableStateOf<List<String>>(emptyList())
         internal set
 
+    /** Whose suggestions they are (the chips' label). */
+    var suggestionsFrom by mutableStateOf("")
+        internal set
+
     /** The completion the field shows for [typed] (from the latest results). */
     fun complete(typed: String): String? = completion(typed, results.top)
 }
@@ -37,7 +42,15 @@ class SearchState {
  * and bookmarks (Room), and DuckDuckGo's suggestions a moment after typing pauses.
  */
 @Composable
-fun rememberSearch(field: SearchField, dao: KoanDao, spaces: List<SpaceWithTabs>, models: List<SpaceModel>, currentTabId: String?): SearchState {
+fun rememberSearch(
+    field: SearchField,
+    dao: KoanDao,
+    spaces: List<SpaceWithTabs>,
+    models: List<SpaceModel>,
+    currentTabId: String?,
+    engine: SearchEngine,
+    suggest: Boolean,
+): SearchState {
     val state = remember { SearchState() }
     val latestSpaces by rememberUpdatedState(spaces)
     val latestModels by rememberUpdatedState(models)
@@ -70,14 +83,23 @@ fun rememberSearch(field: SearchField, dao: KoanDao, spaces: List<SpaceWithTabs>
         state.results = rank(q, tabs, visits, marks, parsed.scope)
         field.refresh(state::complete)
     }
-    LaunchedEffect(field.typed, field.edited) {
+    // Suggestions run on their own: local results never wait for them, a failure just shows none.
+    LaunchedEffect(field.typed, field.edited, engine, suggest) {
         val parsed = parseQuery(field.typed)
-        if (!field.edited || parsed.picking || parsed.scope != null) {
+        val shortcut = parsed.shortcut
+        // "@yt koan": YouTube's own; a plain search: the default engine's; a scope: none.
+        val url = when {
+            !suggest || !field.edited || parsed.picking || parsed.scope != null -> null
+            shortcut != null -> shortcut.suggestUrl(parsed.rest)
+            else -> engine.suggestUrl(parsed.rest)
+        }
+        if (url == null) {
             state.suggestions = emptyList()
             return@LaunchedEffect
         }
         delay(SUGGEST_DELAY_MS)
-        state.suggestions = Suggestions.fetch(parsed.rest)
+        state.suggestions = Suggestions.fetch(parsed.rest, url)
+        state.suggestionsFrom = shortcut?.label ?: engine.label
     }
     return state
 }

@@ -3,15 +3,35 @@ package dev.nerzouille.koan.search
 import java.net.URLEncoder
 import java.util.Locale
 
-/** "@ddg", "@wiki"…: search one engine once (design 7c/7d). [home] gives its icon. */
-enum class Shortcut(val key: String, val label: String, val home: String, private val prefix: () -> String) {
-    DuckDuckGo("ddg", "DuckDuckGo", "https://duckduckgo.com", { "https://duckduckgo.com/?q=" }),
-    Google("g", "Google", "https://www.google.com", { "https://www.google.com/search?q=" }),
-    Wikipedia("wiki", "Wikipedia", "https://www.wikipedia.org", { "https://${wikiLanguage()}.wikipedia.org/w/index.php?search=" }),
-    YouTube("yt", "YouTube", "https://www.youtube.com", { "https://www.youtube.com/results?search_query=" }),
+/**
+ * "@ddg", "@wiki"…: search one engine once (design 7c/7d). [home] gives its icon. Suggestions:
+ * DuckDuckGo, Google and Wikipedia as in android-components' search plugins; YouTube through
+ * Google's YouTube suggestions (android-components has none for it).
+ */
+enum class Shortcut(
+    val key: String,
+    val label: String,
+    val home: String,
+    private val prefix: () -> String,
+    private val suggestPrefix: () -> String?,
+) {
+    DuckDuckGo("ddg", "DuckDuckGo", "https://duckduckgo.com", { "https://duckduckgo.com/?q=" }, { "https://ac.duckduckgo.com/ac/?type=list&q=" }),
+    Google("g", "Google", "https://www.google.com", { "https://www.google.com/search?q=" }, { "https://www.google.com/complete/search?client=firefox&q=" }),
+    Wikipedia(
+        "wiki", "Wikipedia", "https://www.wikipedia.org",
+        { "https://${wikiLanguage()}.wikipedia.org/w/index.php?search=" },
+        { "https://${wikiLanguage()}.wikipedia.org/w/api.php?action=opensearch&search=" },
+    ),
+    YouTube(
+        "yt", "YouTube", "https://www.youtube.com",
+        { "https://www.youtube.com/results?search_query=" },
+        { "https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=" },
+    ),
     ;
 
     fun searchUrl(query: String): String = prefix() + URLEncoder.encode(query, Charsets.UTF_8)
+
+    fun suggestUrl(query: String): String? = suggestPrefix()?.let { it + URLEncoder.encode(query, Charsets.UTF_8) }
 
     /** The setting's engine this shortcut is, for the picker's "default" label. */
     fun isDefault(engine: SearchEngine): Boolean =

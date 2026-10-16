@@ -146,6 +146,7 @@ fun KoanOverlays(
     val account by components.accounts.state.collectAsStateWithLifecycle()
     val theme by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
     val engine by components.settings.searchEngine.collectAsStateWithLifecycle(SearchEngine.DuckDuckGo)
+    val suggestionsOn by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
     // Gecko's verdict; unknown (a download, a page still loading) falls back to the scheme.
     val secure by components.store.observeSlice(activeTabId) { s ->
@@ -405,6 +406,8 @@ fun KoanOverlays(
                 onTheme = { mode -> scope.launch { components.settings.setThemeMode(mode) } },
                 engine = engine,
                 onEngine = { e -> scope.launch { components.settings.setSearchEngine(e) } },
+                suggestions = suggestionsOn,
+                onSuggestions = { on -> scope.launch { components.settings.setSearchSuggestions(on) } },
                 email = signedIn?.email,
                 status = drawerStatus,
                 onSyncNow = { components.sync.syncNow() },

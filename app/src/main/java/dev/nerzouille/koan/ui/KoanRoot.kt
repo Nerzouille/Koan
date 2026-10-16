@@ -179,7 +179,8 @@ fun KoanRoot(components: Components) {
     val overlays = remember(density) { Overlays(scope, density) }
     // The address field's text while editing, and what it finds.
     val searchField = remember { SearchField() }
-    val search = rememberSearch(searchField, components.database.dao(), spaces, models, activeTabId)
+    val suggestions by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
+    val search = rememberSearch(searchField, components.database.dao(), spaces, models, activeTabId, searchEngine, suggestions)
     val toasts = remember { ToastState() }
     LaunchedEffect(overviewOpen, activeTabId) { overlays.dismissAll() }
 
