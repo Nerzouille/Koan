@@ -83,9 +83,19 @@ The canonical Zen sync wire format lives in Z-Sync's repo: `reference/Z-Sync/sha
   performance: if it's smooth there, it's smooth everywhere. Soon also a Xiaomi 18 Pro Max.
   HyperOS caps refresh rate for unknown apps and kills background apps aggressively: check the real
   refresh rate before blaming the code, and always test state restore after process death.
-- Build: `./gradlew assembleDebug` for iteration, `./gradlew assembleRelease` (signed with a local
-  debug-style keystore) for anything performance-related.
-- Run unit tests: `./gradlew test`. Run them at the end of a milestone, not after every edit.
+- **Test builds (follow every time):**
+  - Every test install on the phone is a **dev** build: `./gradlew assembleDev`, then
+    `adb install -r app/build/outputs/apk/dev/app-dev.apk`. Release key, same applicationId (installs
+    over the owner's data), not debuggable, but no R8 / no resource shrinking: an incremental
+    change + install takes ~40 s instead of ~80 s.
+  - A full R8 **release** build (`./gradlew assembleRelease`) only for: performance checks
+    (animations, frame stats), real releases, and once at the end of each phase before merging,
+    installed and launched on the phone, to catch R8-only crashes (e.g. SnakeYAML in C1).
+  - Never chain unit tests and a build in one command. Run targeted tests for the code you touched
+    (`./gradlew testDebugUnitTest --tests '*SearchModelTest*'`), and the whole suite
+    (`./gradlew testDebugUnitTest`) only at the end of a phase.
+  - Gradle: configuration cache, build cache and parallel are on (`gradle.properties`); heap is
+    5 GB on a 15 GB machine that often has ~2 GB free: don't raise it without checking `free -g`.
 - **Driving the phone with adb (taps, swipes, typing, key events):** the phone is the owner's daily
   phone and may be in use. Before ANY adb input, confirm both:
   1. Koan is the foreground app (`dumpsys activity activities | grep topResumedActivity` shows

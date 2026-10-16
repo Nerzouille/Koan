@@ -59,6 +59,17 @@ android {
         debug {
             applicationIdSuffix = ".debug"
         }
+        // Fast test installs (CLAUDE.md "Test builds"): release-signed, same id, so it installs over
+        // the real app and its data; not debuggable; but no R8 and no resource shrinking, so an
+        // incremental build is quick. Never for performance checks or releases.
+        create("dev") {
+            initWith(getByName("release"))
+            optimization {
+                enable = false
+            }
+            isDebuggable = false
+            matchingFallbacks += "release"
+        }
         // The release build under its own id, debug-signed: a clean side install for first-run
         // checks that never touches the real app's data.
         create("staging") {
