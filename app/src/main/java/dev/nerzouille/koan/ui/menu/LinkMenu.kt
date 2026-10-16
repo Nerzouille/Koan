@@ -1,8 +1,29 @@
 package dev.nerzouille.koan.ui.menu
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import dev.nerzouille.koan.favicon.SvgRasterizer
+import dev.nerzouille.koan.ui.overview.Favicon
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -49,16 +70,24 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions) {
     val palette = KoanTheme.colors
     val shown = target.link ?: target.image.orEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
-        Column(Modifier.padding(horizontal = SheetTokens.RowPadding / 2)) {
-            Text(
-                target.label.trim().ifEmpty { displayHost(shown) },
-                color = palette.TextPrimary,
-                fontSize = SheetTokens.RowTitleSize,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(shown, color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        // What was pressed: the image itself, then the link's site icon, title and address.
+        target.image?.let { LinkImage(it) }
+        Row(Modifier.padding(horizontal = SheetTokens.RowPadding / 2), verticalAlignment = Alignment.CenterVertically) {
+            if (target.link != null) {
+                Favicon(target.link, SheetTokens.RowIconBox)
+                Spacer(Modifier.width(SheetTokens.RowPadding))
+            }
+            Column {
+                Text(
+                    target.label.trim().ifEmpty { displayHost(shown) },
+                    color = palette.TextPrimary,
+                    fontSize = SheetTokens.RowTitleSize,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(shown, color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
         }
         target.link?.let { link ->
             SheetGroup {
@@ -80,3 +109,49 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions) {
         }
     }
 }
+
+/** The pressed image, small, on top of the card; nothing while it loads or if it can't be read. */
+@Composable
+private fun LinkImage(url: String) {
+    val image by produceState<ImageBitmap?>(null, url) { value = withContext(Dispatchers.IO) { loadPreview(url) } }
+    val bitmap = image ?: return
+    Image(
+        bitmap, null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(SheetTokens.LinkImageHeight)
+            .clip(RoundedCornerShape(SheetTokens.GroupRadius)),
+    )
+}
+
+/** Downloads [url] (small images only) and decodes it scaled down for the preview. */
+private fun loadPreview(url: String): ImageBitmap? = runCatching {
+    val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+        connectTimeout = PREVIEW_TIMEOUT_MS
+        readTimeout = PREVIEW_TIMEOUT_MS
+    }
+    val bytes = connection.inputStream.use { input ->
+        val out = java.io.ByteArrayOutputStream()
+        val buffer = ByteArray(16 * 1024)
+        while (true) {
+            val n = input.read(buffer)
+            if (n < 0) break
+            out.write(buffer, 0, n)
+            if (out.size() > PREVIEW_MAX_BYTES) return@runCatching null
+        }
+        out.toByteArray()
+    }
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    var sample = 1
+    while (bounds.outWidth / (sample * 2) >= PREVIEW_MAX_PX) sample *= 2
+    val raster = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+    // Android can't decode SVG (logos often are): the favicon rasterizer can.
+    val bitmap = raster ?: String(bytes).takeIf { "<svg" in it }?.let { SvgRasterizer.rasterize(it, PREVIEW_MAX_PX, url) }
+    bitmap?.asImageBitmap()
+}.getOrNull()
+
+private const val PREVIEW_TIMEOUT_MS = 4000
+private const val PREVIEW_MAX_BYTES = 4 * 1024 * 1024
+private const val PREVIEW_MAX_PX = 800

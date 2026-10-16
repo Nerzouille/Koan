@@ -29,6 +29,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -346,6 +351,20 @@ private fun FindBar(find: FindUi, modifier: Modifier = Modifier) {
     var value by remember { mutableStateOf(TextFieldValue("")) }
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    var focused by remember { mutableStateOf(false) }
+    // A Back gesture goes to the keyboard first and only hides it. The keyboard going away while
+    // the field still has focus is that Back: find closes with it. A tap on the page moves focus
+    // away first, so hiding the keyboard that way (then ↑ / ↓) keeps find open.
+    val ime = WindowInsets.ime
+    val density = LocalDensity.current
+    val onClose by rememberUpdatedState(find.onClose)
+    LaunchedEffect(ime, density) {
+        var shown = false
+        snapshotFlow { ime.getBottom(density) > 0 }.collect { visible ->
+            if (shown && !visible && focused) onClose()
+            shown = visible
+        }
+    }
     val palette = KoanTheme.colors
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Row(
@@ -375,8 +394,9 @@ private fun FindBar(find: FindUi, modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester)
-                        // Back reaches the field before the keyboard: one press closes find
-                        // and the keyboard together.
+                        .onFocusChanged { focused = it.isFocused }
+                        // A Back key (not a gesture) reaches the field before the keyboard: one
+                        // press closes find and the keyboard together.
                         .onPreInterceptKeyBeforeSoftKeyboard { e ->
                             if (e.key != Key.Back) return@onPreInterceptKeyBeforeSoftKeyboard false
                             if (e.type == KeyEventType.KeyUp) find.onClose()

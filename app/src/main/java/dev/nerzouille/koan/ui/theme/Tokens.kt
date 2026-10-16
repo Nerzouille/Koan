@@ -624,6 +624,9 @@ object SheetTokens {
     val HeaderHeight = 52.dp
     val HeaderTitleSize = 17.sp
     val CardTitleSize = 18.sp
+
+    /** Long press on an image: its preview on top of the link menu. */
+    val LinkImageHeight = 140.dp
     val CardTextSize = 14.sp
 }
 

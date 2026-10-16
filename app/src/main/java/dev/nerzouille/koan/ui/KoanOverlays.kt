@@ -3,6 +3,8 @@ package dev.nerzouille.koan.ui
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.platform.LocalView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
@@ -102,6 +104,7 @@ fun KoanOverlays(
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
+    val view = LocalView.current
     val clipboard = LocalClipboardManager.current
     val session = components.sessionUseCases
     val menu = overlays.menu
@@ -184,6 +187,8 @@ fun KoanOverlays(
         val result = hit ?: return@LaunchedEffect
         activeTabId?.let(components.pageTools::consumeHitResult)
         val target = LinkTarget.of(result) ?: return@LaunchedEffect
+        // A light tick as the card comes up: the press landed.
+        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         overlays.link = target
         overlays.linkCard.animateTo(Detent.Compact)
     }
