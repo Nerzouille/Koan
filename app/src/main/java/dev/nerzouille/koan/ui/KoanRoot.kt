@@ -566,6 +566,7 @@ fun KoanRoot(components: Components) {
             onNewTab = { newTab(currentSpace) },
             onOpenNew = ::openNewTab,
             onSignIn = { signingIn = true },
+            onToast = toasts::show,
             // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
             devActions = if (!BuildConfig.DEBUG) emptyList() else buildList {
                 for (n in listOf(50, 150)) {

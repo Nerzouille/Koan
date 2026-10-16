@@ -123,13 +123,22 @@ class SitePermissions(private val context: Context, private val runtime: GeckoRu
         }
     }
 
-    /** Cookies, storage, caches and logins of the site; its permissions stay. */
-    suspend fun clearSiteData(url: String) {
-        val host = android.net.Uri.parse(url).host ?: return
+    /**
+     * Everything the site left on the phone: cookies, storage, caches, logins, and what it was
+     * allowed or blocked (Koan's answers and Gecko's records). False when Gecko failed.
+     */
+    suspend fun clearSiteData(url: String): Boolean {
+        val host = android.net.Uri.parse(url).host ?: return false
+        val origin = originOf(url)
+        context.siteDecisions.edit { prefs ->
+            prefs.asMap().keys.filter { it.name.startsWith("$origin|") }.forEach { prefs.remove(it) }
+        }
+        geckoRecords(url).filter { it.value != ContentPermission.VALUE_PROMPT }
+            .forEach { runtime.storageController.setPermission(it, ContentPermission.VALUE_PROMPT) }
         val flags = StorageController.ClearFlags.COOKIES or StorageController.ClearFlags.DOM_STORAGES or
             StorageController.ClearFlags.AUTH_SESSIONS or StorageController.ClearFlags.NETWORK_CACHE or
             StorageController.ClearFlags.IMAGE_CACHE
-        runtime.storageController.clearDataFromBaseDomain(host, flags).await()
+        return runtime.storageController.clearDataFromBaseDomain(host, flags).awaitDone()
     }
 
     private suspend fun geckoRecords(url: String): List<ContentPermission> =
@@ -161,6 +170,11 @@ class SitePermissions(private val context: Context, private val runtime: GeckoRu
             return "${uri.scheme}://${uri.host}" + if (uri.port > 0) ":${uri.port}" else ""
         }
     }
+}
+
+/** Waits for a GeckoResult that has no value: true when it succeeded. */
+private suspend fun GeckoResult<Void>.awaitDone(): Boolean = suspendCancellableCoroutine { cont ->
+    accept({ if (cont.isActive) cont.resume(true) }, { if (cont.isActive) cont.resume(false) })
 }
 
 /** Waits for a GeckoResult; null when it fails. */

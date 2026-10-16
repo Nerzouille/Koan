@@ -62,6 +62,7 @@ class LinkActions(
     val openBackground: (String) -> Unit,
     val copy: (String) -> Unit,
     val share: (String) -> Unit,
+    val saveImage: (String) -> Unit,
 )
 
 /** The long-press menu, on a floating card: the link (or image) on top, then what to do with it. */
@@ -102,6 +103,8 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions) {
         }
         target.image?.let { image ->
             SheetGroup {
+                SheetRow(KoanIcons.Download, "Save image", interactive, onClick = { actions.saveImage(image) })
+                SheetDivider()
                 SheetRow(KoanIcons.Plus, "Open image in new tab", interactive, onClick = { actions.openNew(image) })
                 SheetDivider()
                 SheetRow(KoanIcons.Link, "Copy image link", interactive, onClick = { actions.copy(image) })

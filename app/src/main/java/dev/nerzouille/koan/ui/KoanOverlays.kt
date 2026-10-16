@@ -20,6 +20,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import dev.nerzouille.koan.ui.downloads.DownloadsScreen
 import dev.nerzouille.koan.ui.menu.Confirm
+import dev.nerzouille.koan.ui.kit.Toast
 import mozilla.components.browser.state.state.content.DownloadState
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.LocalView
@@ -126,6 +127,8 @@ fun KoanOverlays(
     onOpenNew: (url: String, select: Boolean, nextToCurrent: Boolean) -> Unit,
     onSignIn: () -> Unit,
     devActions: List<Pair<String, () -> Unit>>,
+    /** Quiet confirmations (the shared bottom toast). */
+    onToast: (Toast) -> Unit,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
@@ -258,14 +261,17 @@ fun KoanOverlays(
     KoanCard(clearSite) { interactive ->
         Confirm(
             title = "Clear data for ${displayHost(page.url)}?",
-            text = "Its cookies and stored data go: you'll be signed out of it. What it may do stays.",
+            text = "Its cookies, stored data and permissions go: you'll be signed out of it, and it asks again next time.",
             confirm = "Clear site data",
             interactive = interactive,
             onConfirm = {
                 clearSite.animateTo(Detent.Closed)
+                val host = displayHost(page.url)
                 scope.launch {
-                    components.sitePermissions.clearSiteData(page.url)
+                    val done = components.sitePermissions.clearSiteData(page.url)
+                    decisionsVersion++
                     session.reload(activeTabId)
+                    onToast(Toast(if (done) "Cleared $host" else "Couldn't clear all of $host's data", detail = if (done) "Cookies, data and permissions" else null))
                 }
             },
             onCancel = { clearSite.animateTo(Detent.Closed) },
@@ -361,6 +367,15 @@ fun KoanOverlays(
                 openBackground = { url -> linkCard.animateTo(Detent.Closed); onOpenNew(url, false, true) },
                 copy = { url -> clipboard.setText(AnnotatedString(url)); linkCard.animateTo(Detent.Closed) },
                 share = { url -> linkCard.animateTo(Detent.Closed); share(url, "") },
+                saveImage = { url ->
+                    linkCard.animateTo(Detent.Closed)
+                    // Goes through the same downloads as a page's: no dialog, the toast says when it's saved.
+                    activeTabId?.let { id ->
+                        components.store.dispatch(
+                            ContentAction.UpdateDownloadAction(id, DownloadState(url, skipConfirmation = true, referrerUrl = page.url)),
+                        )
+                    }
+                },
             ),
         )
     }
