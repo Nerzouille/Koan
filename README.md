@@ -7,6 +7,8 @@ folders you have on the desktop.
 
 > Not affiliated with, endorsed by or connected to Zen Browser or Mozilla.
 
+**What it can do, and how:** [`docs/FEATURES.md`](docs/FEATURES.md), the user guide.
+
 ## Status
 
 A one-person hobby project, built for my own phone and shared as-is.
@@ -34,8 +36,9 @@ To be allowed into Firefox Sync, the sign-in **identifies as Firefox desktop**. 
 it can break whenever Mozilla changes something, and it may go against Mozilla's terms of service.
 **Use it at your own risk**, ideally not with an account you can't afford to have trouble with.
 
-Koan only reads your Spaces. Writing back to Zen is planned behind a setting that will be **off by
-default**, because a bad write could scramble your desktop Spaces.
+Koan only reads: your Spaces, and your passwords, bookmarks and history. Writing back to Zen is
+planned behind a setting that will be **off by default**, because a bad write could scramble your
+desktop Spaces.
 
 ## Building
 
