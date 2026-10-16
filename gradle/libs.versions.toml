@@ -8,6 +8,7 @@ lifecycle = "2.11.0"
 fragment = "1.9.1"
 coroutines = "1.11.0"
 room = "2.8.5"
+biometric = "1.1.0"
 ksp = "2.3.12"
 # android-components and GeckoView must move together: AC X.Y depends on one exact GeckoView build.
 mozillaComponents = "157.0.1"
@@ -18,6 +19,7 @@ androidsvg = "1.4"
 orgJson = "20260814"
 
 [libraries]
+androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-fragment = { module = "androidx.fragment:fragment-ktx", version.ref = "fragment" }
@@ -47,6 +49,11 @@ mozilla-feature-session = { module = "org.mozilla.components:feature-session", v
 mozilla-feature-tabs = { module = "org.mozilla.components:feature-tabs", version.ref = "mozillaComponents" }
 mozilla-browser-session-storage = { module = "org.mozilla.components:browser-session-storage", version.ref = "mozillaComponents" }
 mozilla-lib-state = { module = "org.mozilla.components:lib-state", version.ref = "mozillaComponents" }
+mozilla-feature-readerview = { module = "org.mozilla.components:feature-readerview", version.ref = "mozillaComponents" }
+mozilla-feature-downloads = { module = "org.mozilla.components:feature-downloads", version.ref = "mozillaComponents" }
+mozilla-concept-storage = { module = "org.mozilla.components:concept-storage", version.ref = "mozillaComponents" }
+mozilla-support-utils = { module = "org.mozilla.components:support-utils", version.ref = "mozillaComponents" }
+mozilla-support-webextensions = { module = "org.mozilla.components:support-webextensions", version.ref = "mozillaComponents" }
 
 junit = { module = "junit:junit", version.ref = "junit" }
 org-json = { module = "org.json:json", version.ref = "orgJson" }

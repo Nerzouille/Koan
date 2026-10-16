@@ -1,9 +1,5 @@
 package dev.nerzouille.koan.ui.bar
 
-import androidx.compose.animation.core.AnimationState
-import androidx.compose.animation.core.DecayAnimationSpec
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,16 +23,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.key
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
@@ -52,183 +45,13 @@ import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.overview.CurrentTabDot
+import dev.nerzouille.koan.ui.sheet.SheetState
+import dev.nerzouille.koan.ui.theme.BrandSpinner
+import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import kotlin.math.abs
-
-/** Where the drawer rests: closed, compact (fits its content, no scrolling) or full screen. */
-enum class Detent { Closed, Compact, Full }
-
-/**
- * The essentials/pinned drawer that grows out of the overview's bar, a sheet with detents. Its
- * [height] follows the finger 1:1; only the full detent lets a list taller than the screen
- * scroll, and only once the sheet is all the way up (a drag down at the top of the list collapses
- * the sheet instead). [height] and [scroll] are read in layers and draw only.
- */
-@Stable
-class DrawerState(private val scope: CoroutineScope, private val decay: DecayAnimationSpec<Float>) {
-    /** Visible height of the sheet above the bar's rows (px), 0 = closed. */
-    var height by mutableFloatStateOf(0f)
-        private set
-
-    /** How far the full sheet's list has scrolled (px). */
-    var scroll by mutableFloatStateOf(0f)
-        private set
-
-    /** Where it rests or is going: flips on release or tap. Decides whether the sheet takes input. */
-    var detent by mutableStateOf(Detent.Closed)
-        private set
-    val open: Boolean get() = detent != Detent.Closed
-
-    /** Height the drawer is laid out at (the tallest space's content, capped at full). */
-    var layoutPx by mutableFloatStateOf(0f)
-        internal set
-
-    /** Caps set from the window size: compact keeps the dock under ~55% of the screen. */
-    var compactCapPx = 1f
-    var fullCapPx = 1f
-    var minStepPx = 0f
-
-    /** Natural (unscrolled) content height of each space's page, and the page on screen. */
-    private var pageHeights = IntArray(0)
-    private var page = 0
-    private val contentPx: Float get() = pageHeights.getOrElse(page) { 0 }.toFloat()
-    private val compactPx: Float get() = minOf(contentPx, compactCapPx).coerceAtLeast(1f)
-    private val fullPx: Float get() = minOf(contentPx, fullCapPx).coerceAtLeast(compactPx)
-    private val maxScroll: Float get() = (contentPx - fullPx).coerceAtLeast(0f)
-
-    /** 0 closed … 1 at the compact height (scrim, blur, corners); stays 1 above it. */
-    val progress: Float get() = (height / compactPx).coerceIn(0f, 1f)
-
-    private var job: Job? = null
-    private var from = Detent.Closed
-    private var dragging = false
-
-    private fun stops(): List<Pair<Detent, Float>> = buildList {
-        add(Detent.Closed to 0f)
-        add(Detent.Compact to compactPx)
-        if (fullPx - compactPx >= minStepPx) add(Detent.Full to fullPx)
-    }
-
-    private fun stopPx(d: Detent): Float = stops().lastOrNull { it.first <= d }?.second ?: 0f
-
-    /** Top of the visible sheet inside the drawer's layout box. */
-    fun sheetTop(): Float = layoutPx - height
-
-    /** Finger down: freeze. A step that was still landing counts as landed. */
-    fun grab() {
-        job?.cancel()
-        dragging = true
-        from = detent
-    }
-
-    /**
-     * Finger moved by [dyPx] (> 0 = down). Up grows the sheet to full, then scrolls its list; down
-     * scrolls the list back to its top first, then shrinks the sheet.
-     */
-    fun dragBy(dyPx: Float) {
-        var d = -dyPx
-        if (d > 0f) {
-            val grow = minOf(d, fullPx - height).coerceAtLeast(0f)
-            height += grow
-            d -= grow
-            if (d > 0f) scroll = (scroll + d).coerceAtMost(maxScroll)
-        } else {
-            val back = minOf(-d, scroll)
-            scroll -= back
-            d += back
-            if (d < 0f) height = (height + d).coerceAtLeast(0f)
-        }
-    }
-
-    /**
-     * Finger up with vertical velocity [vyPx] px/s. A fling goes to the next detent that way; a
-     * slow release commits to the neighbouring detent past [DrawerTokens.COMMIT_FRACTION] of the
-     * gap. A fling of a scrolled full list keeps scrolling it. Returns true when the drawer lands
-     * on another detent than the one it started from.
-     */
-    fun release(vyPx: Float, flingPx: Float): Boolean {
-        dragging = false
-        val atFull = maxScroll > 0f && height >= fullPx - 0.5f
-        if (atFull && (scroll > 0f || vyPx < 0f)) {
-            detent = Detent.Full
-            flingList(-vyPx)
-            return from != Detent.Full
-        }
-        val stops = stops()
-        val target = when {
-            vyPx < -flingPx -> stops.firstOrNull { it.second > height + 1f } ?: stops.last()
-            vyPx > flingPx -> stops.lastOrNull { it.second < height - 1f } ?: stops.first()
-            else -> {
-                // Between stops j and j + 1: leaving the start stop commits early, coming back late.
-                val j = stops.indexOfLast { it.second <= height }.coerceIn(0, stops.lastIndex)
-                if (j == stops.lastIndex) {
-                    stops[j]
-                } else {
-                    val f = (height - stops[j].second) / (stops[j + 1].second - stops[j].second)
-                    val up = stops.indexOfFirst { it.first == from } <= j
-                    val commit = if (up) DrawerTokens.COMMIT_FRACTION else 1f - DrawerTokens.COMMIT_FRACTION
-                    if (f > commit) stops[j + 1] else stops[j]
-                }
-            }
-        }.first
-        animateTo(target, -vyPx)
-        return target != from
-    }
-
-    /** Settles on [target] ([velocity] in px/s, > 0 = growing). */
-    fun animateTo(target: Detent, velocity: Float = 0f) {
-        detent = target
-        job?.cancel()
-        val to = stopPx(target)
-        job = scope.launch {
-            if (scroll > 0f && target != Detent.Full) launch { animate(scroll, 0f, 0f, Motion.Drawer) { v, _ -> scroll = v.coerceAtLeast(0f) } }
-            animate(height, to, velocity, Motion.Drawer) { v, _ -> height = v.coerceAtLeast(0f) }
-        }
-    }
-
-    fun toggle() = animateTo(if (open) Detent.Closed else Detent.Compact)
-
-    fun snapClosed() {
-        job?.cancel()
-        dragging = false
-        height = 0f
-        scroll = 0f
-        detent = Detent.Closed
-    }
-
-    private fun flingList(velocity: Float) {
-        job?.cancel()
-        job = scope.launch {
-            AnimationState(scroll, velocity).animateDecay(decay) {
-                scroll = value.coerceIn(0f, maxScroll)
-                if (value <= 0f || value >= maxScroll) cancelAnimation()
-            }
-        }
-    }
-
-    /**
-     * The pages were measured ([heights]) or the space on screen changed ([settled]): the sheet
-     * keeps its detent, at the new content's height, and the list starts from its top.
-     */
-    internal fun refit(heights: IntArray, settled: Int) {
-        val changed = !heights.contentEquals(pageHeights) || settled != page
-        if (!changed) return
-        if (settled != page) scroll = 0f
-        pageHeights = heights
-        page = settled
-        if (dragging || detent == Detent.Closed) return
-        scroll = scroll.coerceAtMost(maxScroll)
-        val to = stopPx(detent)
-        if (to != height) {
-            job?.cancel()
-            job = scope.launch { animate(height, to, 0f, Motion.Drawer) { v, _ -> height = v.coerceAtLeast(0f) } }
-        }
-    }
-}
 
 /** The drawer's footer: account and sync, quietly. */
 @Immutable
@@ -249,7 +72,7 @@ sealed interface DrawerStatus {
 fun DrawerContent(
     spaces: List<SpaceModel>,
     pager: SpacePager,
-    drawer: DrawerState,
+    drawer: SheetState,
     status: DrawerStatus,
     onOpenTab: (spaceIndex: Int, tabId: String) -> Unit,
     onToggleFolder: (folderId: String, collapsed: Boolean) -> Unit,
@@ -329,7 +152,8 @@ private fun DrawerPage(
                 modifier = Modifier.padding(vertical = DrawerTokens.Padding),
             )
         }
-        space.essentials.take(8).chunked(4).forEach { row ->
+        // Every essential Zen sends, 4 per row: no Koan-side cap (the full detent shows them all).
+        space.essentials.chunked(4).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(DrawerTokens.EssentialGap)) {
                 row.forEach { tab ->
                     Box(
@@ -355,7 +179,7 @@ private fun DrawerPage(
                 space.pinned.forEach { row ->
                     key(row.key) {
                         when (row) {
-                            is DrawerRow.Tab -> PinnedRow(row, space.colors.accent, interactive, onOpenTab)
+                            is DrawerRow.Tab -> PinnedRow(row, interactive, onOpenTab)
                             is DrawerRow.Folder -> FolderRow(row, interactive) { onToggleFolder(row.id, !row.collapsed) }
                         }
                     }
@@ -367,7 +191,7 @@ private fun DrawerPage(
 }
 
 @Composable
-private fun PinnedRow(row: DrawerRow.Tab, accent: Color, interactive: Boolean, onOpenTab: (String) -> Unit) {
+private fun PinnedRow(row: DrawerRow.Tab, interactive: Boolean, onOpenTab: (String) -> Unit) {
     val tab = row.card
     Row(
         Modifier
@@ -388,7 +212,7 @@ private fun PinnedRow(row: DrawerRow.Tab, accent: Color, interactive: Boolean, o
             modifier = Modifier.weight(1f),
         )
         if (tab.active) {
-            Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(accent))
+            CurrentTabDot()
             Spacer(Modifier.width(DrawerTokens.PinnedPadding))
         }
         if (row.depth == 0) Icon(KoanIcons.Pin, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(DrawerTokens.PinnedGlyph))
@@ -439,18 +263,7 @@ private fun FolderRow(row: DrawerRow.Folder, interactive: Boolean, onToggle: () 
 /** "Synced 4 min ago", "Syncing…", or a quiet amber "Sign in again". Tap = act on it. */
 @Composable
 private fun StatusRow(status: DrawerStatus, interactive: Boolean, onClick: () -> Unit) {
-    if (status == DrawerStatus.None) return
-    val (text, attention) = when (status) {
-        DrawerStatus.Connect -> "Connect your Zen Spaces" to false
-        DrawerStatus.Syncing -> "Syncing with Zen…" to false
-        DrawerStatus.SignInAgain -> "Sign in again to keep your Zen Spaces in sync" to true
-        is DrawerStatus.Synced -> when {
-            status.offline -> "Offline · showing your spaces from ${ago(status.at)}" to true
-            status.failed -> "Couldn't sync · tap to retry" to true
-            else -> "Synced ${ago(status.at)} · Sync now" to false
-        }
-        DrawerStatus.None -> return
-    }
+    val (text, attention) = status.label() ?: return
     Row(
         Modifier
             .fillMaxWidth()
@@ -464,8 +277,24 @@ private fun StatusRow(status: DrawerStatus, interactive: Boolean, onClick: () ->
         if (attention) {
             Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanTheme.colors.Attention))
             Spacer(Modifier.width(DrawerTokens.Gap))
+        } else if (status == DrawerStatus.Syncing) {
+            BrandSpinner(FirstRunTokens.BadgeSpinner)
+            Spacer(Modifier.width(DrawerTokens.Gap))
         }
         Text(text, color = KoanTheme.colors.TextSecondary, fontSize = DrawerTokens.StatusTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** What the status says, and whether it needs attention (amber). Null = nothing to show. */
+fun DrawerStatus.label(): Pair<String, Boolean>? = when (this) {
+    DrawerStatus.None -> null
+    DrawerStatus.Connect -> "Connect your Zen Spaces" to false
+    DrawerStatus.Syncing -> "Syncing with Zen…" to false
+    DrawerStatus.SignInAgain -> "Sign in again to keep your Zen Spaces in sync" to true
+    is DrawerStatus.Synced -> when {
+        offline -> "Offline · showing your spaces from ${ago(at)}" to true
+        failed -> "Couldn't sync · tap to retry" to true
+        else -> "Synced ${ago(at)} · Sync now" to false
     }
 }
 

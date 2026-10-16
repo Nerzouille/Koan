@@ -59,6 +59,17 @@ android {
         debug {
             applicationIdSuffix = ".debug"
         }
+        // Fast test installs (CLAUDE.md "Test builds"): release-signed, same id, so it installs over
+        // the real app and its data; not debuggable; but no R8 and no resource shrinking, so an
+        // incremental build is quick. Never for performance checks or releases.
+        create("dev") {
+            initWith(getByName("release"))
+            optimization {
+                enable = false
+            }
+            isDebuggable = false
+            matchingFallbacks += "release"
+        }
         // The release build under its own id, debug-signed: a clean side install for first-run
         // checks that never touches the real app's data.
         create("staging") {
@@ -123,6 +134,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.fragment)
+    // Passwords: reveal/copy only after the fingerprint or the device PIN (approved for M5).
+    implementation(libs.androidx.biometric)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
@@ -141,6 +154,14 @@ dependencies {
     implementation(libs.mozilla.feature.tabs)
     implementation(libs.mozilla.browser.session.storage)
     implementation(libs.mozilla.lib.state)
+    implementation(libs.mozilla.feature.readerview)
+    implementation(libs.mozilla.feature.downloads)
+    // Login prompts carry its Login types (approved for M5).
+    implementation(libs.mozilla.concept.storage)
+    // Already shipped with feature-downloads; declared to compile against its DownloadFileUtils.
+    implementation(libs.mozilla.support.utils)
+    // Already shipped with feature-readerview; declared for uBlock Origin (WebExtensionSupport).
+    implementation(libs.mozilla.support.webextensions)
 
     testImplementation(libs.junit)
     testImplementation(libs.org.json)

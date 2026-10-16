@@ -1,8 +1,5 @@
 package dev.nerzouille.koan.search
 
-import java.net.URLEncoder
-
-private const val SEARCH_URL = "https://duckduckgo.com/?q="
 
 private val KNOWN_SCHEMES = listOf(
     "http:", "https:", "about:", "file:", "view-source:", "data:", "mailto:", "tel:",
@@ -14,15 +11,26 @@ private val HOST_LIKE = Regex(
     RegexOption.IGNORE_CASE,
 )
 
-/** Turns what the user typed into a URL to load: the URL itself, or a DuckDuckGo search. */
-fun resolveInput(raw: String): String {
+/** Turns what the user typed into a URL to load: the URL itself, or a search on [engine]. */
+fun resolveInput(raw: String, engine: SearchEngine = SearchEngine.DuckDuckGo): String {
     val text = raw.trim()
     if (text.isEmpty()) return "about:blank"
-    if (text.any { it.isWhitespace() }) return searchUrl(text)
+    if (text.any { it.isWhitespace() }) return engine.searchUrl(text)
     if (KNOWN_SCHEMES.any { text.startsWith(it, ignoreCase = true) }) return text
     if (HOST_LIKE.matches(text)) return "https://$text"
-    return searchUrl(text)
+    return engine.searchUrl(text)
 }
+
+/**
+ * Text shared to Koan or a web search from another app: a link inside it opens as is, anything
+ * else is searched.
+ */
+fun resolveShared(text: String, engine: SearchEngine): String {
+    val link = WEB_LINK.find(text)?.value
+    return link ?: resolveInput(text, engine)
+}
+
+private val WEB_LINK = Regex("https?://\\S+", RegexOption.IGNORE_CASE)
 
 /**
  * Whether the phone can load [url]. Zen tabs can point at things only the desktop has (a local
@@ -35,7 +43,6 @@ fun loadsOnPhone(url: String): Boolean {
 
 private val PHONE_SCHEMES = setOf("http", "https", "about", "data", "view-source", "blob")
 
-fun searchUrl(query: String): String = SEARCH_URL + URLEncoder.encode(query, Charsets.UTF_8)
 
 /** What the address pill shows when not editing: the bare host, no scheme, no "www.". */
 fun displayHost(url: String): String {

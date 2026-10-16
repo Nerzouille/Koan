@@ -24,6 +24,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
+import android.view.View
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -54,7 +55,13 @@ fun BrowserScreen(
     val store = components.store
     val session = components.sessionUseCases
 
-    val engineView = remember { GeckoEngineView(context) }
+    val engineView = remember {
+        GeckoEngineView(context).apply {
+            // Logins are Koan's (its cards and chips): Android's autofill service (e.g. Google
+            // Password Manager) would offer to save the same login a second time.
+            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+        }
+    }
     val sessionFeature = remember {
         SessionFeature(store, session.goBack, session.goForward, engineView)
     }

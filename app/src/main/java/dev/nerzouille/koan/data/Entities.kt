@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -99,3 +100,49 @@ data class SyncMetaEntity(
     val lastModified: Long,
     val lastSyncAt: Long,
 )
+
+/** A page bookmarked on the phone (M5: local only, never synced). One row per url. */
+@Entity(tableName = "bookmarks", indices = [Index(value = ["url"], unique = true)])
+data class BookmarkEntity(
+    @PrimaryKey val id: String,
+    val url: String,
+    val title: String,
+    val createdAt: Long,
+)
+
+/** A page visited on the phone (M5: local history for search; never synced). One row per url. */
+@Entity(tableName = "visits", indices = [Index("lastVisit")])
+data class VisitEntity(
+    @PrimaryKey val url: String,
+    val title: String,
+    val lastVisit: Long,
+    val visitCount: Int,
+    /** First known from the Mozilla account's history (removed on sign-out), not visited here. */
+    @ColumnInfo(defaultValue = "0") val fromSync: Boolean = false,
+)
+
+/**
+ * A saved login. Only where it is used is readable; the username and password are sealed
+ * together ([secret], Android Keystore AES-GCM, see LoginStore). [local]: saved on this phone,
+ * never synced (M5); otherwise a read-only copy of the Mozilla account's.
+ */
+@Entity(tableName = "logins", indices = [Index("origin")])
+data class LoginEntity(
+    @PrimaryKey val guid: String,
+    /** "https://example.com": the site the login is for. */
+    val origin: String,
+    val formActionOrigin: String?,
+    val httpRealm: String?,
+    val usernameField: String,
+    val passwordField: String,
+    val secret: ByteArray,
+    val timeCreated: Long,
+    val timeLastUsed: Long,
+    val timePasswordChanged: Long,
+    val local: Boolean,
+) {
+    override fun equals(other: Any?) = other is LoginEntity && other.guid == guid && other.secret.contentEquals(secret) &&
+        other.origin == origin && other.timeLastUsed == timeLastUsed && other.timePasswordChanged == timePasswordChanged
+
+    override fun hashCode() = guid.hashCode()
+}

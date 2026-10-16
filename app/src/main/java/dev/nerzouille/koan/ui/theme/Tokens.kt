@@ -15,9 +15,9 @@ import androidx.compose.ui.unit.sp
  */
 
 /**
- * One theme's colours (docs/UI_SPEC.md "Visual tokens"). Two instances, [Light] (design 4a, "soft
- * wash") and [Dark] (4i, grey). Screens read the current one through `KoanTheme.colors`; the
- * space's own colour is only a small accent on top (see [SpaceColors]).
+ * One theme's colours (docs/UI_SPEC.md "Visual tokens"). Two instances, [Light] (design 7, fully
+ * neutral) and [Dark]. Screens read the current one through `KoanTheme.colors`. The space's own
+ * colour only marks tiny space indicators ([SpaceColors]); "Koan is working" uses [Brand].
  */
 @Immutable
 class KoanPalette(
@@ -39,11 +39,18 @@ class KoanPalette(
     val CloseIcon: Color,
     /** Fallback accent for spaces without a usable Zen colour. */
     val DefaultAccent: Color,
-    val NewTabButton: Color,
-    val NewTabIcon: Color,
+    /** Primary buttons: black in light, white in dark. */
+    val Primary: Color,
+    val OnPrimary: Color,
+    /** Destructive actions: red text only, never a red fill. */
+    val Destructive: Color,
+    /** Grouped rows on a sheet or a screen (menu, settings). */
+    val GroupedRow: Color,
+    val ToggleOff: Color,
+    /** The address input's ring while typing (neutral; "@" turns it into the brand gradient). */
+    val FocusRing: Color,
     /** The dock: the bottom bar's own surface (also the drawer sheet). */
     val Dock: Color,
-    val DockHairline: Color,
     /** Soft shadow the dock casts upward over the content. */
     val DockShadow: Color,
     val DrawerHandle: Color,
@@ -57,9 +64,11 @@ class KoanPalette(
     val Attention: Color,
     /** Over the overview while the drawer is open, at full open. */
     val DrawerScrim: Color,
+    /** Over the page while a sheet or a floating card is open (the menu, prompts). */
+    val SheetScrim: Color,
     // Depth stack.
-    /** Back cards fade towards this (dark: black = brightness). Light uses the space's haze instead. */
-    val DimFromHaze: Boolean,
+    /** Back cards fade towards Base (light: a haze) instead of black (dark: brightness). */
+    val DimToBase: Boolean,
     /** Multiplies StackTokens.Dim, capped at DimMax (light haze is stronger than a dim). */
     val DimGain: Float,
     val DimMax: Float,
@@ -73,15 +82,12 @@ class KoanPalette(
     val InkLightness: Float,
     /** Alpha of the active space pill's tint. */
     val PillAlpha: Float,
-    /** How much of the accent tints the top of the background, and at 24% of the height (light only). */
-    val WashTop: Float,
-    val WashMid: Float,
 ) {
     companion object {
         val Light = KoanPalette(
             isDark = false,
-            Base = Color(0xFFFFFFFF),
-            Glass = Color(0xFFF2F2F5),
+            Base = Color(0xFFF5F5F7),
+            Glass = Color(0xFFEBEBEF),
             TextPrimary = Color(0xFF1C1C1E),
             TextSecondary = Color(0xFF6E6E73),
             TextDisabled = Color.Black.copy(alpha = 0.22f),
@@ -92,10 +98,13 @@ class KoanPalette(
             CloseButton = Color.Black.copy(alpha = 0.06f),
             CloseIcon = Color(0xFF6E6E73),
             DefaultAccent = Color(0xFF5B6CFF),
-            NewTabButton = Color(0xFF1C1C1E),
-            NewTabIcon = Color.White,
+            Primary = Color(0xFF1C1C1E),
+            OnPrimary = Color.White,
+            Destructive = Color(0xFFE5342B),
+            GroupedRow = Color(0xFFF2F2F5),
+            ToggleOff = Color(0xFFE5E5EA),
+            FocusRing = Color(0xFFB4B4BA),
             Dock = Color(0xFFFFFFFF),
-            DockHairline = Color(0xFFECECF0),
             DockShadow = Color(0xFF3C281E).copy(alpha = 0.07f),
             DrawerHandle = Color.Black.copy(alpha = 0.16f),
             BarField = Color(0xFFF1F1F4),
@@ -105,7 +114,8 @@ class KoanPalette(
             Notice = Color(0xF2F2F2F5),
             Attention = Color(0xFFC0841A),
             DrawerScrim = Color(0xFF1C1C28).copy(alpha = 0.16f),
-            DimFromHaze = true,
+            SheetScrim = Color(0xFF1C1C28).copy(alpha = 0.30f),
+            DimToBase = true,
             DimGain = 1.25f,
             DimMax = 0.85f,
             CardElevation = 8.dp,
@@ -115,8 +125,6 @@ class KoanPalette(
             AccentLightness = 0.45f..0.62f,
             InkLightness = 0.38f,
             PillAlpha = 0.14f,
-            WashTop = 0.16f,
-            WashMid = 0.09f,
         )
 
         val Dark = KoanPalette(
@@ -133,10 +141,13 @@ class KoanPalette(
             CloseButton = Color.White.copy(alpha = 0.10f),
             CloseIcon = Color.White.copy(alpha = 0.75f),
             DefaultAccent = Color(0xFF8EA2FF),
-            NewTabButton = Color.White,
-            NewTabIcon = Color(0xFF1C1C1E),
+            Primary = Color.White,
+            OnPrimary = Color(0xFF1C1C1E),
+            Destructive = Color(0xFFFF5A50),
+            GroupedRow = Color.White.copy(alpha = 0.07f),
+            ToggleOff = Color(0xFF3A3A3C),
+            FocusRing = Color.White.copy(alpha = 0.30f),
             Dock = Color(0xFF252527),
-            DockHairline = Color.White.copy(alpha = 0.08f),
             DockShadow = Color.Black.copy(alpha = 0.35f),
             DrawerHandle = Color.White.copy(alpha = 0.20f),
             BarField = Color.White.copy(alpha = 0.08f),
@@ -146,7 +157,8 @@ class KoanPalette(
             Notice = Color(0xF22C2C2E),
             Attention = Color(0xFFE8B45A),
             DrawerScrim = Color.Black.copy(alpha = 0.45f),
-            DimFromHaze = false,
+            SheetScrim = Color.Black.copy(alpha = 0.50f),
+            DimToBase = false,
             DimGain = 1f,
             DimMax = 1f,
             CardElevation = 20.dp,
@@ -156,25 +168,81 @@ class KoanPalette(
             AccentLightness = 0.62f..0.74f,
             InkLightness = 0.80f,
             PillAlpha = 0.18f,
-            WashTop = 0f,
-            WashMid = 0f,
         )
     }
 }
 
-/** Where the background wash ends, as fractions of the screen height (design 4a). */
-object WashTokens {
-    const val MID_STOP = 0.24f
-    const val END_STOP = 0.5f
-
+/** A Zen space colour → its small accent (the switcher pill and the space's icon). */
+object SpaceColorTokens {
     /** Below this saturation a Zen colour counts as grey: the space uses the default accent. */
     const val MIN_SATURATION = 0.12f
 
     /** Accents get at least this saturation, so a muted Zen theme still reads as a colour. */
     const val ACCENT_SATURATION = 0.55f
+}
 
-    /** Loading bar when the space has fewer than two colours: pink → violet → blue. */
-    val DefaultProgress = listOf(Color(0xFFFF5FA2), Color(0xFFB46BFF), Color(0xFF4F8DFF))
+/**
+ * The brand gradient (pink → violet → blue): ONLY for "Koan is working / active / your focus"
+ * (docs/UI_SPEC.md "Brand gradient"). Never on login or password UI, permission prompts,
+ * destructive actions, body text, or behind web content. Helpers: ui/theme/Brand.kt.
+ */
+object BrandTokens {
+    val Pink = Color(0xFFFF5FA2)
+    val Violet = Color(0xFFB46BFF)
+    val Blue = Color(0xFF4F8DFF)
+    val Colors = listOf(Pink, Violet, Blue)
+
+    /** Syncing indicator: a gradient arc that turns. */
+    val SpinnerStroke = 2.dp
+    const val SPINNER_SWEEP = 270f
+    const val SPINNER_TURN_MS = 900
+
+    /** Gradient outline of cards that hold your focus (first run, account). */
+    val Outline = 1.5.dp
+}
+
+/** Switches: ON = brand gradient track (softened) + white knob; it flows in behind the knob. */
+object ToggleTokens {
+    val Width = 50.dp
+    val Height = 30.dp
+    val KnobInset = 2.dp
+    val KnobShadow = 3.dp
+    const val KNOB_SHADOW_ALPHA = 0.22f
+
+    /** The gradient track is laid over the OFF track at this alpha ("slightly softened"). */
+    const val TRACK_ALPHA = 0.9f
+    val Spring: SpringSpec<Float> = spring(dampingRatio = 0.72f, stiffness = 520f)
+}
+
+/** Primary (black / white) and destructive (red text) buttons. */
+object ButtonTokens {
+    val Height = 50.dp
+    val PaddingH = 28.dp
+    val TextSize = 16.sp
+    val IconGap = 10.dp
+}
+
+/** The address input: neutral ring while typing, the brand gradient flows around it on "@". */
+object SearchFieldTokens {
+    val Ring = 1.5.dp
+    val AtRing = 2.dp
+
+    /** A very faint halo kept tight to the stroke (never a glow bleeding around the field). */
+    val Halo = 1.5.dp
+    const val HALO_ALPHA = 0.14f
+
+    /**
+     * "@" mode is alive: the gradient turns slowly around the ring, its speed drifting with two
+     * out-of-phase slow oscillations (degrees, seconds). Speed never drops below ~10°/s.
+     */
+    const val TURN_DEG_PER_S = 48f
+    const val WOBBLE_1_DEG = 14f
+    const val WOBBLE_1_S = 3.1f
+    const val WOBBLE_2_DEG = 10f
+    const val WOBBLE_2_S = 4.7f
+    val Glyph = 18.dp
+    val GlyphGap = 10.dp
+    val Flow: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 140f)
 }
 
 /** The upright one-point-perspective card stack (docs/UI_SPEC.md "Depth stack"). Tuned by hand on the phone. */
@@ -257,8 +325,11 @@ object StackTokens {
     /** Overscroll resistance past both ends. */
     const val RUBBER_BAND = 0.45f
 
-    /** Fade to the background at the bottom of the viewport; short, so the peek's header stays crisp. */
-    val BottomFade = 16.dp
+    /**
+     * The stack's viewport runs this far under the dock (its rounded top corners), so cards show
+     * right up to the dock's edge and the dock covers them. The layout ends at the edge itself.
+     */
+    val UnderDock = 24.dp
 
     // Long-press reorder.
     const val LIFT_SCALE = 0.03f
@@ -331,9 +402,6 @@ object OverviewTokens {
     val EmptyBodySize = 14.sp
     val EmptyGap = 6.dp
     val EmptyButtonGap = 24.dp
-    val EmptyButtonHeight = 52.dp
-    val EmptyButtonPadding = 26.dp
-    val EmptyButtonText = 16.sp
 }
 
 /** The bottom bar: a plain strip with the address row; + workspace switcher in the overview. */
@@ -346,8 +414,6 @@ object FirstRunTokens {
     val TitleSize = 20.sp
     val BodySize = 14.sp
     val ButtonSize = 15.sp
-    val ButtonPaddingH = 28.dp
-    val ButtonPaddingV = 12.dp
     val CompactPadding = 12.dp
 
     /** Placeholder cards breathe between these alphas, slowly. */
@@ -359,6 +425,7 @@ object FirstRunTokens {
 
     val BadgeTouch = 36.dp
     val BadgeDot = 7.dp
+    val BadgeSpinner = 12.dp
 }
 
 /** The Mozilla sign-in screen. */
@@ -396,19 +463,14 @@ object BarTokens {
     val RowGap = 2.dp
     val IconTouch = 48.dp
     val Icon = 24.dp
-    val MenuGlyph = 20.dp
     val TabsBadge = 26.dp
     val TabsBadgeRadius = 8.dp
     val TabsBadgeBorder = 2.dp
     val TabsCountSize = 12.sp
-    val Hairline = 1.dp
 
     /** The dock: top corners in the overview (design 4a: 24) and its upward shadow. */
     val DockRadius = 24.dp
     val DockShadowHeight = 28.dp
-
-    /** Ring around the address input while it has focus. */
-    val FocusRing = 1.5.dp
 
     /** Page load progress: a gradient line on the dock's top edge, with a soft glow. */
     val ProgressHeight = 2.dp
@@ -428,9 +490,6 @@ object BarTokens {
 
     /** Rows slide this far while they crossfade during the page ↔ overview morph. */
     val MorphSlide = 12.dp
-
-    /** Space between the bar and the stack above it in the overview. */
-    val GapAbove = 12.dp
 
     /** Page ↔ overview follows the finger: this much vertical travel is the whole morph. */
     val OverviewDrag = 220.dp
@@ -489,17 +548,6 @@ object DrawerTokens {
     val MoreTextSize = 13.sp
     val MorePadding = 16.dp
 
-    /** Compact detent: the whole dock (drawer + bar) takes at most this share of the screen. */
-    const val COMPACT_MAX_FRACTION = 0.55f
-
-    /** Full detent: the sheet stops this far below the status bar. */
-    val FullTopGap = 12.dp
-
-    /** A full detent less than this above the compact one is not worth a step: one open detent. */
-    val MinDetentStep = 48.dp
-
-    /** Drag past this share of the gap to the next detent to commit to it (as the pager). */
-    const val COMMIT_FRACTION = 0.25f
     val FolderIndent = 18.dp
     val FolderCountSize = 13.sp
     val StatusRowHeight = 40.dp
@@ -514,9 +562,185 @@ object DrawerTokens {
      * makes it read as blur. Each one is a full-screen bitmap while the drawer is open.
      */
     const val BLUR_LEVELS = 2
+}
+
+/**
+ * Every sheet's detents and gestures (ui/sheet: the pins drawer, the menu, floating cards). One
+ * engine, so they all move and settle the same way.
+ */
+object SheetTokens {
+    /** Compact detent: the whole sheet (with the bar, for the drawer) takes at most this share of the screen. */
+    const val COMPACT_MAX_FRACTION = 0.55f
+
+    /** Full detent: the sheet stops this far below the status bar. */
+    val FullTopGap = 12.dp
+
+    /** A full detent less than this above the compact one is not worth a step: one open detent. */
+    val MinDetentStep = 48.dp
+
+    /** Drag past this share of the gap to the next detent to commit to it (as the pager). */
+    const val COMMIT_FRACTION = 0.25f
 
     /** Release faster than this (vertical) opens/closes regardless of position. */
     val FlingVelocity = 600.dp // per second
+
+    /** Sheets over a page (the menu): top corners, handle, the page's dim at compact. */
+    val TopRadius = 32.dp
+    val HandleTop = 8.dp
+    val HandleZone = 22.dp
+    val Padding = 14.dp
+    val Gap = 10.dp
+
+    /** A pushed page slides in from the right over this spring; the page under it trails. */
+    const val PUSH_PARALLAX = 0.3f
+
+    /** Floating card: side and bottom margins, corners. */
+    val CardMargin = 10.dp
+    val CardRadius = 28.dp
+    val CardPadding = 20.dp
+
+    // Rows, groups and tiles on a sheet (design 7k / 7l).
+    val GroupRadius = 18.dp
+    val RowHeight = 50.dp
+    val RowTallHeight = 58.dp
+    val RowPadding = 12.dp
+    val RowIconBox = 30.dp
+    val RowIconRadius = 9.dp
+    val RowGlyph = 18.dp
+    val RowTitleSize = 16.sp
+    val RowSubtitleSize = 12.sp
+    val RowTrailingSize = 14.sp
+    val Divider = 1.dp
+    val TileHeight = 66.dp
+    val TileRadius = 16.dp
+    val TileGap = 8.dp
+    val TileGlyph = 22.dp
+    val TileLabelSize = 13.sp
+    val TileLabelGap = 4.dp
+    val NavRowHeight = 56.dp
+    val NavFieldHeight = 44.dp
+    val NavFieldTextSize = 16.sp
+    val NavLockGlyph = 14.dp
+    val HeaderHeight = 52.dp
+    val HeaderTitleSize = 17.sp
+    val CardTitleSize = 18.sp
+
+    /** Long press on an image: its preview on top of the link menu. */
+    val LinkImageHeight = 140.dp
+
+    /** uBlock's own panel, pushed in the menu sheet. */
+    val UBlockPanelHeight = 520.dp
+    const val IMAGE_FADE_MS = 180
+    val CardTextSize = 14.sp
+}
+
+/** Settings and its pages (design 7n / 7o): full screen, rows straight on the base. */
+object SettingsTokens {
+    val Padding = 20.dp
+    val TopBar = 56.dp
+    val TitleSize = 34.sp
+    val TitleBottom = 12.dp
+    val SectionTop = 22.dp
+    val SectionTitleSize = 13.sp
+    val RowHeight = 54.dp
+    val RowTallHeight = 62.dp
+
+    /** A row's pressed highlight reaches this far past its text on both sides, rounded. */
+    val RowInset = 12.dp
+    val RowRadius = 14.dp
+    val RowGlyph = 20.dp
+    val RowGlyphGap = 14.dp
+    val RowTitleSize = 16.sp
+    val RowSubtitleSize = 12.sp
+    val RowValueSize = 14.sp
+    val Divider = 1.dp
+    val CardRadius = 22.dp
+    val CardPadding = 16.dp
+    val Avatar = 44.dp
+    val AvatarTextSize = 18.sp
+    val SegmentHeight = 40.dp
+    val SegmentRadius = 12.dp
+    val SegmentInset = 3.dp
+    val SegmentTextSize = 14.sp
+
+    /** The soft brand wash behind the top of the screen. */
+    val WashHeight = 320.dp
+    const val WASH_ALPHA_LIGHT = 0.20f
+    const val WASH_ALPHA_DARK = 0.14f
+
+    // About.
+    val AppIcon = 104.dp
+    val AppIconRadius = 26.dp
+    val AppNameSize = 30.sp
+    val VersionSize = 14.sp
+    val FooterSize = 12.sp
+}
+
+/** The bottom toast ("Opened in background · Switch", later "Closed · Undo"). */
+object ToastTokens {
+    val Margin = 12.dp
+    val Gap = 10.dp
+    val Height = 50.dp
+    val Radius = 16.dp
+    val PaddingH = 18.dp
+    val TextSize = 15.sp
+    val TallHeight = 60.dp
+    val DetailSize = 12.sp
+    const val DETAIL_ALPHA = 0.65f
+    const val SHOW_MS = 3000L
+
+    /** Slides up this far as it appears. */
+    val Rise = 16.dp
+}
+
+/** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
+object DownloadTokens {
+    val FileTile = 40.dp
+    val FileTileRadius = 10.dp
+    val FileGlyph = 18.dp
+    val FileExtSize = 7.sp
+    val RowGap = 12.dp
+    val RowPaddingV = 12.dp
+    val ProgressHeight = 4.dp
+    val ProgressTop = 8.dp
+    val RoundButton = 36.dp
+    val ActionHeight = 40.dp
+    val ActionGap = 8.dp
+    val GroupRadius = 18.dp
+    val ChipHeight = 32.dp
+    val ChipTextSize = 13.sp
+    val SearchHeight = 48.dp
+    val BottomGap = 10.dp
+
+    /** The ring in the address pill while something downloads. */
+    val Ring = 18.dp
+    val RingStroke = 2.dp
+}
+
+/** The search sheet above the address field (design 7a–7d). */
+object SearchTokens {
+    val Margin = 10.dp
+    val GroupGap = 8.dp
+    val GroupRadius = 18.dp
+    val LabelSize = 12.sp
+    val LabelPadding = 12.dp
+    val RowHeight = 54.dp
+    val RowPadding = 12.dp
+    val Favicon = 26.dp
+    val TitleSize = 15.sp
+    val UrlSize = 12.sp
+    val ChipHeight = 34.dp
+    val ChipTextSize = 14.sp
+    val ChipGap = 8.dp
+    val ChipIcon = 14.dp
+    val SpaceIcon = 14.dp
+    val TileHeight = 58.dp
+    val PickerRadius = 28.dp
+    val PickerPadding = 16.dp
+
+    /** The results never go higher than the status bar plus this. */
+    val StatusGap = 16.dp
+
 }
 
 object PagerTokens {
@@ -612,11 +836,14 @@ object Motion {
     const val SPACE_MODE_FADE_MS = 140
     val FolderChevron: SpringSpec<Float> = spring(dampingRatio = 0.85f, stiffness = 600f)
 
+    /** A page pushed into a sheet sliding in, or popped. */
+    val SheetPush: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 520f)
+
+    /** The bottom toast rising in and sinking away. */
+    val Toast: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 700f)
+
     /** Full-screen sheets (sign-in) sliding up and down. */
     val Sheet: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 380f)
-
-    /** The space accent (loading bar, cursor) crossfades this long when the current space changes. */
-    const val ACCENT_FADE_MS = 400
 
     /** Overview open/close; also drives the bar morph. */
     val Overview: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)

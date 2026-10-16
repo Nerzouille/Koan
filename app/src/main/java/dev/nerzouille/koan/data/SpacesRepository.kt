@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 /** One entry of the drawer's pinned list: a pinned tab, or a folder with its rows. */
 sealed interface PinnedEntry {
@@ -78,6 +79,30 @@ class SpacesRepository(private val dao: KoanDao, private val scope: CoroutineSco
                 item.tabs.mapIndexed { m, tab -> tab.koanTabId to i * STRIDE + m }
             },
         )
+    }
+
+    /**
+     * The page in [tab] joins its space's essentials. A phone tab moves there itself (keeping its
+     * card while it is open); a Zen tab gets a phone-only copy, so a sync never undoes it.
+     */
+    fun addToEssentials(tab: TabEntity, url: String, title: String) = scope.launch {
+        val order = dao.maxEssentialOrder(tab.spaceUuid) + 1
+        if (tab.origin == TabOrigin.LOCAL) {
+            dao.setEssential(tab.koanTabId, essential = true, order = order, cardOrder = if (tab.inStack) tab.stackOrder else null)
+        } else {
+            val copy = TabEntity(
+                UUID.randomUUID().toString(), spaceUuid = tab.spaceUuid, url = url, title = title.ifBlank { url },
+                iconUrl = tab.iconUrl, staticIcon = tab.staticIcon, essential = true, order = order,
+            )
+            dao.upsertTabs(listOf(copy))
+        }
+    }
+
+    /** A phone-only essential goes back to being a normal tab (or goes, if it has no card). */
+    fun removeFromEssentials(tab: TabEntity) = scope.launch {
+        if (tab.origin != TabOrigin.LOCAL || !tab.essential) return@launch
+        val card = tab.cardOrder
+        if (card != null) dao.setEssential(tab.koanTabId, essential = false, order = card, cardOrder = null) else dao.deleteLocal(listOf(tab.koanTabId))
     }
 
     fun setFolderCollapsed(folderId: String, collapsed: Boolean) = scope.launch { dao.setFolderCollapsed(folderId, collapsed) }

@@ -46,7 +46,6 @@ import androidx.compose.ui.zIndex
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.KoanPalette
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.SpaceColors
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlin.math.PI
@@ -67,7 +66,6 @@ import kotlin.math.sin
 @Composable
 fun DepthStack(
     cards: List<CardModel>,
-    colors: SpaceColors,
     state: StackState,
     enabled: Boolean,
     onOpen: (String) -> Unit,
@@ -80,6 +78,12 @@ fun DepthStack(
      * those buffers until Koan goes to the background.
      */
     onScreen: () -> Boolean = { true },
+    /**
+     * How visible this stack's page is while spaces switch (1 = settled here, 0 = a whole page
+     * away), read in layers. Cards fade through their own layer alpha: they have elevation, so the
+     * renderer draws them above anything the page paints over them (an overlay can't hide them).
+     */
+    pageFade: () -> Float = { 1f },
     /**
      * The overview's open motion has finished. Until then only the visible cards are composed (the
      * open's first frame is the costly one); the margin and the cards ahead come after.
@@ -167,6 +171,7 @@ fun DepthStack(
         Array(steps) { step -> if (step == 0) null else BlurEffect(step * 0.5f * density.density, step * 0.5f * density.density, TileMode.Clamp) }
     }
     val currentOnScreen by rememberUpdatedState(onScreen)
+    val currentPageFade by rememberUpdatedState(pageFade)
     val blurFor: (Float) -> RenderEffect? = remember(blurs) {
         { d ->
             // A card that can't be seen gets no blur: every blurred layer is an offscreen buffer
@@ -177,21 +182,13 @@ fun DepthStack(
     }
 
     val palette = KoanTheme.colors
-    // Light: back cards fade into the wash where the pile sits; dark: they darken.
-    val dimColor = if (palette.DimFromHaze) colors.haze else Color.Black
+    // Light: back cards fade into the background (a haze); dark: they darken.
+    val dimColor = if (palette.DimToBase) palette.Base else Color.Black
 
     BoxWithConstraints(modifier.clipToBounds()) {
         val width = constraints.maxWidth.toFloat()
         val height = constraints.maxHeight.toFloat()
         val geo = remember(width, height, density, palette) { StackGeometry(state, width, height, density.density, palette) }
-        // The background is plain Base above the dock, so fading *to Base* looks like the spec's
-        // alpha mask without an offscreen layer for the whole stack every frame.
-        val fade = remember(height, density, palette) {
-            Brush.verticalGradient(
-                0f to Color.Transparent, 1f to palette.Base,
-                startY = height - with(density) { StackTokens.BottomFade.toPx() }, endY = height,
-            )
-        }
         val cardWidthDp = with(density) { geo.cardWidth.toDp() }
         val cardHeightDp = with(density) { geo.cardHeight.toDp() }
 
@@ -216,10 +213,6 @@ fun DepthStack(
         Box(
             Modifier
                 .size(maxWidth, maxHeight)
-                .drawWithContent {
-                    drawContent()
-                    drawRect(fade)
-                }
                 .pointerInput(enabled, geo) {
                     if (!enabled) return@pointerInput
                     awaitEachGesture {
@@ -305,6 +298,7 @@ fun DepthStack(
                             length = { if (near.value) geo.shadowLength(a, behind) else 0f },
                             modifier = layout.graphicsLayer {
                                 geo.applyTo(this, a)
+                                alpha *= currentPageFade()
                                 clip = false
                                 shadowElevation = 0f
                             },
@@ -315,8 +309,10 @@ fun DepthStack(
                         depth = { if (near.value) geo.depthOf(a) else OFFSCREEN_DEPTH },
                         blurFor = blurFor,
                         dimColor = dimColor,
-                        accent = colors.accent,
-                        modifier = layout.graphicsLayer { geo.applyTo(this, a) },
+                        modifier = layout.graphicsLayer {
+                            geo.applyTo(this, a)
+                            alpha *= currentPageFade()
+                        },
                     )
                 }
             }
@@ -350,13 +346,16 @@ private val CardShape = RoundedCornerShape(CardTokens.Radius)
 internal class StackFrame(width: Float, private val viewportHeight: Float, density: Float) {
     val cardWidth = width - 2 * StackTokens.CardSideMargin.value * density
 
+    /** The viewport runs on under the dock's rounded top; the layout ends at the dock's edge. */
+    private val visibleBottom = viewportHeight - StackTokens.UnderDock.value * density
+
     /** The focused card gets all the height left by the top gap, the pile (A = fraction × height) and the peek. */
     val cardHeight = (
-        viewportHeight - (StackTokens.PileTopGap + StackTokens.PeekVisible - StackTokens.PeekOverlap).value * density
+        visibleBottom - (StackTokens.PileTopGap + StackTokens.PeekVisible - StackTokens.PeekOverlap).value * density
         ) / (1f + StackTokens.PILE_DEPTH_FRACTION)
 
     /** Top of the card in front (d = -1): only its header and a hint of thumbnail show. */
-    private val peekTop = viewportHeight - StackTokens.PeekVisible.value * density
+    private val peekTop = visibleBottom - StackTokens.PeekVisible.value * density
 
     /** Top of the focused card: the card in front overlaps its bottom part. */
     private val focusTop = peekTop + StackTokens.PeekOverlap.value * density - cardHeight

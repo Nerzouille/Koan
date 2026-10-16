@@ -2,6 +2,9 @@ package dev.nerzouille.koan.engine
 
 import android.content.Context
 import dev.nerzouille.koan.data.AccountStore
+import dev.nerzouille.koan.data.Bookmarks
+import dev.nerzouille.koan.data.LibrarySync
+import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.data.DataStoreBlob
 import dev.nerzouille.koan.data.KeystoreBox
 import dev.nerzouille.koan.data.KoanDatabase
@@ -12,6 +15,19 @@ import dev.nerzouille.koan.data.SpacesSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import mozilla.components.browser.state.state.content.DownloadState
+import kotlinx.coroutines.launch
+import mozilla.components.support.webextensions.WebExtensionSupport
+import android.os.Environment
+import dev.nerzouille.koan.engine.downloads.Downloads
+import dev.nerzouille.koan.engine.downloads.KoanDownloadService
+import mozilla.components.feature.downloads.DownloadMiddleware
+import mozilla.components.feature.downloads.DownloadStorage
+import mozilla.components.feature.downloads.DownloadsUseCases
+import mozilla.components.support.utils.DefaultDownloadFileUtils
+import mozilla.components.feature.readerview.ReaderViewMiddleware
 import mozilla.components.browser.engine.gecko.GeckoEngine
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.engine.EngineMiddleware
@@ -29,7 +45,13 @@ class Components(context: Context) {
     private val appContext = context.applicationContext
 
     val runtime: GeckoRuntime by lazy {
-        GeckoRuntime.create(appContext, GeckoRuntimeSettings.Builder().build())
+        val settings = GeckoRuntimeSettings.Builder()
+            .configFilePath(GeckoPrefs.write(appContext).absolutePath)
+            .build()
+        GeckoRuntime.create(appContext, settings).also {
+            // Pages' login forms are filled from Koan's sealed logins.
+            it.autocompleteStorageDelegate = LoginAutofill(logins, appScope)
+        }
     }
 
     val engine by lazy {
@@ -43,7 +65,63 @@ class Components(context: Context) {
         )
     }
 
-    val store by lazy { BrowserStore(middleware = EngineMiddleware.create(engine)) }
+    val store by lazy {
+        BrowserStore(
+            middleware = EngineMiddleware.create(engine) + ReaderViewMiddleware() +
+                DownloadMiddleware(
+                    appContext, KoanDownloadService::class.java,
+                    // Removing a download from the list never deletes the file (Delete does that explicitly).
+                    deleteFileFromStorage = { false },
+                    downloadFileUtils = downloadFiles, downloadStorage = downloadStorage,
+                ),
+        )
+    }
+
+    // ---- downloads ----
+
+    /**
+     * Where downloads go, read without waiting: the folder picked in Settings (a content:// tree)
+     * or the phone's Download folder. Kept current by [watchDownloadLocation].
+     */
+    @Volatile
+    private var pickedDownloadFolder: String? = null
+
+    val defaultDownloadFolder: String
+        get() = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path
+
+    val downloadFiles by lazy { DefaultDownloadFileUtils(appContext) { pickedDownloadFolder ?: defaultDownloadFolder } }
+    val downloadStorage by lazy { DownloadStorage(appContext) }
+    val downloadsUseCases by lazy { DownloadsUseCases(store, downloadFiles) }
+    val downloads by lazy { Downloads(appContext, downloadFiles, downloadsUseCases) }
+
+    /** A download stopped (completed, failed, cancelled): KoanRoot shows the "downloaded" toast. */
+    val downloadDone = MutableSharedFlow<Pair<DownloadState, DownloadState.Status>>(extraBufferCapacity = 4)
+
+    fun watchDownloadLocation() = appScope.launch {
+        settings.downloadLocation.collect { pickedDownloadFolder = it }
+    }
+
+    /** uBlock Origin (C5). [startExtensions] once per process. */
+    val ublock by lazy { UBlock(engine, store, settings, appScope) }
+
+    private var extensionsStarted = false
+
+    /** Add-on support (installed list, badges, popups into the store), then uBlock. */
+    fun startExtensions() {
+        if (extensionsStarted) return
+        extensionsStarted = true
+        WebExtensionSupport.initialize(engine, store, openPopupInTab = false)
+        ublock.start()
+    }
+
+    /** What sites may do: answers to their requests, and Site settings. */
+    val sitePermissions by lazy { SitePermissions(appContext, runtime) }
+
+    /** Reader view, find in page, the long-press result. */
+    val pageTools by lazy { PageTools(appContext, engine, store) }
+
+    /** A link or text another app sent to Koan (default browser, share): opened as a new tab. */
+    val incoming = MutableStateFlow<Incoming?>(null)
 
     val sessionUseCases by lazy { SessionUseCases(store) }
     val tabsUseCases by lazy { TabsUseCases(store) }
@@ -54,9 +132,14 @@ class Components(context: Context) {
     val database by lazy { KoanDatabase.build(appContext) }
     val spaces by lazy { SpacesRepository(database.dao(), appScope) }
     val accounts by lazy { AccountStore(DataStoreBlob(appContext), KeystoreBox()) }
-    val sync by lazy { SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }) }
+    /** Saved logins, sealed with their own Keystore key. */
+    val logins by lazy { LoginStore(database.dao(), KeystoreBox("koan_logins")) }
+    val sync by lazy {
+        SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }, library = LibrarySync(database.dao(), logins))
+    }
     val lastPlace by lazy { LastPlace(appContext) }
     val settings by lazy { Settings(appContext) }
+    val bookmarks by lazy { Bookmarks(database.dao(), appScope) }
 
     /** Engine tabs (history, scroll, form data) on disk, so they survive the process dying. */
     val sessionStorage by lazy { SessionStorage(appContext, engine, applicationScope = appScope) }
@@ -68,3 +151,6 @@ class Components(context: Context) {
         TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, appScope)
     }
 }
+
+/** Something another app handed to Koan: a url to open, or text to open or search ([text]). */
+data class Incoming(val text: String, val isUrl: Boolean, val at: Long = System.currentTimeMillis())

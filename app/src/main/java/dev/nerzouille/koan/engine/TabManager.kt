@@ -179,6 +179,33 @@ class TabManager(
         return id
     }
 
+    /**
+     * Opens [url] in a new tab of [spaceUuid]: right after the [opener]'s card (a link's "open in
+     * new tab"), else at the bottom of the stack. [select]: shown now; otherwise it waits in the
+     * stack and loads when opened. Returns the new tab's id.
+     */
+    fun openNew(spaceUuid: String, url: String, opener: TabEntity? = null, select: Boolean = true): String {
+        val id = UUID.randomUUID().toString()
+        main.launch { openNew(id, spaceUuid, url, opener, select) }
+        return id
+    }
+
+    private suspend fun openNew(id: String, spaceUuid: String, url: String, opener: TabEntity?, select: Boolean) {
+        val after = opener?.takeIf { it.spaceUuid == spaceUuid && it.inStack }?.stackOrder ?: dao.maxStackOrder(spaceUuid)
+        val row = TabEntity(
+            id, spaceUuid = spaceUuid, url = url, title = displayHost(url).ifEmpty { url },
+            order = 0, lastAccessed = System.currentTimeMillis(), origin = TabOrigin.LOCAL,
+        )
+        // The engine tab first, so the Room row never shows a card the engine doesn't know.
+        if (select) {
+            open(row).join()
+        } else {
+            ownTabs += id
+            store.dispatch(TabListAction.AddTabAction(createTab(url = url, id = id), select = false))
+        }
+        appScope.launch { dao.insertInStack(row, after) }
+    }
+
     /** Loads [url] in the current tab; a blank new tab gets its engine tab now. */
     fun load(url: String) = main.launch {
         val id = _current.value ?: return@launch
@@ -218,6 +245,16 @@ class TabManager(
             rows.filter { it.koanTabId in gone }.mapNotNull { it.thumbnailKey }.forEach { ThumbnailStore.delete(it) }
             gone.forEach { dao.setThumbnail(it, null) }
         }
+    }
+
+    /** Closes a tab that only held a download, back to the tab used before it. */
+    private fun dropDownloadTab(id: String) = main.launch {
+        val row = dao.tab(id)
+        if (_current.value == id) {
+            val back = recent.firstOrNull { it != id && store.state.findTab(it) != null }?.let { dao.tab(it) }
+            if (back != null) open(back, captureLeaving = false).join()
+        }
+        close(listOf(id), listOfNotNull(row))
     }
 
     /** Ids of every tab that exists in the engine (live or suspended): opened on the phone. */
@@ -295,6 +332,7 @@ class TabManager(
 
     private fun watchEngine() = main.launch {
         var known = store.state.tabs.associate { it.id to it.pageKey() }
+        var knownDownloads = store.state.downloads.keys
         var loading = false
         var painted: String? = null
         var selected = store.state.selectedTabId
@@ -307,6 +345,15 @@ class TabManager(
                 }
                 // A page opened a new tab (target=_blank, window.open): it joins the stack next to its opener.
                 if (tab.id !in known && tab.id !in ownTabs) adoptWindowTab(tab)
+            }
+            // A tab opened straight onto a file (a link from another app, a download link in a
+            // new tab) shows nothing and would download it again on every restore: it goes.
+            if (state.downloads.keys != knownDownloads) {
+                state.downloads.values.filter { it.id !in knownDownloads }.forEach { d ->
+                    val tab = d.sessionId?.let { state.findTab(it) }
+                    if (tab != null && tab.content.url == d.url && !tab.content.firstContentfulPaint) dropDownloadTab(tab.id)
+                }
+                knownDownloads = state.downloads.keys
             }
             known = state.tabs.associate { it.id to it.pageKey() }
             windowTabs.retainAll(known.keys)
@@ -346,10 +393,14 @@ class TabManager(
         pageWrites[id]?.cancel()
         pageWrites[id] = main.launch {
             delay(PAGE_WRITE_DEBOUNCE_MS)
-            val content = store.state.findTab(id)?.content ?: return@launch
+            val tab = store.state.findTab(id) ?: return@launch
+            // Reader view shows its own extension page: the tab keeps the article's url.
+            if (tab.readerState.active) return@launch
+            val content = tab.content
             val url = content.url
             if (url.isEmpty() || url == "about:blank") return@launch
             val title = content.title
+            recordVisit(id, url, title)
             appScope.launch {
                 val row = dao.tab(id) ?: return@launch
                 if (row.url == url && (title.isEmpty() || row.title == title)) return@launch
@@ -363,6 +414,23 @@ class TabManager(
                     iconUrl = if (keepIcon) row.iconUrl else null,
                     staticIcon = row.staticIcon,
                 )
+            }
+        }
+    }
+
+    /** The url each tab's last recorded visit was for: a title change is not a new visit. */
+    private val visited = HashMap<String, String>()
+
+    /** History for search: one visit per page a tab lands on (web pages only). */
+    private fun recordVisit(tabId: String, url: String, title: String) {
+        if (!url.startsWith("http://") && !url.startsWith("https://")) return
+        val again = visited[tabId] == url
+        visited[tabId] = url
+        appScope.launch {
+            if (again) {
+                if (title.isNotEmpty()) dao.setVisitTitle(url, title)
+            } else {
+                dao.recordVisit(url, title, System.currentTimeMillis())
             }
         }
     }

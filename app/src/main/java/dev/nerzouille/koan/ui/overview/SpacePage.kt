@@ -42,6 +42,8 @@ import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import dev.nerzouille.koan.ui.theme.SpaceColors
+import dev.nerzouille.koan.ui.theme.BrandSpinner
+import dev.nerzouille.koan.ui.kit.PrimaryButton
 import kotlin.math.abs
 
 @Immutable
@@ -113,7 +115,6 @@ fun SpacePage(
                 space.stack.isEmpty() -> EmptySpace(space, onNewTab, Modifier.align(Alignment.Center))
                 else -> DepthStack(
                     cards = space.stack,
-                    colors = space.colors,
                     state = stack,
                     enabled = active,
                     onOpen = onOpenTab,
@@ -121,6 +122,7 @@ fun SpacePage(
                     onReorder = onReorder,
                     modifier = Modifier.fillMaxSize(),
                     onScreen = { abs(pageOffset()) < 1f },
+                    pageFade = { 1f - abs(pageOffset()).coerceAtMost(1f) },
                     settled = settled,
                 )
             }
@@ -155,18 +157,8 @@ private fun EmptySpace(space: SpaceModel, onNewTab: () -> Unit, modifier: Modifi
         Spacer(Modifier.height(OverviewTokens.EmptyGap))
         Text("Its pinned tabs are in the drawer below.", color = KoanTheme.colors.TextSecondary, fontSize = OverviewTokens.EmptyBodySize)
         Spacer(Modifier.height(OverviewTokens.EmptyButtonGap))
-        Row(
-            Modifier
-                .height(OverviewTokens.EmptyButtonHeight)
-                .clip(CircleShape)
-                .background(KoanTheme.colors.NewTabButton)
-                .clickable(onClick = onNewTab)
-                .padding(horizontal = OverviewTokens.EmptyButtonPadding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(KoanIcons.Plus, null, tint = KoanTheme.colors.NewTabIcon, modifier = Modifier.size(OverviewTokens.NewTabGlyph))
-            Spacer(Modifier.width(OverviewTokens.TitleGap))
-            Text("New tab", color = KoanTheme.colors.NewTabIcon, fontSize = OverviewTokens.EmptyButtonText, fontWeight = FontWeight.SemiBold)
+        PrimaryButton("New tab", onClick = onNewTab) {
+            Icon(KoanIcons.Plus, null, tint = KoanTheme.colors.OnPrimary, modifier = Modifier.size(OverviewTokens.NewTabGlyph))
         }
     }
 }
@@ -174,8 +166,6 @@ private fun EmptySpace(space: SpaceModel, onNewTab: () -> Unit, modifier: Modifi
 /** Placeholder cards in the real stack geometry, breathing slowly while the first sync runs. */
 @Composable
 internal fun SkeletonStack(modifier: Modifier = Modifier) {
-    val palette = KoanTheme.colors
-    val colors = remember(palette) { SpaceColors.of(emptyList(), palette) }
     val scope = rememberCoroutineScope()
     val state = remember { StackState((SkeletonCards.size - 2).toFloat(), scope) }
     val breath = rememberInfiniteTransition(label = "skeleton")
@@ -187,7 +177,6 @@ internal fun SkeletonStack(modifier: Modifier = Modifier) {
     )
     DepthStack(
         cards = SkeletonCards,
-        colors = colors,
         state = state,
         enabled = false,
         onOpen = {},
@@ -242,11 +231,11 @@ internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit
                 .padding(end = OverviewTokens.HeaderPadding)
                 .size(OverviewTokens.NewTabButton)
                 .clip(CircleShape)
-                .background(KoanTheme.colors.NewTabButton)
+                .background(KoanTheme.colors.Primary)
                 .clickable(onClick = onNewTab),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(KoanIcons.Plus, "New tab", tint = KoanTheme.colors.NewTabIcon, modifier = Modifier.size(OverviewTokens.NewTabGlyph))
+            Icon(KoanIcons.Plus, "New tab", tint = KoanTheme.colors.OnPrimary, modifier = Modifier.size(OverviewTokens.NewTabGlyph))
         }
     }
 }
@@ -259,21 +248,13 @@ private fun HeaderIcon(icon: ImageVector, onClick: () -> Unit) {
 }
 
 /**
- * Sync state at a glance, next to the space name: nothing when all is well, a slowly pulsing dot
- * while syncing, an amber dot when the last sync failed or the account needs signing in again.
+ * Sync state at a glance, next to the space name: nothing when all is well, a small brand-gradient
+ * spinner while syncing, an amber dot when the last sync failed or the account needs signing in again.
  * Tap = sync now (or sign in).
  */
 @Composable
 private fun SyncBadgeView(badge: SyncBadge, onClick: () -> Unit) {
     if (badge == SyncBadge.None) return
-    val pulse = rememberInfiniteTransition(label = "badge")
-    val alpha = pulse.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(tween(FirstRunTokens.SKELETON_BREATH_MS), RepeatMode.Reverse),
-        label = "pulse",
-    )
-    val syncing = badge == SyncBadge.Syncing
     Box(
         Modifier
             .size(FirstRunTokens.BadgeTouch)
@@ -281,12 +262,10 @@ private fun SyncBadgeView(badge: SyncBadge, onClick: () -> Unit) {
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            Modifier
-                .size(FirstRunTokens.BadgeDot)
-                .graphicsLayer { this.alpha = if (syncing) alpha.value else 1f }
-                .clip(CircleShape)
-                .background(if (syncing) KoanTheme.colors.TextSecondary else KoanTheme.colors.Attention),
-        )
+        if (badge == SyncBadge.Syncing) {
+            BrandSpinner(FirstRunTokens.BadgeSpinner)
+        } else {
+            Box(Modifier.size(FirstRunTokens.BadgeDot).clip(CircleShape).background(KoanTheme.colors.Attention))
+        }
     }
 }

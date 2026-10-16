@@ -2,13 +2,8 @@ package dev.nerzouille.koan.ui.overview
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,10 +29,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.data.PinnedEntry
 import dev.nerzouille.koan.data.SpaceWithTabs
@@ -47,13 +40,12 @@ import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanPalette
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.SpaceColors
-import dev.nerzouille.koan.ui.theme.WashTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
+import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlin.math.abs
-import kotlin.math.floor
 
 /**
  * The Space overview: one page per space, switched only from the workspace switcher in the bottom
@@ -162,34 +154,10 @@ fun OverviewScreen(
     }
 
     val palette = KoanTheme.colors
-    val density = LocalDensity.current
-    val statusTop = WindowInsets.statusBars.getTop(density).toFloat()
-    var overviewHeight by remember { mutableFloatStateOf(0f) }
-    // Light: a soft wash of the space colour at the top, crossfading with the drag. [top] = where
-    // the drawing starts in the overview, so a page can draw the same backdrop over itself.
-    fun backdrop(top: Float): Brush? {
-        if (palette.WashTop <= 0f) return null
-        val p = pager.pos.coerceIn(0f, (models.size - 1).toFloat())
-        val i = floor(p).toInt()
-        val f = p - i
-        val a = models[i].colors
-        val b = models[(i + 1).coerceAtMost(models.size - 1)].colors
-        return Brush.verticalGradient(
-            0f to lerp(a.washTop, b.washTop, f),
-            WashTokens.MID_STOP to lerp(a.washMid, b.washMid, f),
-            WashTokens.END_STOP to palette.Base,
-            startY = -top,
-            endY = overviewHeight - top,
-        )
-    }
     Box(
         modifier
             .fillMaxSize()
-            .onSizeChanged { overviewHeight = it.height.toFloat() }
-            .drawBehind {
-                drawRect(palette.Base)
-                backdrop(0f)?.let { drawRect(it) }
-            },
+            .drawBehind { drawRect(palette.Base) },
     ) {
         Column(Modifier.fillMaxSize()) {
             Box(
@@ -219,10 +187,7 @@ fun OverviewScreen(
                         val fade = Modifier.drawWithContent {
                             drawContent()
                             val e = abs(offset()).coerceIn(0f, 1f)
-                            if (e > 0f) {
-                                val brush = backdrop(statusTop)
-                                if (brush != null) drawRect(brush, alpha = e) else drawRect(palette.Base, alpha = e)
-                            }
+                            if (e > 0f) drawRect(palette.Base, alpha = e)
                         }
                         // Back to a ghost (a page dropped off): its next real page fades in over it again.
                         var ghostGone by remember(real) { mutableStateOf(false) }
@@ -262,7 +227,8 @@ fun OverviewScreen(
                     }
                 }
             }
-            Spacer(Modifier.navigationBarsPadding().height(dock))
+            // The stack runs on under the dock's rounded top: the dock covers the cards, no gap.
+            Spacer(Modifier.navigationBarsPadding().height(dock - StackTokens.UnderDock))
         }
         // The placeholders fade out while the real spaces fade in (one-off, after the first sync).
         val revealing by remember { derivedStateOf { reveal.value < 1f } }
@@ -270,7 +236,7 @@ fun OverviewScreen(
             Column(Modifier.fillMaxSize().statusBarsPadding().graphicsLayer { alpha = 1f - reveal.value }) {
                 Spacer(Modifier.height(OverviewTokens.HeaderHeight))
                 SkeletonStack(Modifier.weight(1f))
-                Spacer(Modifier.navigationBarsPadding().height(dock))
+                Spacer(Modifier.navigationBarsPadding().height(dock - StackTokens.UnderDock))
             }
         }
     }

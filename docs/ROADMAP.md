@@ -53,6 +53,9 @@ losing data, and the owner has approved and published the release.
 - uBlock Origin install via add-ons; add-on manager in settings.
 - Downloads, site permissions, context menu (open in new tab / in Glance later / copy link),
   find in page, share, default-browser intent filters.
+- About: one GitHub releases check when About opens ("Up to date" / "Update available"), never
+  polled in the background.
+- Logins saved on the phone ("Save in Koan, this phone only") stay local and encrypted until M6.
 **Done when:** owner can uninstall Opera.
 
 ## M4 — Motion polish (≈ 1–2 weeks, iterate with owner)
@@ -60,12 +63,15 @@ losing data, and the owner has approved and published the release.
 - Stack compression/elastic trailing while scrolling.
 - New-tab grow animation, card lift/drop, close collapse.
 - Baseline profile; JankStats logging in debug.
+- Retry search backdrop: old dim + subtle blur behind the suggestion cards only.
 **Done when:** owner signs off on the feel. Expect several rounds of tweaks.
 
 ## M6 — Write-back to Zen (≈ 1 week, careful)
 - `writeBackEnabled` setting (off by default), undo journal, conditional writes per spec §7.2.
 - Operations in the order listed in `SYNC.md`.
 - Test against a throwaway Mozilla account / throwaway Space first.
+- Offer to push the phone-only logins saved in M5 to the Mozilla account (`passwords` collection),
+  one explicit confirmation, never automatically.
 **Done when:** a tab added/closed/moved on the phone appears correctly in Zen desktop, and a 412
 conflict is handled without data loss.
 

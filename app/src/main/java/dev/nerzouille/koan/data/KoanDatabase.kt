@@ -147,6 +147,115 @@ interface KoanDao {
     @Query("UPDATE folders SET collapsed = :collapsed WHERE folderId = :folderId")
     suspend fun setFolderCollapsed(folderId: String, collapsed: Boolean)
 
+    @Query("SELECT COALESCE(MAX(`order`), -1) FROM tabs WHERE spaceUuid = :spaceUuid AND essential")
+    suspend fun maxEssentialOrder(spaceUuid: String): Int
+
+    /** A tab becomes an essential (or stops being one) in place; [order] is its new list position. */
+    @Query("UPDATE tabs SET essential = :essential, `order` = :order, cardOrder = :cardOrder WHERE koanTabId = :koanTabId")
+    suspend fun setEssential(koanTabId: String, essential: Boolean, order: Int, cardOrder: Int?)
+
+    /** Pages whose url or title contains [q], most used first. */
+    @Query(
+        "SELECT * FROM visits WHERE url LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%' " +
+            "ORDER BY visitCount DESC, lastVisit DESC LIMIT :limit",
+    )
+    suspend fun searchVisits(q: String, limit: Int): List<VisitEntity>
+
+    @Query("SELECT * FROM visits ORDER BY lastVisit DESC LIMIT :limit")
+    suspend fun recentVisits(limit: Int): List<VisitEntity>
+
+    /** One more visit of [url] (a new row the first time). */
+    @Transaction
+    suspend fun recordVisit(url: String, title: String, at: Long) {
+        if (bumpVisit(url, title, at) == 0) insertVisit(VisitEntity(url, title, at, 1))
+    }
+
+    @Query("UPDATE visits SET visitCount = visitCount + 1, lastVisit = :at, title = CASE WHEN :title = '' THEN title ELSE :title END WHERE url = :url")
+    suspend fun bumpVisit(url: String, title: String, at: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertVisit(visit: VisitEntity)
+
+    /** A page's title arrived after its visit was recorded. */
+    @Query("UPDATE visits SET title = :title WHERE url = :url")
+    suspend fun setVisitTitle(url: String, title: String)
+
+    // ---- from the Mozilla account (read-only copies) ----
+
+    /** History pulled from Sync: a new page counts as synced; a known one keeps the larger figures. */
+    @Transaction
+    suspend fun mergeSyncedVisits(visits: List<VisitEntity>) {
+        visits.forEach { v ->
+            insertVisit(v.copy(fromSync = true))
+            mergeVisit(v.url, v.title, v.lastVisit, v.visitCount)
+        }
+    }
+
+    @Query(
+        "UPDATE visits SET lastVisit = MAX(lastVisit, :last), visitCount = MAX(visitCount, :count), " +
+            "title = CASE WHEN title = '' THEN :title ELSE title END WHERE url = :url",
+    )
+    suspend fun mergeVisit(url: String, title: String, last: Long, count: Int)
+
+    @Query("DELETE FROM visits WHERE fromSync")
+    suspend fun deleteSyncedVisits()
+
+    /** Bookmarks pulled from Sync replace the previous pull's (ids "sync:…"); the phone's stay. */
+    @Transaction
+    suspend fun replaceSyncedBookmarks(bookmarks: List<BookmarkEntity>) {
+        deleteSyncedBookmarks()
+        bookmarks.forEach { insertBookmarkIfNew(it) }
+    }
+
+    @Query("DELETE FROM bookmarks WHERE id LIKE 'sync:%'")
+    suspend fun deleteSyncedBookmarks()
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertBookmarkIfNew(bookmark: BookmarkEntity)
+
+    @Query("SELECT url FROM bookmarks WHERE id LIKE 'sync:%'")
+    fun observeSyncedBookmarkUrls(): Flow<List<String>>
+
+    /** Logins pulled from Sync replace the previous pull's; the phone's own stay. */
+    @Transaction
+    suspend fun replaceSyncedLogins(logins: List<LoginEntity>) {
+        deleteSyncedLogins()
+        upsertLogins(logins)
+    }
+
+    @Query("DELETE FROM logins WHERE NOT local")
+    suspend fun deleteSyncedLogins()
+
+    @Upsert
+    suspend fun upsertLogins(logins: List<LoginEntity>)
+
+    @Query("SELECT * FROM logins ORDER BY origin")
+    fun observeLogins(): Flow<List<LoginEntity>>
+
+    @Query("SELECT * FROM logins ORDER BY origin")
+    suspend fun allLogins(): List<LoginEntity>
+
+    @Query("SELECT * FROM logins WHERE origin = :origin OR origin LIKE '%.' || :baseDomain OR origin LIKE '%//' || :baseDomain")
+    suspend fun loginsFor(origin: String, baseDomain: String): List<LoginEntity>
+
+    @Query("UPDATE logins SET timeLastUsed = :at WHERE guid = :guid")
+    suspend fun touchLogin(guid: String, at: Long)
+
+    @Query("SELECT * FROM bookmarks WHERE url LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%' ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun searchBookmarks(q: String, limit: Int): List<BookmarkEntity>
+
+    @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun recentBookmarks(limit: Int): List<BookmarkEntity>
+
+    @Query("SELECT url FROM bookmarks")
+    fun observeBookmarkedUrls(): Flow<List<String>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookmark(bookmark: BookmarkEntity)
+
+    @Query("DELETE FROM bookmarks WHERE url = :url")
+    suspend fun deleteBookmark(url: String)
+
     @Query("SELECT * FROM sync_meta WHERE collection = :collection")
     suspend fun syncMeta(collection: String): SyncMetaEntity?
 
@@ -181,6 +290,10 @@ interface KoanDao {
         deleteFolders(folders())
         deleteSplits(splits())
         deleteSpaces(spaces().filter { it.zenOrigin })
+        // The account's passwords, bookmarks and history leave with it; the phone's own stay.
+        deleteSyncedLogins()
+        deleteSyncedBookmarks()
+        deleteSyncedVisits()
         upsertSyncMeta(SyncMetaEntity("spaces", lastModified = 0, lastSyncAt = 0))
     }
 }
@@ -203,8 +316,8 @@ class Converters {
 }
 
 @Database(
-    entities = [SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class],
-    version = 3,
+    entities = [SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class, BookmarkEntity::class, VisitEntity::class, LoginEntity::class],
+    version = 6,
 )
 @TypeConverters(Converters::class)
 abstract class KoanDatabase : RoomDatabase() {
@@ -216,7 +329,7 @@ abstract class KoanDatabase : RoomDatabase() {
                 // v1 only ever held M1's fake data. From v2 on, rows are real Zen data and phone
                 // tabs: every schema change needs a real Migration.
                 .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1)
-                .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
 
         /** M3: live pinned tabs' stack position, and the url Zen last sent (see ZenDiff). */
@@ -225,6 +338,43 @@ abstract class KoanDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE tabs ADD COLUMN cardOrder INTEGER")
                 db.execSQL("ALTER TABLE tabs ADD COLUMN zenUrl TEXT")
                 db.execSQL("UPDATE tabs SET zenUrl = url WHERE origin = 'ZEN'")
+            }
+        }
+
+        /** M5: bookmarks saved on the phone. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bookmarks` (`id` TEXT NOT NULL, `url` TEXT NOT NULL, " +
+                        "`title` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bookmarks_url` ON `bookmarks` (`url`)")
+            }
+        }
+
+        /** M5: pages visited on the phone, for search. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `visits` (`url` TEXT NOT NULL, `title` TEXT NOT NULL, " +
+                        "`lastVisit` INTEGER NOT NULL, `visitCount` INTEGER NOT NULL, PRIMARY KEY(`url`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_visits_lastVisit` ON `visits` (`lastVisit`)")
+            }
+        }
+
+        /** M5: the Mozilla account's logins (sealed), and which history came from it. */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE visits ADD COLUMN `fromSync` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `logins` (`guid` TEXT NOT NULL, `origin` TEXT NOT NULL, " +
+                        "`formActionOrigin` TEXT, `httpRealm` TEXT, `usernameField` TEXT NOT NULL, " +
+                        "`passwordField` TEXT NOT NULL, `secret` BLOB NOT NULL, `timeCreated` INTEGER NOT NULL, " +
+                        "`timeLastUsed` INTEGER NOT NULL, `timePasswordChanged` INTEGER NOT NULL, " +
+                        "`local` INTEGER NOT NULL, PRIMARY KEY(`guid`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_logins_origin` ON `logins` (`origin`)")
             }
         }
     }

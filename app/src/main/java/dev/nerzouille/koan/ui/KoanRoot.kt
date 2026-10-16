@@ -29,23 +29,43 @@ import dev.nerzouille.koan.BuildConfig
 import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
-import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.resolveInput
+import dev.nerzouille.koan.search.resolveShared
+import dev.nerzouille.koan.search.Hit
+import dev.nerzouille.koan.search.completion
+import dev.nerzouille.koan.search.parseQuery
+import dev.nerzouille.koan.ui.search.SearchActions
+import dev.nerzouille.koan.ui.search.SearchField
+import dev.nerzouille.koan.ui.search.SearchSheet
+import dev.nerzouille.koan.ui.search.TabTarget
+import dev.nerzouille.koan.ui.search.rememberSearch
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
+import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.thumbs.BakedBlur
 import dev.nerzouille.koan.ui.bar.AddressRow
 import dev.nerzouille.koan.ui.bar.DrawerContent
 import dev.nerzouille.koan.ui.bar.drawerBackdrop
 import dev.nerzouille.koan.ui.bar.DrawerStatus
-import dev.nerzouille.koan.ui.bar.DrawerState
+import dev.nerzouille.koan.ui.sheet.SheetState
 import dev.nerzouille.koan.ui.bar.KoanBar
 import dev.nerzouille.koan.ui.bar.PageInfo
 import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
 import dev.nerzouille.koan.ui.bar.barZone
+import dev.nerzouille.koan.ui.kit.KoanToastHost
+import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.downloads.host
+import dev.nerzouille.koan.ui.downloads.sizeText
+import mozilla.components.browser.state.state.content.DownloadState
+import dev.nerzouille.koan.ui.kit.ToastState
 import dev.nerzouille.koan.ui.bar.SwipeTarget
 import dev.nerzouille.koan.ui.bar.BarGestures
 import dev.nerzouille.koan.ui.bar.SpaceScrub
-import dev.nerzouille.koan.ui.bar.Detent
+import dev.nerzouille.koan.ui.sheet.Detent
 import dev.nerzouille.koan.ui.browser.TabSwipe
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.search.displayHost
@@ -68,7 +88,6 @@ import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.SpaceColors
 import kotlinx.coroutines.launch
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
@@ -98,10 +117,8 @@ fun KoanRoot(components: Components) {
     // A new tab always starts with the search sheet open.
     LaunchedEffect(blankId) { if (blankId != null) editing = true }
     val palette = KoanTheme.colors
-    val themeMode by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
+    val searchEngine by components.settings.searchEngine.collectAsStateWithLifecycle(SearchEngine.DuckDuckGo)
     val models = remember(spaces, activeTabId, palette) { spaces.map { it.toModel(activeTabId, palette) } }
-    val defaultColors = remember(palette) { SpaceColors.of(emptyList(), palette) }
-    val currentColors = models.getOrNull(currentSpace)?.colors ?: defaultColors
 
     // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph. A swipe on the
     // dock drives it 1:1; otherwise it springs.
@@ -155,8 +172,17 @@ fun KoanRoot(components: Components) {
         spaceIds.getOrNull(target)?.let { currentSpaceUuid = it }
     }
     motion.distancePx = with(density) { BarTokens.OverviewDrag.toPx() }
-    val drawer = remember(density) { DrawerState(scope, splineBasedDecay(density)) }
+    val drawer = remember(density) { SheetState(scope, splineBasedDecay(density)) }
     LaunchedEffect(overviewOpen) { if (!overviewOpen) drawer.snapClosed() }
+
+    // The ⋯ menu, the long-press menu, find, Settings (see KoanOverlays).
+    val overlays = remember(density) { Overlays(scope, density) }
+    // The address field's text while editing, and what it finds.
+    val searchField = remember { SearchField() }
+    val suggestions by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
+    val search = rememberSearch(searchField, components.database.dao(), spaces, models, activeTabId, searchEngine, suggestions)
+    val toasts = remember { ToastState() }
+    LaunchedEffect(overviewOpen, activeTabId) { overlays.dismissAll() }
 
     // Blur radii baked for the cards behind the open drawer (weakest first, see drawerBackdrop).
     val drawerBlurs = remember(density) {
@@ -170,7 +196,7 @@ fun KoanRoot(components: Components) {
     val dock = remember { DockState(scope) }
     val tabSwipe = remember { TabSwipe(scope, tabs.current) }
     tabSwipe.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { BarTokens.TabSwipeGap.toPx() }
-    SideEffect { dock.locked = overviewOpen || editing }
+    SideEffect { dock.locked = overviewOpen || editing || overlays.finding }
     LaunchedEffect(activeTabId) { dock.snapShown() }
 
     fun openOverview() {
@@ -214,6 +240,61 @@ fun KoanRoot(components: Components) {
     fun tabById(id: String) = spaces.firstNotNullOfOrNull { s ->
         s.stack.firstNotNullOfOrNull { item -> item.tabs.firstOrNull { it.koanTabId == id } }
             ?: (s.pinnedTabs + s.essentials).firstOrNull { it.koanTabId == id }
+    }
+    /** A url as a new tab of the current space; [nextToCurrent]: right after the current card. */
+    fun openNewTab(url: String, select: Boolean, nextToCurrent: Boolean) {
+        val index = currentSpace.coerceIn(0, (spaces.size - 1).coerceAtLeast(0))
+        val space = spaces.getOrNull(index) ?: return
+        val opener = if (nextToCurrent) activeTabId?.let(::tabById) else null
+        val id = tabs.openNew(space.space.uuid, url, opener, select)
+        if (!select) {
+            toasts.show(
+                Toast("Opened in background", "Switch") {
+                    spaces.withIndex().firstNotNullOfOrNull { (i, s) ->
+                        s.stack.firstNotNullOfOrNull { item -> item.tabs.firstOrNull { it.koanTabId == id } }?.let { i to it }
+                    }?.let { (i, tab) -> openTab(i, tab) }
+                },
+            )
+            return
+        }
+        currentTabs[space.space.uuid] = id
+        editing = false
+        zoomIn.value = false
+        overviewOpen = false
+    }
+    // Links and text other apps send (default browser, share): a new tab in the current space.
+    LaunchedEffect(tabsStarted, spaces.isEmpty(), placeRestored) {
+        if (!tabsStarted || spaces.isEmpty() || !placeRestored) return@LaunchedEffect
+        components.incoming.collect { incoming ->
+            if (incoming == null) return@collect
+            components.incoming.value = null
+            overlays.settingsOpen = false
+            openNewTab(if (incoming.isUrl) incoming.text else resolveShared(incoming.text, searchEngine), select = true, nextToCurrent = false)
+        }
+    }
+    /** A search result picked: an open tab is switched to (in its space), any other page loads here. */
+    fun openHit(hit: Hit) {
+        editing = false
+        val target = hit.payload as? TabTarget
+        val tab = target?.let { tabById(it.tabId) }
+        if (target != null && tab != null) openTab(target.spaceIndex, tab) else tabs.load(hit.url)
+    }
+    /** Go on the keyboard: "@wiki koan" searches there, the completed top hit opens, else url or search. */
+    fun submitSearch(input: String) {
+        val parsed = parseQuery(input)
+        val top = search.results.top
+        when {
+            parsed.shortcut != null -> {
+                editing = false
+                tabs.load(if (parsed.rest.isEmpty()) parsed.shortcut.home else parsed.shortcut.searchUrl(parsed.rest))
+            }
+            parsed.scope != null -> search.results.let { r -> (r.tabs + r.pages).firstOrNull() }?.let(::openHit)
+            top != null && input.equals(completion(searchField.typed, top) ?: "\u0000", ignoreCase = true) -> openHit(top)
+            else -> {
+                editing = false
+                tabs.load(resolveInput(input, searchEngine))
+            }
+        }
     }
     /** The tab a space shows when switched to from the page view: its current card, else its newest. */
     fun lastTabOf(index: Int): TabEntity? {
@@ -402,30 +483,84 @@ fun KoanRoot(components: Components) {
         val session = components.sessionUseCases
         // What the address row shows: the current tab (a blank new tab has no page yet).
         val page by store.observeSlice(activeTabId to blankId) { state ->
-            activeTabId?.takeIf { it != blankId }?.let { state.findTab(it) }?.content.let { c ->
+            activeTabId?.takeIf { it != blankId }?.let { state.findTab(it) }.let { tab ->
+                val c = tab?.content
+                // Reader view shows its own extension page: the address stays the article's.
+                val reader = tab?.readerState?.takeIf { it.active }?.activeUrl
                 PageInfo(
-                    url = c?.url.orEmpty(),
+                    url = reader ?: c?.url.orEmpty(),
                     loading = c?.loading == true,
                     progress = (c?.progress ?: 0) / 100f,
                     canGoBack = c?.canGoBack == true,
                     canGoForward = c?.canGoForward == true,
+                    desktopSite = c?.desktopMode == true,
                 )
             }
         }
         val currentPage = page
+        val findUi = rememberFindUi(components, overlays, activeTabId)
+        // Downloads running: their combined progress for the ring in the pill (NaN = size unknown).
+        val downloadProgress by store.observeSlice(Unit) { s ->
+            val running = s.downloads.values.filter { !it.private && it.status == DownloadState.Status.DOWNLOADING }
+            if (running.isEmpty()) {
+                null
+            } else {
+                val total = running.sumOf { it.contentLength ?: 0L }
+                if (running.any { it.contentLength == null } || total <= 0L) Float.NaN else running.sumOf { it.currentBytesCopied }.toFloat() / total
+            }
+        }
+        // A download finished (or failed): say so, with Open (or Retry).
+        LaunchedEffect(Unit) {
+            components.downloadDone.collect { (download, status) ->
+                val name = download.fileName ?: "File"
+                when (status) {
+                    DownloadState.Status.COMPLETED -> toasts.show(
+                        Toast(
+                            "$name downloaded", "Open",
+                            detail = listOfNotNull(sizeText(download.contentLength ?: download.currentBytesCopied), host(download)).joinToString(" · "),
+                            moment = true,
+                        ) { components.downloads.open(download) },
+                    )
+                    DownloadState.Status.FAILED -> toasts.show(Toast("Couldn't download $name", "Retry") { components.downloads.retry(download) })
+                    else -> Unit
+                }
+            }
+        }
         // Page view space mode: the scrub, from the long press until the finger lifts.
         val spaceMode = !overviewOpen && bar.scrub.active
         fun spaceTarget(index: Int) = models.getOrNull(index)?.let { SwipeTarget(it.name, spaceIcon = it.icon) }
         fun tabTarget(tab: TabEntity) = SwipeTarget(displayHost(tab.url).ifEmpty { tab.title }, url = tab.url, favicon = tab.iconUrl, staticIcon = tab.staticIcon)
         // A new page load brings the dock back.
         LaunchedEffect(currentPage.loading) { if (currentPage.loading) dock.show() }
+        // Typing in the address field: results above it, below the dock.
+        val searchBottom = barZone(overview = false) + WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
+        if (editing) {
+            SearchSheet(
+                field = searchField,
+                search = search,
+                engine = searchEngine,
+                bottom = searchBottom,
+                currentSpace = currentSpace,
+                actions = SearchActions(
+                    open = ::openHit,
+                    search = { url ->
+                        editing = false
+                        tabs.load(url)
+                    },
+                    pick = searchField::set,
+                    cancel = {
+                        editing = false
+                        tabs.cancelBlank()
+                    },
+                ),
+            )
+        }
         KoanBar(
             overviewOpen = overviewOpen,
             overview = { motion.progress },
             bar = bar,
             loading = currentPage.loading,
             loadProgress = currentPage.progress,
-            colors = currentColors,
             dockHide = { dock.offset },
             drawerContent = { modifier ->
                 DrawerContent(
@@ -454,7 +589,6 @@ fun KoanRoot(components: Components) {
                 AddressRow(
                     page = currentPage,
                     tabCount = models.getOrNull(currentSpace)?.stack?.size ?: 0,
-                    accent = currentColors.accent,
                     editing = editing,
                     overviewOpen = overviewOpen,
                     overview = { motion.progress },
@@ -463,52 +597,53 @@ fun KoanRoot(components: Components) {
                         // Closing the sheet of a new tab that never got a url discards it.
                         if (!on) tabs.cancelBlank()
                     },
-                    onSubmit = { input ->
-                        editing = false
-                        tabs.load(resolveInput(input))
-                    },
+                    onSubmit = ::submitSearch,
                     onSearchFromOverview = { newTab(pager.settled) },
                     onBack = { session.goBack(activeTabId) },
-                    onForward = { session.goForward(activeTabId) },
-                    onReload = { session.reload(activeTabId) },
-                    onStop = { session.stopLoading(activeTabId) },
                     onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
-                    menuExtras = buildList {
-                        add("Theme: ${themeMode.label}" to {
-                            val next = ThemeMode.entries[(themeMode.ordinal + 1) % ThemeMode.entries.size]
-                            scope.launch { components.settings.setThemeMode(next) }
-                        })
-                        when (val a = account) {
-                            is AccountState.SignedIn -> {
-                                add("Sync now" to { components.sync.syncNow() })
-                                add("Sign out (${a.email})" to {
-                                    FxAWeb.wipeWebSession()
-                                    components.sync.signOut()
-                                })
-                            }
-                            AccountState.SignedOut -> add("Sign in to Mozilla account" to { signingIn = true })
-                            AccountState.Loading -> Unit
-                        }
-                        // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
-                        if (BuildConfig.DEBUG) {
-                            for (n in listOf(50, 150)) {
-                                add("Fill space to $n tabs (dev)" to {
-                                    spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
-                                })
-                            }
-                            add("Remove fake tabs (dev)" to { components.spaces.removeFakeTabs() })
-                        }
-                    },
+                    onMenu = { overlays.menu.animateTo(Detent.Compact) },
                     modifier = modifier,
                     swipe = { if (overviewOpen) 0f else tabSwipe.fraction },
                     previous = tabSwipe.previous?.let(::tabTarget),
                     next = tabSwipe.next?.let(::tabTarget),
                     shownUrl = if (overviewOpen) null else tabSwipe.shown?.url,
                     space = if (spaceMode) spaceTarget(bar.scrub.index) else null,
+                    find = findUi,
+                    search = searchField,
+                    complete = search::complete,
+                    completedTitle = { search.results.top?.title },
+                    download = downloadProgress,
+                    onDownloads = { overlays.downloadsOpen = true },
                 )
             },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+
+        KoanOverlays(
+            components = components,
+            overlays = overlays,
+            page = currentPage,
+            activeTabId = activeTabId,
+            activeTab = activeTab,
+            drawerStatus = drawerStatus,
+            onEditAddress = { editing = true },
+            onNewTab = { newTab(currentSpace) },
+            onOpenNew = ::openNewTab,
+            onSignIn = { signingIn = true },
+            onToast = toasts::show,
+            // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
+            devActions = if (!BuildConfig.DEBUG) emptyList() else buildList {
+                for (n in listOf(50, 150)) {
+                    add("Fill space to $n tabs" to {
+                        spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
+                        Unit
+                    })
+                }
+                add("Remove fake tabs" to { components.spaces.removeFakeTabs(); Unit })
+            },
+        )
+
+        KoanToastHost(toasts, bottom = barZone(overviewOpen), modifier = Modifier.align(Alignment.BottomCenter))
 
         // Sign-in slides up over everything and back down when done.
         val signIn = remember { Animatable(0f) }

@@ -1,6 +1,17 @@
 package dev.nerzouille.koan
 
+import android.app.SearchManager
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationManagerCompat
+import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.engine.downloads.KoanDownloadService
+import mozilla.components.feature.downloads.DownloadsFeature
+import mozilla.components.feature.downloads.manager.FetchDownloadManager
+import mozilla.components.support.base.android.NotificationsDelegate
+import android.content.Intent
 import android.graphics.Color
+import dev.nerzouille.koan.engine.Incoming
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -48,6 +59,12 @@ class MainActivity : FragmentActivity() {
         // Pages opening tabs (target=_blank, window.open); TabManager files them next to their opener.
         lifecycle.addObserver(WindowFeature(components.store, components.tabsUseCases))
         components.sync.start()
+        components.pageTools.start()
+        components.startExtensions()
+        components.watchDownloadLocation()
+        startDownloads(components)
+        // A fresh start from a link (default browser, share); a recreated activity already had it.
+        if (savedInstanceState == null) handleIntent(intent)
 
         setContent {
             // Nothing is drawn until the setting is read (a few ms), so the wrong theme never flashes.
@@ -59,6 +76,7 @@ class MainActivity : FragmentActivity() {
                 ThemeMode.Dark -> true
             }
             LaunchedEffect(dark) {
+                components.pageTools.setReaderDark(dark)
                 WindowCompat.getInsetsController(window, window.decorView).apply {
                     isAppearanceLightStatusBars = !dark
                     isAppearanceLightNavigationBars = !dark
@@ -76,6 +94,62 @@ class MainActivity : FragmentActivity() {
                 KoanRoot(components)
             }
         }
+    }
+
+    private var downloads: DownloadsFeature? = null
+
+    private companion object {
+        /** Per process, not per activity (a recreated activity must not restore twice). */
+        val savedDownloadsRestored = java.util.concurrent.atomic.AtomicBoolean(false)
+    }
+
+    // Downloads need the notification permission for their progress notification (Android 13+).
+    private val askPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+        val names = results.keys.toTypedArray()
+        val grants = IntArray(names.size) { if (results.getValue(names[it])) PackageManager.PERMISSION_GRANTED else PackageManager.PERMISSION_DENIED }
+        downloads?.onPermissionsResult(names, grants)
+    }
+
+    /**
+     * Pages start downloads; the service runs them. No confirmation dialog: a download starts at
+     * once (design 7g) and the end of it shows in a toast (KoanRoot, via [Components.downloadDone]).
+     */
+    private fun startDownloads(components: Components) {
+        // The download list lives on disk (DownloadStorage): back into the store once per process.
+        if (savedDownloadsRestored.compareAndSet(false, true)) components.downloadsUseCases.restoreDownloads()
+        val feature = DownloadsFeature(
+            applicationContext,
+            store = components.store,
+            useCases = components.downloadsUseCases,
+            onNeedToRequestPermissions = { askPermissions.launch(it) },
+            onDownloadStopped = { download, _, status -> components.downloadDone.tryEmit(download to status) },
+            downloadFileUtils = components.downloadFiles,
+            downloadManager = FetchDownloadManager(
+                applicationContext, components.store, KoanDownloadService::class,
+                notificationsDelegate = NotificationsDelegate(NotificationManagerCompat.from(applicationContext)),
+            ),
+            customFirstPartyDownloadDialog = { current, _, positive, _, _ -> positive.value(current.value) },
+            customThirdPartyDownloadDialog = { _, _, negative -> negative.value() },
+        )
+        downloads = feature
+        lifecycle.addObserver(feature)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    /** Links and text other apps send: they open as a new tab in the current space (KoanRoot). */
+    private fun handleIntent(intent: Intent?) {
+        val incoming = when (intent?.action) {
+            Intent.ACTION_VIEW -> intent.dataString?.let { Incoming(it, isUrl = true) }
+            Intent.ACTION_WEB_SEARCH -> intent.getStringExtra(SearchManager.QUERY)?.let { Incoming(it, isUrl = false) }
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let { Incoming(it, isUrl = false) }
+            else -> null
+        } ?: return
+        if (incoming.text.isBlank()) return
+        (application as KoanApp).components.incoming.value = incoming
     }
 
     // High refresh only while the user interacts (and the animations that follow); see RefreshBooster.

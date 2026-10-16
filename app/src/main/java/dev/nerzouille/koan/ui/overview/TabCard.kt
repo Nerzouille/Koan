@@ -98,7 +98,6 @@ fun TabCard(
     depth: () -> Float,
     blurFor: (Float) -> RenderEffect?,
     dimColor: Color,
-    accent: Color,
     modifier: Modifier = Modifier,
 ) {
     val palette = KoanTheme.colors
@@ -183,7 +182,7 @@ fun TabCard(
                     if (dim > 0.01f) drawRect(dimColor, alpha = dim)
                 },
         )
-        CardHeader(card, depth, dimColor, accent)
+        CardHeader(card, depth, dimColor)
         Box(Modifier.fillMaxSize().border(CardTokens.Hairline, palette.CardBorder, CardShape))
     }
 }
@@ -191,7 +190,7 @@ fun TabCard(
 private val CardShape = RoundedCornerShape(CardTokens.Radius)
 
 @Composable
-private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color, accent: Color) {
+private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
     val palette = KoanTheme.colors
     Row(
         Modifier
@@ -225,7 +224,7 @@ private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color, acc
             }
             if (card.active) {
                 Spacer(Modifier.width(CardTokens.HeaderGap))
-                Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(accent))
+                CurrentTabDot()
             }
         }
         // ✕ only on the focused card; the stack's gesture handler does the hit-testing.
@@ -432,4 +431,10 @@ private fun SkeletonCard(depth: () -> Float, dimColor: Color, dimOf: (Float) -> 
         }
         Box(Modifier.fillMaxSize().border(CardTokens.Hairline, KoanTheme.colors.CardBorder, CardShape))
     }
+}
+
+/** The current tab is a state, not a moment: a small neutral dot, never the brand gradient. */
+@Composable
+internal fun CurrentTabDot() {
+    Box(Modifier.size(CardTokens.ActiveDot).clip(CircleShape).background(KoanTheme.colors.TextSecondary))
 }

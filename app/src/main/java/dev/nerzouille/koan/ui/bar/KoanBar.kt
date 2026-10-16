@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.bar
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
@@ -52,9 +51,9 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
+import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.Motion
-import dev.nerzouille.koan.ui.theme.SpaceColors
+import dev.nerzouille.koan.ui.theme.BrandTokens
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -64,7 +63,7 @@ private const val OFFSCREEN_PX = 100_000
 /** Space the bar takes at the bottom (above the navigation bar), so screens can end above it. */
 fun barZone(overview: Boolean): Dp =
     if (overview) {
-        BarTokens.GapAbove + BarTokens.SwitcherRowHeight + BarTokens.AddressRowHeight + BarTokens.BottomMargin
+        BarTokens.SwitcherRowHeight + BarTokens.AddressRowHeight + BarTokens.BottomMargin
     } else {
         BarTokens.AddressRowHeight + BarTokens.BottomMargin
     }
@@ -84,8 +83,6 @@ fun KoanBar(
     bar: BarGestures,
     loading: Boolean,
     loadProgress: Float,
-    /** The current space's colours: the load line uses its gradient. */
-    colors: SpaceColors,
     /** Page view: how far the dock has slid down as the page scrolls (px); read in a layer. */
     dockHide: () -> Float,
     drawerContent: @Composable (Modifier) -> Unit,
@@ -97,11 +94,6 @@ fun KoanBar(
     val drawer = bar.drawer
     val palette = KoanTheme.colors
     val line = rememberLoadLine(loading, loadProgress)
-    // The space colours crossfade when the current space changes; read only while drawing.
-    val fade = tween<Color>(Motion.ACCENT_FADE_MS)
-    val c0 = animateColorAsState(colors.progress[0], fade, label = "progress0")
-    val c1 = animateColorAsState(colors.progress[1], fade, label = "progress1")
-    val c2 = animateColorAsState(colors.progress[2], fade, label = "progress2")
 
     // The drawer's caps from the window: compact keeps the whole dock under ~55% of the screen,
     // full stops just below the status bar.
@@ -110,10 +102,10 @@ fun KoanBar(
     with(density) {
         val rows = (BarTokens.SwitcherRowHeight + BarTokens.AddressRowHeight).toPx()
         val below = WindowInsets.navigationBars.getBottom(density) + BarTokens.BottomMargin.toPx()
-        val top = WindowInsets.statusBars.getTop(density) + DrawerTokens.FullTopGap.toPx()
-        drawer.compactCapPx = windowPx * DrawerTokens.COMPACT_MAX_FRACTION - rows - below
+        val top = WindowInsets.statusBars.getTop(density) + SheetTokens.FullTopGap.toPx()
+        drawer.compactCapPx = windowPx * SheetTokens.COMPACT_MAX_FRACTION - rows - below
         drawer.fullCapPx = windowPx - top - rows - below
-        drawer.minStepPx = DrawerTokens.MinDetentStep.toPx()
+        drawer.minStepPx = SheetTokens.MinDetentStep.toPx()
         bar.scrub.stepPx = BarTokens.ScrubStep.toPx()
     }
     val gestures = Modifier.barGestures(bar, view)
@@ -124,7 +116,6 @@ fun KoanBar(
             .graphicsLayer { translationY = if (overviewOpen) 0f else dockHide() }
             .drawWithCache {
                 val shadowPx = BarTokens.DockShadowHeight.toPx()
-                val hairline = BarTokens.Hairline.toPx()
                 val shimmerPx = BarTokens.ShimmerWidth.toPx()
                 onDrawBehind {
                     val o = overview()
@@ -135,18 +126,17 @@ fun KoanBar(
                     val top = sheetTop + BarTokens.SwitcherRowHeight.toPx() * (1f - row)
                     // Square under a page, rounded in the overview, a little more as the drawer.
                     val r = BarTokens.DockRadius.toPx() * row * (1f - d) + DrawerTokens.TopRadius.toPx() * d
-                    // Soft shadow cast upward over the content; it wraps the rounded corners.
+                    // Soft shadow cast upward over the content (page or cards), attached to the
+                    // surface's edge: no hairline between them. It wraps the rounded corners.
                     drawRect(
                         Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DockShadow, startY = top - shadowPx, endY = top + r),
                         topLeft = Offset(0f, top - shadowPx),
                         size = Size(size.width, shadowPx + r),
                     )
-                    // The hairline is the surface itself, peeking out 1px above its fill.
-                    drawPath(dockPath(top, r), palette.DockHairline)
-                    drawPath(dockPath(top + hairline, r), palette.Dock)
+                    drawPath(dockPath(top, r), palette.Dock)
                     // Page load line on the top edge, page view only.
                     val a = line.alpha.value * (1f - row)
-                    if (a > 0.01f) drawLoadLine(top, line, a, shimmerPx, c0.value, c1.value, c2.value)
+                    if (a > 0.01f) drawLoadLine(top, line, a, shimmerPx)
                 }
             }
             .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
@@ -257,12 +247,13 @@ private fun rememberLoadLine(loading: Boolean, progress: Float): LoadLine {
     return line
 }
 
-private fun DrawScope.drawLoadLine(top: Float, line: LoadLine, alpha: Float, shimmerPx: Float, c0: Color, c1: Color, c2: Color) {
+/** The brand gradient: Koan is working. It spans the filled part, so the blue end leads. */
+private fun DrawScope.drawLoadLine(top: Float, line: LoadLine, alpha: Float, shimmerPx: Float) {
     val w = size.width * line.progress.value
     if (w < 1f) return
     val h = BarTokens.ProgressHeight.toPx()
     val glow = BarTokens.ProgressGlow.toPx()
-    val brush = Brush.horizontalGradient(listOf(c0, c1, c2), startX = 0f, endX = w)
+    val brush = Brush.horizontalGradient(BrandTokens.Colors, startX = 0f, endX = w)
     // A soft glow: two wider, fainter passes of the same gradient under the line.
     drawRect(brush, topLeft = Offset(0f, top + h / 2f - glow / 2f), size = Size(w, glow), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA * 0.35f)
     drawRect(brush, topLeft = Offset(0f, top + h / 2f - glow / 4f), size = Size(w, glow / 2f), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA)

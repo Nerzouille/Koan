@@ -83,7 +83,8 @@ fun SignInScreen(onLogin: suspend (FxAWebLogin) -> Unit, onClose: () -> Unit, mo
         }
     }
 
-    val accent = KoanTheme.colors.DefaultAccent
+    // Login UI stays neutral: never the brand gradient or a space colour.
+    val accent = KoanTheme.colors.TextSecondary
     Column(
         modifier
             .fillMaxSize()
