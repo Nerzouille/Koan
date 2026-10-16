@@ -63,6 +63,7 @@ losing data, and the owner has approved and published the release.
 - Stack compression/elastic trailing while scrolling.
 - New-tab grow animation, card lift/drop, close collapse.
 - Baseline profile; JankStats logging in debug.
+- Retry search backdrop: old dim + subtle blur behind the suggestion cards only.
 **Done when:** owner signs off on the feel. Expect several rounds of tweaks.
 
 ## M6 — Write-back to Zen (≈ 1 week, careful)

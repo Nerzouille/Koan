@@ -741,28 +741,6 @@ object SearchTokens {
     /** The results never go higher than the status bar plus this. */
     val StatusGap = 16.dp
 
-    /**
-     * The page behind: lightly blurred (two baked levels, text still faintly readable) over the
-     * results only, fading back to the sharp page over [BlurFade] above the top card, or
-     * [BlurFadeEmpty] above the field when nothing shows.
-     */
-    /**
-     * The blur levels, lightest first; the lightest are baked at full size (they meet the sharp
-     * page, so they must be close to it), the others from a half-size copy. Each step is small
-     * enough that two neighbours never read as a double image.
-     */
-    val BlurLevels = listOf(1.dp to 1f, 2.dp to 1f, 3.5.dp to 0.5f, 6.dp to 0.5f, 9.dp to 0.5f)
-
-    /** The bottom share of the zone (behind the field and the lowest results) at full blur. */
-    const val BLUR_FULL_SHARE = 0.35f
-    val BlurFade = 48.dp
-    val BlurFadeEmpty = 40.dp
-
-    /** The shadow the sheet casts upward: black, this strong right above the field, fading to none. */
-    const val SHADOW = 0.18f
-
-    /** The sheet and its backdrop fading in and out with editing. */
-    const val SHOW_MS = 180
 }
 
 object PagerTokens {

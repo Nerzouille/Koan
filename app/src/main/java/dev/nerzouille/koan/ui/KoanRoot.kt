@@ -38,12 +38,6 @@ import dev.nerzouille.koan.search.parseQuery
 import dev.nerzouille.koan.ui.search.SearchActions
 import dev.nerzouille.koan.ui.search.SearchField
 import dev.nerzouille.koan.ui.search.SearchSheet
-import dev.nerzouille.koan.ui.search.SearchBackdrop
-import dev.nerzouille.koan.ui.theme.SearchTokens
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.spring
-import androidx.compose.runtime.mutableFloatStateOf
 import dev.nerzouille.koan.ui.search.TabTarget
 import dev.nerzouille.koan.ui.search.rememberSearch
 import androidx.compose.foundation.layout.WindowInsets
@@ -183,12 +177,6 @@ fun KoanRoot(components: Components) {
 
     // The ⋯ menu, the long-press menu, find, Settings (see KoanOverlays).
     val overlays = remember(density) { Overlays(scope, density) }
-    // The search sheet's backdrop: fades with editing, its fully blurred part starts at searchTop (px).
-    val searchShown = animateFloatAsState(if (editing && !overviewOpen) 1f else 0f, tween(SearchTokens.SHOW_MS), label = "search")
-    val searchVisible by remember { derivedStateOf { searchShown.value > 0f } }
-    val searchTop = remember { mutableFloatStateOf(Float.MAX_VALUE) }
-    // A new edit starts with nothing above the field (the zone grows from there).
-    LaunchedEffect(editing) { if (editing) searchTop.floatValue = Float.MAX_VALUE }
     // The address field's text while editing, and what it finds.
     val searchField = remember { SearchField() }
     val suggestions by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
@@ -545,23 +533,7 @@ fun KoanRoot(components: Components) {
         // A new page load brings the dock back.
         LaunchedEffect(currentPage.loading) { if (currentPage.loading) dock.show() }
         // Typing in the address field: results above it, below the dock.
-        // One surface while typing: the page blurred behind the results and the field (it fades
-        // in and out with editing), the dock's own surface gone.
         val searchBottom = barZone(overview = false) + WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
-        if (searchVisible) {
-            val fieldTop = with(density) { LocalWindowInfo.current.containerSize.height - searchBottom.toPx() }
-            // The blurred zone follows the results' top smoothly; nothing to show = just above the field.
-            val top = searchTop.floatValue.coerceAtMost(fieldTop)
-            val solid = animateFloatAsState(top, spring(dampingRatio = 1f, stiffness = 500f), label = "searchTop")
-            val fadePx = with(density) { (if (top < fieldTop - 1f) SearchTokens.BlurFade else SearchTokens.BlurFadeEmpty).toPx() }
-            SearchBackdrop(
-                snapshot = { tabs.snapshot() },
-                solidTop = { solid.value },
-                fieldTop = { fieldTop },
-                fade = { fadePx },
-                shown = { searchShown.value },
-            )
-        }
         if (editing) {
             SearchSheet(
                 field = searchField,
@@ -569,7 +541,6 @@ fun KoanRoot(components: Components) {
                 engine = searchEngine,
                 bottom = searchBottom,
                 currentSpace = currentSpace,
-                onTop = { searchTop.floatValue = it },
                 actions = SearchActions(
                     open = ::openHit,
                     search = { url ->
@@ -591,7 +562,6 @@ fun KoanRoot(components: Components) {
             loading = currentPage.loading,
             loadProgress = currentPage.progress,
             dockHide = { dock.offset },
-            surface = { 1f - searchShown.value },
             drawerContent = { modifier ->
                 DrawerContent(
                     spaces = models,

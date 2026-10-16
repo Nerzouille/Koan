@@ -479,23 +479,6 @@ class TabManager(
         engineView = WeakReference(view)
     }
 
-    /** The page on screen right now: its pixels and where they sit in the window (px). */
-    class Snapshot(val bitmap: Bitmap, val left: Int, val top: Int, val width: Int, val height: Int)
-
-    /** The page on screen right now, as a bitmap (not stored): the search sheet blurs it. */
-    suspend fun snapshot(timeoutMs: Long = 600): Snapshot? {
-        val view = engineView.get() ?: return null
-        val id = _current.value ?: return null
-        if (store.state.selectedTabId != id || store.state.findTab(id)?.content?.firstContentfulPaint != true) return null
-        val bitmap = withTimeoutOrNull(timeoutMs) {
-            suspendCancellableCoroutine<Bitmap?> { cont -> view.captureThumbnail { if (cont.isActive) cont.resume(it) } }
-        } ?: return null
-        // Drawn back exactly over the page view, or the blurred copy wouldn't line up with the page.
-        val v = view.asView()
-        val at = IntArray(2).also { v.getLocationInWindow(it) }
-        return Snapshot(bitmap, at[0], at[1], v.width, v.height)
-    }
-
     /** Screenshots the current tab (overview opening, app hidden). */
     fun captureCurrent(reason: String) {
         val id = _current.value ?: return
