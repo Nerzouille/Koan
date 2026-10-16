@@ -42,6 +42,26 @@ class SearchModelTest {
         assertEquals(3, rank("", tabs, history, bookmarks, scope = Scope.History).history.size)
     }
 
+    @Test fun `matches word starts, not loose substrings`() {
+        val pages = listOf(
+            Hit("https://github.com/koan", "Pull request #42", Source.History, visits = 2),
+            Hit("https://mail.example.com/", "Inbox", Source.History, visits = 1),
+        )
+        assertTrue(rank("hub", emptyList(), pages, emptyList()).isEmpty)
+        assertEquals(1, rank("req", emptyList(), pages, emptyList()).history.size)
+        assertEquals(1, rank("pull req", emptyList(), pages, emptyList()).history.size)
+        // A host label counts as a word: "example" finds mail.example.com.
+        assertEquals("https://mail.example.com/", rank("example", emptyList(), pages, emptyList()).history.firstOrNull()?.url)
+    }
+
+    @Test fun `at most two tabs and three pages per group`() {
+        val many = (1..6).map { Hit("https://example.com/p$it", "Example $it", Source.History, visits = it) }
+        val tabs = (1..5).map { Hit("https://example.org/t$it", "Example tab $it", Source.Tab) }
+        val r = rank("example", tabs, many, emptyList())
+        assertEquals(2, r.tabs.size)
+        assertEquals(3, r.history.size)
+    }
+
     @Test fun `nothing typed, nothing shown`() {
         assertTrue(rank("  ", tabs, history, bookmarks).isEmpty)
     }

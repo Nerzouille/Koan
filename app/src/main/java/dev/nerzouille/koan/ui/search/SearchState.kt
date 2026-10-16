@@ -64,9 +64,11 @@ fun rememberSearch(
         // Let a burst of typing settle first.
         delay(QUERY_DELAY_MS)
         val q = parsed.rest
-        val visits = (if (q.isEmpty()) dao.recentVisits(LIMIT) else dao.searchVisits(q, LIMIT))
+        // The database narrows on the first word; ranking checks every word.
+        val first = q.substringBefore(' ')
+        val visits = (if (q.isEmpty()) dao.recentVisits(LIMIT) else dao.searchVisits(first, LIMIT))
             .map { Hit(it.url, it.title, Source.History, visits = it.visitCount, lastUsed = it.lastVisit) }
-        val marks = (if (q.isEmpty()) dao.recentBookmarks(LIMIT) else dao.searchBookmarks(q, LIMIT))
+        val marks = (if (q.isEmpty()) dao.recentBookmarks(LIMIT) else dao.searchBookmarks(first, LIMIT))
             .map { Hit(it.url, it.title, Source.Bookmark, lastUsed = it.createdAt) }
         val tabs = latestSpaces.flatMapIndexed { i, s ->
             val model = latestModels.getOrNull(i)

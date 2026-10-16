@@ -737,6 +737,20 @@ object SearchTokens {
     val TileHeight = 58.dp
     val PickerRadius = 28.dp
     val PickerPadding = 16.dp
+
+    /** The results never go higher than the status bar plus this. */
+    val StatusGap = 16.dp
+
+    /** The blurred page behind: two baked blur levels, fading out over [BlurFade] above the results. */
+    val BlurRadii = listOf(10.dp, 28.dp)
+    val BlurFade = 120.dp
+
+    /** The frosted tint over the blurred page (stronger while the blur is still being baked). */
+    const val DIM = 0.62f
+    const val DIM_UNBLURRED = 0.88f
+
+    /** The sheet and its backdrop fading in and out with editing. */
+    const val SHOW_MS = 180
 }
 
 object PagerTokens {

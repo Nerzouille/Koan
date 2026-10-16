@@ -38,7 +38,7 @@ fun Modifier.drawerBackdrop(progress: () -> Float, radiiPx: List<Float>): Modifi
         snapshotFlow { progress() > 0f }.collectLatest { opening ->
             baked = if (opening) {
                 val sharp = content.toImageBitmap()
-                radiiPx.map { r -> bake(sharp, r, blur, out, density) }
+                radiiPx.map { r -> bakeBlur(sharp, r, blur, out, density) }
             } else {
                 emptyList()
             }
@@ -57,7 +57,8 @@ fun Modifier.drawerBackdrop(progress: () -> Float, radiiPx: List<Float>): Modifi
     }
 }
 
-private suspend fun bake(src: ImageBitmap, radiusPx: Float, blur: GraphicsLayer, out: GraphicsLayer, density: Density): ImageBitmap {
+/** [src] blurred by [radiusPx], baked into a new bitmap through two graphics layers. Shared with the search sheet. */
+internal suspend fun bakeBlur(src: ImageBitmap, radiusPx: Float, blur: GraphicsLayer, out: GraphicsLayer, density: Density): ImageBitmap {
     val size = IntSize(src.width, src.height)
     // Clamp, not Decal: Decal fades the edges to transparent and the page underneath (often a white
     // site) showed through as light strips on the left and right.

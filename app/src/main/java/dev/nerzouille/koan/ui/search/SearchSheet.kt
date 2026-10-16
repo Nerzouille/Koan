@@ -27,7 +27,14 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -64,10 +71,12 @@ class SearchActions(
 )
 
 /**
- * The search sheet above the address field while typing (design 7a): the top hit, open tabs to
- * switch to (with their space), history, bookmarks and DuckDuckGo's suggestions, the best one
- * nearest the field. "@" shows the engines and scopes instead (7d). The page behind dims; a tap
- * on it closes the sheet. [bottom]: the dock's height above the keyboard.
+ * The search sheet above the address field while typing (design 7a), on one surface with the
+ * field: the blurred page behind ([SearchBackdrop]), never a strip of page between groups. Laid
+ * out bottom-up from the field: the best match right above it, less relevant groups further up,
+ * capped below the status bar (it scrolls inside). "@" shows the engines and scopes instead (7d).
+ * A tap outside the results closes it. [bottom]: the dock's height above the keyboard. [onTop]:
+ * where the results start (px from the top), so the blur covers them all.
  */
 @Composable
 fun SearchSheet(
@@ -75,7 +84,9 @@ fun SearchSheet(
     search: SearchState,
     engine: SearchEngine,
     bottom: Dp,
+    currentSpace: Int,
     actions: SearchActions,
+    onTop: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = KoanTheme.colors
@@ -83,46 +94,39 @@ fun SearchSheet(
     val results = search.results
     val suggestions = search.suggestions
     val shortcut = parsed.shortcut
-    val showing = parsed.picking || !results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty())
-    if (!showing) return
+    val density = LocalDensity.current
+    val screen = LocalWindowInfo.current.containerSize.height
+    val statusTop = WindowInsets.statusBars.getTop(density)
+    val cap = with(density) { (screen - statusTop - SearchTokens.StatusGap.toPx() - bottom.toPx() - SearchTokens.GroupGap.toPx()).toDp() }
+    val reportTop = Modifier.onGloballyPositioned { onTop(it.positionInRoot().y) }
     Box(
         modifier
             .fillMaxSize()
-            .drawBehind { drawRect(palette.SheetScrim) }
             .pointerInput(Unit) { detectTapGestures { actions.cancel() } },
     ) {
         if (parsed.picking) {
-            Picker(parsed.rest, engine, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom))
+            Picker(parsed.rest, engine, actions, reportTop.align(Alignment.BottomCenter).padding(bottom = bottom).heightIn(max = cap))
+            return@Box
+        }
+        val showing = !results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty())
+        if (!showing) {
+            // Nothing to show: the blur still sits behind the field.
+            Box(reportTop.align(Alignment.BottomCenter).padding(bottom = bottom))
             return@Box
         }
         Column(
-            Modifier
+            reportTop
                 .align(Alignment.BottomCenter)
                 .padding(bottom = bottom + SearchTokens.GroupGap)
                 .padding(horizontal = SearchTokens.Margin)
-                .verticalScroll(rememberScrollState()),
+                .heightIn(max = cap)
+                // Starts at its bottom (the best results), scrolls up to the rest.
+                .verticalScroll(rememberScrollState(), reverseScrolling = true)
+                // Taps between groups land here, not on the "close" behind.
+                .pointerInput(Unit) { detectTapGestures { } },
             verticalArrangement = Arrangement.spacedBy(SearchTokens.GroupGap, Alignment.Bottom),
         ) {
-            results.top?.let { top -> TopHit(top, actions) }
-            if (shortcut != null && parsed.rest.isNotEmpty()) {
-                Group(null, null) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(SearchTokens.RowHeight)
-                            .clickable { actions.search(shortcut.searchUrl(parsed.rest)) }
-                            .padding(horizontal = SearchTokens.RowPadding),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Favicon(shortcut.home, SearchTokens.Favicon)
-                        Spacer(Modifier.width(SearchTokens.RowPadding))
-                        Text("Search ${shortcut.label} for “${parsed.rest}”", color = palette.TextPrimary, fontSize = SearchTokens.TitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-            }
-            if (results.tabs.isNotEmpty()) Group("Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, actions) } }
-            if (results.history.isNotEmpty()) Group("History", KoanIcons.Reload) { results.history.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, actions) } }
-            if (results.bookmarks.isNotEmpty()) Group("Bookmarks", KoanIcons.Star) { results.bookmarks.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, actions) } }
+            // Top to bottom = least to most relevant: the last one sits on the field.
             if (suggestions.isNotEmpty()) {
                 Group(search.suggestionsFrom, null) {
                     Row(
@@ -139,6 +143,26 @@ fun SearchSheet(
                     }
                 }
             }
+            if (results.bookmarks.isNotEmpty()) Group("Bookmarks", KoanIcons.Star) { results.bookmarks.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
+            if (results.history.isNotEmpty()) Group("History", KoanIcons.Reload) { results.history.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
+            if (results.tabs.isNotEmpty()) Group("Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
+            if (shortcut != null && parsed.rest.isNotEmpty()) {
+                Group(null, null) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(SearchTokens.RowHeight)
+                            .clickable { actions.search(shortcut.searchUrl(parsed.rest)) }
+                            .padding(horizontal = SearchTokens.RowPadding),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Favicon(shortcut.home, SearchTokens.Favicon)
+                        Spacer(Modifier.width(SearchTokens.RowPadding))
+                        Text("Search ${shortcut.label} for “${parsed.rest}”", color = palette.TextPrimary, fontSize = SearchTokens.TitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+            results.top?.let { top -> TopHit(top, actions) }
         }
     }
 }
@@ -209,7 +233,7 @@ private fun Divider() {
 
 /** A page: favicon, title and address; an open tab shows its space. */
 @Composable
-private fun HitRow(hit: Hit, actions: SearchActions) {
+private fun HitRow(hit: Hit, currentSpace: Int, actions: SearchActions) {
     val palette = KoanTheme.colors
     Row(
         Modifier
@@ -225,7 +249,8 @@ private fun HitRow(hit: Hit, actions: SearchActions) {
             Text(hit.title.ifBlank { displayHost(hit.url) }, color = palette.TextPrimary, fontSize = SearchTokens.TitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(bareUrl(hit.url), color = palette.TextSecondary, fontSize = SearchTokens.UrlSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        (hit.payload as? TabTarget)?.let { target ->
+        // Its space only when it's another one than the space on screen.
+        (hit.payload as? TabTarget)?.takeIf { it.spaceIndex != currentSpace }?.let { target ->
             Spacer(Modifier.width(SearchTokens.ChipGap))
             Row(
                 Modifier
@@ -245,13 +270,13 @@ private fun HitRow(hit: Hit, actions: SearchActions) {
 }
 
 @Composable
-private fun Chip(text: String, icon: ImageVector?, onClick: () -> Unit) {
+private fun Chip(text: String, icon: ImageVector?, background: Color = KoanTheme.colors.GroupedRow, onClick: () -> Unit) {
     val palette = KoanTheme.colors
     Row(
         Modifier
             .height(SearchTokens.ChipHeight)
             .clip(CircleShape)
-            .background(palette.GroupedRow)
+            .background(background)
             .clickable(onClick = onClick)
             .padding(horizontal = SearchTokens.RowPadding),
         verticalAlignment = Alignment.CenterVertically,
@@ -273,9 +298,7 @@ private fun Picker(typed: String, engine: SearchEngine, actions: SearchActions, 
     Column(
         modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = SearchTokens.PickerRadius, topEnd = SearchTokens.PickerRadius))
-            .background(palette.Dock)
-            // Taps inside the picker never reach the dim area's "close".
+            // Taps inside the picker never reach the "close" behind.
             .pointerInput(Unit) { detectTapGestures { } }
             .padding(SearchTokens.PickerPadding),
         verticalArrangement = Arrangement.spacedBy(SearchTokens.ChipGap),
@@ -290,7 +313,7 @@ private fun Picker(typed: String, engine: SearchEngine, actions: SearchActions, 
                                 .weight(1f)
                                 .height(SearchTokens.TileHeight)
                                 .clip(RoundedCornerShape(SearchTokens.GroupRadius))
-                                .background(palette.GroupedRow)
+                                .background(palette.Card)
                                 .clickable { actions.pick("@${s.key} ") }
                                 .padding(horizontal = SearchTokens.RowPadding),
                             verticalAlignment = Alignment.CenterVertically,
@@ -314,7 +337,7 @@ private fun Picker(typed: String, engine: SearchEngine, actions: SearchActions, 
             Text("Search in", color = palette.TextSecondary, fontSize = SearchTokens.LabelSize, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = SearchTokens.ChipGap))
             Row(horizontalArrangement = Arrangement.spacedBy(SearchTokens.ChipGap)) {
                 scopes.forEach { scope ->
-                    Chip(scope.label, when (scope) { Scope.Tabs -> KoanIcons.Essentials; Scope.History -> KoanIcons.Reload; Scope.Bookmarks -> KoanIcons.Star }) {
+                    Chip(scope.label, when (scope) { Scope.Tabs -> KoanIcons.Essentials; Scope.History -> KoanIcons.Reload; Scope.Bookmarks -> KoanIcons.Star }, palette.Card) {
                         actions.pick("@${scope.key} ")
                     }
                 }

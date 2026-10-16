@@ -85,6 +85,8 @@ fun KoanBar(
     loadProgress: Float,
     /** Page view: how far the dock has slid down as the page scrolls (px); read in a layer. */
     dockHide: () -> Float,
+    /** The dock's own surface (and its shadow), 1 = shown; the search sheet fades it out. */
+    surface: () -> Float = { 1f },
     drawerContent: @Composable (Modifier) -> Unit,
     switcher: @Composable (Modifier) -> Unit,
     address: @Composable (Modifier) -> Unit,
@@ -128,12 +130,16 @@ fun KoanBar(
                     val r = BarTokens.DockRadius.toPx() * row * (1f - d) + DrawerTokens.TopRadius.toPx() * d
                     // Soft shadow cast upward over the content (page or cards), attached to the
                     // surface's edge: no hairline between them. It wraps the rounded corners.
-                    drawRect(
-                        Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DockShadow, startY = top - shadowPx, endY = top + r),
-                        topLeft = Offset(0f, top - shadowPx),
-                        size = Size(size.width, shadowPx + r),
-                    )
-                    drawPath(dockPath(top, r), palette.Dock)
+                    val s = surface()
+                    if (s > 0f) {
+                        drawRect(
+                            Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DockShadow, startY = top - shadowPx, endY = top + r),
+                            topLeft = Offset(0f, top - shadowPx),
+                            size = Size(size.width, shadowPx + r),
+                            alpha = s,
+                        )
+                        drawPath(dockPath(top, r), palette.Dock, alpha = s)
+                    }
                     // Page load line on the top edge, page view only.
                     val a = line.alpha.value * (1f - row)
                     if (a > 0.01f) drawLoadLine(top, line, a, shimmerPx)

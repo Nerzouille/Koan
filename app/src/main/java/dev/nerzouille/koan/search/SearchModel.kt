@@ -91,7 +91,23 @@ data class Results(
 fun bareUrl(url: String): String =
     url.substringAfter("://", url).removePrefix("www.").removeSuffix("/")
 
-private fun Hit.matches(q: String) = bareUrl(url).contains(q, ignoreCase = true) || title.contains(q, ignoreCase = true)
+/** Words of a title or address: "Pull request #42 · GitHub" → pull, request, 42, github. */
+private fun words(s: String): List<String> = s.lowercase().split(NON_WORD).filter { it.isNotEmpty() }
+
+private val NON_WORD = Regex("[^\\p{L}\\p{N}]+")
+
+/**
+ * What was typed starts the address, or every typed word starts a word of the title or of the
+ * host ("hub" doesn't match github.com, "git" does). No loose substrings.
+ */
+private fun Hit.matches(q: String): Boolean {
+    if (prefixMatches(q)) return true
+    val terms = words(q)
+    if (terms.isEmpty()) return false
+    val host = bareUrl(url).substringBefore('/')
+    val candidates = words(title) + words(host)
+    return terms.all { t -> candidates.any { it.startsWith(t) } }
+}
 private fun Hit.prefixMatches(q: String) = bareUrl(url).startsWith(q, ignoreCase = true)
 
 /**
@@ -99,7 +115,7 @@ private fun Hit.prefixMatches(q: String) = bareUrl(url).startsWith(q, ignoreCase
  * the most used page whose address starts with what was typed (it is what inline completion
  * shows); the rest are grouped by source, each page once, open tabs first.
  */
-fun rank(query: String, tabs: List<Hit>, history: List<Hit>, bookmarks: List<Hit>, scope: Scope? = null, limit: Int = 4): Results {
+fun rank(query: String, tabs: List<Hit>, history: List<Hit>, bookmarks: List<Hit>, scope: Scope? = null): Results {
     val q = query.trim()
     if (q.isEmpty() && scope == null) return Results()
     val visits = history.associate { it.url to it.visits }
@@ -116,15 +132,26 @@ fun rank(query: String, tabs: List<Hit>, history: List<Hit>, bookmarks: List<Hit
             .maxWithOrNull(compareBy<Hit>({ it.visits }, { it.source == Source.Tab }, { it.lastUsed }))
     }
     val shown = HashSet<String>().apply { top?.let { add(it.url) } }
-    fun take(hits: List<Hit>) = hits
+    // Fewer, better: a scope shows more of its one source.
+    fun take(hits: List<Hit>, limit: Int) = hits
         .sortedWith(compareByDescending<Hit> { it.prefixMatches(q) }.thenByDescending { it.visits }.thenByDescending { it.lastUsed })
         .filter { shown.add(it.url) }
         .take(limit)
     // A page open in a tab is offered as that tab, never again as history or a bookmark.
-    val tabGroup = take(inTabs)
+    val many = scope != null
+    val tabGroup = take(inTabs, if (many) SCOPE_LIMIT else TAB_LIMIT)
     inTabs.forEach { shown.add(it.url) }
-    return Results(top = top, tabs = tabGroup, history = take(inHistory), bookmarks = take(inBookmarks))
+    return Results(
+        top = top,
+        tabs = tabGroup,
+        history = take(inHistory, if (many) SCOPE_LIMIT else PAGE_LIMIT),
+        bookmarks = take(inBookmarks, if (many) SCOPE_LIMIT else PAGE_LIMIT),
+    )
 }
+
+private const val TAB_LIMIT = 2
+private const val PAGE_LIMIT = 3
+private const val SCOPE_LIMIT = 8
 
 /**
  * Inline completion of [typed] from [top]: its host while the host is being typed ("git" →
