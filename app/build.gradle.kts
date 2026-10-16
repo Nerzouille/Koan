@@ -123,6 +123,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.fragment)
+    // Passwords: reveal/copy only after the fingerprint or the device PIN (approved for M5).
+    implementation(libs.androidx.biometric)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)

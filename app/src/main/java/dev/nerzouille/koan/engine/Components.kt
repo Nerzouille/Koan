@@ -3,6 +3,8 @@ package dev.nerzouille.koan.engine
 import android.content.Context
 import dev.nerzouille.koan.data.AccountStore
 import dev.nerzouille.koan.data.Bookmarks
+import dev.nerzouille.koan.data.LibrarySync
+import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.data.DataStoreBlob
 import dev.nerzouille.koan.data.KeystoreBox
 import dev.nerzouille.koan.data.KoanDatabase
@@ -113,7 +115,11 @@ class Components(context: Context) {
     val database by lazy { KoanDatabase.build(appContext) }
     val spaces by lazy { SpacesRepository(database.dao(), appScope) }
     val accounts by lazy { AccountStore(DataStoreBlob(appContext), KeystoreBox()) }
-    val sync by lazy { SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }) }
+    /** Saved logins, sealed with their own Keystore key. */
+    val logins by lazy { LoginStore(database.dao(), KeystoreBox("koan_logins")) }
+    val sync by lazy {
+        SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }, library = LibrarySync(database.dao(), logins))
+    }
     val lastPlace by lazy { LastPlace(appContext) }
     val settings by lazy { Settings(appContext) }
     val bookmarks by lazy { Bookmarks(database.dao(), appScope) }

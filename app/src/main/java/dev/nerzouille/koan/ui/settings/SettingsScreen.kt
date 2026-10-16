@@ -48,6 +48,8 @@ sealed interface SettingsPage {
     data object Account : SettingsPage
     data object About : SettingsPage
     data object DownloadFolder : SettingsPage
+    data object Passwords : SettingsPage
+    data class PasswordDetail(val guid: String) : SettingsPage
 }
 
 /** Everything Settings shows and does. [email] null = signed out. */
@@ -78,6 +80,7 @@ class SettingsUi(
     val onPickDownloadFolder: () -> Unit,
     val onDefaultDownloadFolder: () -> Unit,
     val onShowDownloads: () -> Unit,
+    val passwords: PasswordsUi,
 )
 
 /**
@@ -114,6 +117,8 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.Account -> AccountPage(ui, interactive, back)
                         SettingsPage.About -> AboutPage(ui, interactive, back)
                         SettingsPage.DownloadFolder -> FolderPage(ui, interactive, back)
+                        SettingsPage.Passwords -> PasswordsPage(ui.passwords, interactive, back) { nav.push(SettingsPage.PasswordDetail(it)) }
+                        is SettingsPage.PasswordDetail -> PasswordDetailPage(ui.passwords.unlocked?.firstOrNull { it.guid == page.guid }, interactive, back)
                     }
                 }
             }
@@ -151,7 +156,12 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
         )
 
         SettingsSection("Privacy")
-        SettingsRow(KoanIcons.Key, "Passwords", on, enabled = false)
+        SettingsRow(
+            KoanIcons.Key, "Passwords", on,
+            value = ui.passwords.summaries.size.takeIf { it > 0 }?.let { "$it saved" },
+            chevron = true,
+            onClick = { push(SettingsPage.Passwords) },
+        )
         SettingsDivider()
         SettingsRow(KoanIcons.Shield, "uBlock Origin", on, enabled = false)
 

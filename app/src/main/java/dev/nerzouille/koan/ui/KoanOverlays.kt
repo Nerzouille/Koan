@@ -65,6 +65,10 @@ import dev.nerzouille.koan.ui.menu.MenuRoot
 import dev.nerzouille.koan.ui.menu.MenuState
 import dev.nerzouille.koan.ui.menu.SignOutConfirm
 import dev.nerzouille.koan.ui.settings.SettingsPage
+import dev.nerzouille.koan.ui.settings.PasswordsUi
+import dev.nerzouille.koan.ui.settings.authenticate
+import dev.nerzouille.koan.data.Login
+import androidx.fragment.app.FragmentActivity
 import dev.nerzouille.koan.ui.settings.SettingsScreen
 import dev.nerzouille.koan.ui.settings.SettingsUi
 import dev.nerzouille.koan.ui.sheet.Detent
@@ -392,6 +396,12 @@ fun KoanOverlays(
     val askDefault = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         isDefault = roles.isRoleHeld(RoleManager.ROLE_BROWSER)
     }
+    // Passwords: the sites are listed freely; usernames and passwords only once unlocked, and only
+    // while the Passwords pages are open.
+    val loginSummaries by components.logins.summaries.collectAsStateWithLifecycle(emptyList())
+    var unlockedLogins by remember { mutableStateOf<List<Login>?>(null) }
+    val inPasswords = overlays.settingsOpen && overlays.settingsNav.pages.any { it == SettingsPage.Passwords }
+    LaunchedEffect(inPasswords) { if (!inPasswords) unlockedLogins = null }
     val slide = remember { Animatable(0f) }
     LaunchedEffect(overlays.settingsOpen) {
         slide.animateTo(if (overlays.settingsOpen) 1f else 0f, Motion.Sheet)
@@ -428,6 +438,17 @@ fun KoanOverlays(
                 onPickDownloadFolder = { pickFolder.launch(null) },
                 onDefaultDownloadFolder = { scope.launch { components.settings.setDownloadLocation(null) } },
                 onShowDownloads = { overlays.downloadsOpen = true },
+                passwords = PasswordsUi(
+                    summaries = loginSummaries,
+                    unlocked = unlockedLogins,
+                    onUnlock = {
+                        (context as? FragmentActivity)?.let { activity ->
+                            authenticate(activity, "Unlock your passwords") {
+                                scope.launch { unlockedLogins = components.logins.all() }
+                            }
+                        }
+                    },
+                ),
             ),
             nav = overlays.settingsNav,
             onClose = { overlays.settingsOpen = false },

@@ -42,6 +42,8 @@ class SpacesSync(
     private val scope: CoroutineScope,
     /** Tabs open on the phone right now: a pull never changes their page under the user. */
     private val liveTabs: () -> Set<String> = { emptySet() },
+    /** Passwords, bookmarks and history, pulled after the Spaces (null in tests). */
+    private val library: LibrarySync? = null,
 ) {
     private val _status = MutableStateFlow<SyncStatus>(SyncStatus.Idle(0))
     val status: StateFlow<SyncStatus> = _status
@@ -86,12 +88,12 @@ class SpacesSync(
         periodic = null
     }
 
-    /** "Sync now" (badge tap, drawer row) and right after sign-in. */
-    fun syncNow() = scope.launch { pull() }
+    /** "Sync now" (badge tap, drawer row) and right after sign-in: the library comes along too. */
+    fun syncNow() = scope.launch { pull(forceLibrary = true) }
 
     private var lastSyncAt = 0L
 
-    private suspend fun pull() {
+    private suspend fun pull(forceLibrary: Boolean = false) {
         if (!running.tryLock()) return
         try {
             if (accounts.load() == null) return
@@ -100,7 +102,7 @@ class SpacesSync(
             val first = dao.spaces().none { it.zenOrigin }
             _status.value = SyncStatus.Syncing(first)
             _status.value = try {
-                pullOnce(retryAuth = true)
+                pullOnce(retryAuth = true, forceLibrary)
                 SyncStatus.Idle(lastSyncAt)
             } catch (e: SyncError.SessionExpired) {
                 SyncStatus.NeedsSignIn
@@ -120,7 +122,7 @@ class SpacesSync(
         }
     }
 
-    private suspend fun pullOnce(retryAuth: Boolean) {
+    private suspend fun pullOnce(retryAuth: Boolean, forceLibrary: Boolean = false) {
         val client = accounts.connect()
         val snapshot = try {
             SpacesSyncService.loadSnapshot(client)
@@ -128,7 +130,7 @@ class SpacesSync(
             // Storage answered 401: the token-server credentials expired early. Fetch new ones once.
             if (retryAuth && e.message.orEmpty().startsWith("HTTP 401")) {
                 accounts.invalidateCredentials()
-                return pullOnce(retryAuth = false)
+                return pullOnce(retryAuth = false, forceLibrary)
             }
             throw e
         }
@@ -159,6 +161,8 @@ class SpacesSync(
         }
         lastSyncAt = System.currentTimeMillis()
         dao.upsertSyncMeta(SyncMetaEntity(COLLECTION, lastModified = snapshot.fetchedAtMillis, lastSyncAt = lastSyncAt))
+        // Never fails the Spaces sync (LibrarySync catches its own errors).
+        library?.pull(client, force = forceLibrary)
     }
 
     /** Sign-out: forget the session and every Zen row; phone-only tabs stay. */
