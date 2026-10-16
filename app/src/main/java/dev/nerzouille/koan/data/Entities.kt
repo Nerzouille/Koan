@@ -99,3 +99,12 @@ data class SyncMetaEntity(
     val lastModified: Long,
     val lastSyncAt: Long,
 )
+
+/** A page bookmarked on the phone (M5: local only, never synced). One row per url. */
+@Entity(tableName = "bookmarks", indices = [Index(value = ["url"], unique = true)])
+data class BookmarkEntity(
+    @PrimaryKey val id: String,
+    val url: String,
+    val title: String,
+    val createdAt: Long,
+)

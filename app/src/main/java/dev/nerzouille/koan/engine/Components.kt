@@ -2,6 +2,7 @@ package dev.nerzouille.koan.engine
 
 import android.content.Context
 import dev.nerzouille.koan.data.AccountStore
+import dev.nerzouille.koan.data.Bookmarks
 import dev.nerzouille.koan.data.DataStoreBlob
 import dev.nerzouille.koan.data.KeystoreBox
 import dev.nerzouille.koan.data.KoanDatabase
@@ -12,6 +13,8 @@ import dev.nerzouille.koan.data.SpacesSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import mozilla.components.feature.readerview.ReaderViewMiddleware
 import mozilla.components.browser.engine.gecko.GeckoEngine
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.engine.EngineMiddleware
@@ -43,7 +46,13 @@ class Components(context: Context) {
         )
     }
 
-    val store by lazy { BrowserStore(middleware = EngineMiddleware.create(engine)) }
+    val store by lazy { BrowserStore(middleware = EngineMiddleware.create(engine) + ReaderViewMiddleware()) }
+
+    /** Reader view, find in page, the long-press result. */
+    val pageTools by lazy { PageTools(appContext, engine, store) }
+
+    /** A link or text another app sent to Koan (default browser, share): opened as a new tab. */
+    val incoming = MutableStateFlow<Incoming?>(null)
 
     val sessionUseCases by lazy { SessionUseCases(store) }
     val tabsUseCases by lazy { TabsUseCases(store) }
@@ -57,6 +66,7 @@ class Components(context: Context) {
     val sync by lazy { SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }) }
     val lastPlace by lazy { LastPlace(appContext) }
     val settings by lazy { Settings(appContext) }
+    val bookmarks by lazy { Bookmarks(database.dao(), appScope) }
 
     /** Engine tabs (history, scroll, form data) on disk, so they survive the process dying. */
     val sessionStorage by lazy { SessionStorage(appContext, engine, applicationScope = appScope) }
@@ -68,3 +78,6 @@ class Components(context: Context) {
         TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, appScope)
     }
 }
+
+/** Something another app handed to Koan: a url to open, or text to open or search ([text]). */
+data class Incoming(val text: String, val isUrl: Boolean, val at: Long = System.currentTimeMillis())

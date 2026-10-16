@@ -147,6 +147,22 @@ interface KoanDao {
     @Query("UPDATE folders SET collapsed = :collapsed WHERE folderId = :folderId")
     suspend fun setFolderCollapsed(folderId: String, collapsed: Boolean)
 
+    @Query("SELECT COALESCE(MAX(`order`), -1) FROM tabs WHERE spaceUuid = :spaceUuid AND essential")
+    suspend fun maxEssentialOrder(spaceUuid: String): Int
+
+    /** A tab becomes an essential (or stops being one) in place; [order] is its new list position. */
+    @Query("UPDATE tabs SET essential = :essential, `order` = :order, cardOrder = :cardOrder WHERE koanTabId = :koanTabId")
+    suspend fun setEssential(koanTabId: String, essential: Boolean, order: Int, cardOrder: Int?)
+
+    @Query("SELECT url FROM bookmarks")
+    fun observeBookmarkedUrls(): Flow<List<String>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookmark(bookmark: BookmarkEntity)
+
+    @Query("DELETE FROM bookmarks WHERE url = :url")
+    suspend fun deleteBookmark(url: String)
+
     @Query("SELECT * FROM sync_meta WHERE collection = :collection")
     suspend fun syncMeta(collection: String): SyncMetaEntity?
 
@@ -203,8 +219,8 @@ class Converters {
 }
 
 @Database(
-    entities = [SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class],
-    version = 3,
+    entities = [SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class, BookmarkEntity::class],
+    version = 4,
 )
 @TypeConverters(Converters::class)
 abstract class KoanDatabase : RoomDatabase() {
@@ -216,7 +232,7 @@ abstract class KoanDatabase : RoomDatabase() {
                 // v1 only ever held M1's fake data. From v2 on, rows are real Zen data and phone
                 // tabs: every schema change needs a real Migration.
                 .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1)
-                .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                 .build()
 
         /** M3: live pinned tabs' stack position, and the url Zen last sent (see ZenDiff). */
@@ -225,6 +241,17 @@ abstract class KoanDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE tabs ADD COLUMN cardOrder INTEGER")
                 db.execSQL("ALTER TABLE tabs ADD COLUMN zenUrl TEXT")
                 db.execSQL("UPDATE tabs SET zenUrl = url WHERE origin = 'ZEN'")
+            }
+        }
+
+        /** M5: bookmarks saved on the phone. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `bookmarks` (`id` TEXT NOT NULL, `url` TEXT NOT NULL, " +
+                        "`title` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bookmarks_url` ON `bookmarks` (`url`)")
             }
         }
     }

@@ -67,6 +67,20 @@ object KoanIcons {
             lineTo(12f, 16f); lineTo(7.1f, 18.7f); lineTo(8.2f, 13.3f); lineTo(4.2f, 9.6f); lineTo(9.6f, 9f); close()
         }
     }
+    val StarFilled: ImageVector by lazy {
+        ImageVector.Builder("star-filled", 24.dp, 24.dp, 24f, 24f).apply {
+            path(
+                fill = SolidColor(Color.White),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 2f,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(12f, 4f); lineTo(14.4f, 9f); lineTo(19.8f, 9.6f); lineTo(15.8f, 13.3f); lineTo(16.9f, 18.7f)
+                lineTo(12f, 16f); lineTo(7.1f, 18.7f); lineTo(8.2f, 13.3f); lineTo(4.2f, 9.6f); lineTo(9.6f, 9f); close()
+            }
+        }.build()
+    }
+    val ArrowUp: ImageVector by lazy { stroked("arrow-up") { moveTo(6f, 15f); lineTo(12f, 9f); lineTo(18f, 15f) } }
     val Share: ImageVector by lazy {
         stroked("share") {
             moveTo(12f, 4f); lineTo(12f, 15f); moveTo(8f, 8f); lineTo(12f, 4f); lineTo(16f, 8f)
@@ -117,6 +131,44 @@ object KoanIcons {
             }
         }
     }
+    val Info: ImageVector by lazy {
+        stroked("info") {
+            circle(12f, 12f, 8.5f)
+            moveTo(12f, 11f); lineTo(12f, 16f); moveTo(12f, 8f); lineTo(12f, 8.01f)
+        }
+    }
+    val Key: ImageVector by lazy {
+        stroked("key") {
+            circle(8f, 15f, 3.5f)
+            moveTo(10.5f, 12.5f); lineTo(19f, 4f); moveTo(16f, 7f); lineTo(18.5f, 9.5f); moveTo(14f, 9f); lineTo(16f, 11f)
+        }
+    }
+    val Globe: ImageVector by lazy {
+        stroked("globe") {
+            circle(12f, 12f, 8.5f)
+            moveTo(3.5f, 12f); lineTo(20.5f, 12f)
+            moveTo(12f, 3.5f)
+            curveTo(9.5f, 6f, 8.5f, 9f, 8.5f, 12f); curveTo(8.5f, 15f, 9.5f, 18f, 12f, 20.5f)
+            moveTo(12f, 3.5f)
+            curveTo(14.5f, 6f, 15.5f, 9f, 15.5f, 12f); curveTo(15.5f, 15f, 14.5f, 18f, 12f, 20.5f)
+        }
+    }
+    val Contrast: ImageVector by lazy {
+        ImageVector.Builder("contrast", 24.dp, 24.dp, 24f, 24f).apply {
+            path(stroke = SolidColor(Color.White), strokeLineWidth = 2f) { circle(12f, 12f, 8.5f) }
+            path(fill = SolidColor(Color.White)) {
+                moveTo(12f, 3.5f)
+                arcTo(8.5f, 8.5f, 0f, isMoreThanHalf = false, isPositiveArc = false, x1 = 12f, y1 = 20.5f)
+                close()
+            }
+        }.build()
+    }
+    val Book: ImageVector by lazy {
+        stroked("book") {
+            moveTo(12f, 6.5f); curveTo(10f, 5f, 7f, 4.5f, 4f, 5f); lineTo(4f, 18.5f); curveTo(7f, 18f, 10f, 18.5f, 12f, 20f)
+            curveTo(14f, 18.5f, 17f, 18f, 20f, 18.5f); lineTo(20f, 5f); curveTo(17f, 4.5f, 14f, 5f, 12f, 6.5f); lineTo(12f, 20f)
+        }
+    }
     val Shield: ImageVector by lazy {
         stroked("shield") {
             moveTo(12f, 3.5f); lineTo(19f, 6f); lineTo(19f, 11f)
@@ -148,4 +200,12 @@ object KoanIcons {
                 pathBuilder = block,
             )
         }.build()
+}
+
+/** A full circle as two arcs (path builders have no circle). */
+private fun PathBuilder.circle(cx: Float, cy: Float, r: Float) {
+    moveTo(cx - r, cy)
+    arcTo(r, r, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = cx + r, y1 = cy)
+    arcTo(r, r, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = cx - r, y1 = cy)
+    close()
 }

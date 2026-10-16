@@ -627,6 +627,44 @@ object SheetTokens {
     val CardTextSize = 14.sp
 }
 
+/** Settings and its pages (design 7n / 7o): full screen, rows straight on the base. */
+object SettingsTokens {
+    val Padding = 20.dp
+    val TopBar = 56.dp
+    val TitleSize = 34.sp
+    val TitleBottom = 12.dp
+    val SectionTop = 22.dp
+    val SectionTitleSize = 13.sp
+    val RowHeight = 54.dp
+    val RowTallHeight = 62.dp
+    val RowGlyph = 20.dp
+    val RowGlyphGap = 14.dp
+    val RowTitleSize = 16.sp
+    val RowSubtitleSize = 12.sp
+    val RowValueSize = 14.sp
+    val Divider = 1.dp
+    val CardRadius = 22.dp
+    val CardPadding = 16.dp
+    val Avatar = 44.dp
+    val AvatarTextSize = 18.sp
+    val SegmentHeight = 40.dp
+    val SegmentRadius = 12.dp
+    val SegmentInset = 3.dp
+    val SegmentTextSize = 14.sp
+
+    /** The soft brand wash behind the top of the screen. */
+    val WashHeight = 320.dp
+    const val WASH_ALPHA_LIGHT = 0.20f
+    const val WASH_ALPHA_DARK = 0.14f
+
+    // About.
+    val AppIcon = 104.dp
+    val AppIconRadius = 26.dp
+    val AppNameSize = 30.sp
+    val VersionSize = 14.sp
+    val FooterSize = 12.sp
+}
+
 object PagerTokens {
     /** Drag past this fraction of the page width to commit to the next space. */
     const val COMMIT_FRACTION = 0.25f

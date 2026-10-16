@@ -24,6 +24,18 @@ class UrlInputTest {
         assertEquals("https://duckduckgo.com/?q=c%2B%2B", resolveInput("c++"))
     }
 
+    @Test fun `searches go to the chosen engine`() {
+        assertEquals("https://www.google.com/search?q=zen+browser", resolveInput("zen browser", SearchEngine.Google))
+        assertEquals("https://search.brave.com/search?q=kotlin", resolveInput("kotlin", SearchEngine.Brave))
+        assertEquals("https://example.com", resolveInput("example.com", SearchEngine.Startpage))
+    }
+
+    @Test fun `shared text opens its link, or is searched`() {
+        assertEquals("https://example.com/a", resolveShared("Look at this https://example.com/a", SearchEngine.DuckDuckGo))
+        assertEquals("https://duckduckgo.com/?q=a+made+up+title", resolveShared("a made up title", SearchEngine.DuckDuckGo))
+        assertEquals("https://example.org", resolveShared("example.org", SearchEngine.DuckDuckGo))
+    }
+
     @Test fun `empty input is blank page`() {
         assertEquals("about:blank", resolveInput("   "))
     }

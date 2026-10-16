@@ -262,18 +262,7 @@ private fun FolderRow(row: DrawerRow.Folder, interactive: Boolean, onToggle: () 
 /** "Synced 4 min ago", "Syncing…", or a quiet amber "Sign in again". Tap = act on it. */
 @Composable
 private fun StatusRow(status: DrawerStatus, interactive: Boolean, onClick: () -> Unit) {
-    if (status == DrawerStatus.None) return
-    val (text, attention) = when (status) {
-        DrawerStatus.Connect -> "Connect your Zen Spaces" to false
-        DrawerStatus.Syncing -> "Syncing with Zen…" to false
-        DrawerStatus.SignInAgain -> "Sign in again to keep your Zen Spaces in sync" to true
-        is DrawerStatus.Synced -> when {
-            status.offline -> "Offline · showing your spaces from ${ago(status.at)}" to true
-            status.failed -> "Couldn't sync · tap to retry" to true
-            else -> "Synced ${ago(status.at)} · Sync now" to false
-        }
-        DrawerStatus.None -> return
-    }
+    val (text, attention) = status.label() ?: return
     Row(
         Modifier
             .fillMaxWidth()
@@ -292,6 +281,19 @@ private fun StatusRow(status: DrawerStatus, interactive: Boolean, onClick: () ->
             Spacer(Modifier.width(DrawerTokens.Gap))
         }
         Text(text, color = KoanTheme.colors.TextSecondary, fontSize = DrawerTokens.StatusTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** What the status says, and whether it needs attention (amber). Null = nothing to show. */
+fun DrawerStatus.label(): Pair<String, Boolean>? = when (this) {
+    DrawerStatus.None -> null
+    DrawerStatus.Connect -> "Connect your Zen Spaces" to false
+    DrawerStatus.Syncing -> "Syncing with Zen…" to false
+    DrawerStatus.SignInAgain -> "Sign in again to keep your Zen Spaces in sync" to true
+    is DrawerStatus.Synced -> when {
+        offline -> "Offline · showing your spaces from ${ago(at)}" to true
+        failed -> "Couldn't sync · tap to retry" to true
+        else -> "Synced ${ago(at)} · Sync now" to false
     }
 }
 

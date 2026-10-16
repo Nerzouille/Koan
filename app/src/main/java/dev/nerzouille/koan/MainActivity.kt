@@ -1,6 +1,9 @@
 package dev.nerzouille.koan
 
+import android.app.SearchManager
+import android.content.Intent
 import android.graphics.Color
+import dev.nerzouille.koan.engine.Incoming
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -48,6 +51,9 @@ class MainActivity : FragmentActivity() {
         // Pages opening tabs (target=_blank, window.open); TabManager files them next to their opener.
         lifecycle.addObserver(WindowFeature(components.store, components.tabsUseCases))
         components.sync.start()
+        components.pageTools.start()
+        // A fresh start from a link (default browser, share); a recreated activity already had it.
+        if (savedInstanceState == null) handleIntent(intent)
 
         setContent {
             // Nothing is drawn until the setting is read (a few ms), so the wrong theme never flashes.
@@ -59,6 +65,7 @@ class MainActivity : FragmentActivity() {
                 ThemeMode.Dark -> true
             }
             LaunchedEffect(dark) {
+                components.pageTools.setReaderDark(dark)
                 WindowCompat.getInsetsController(window, window.decorView).apply {
                     isAppearanceLightStatusBars = !dark
                     isAppearanceLightNavigationBars = !dark
@@ -76,6 +83,23 @@ class MainActivity : FragmentActivity() {
                 KoanRoot(components)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    /** Links and text other apps send: they open as a new tab in the current space (KoanRoot). */
+    private fun handleIntent(intent: Intent?) {
+        val incoming = when (intent?.action) {
+            Intent.ACTION_VIEW -> intent.dataString?.let { Incoming(it, isUrl = true) }
+            Intent.ACTION_WEB_SEARCH -> intent.getStringExtra(SearchManager.QUERY)?.let { Incoming(it, isUrl = false) }
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let { Incoming(it, isUrl = false) }
+            else -> null
+        } ?: return
+        if (incoming.text.isBlank()) return
+        (application as KoanApp).components.incoming.value = incoming
     }
 
     // High refresh only while the user interacts (and the animations that follow); see RefreshBooster.

@@ -28,6 +28,7 @@ import dev.nerzouille.koan.ui.bar.PageInfo
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.sheet.RowChevron
+import dev.nerzouille.koan.ui.sheet.RowValue
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.sheet.SheetPageScope
@@ -37,11 +38,22 @@ import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SheetTokens
 
-/** The pages of the ⋯ menu sheet. */
+/** The pages of the ⋯ menu sheet (Site settings joins in C2). */
 sealed interface MenuPage {
     data object Root : MenuPage
-    data object Settings : MenuPage
 }
+
+/** What "Add to Essentials" can do for the current tab. */
+enum class EssentialsAction { Add, Remove, FromZen, None }
+
+/** The current page as the menu shows it. */
+@Immutable
+data class MenuState(
+    val bookmarked: Boolean = false,
+    val readerAvailable: Boolean = false,
+    val readerActive: Boolean = false,
+    val essentials: EssentialsAction = EssentialsAction.None,
+)
 
 /** What the menu's root page does. Rows without an action yet show as "Soon". */
 @Immutable
@@ -53,7 +65,12 @@ class MenuActions(
     val editAddress: () -> Unit,
     val copyLink: () -> Unit,
     val newTab: () -> Unit,
+    val bookmark: () -> Unit,
+    val share: () -> Unit,
+    val find: () -> Unit,
     val desktopSite: (Boolean) -> Unit,
+    val reader: () -> Unit,
+    val essentials: () -> Unit,
     val settings: () -> Unit,
 )
 
@@ -62,8 +79,9 @@ class MenuActions(
  * the page rows, and the content blocker's card at the bottom (peeking in compact).
  */
 @Composable
-fun MenuRoot(page: PageInfo, actions: MenuActions, scope: SheetPageScope) {
+fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: SheetPageScope) {
     val on = scope.interactive
+    val hasPage = page.url.isNotEmpty()
     Column(
         Modifier
             .fillMaxWidth()
@@ -74,9 +92,13 @@ fun MenuRoot(page: PageInfo, actions: MenuActions, scope: SheetPageScope) {
         NavRow(page, actions, on)
         Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
             SheetTile(KoanIcons.Plus, "New tab", on, onClick = actions.newTab)
-            SheetTile(KoanIcons.Star, "Bookmark", on, enabled = false) {}
-            SheetTile(KoanIcons.Share, "Share", on, enabled = false) {}
-            SheetTile(KoanIcons.Search, "Find", on, enabled = false) {}
+            SheetTile(
+                if (state.bookmarked) KoanIcons.StarFilled else KoanIcons.Star,
+                if (state.bookmarked) "Bookmarked" else "Bookmark",
+                on, enabled = hasPage, onClick = actions.bookmark,
+            )
+            SheetTile(KoanIcons.Share, "Share", on, enabled = hasPage, onClick = actions.share)
+            SheetTile(KoanIcons.Search, "Find", on, enabled = hasPage, onClick = actions.find)
         }
         SheetGroup {
             SheetRow(KoanIcons.Lock, "Site settings", on, enabled = false)
@@ -85,9 +107,17 @@ fun MenuRoot(page: PageInfo, actions: MenuActions, scope: SheetPageScope) {
                 KoanToggle(checked = page.desktopSite, onCheckedChange = if (on) actions.desktopSite else null)
             }
             SheetDivider()
-            SheetRow(KoanIcons.Reader, "Reader view", on, enabled = false)
+            SheetRow(
+                KoanIcons.Reader, if (state.readerActive) "Leave reader view" else "Reader view", on,
+                onClick = if (state.readerAvailable || state.readerActive) actions.reader else null,
+            ) { RowValue(if (state.readerActive) "On" else if (state.readerAvailable) "Available" else "Not available") }
             SheetDivider()
-            SheetRow(KoanIcons.Essentials, "Add to Essentials", on, enabled = false)
+            when (state.essentials) {
+                EssentialsAction.Add -> SheetRow(KoanIcons.Essentials, "Add to Essentials", on, onClick = actions.essentials)
+                EssentialsAction.Remove -> SheetRow(KoanIcons.Essentials, "Remove from Essentials", on, onClick = actions.essentials)
+                EssentialsAction.FromZen -> SheetRow(KoanIcons.Essentials, "In Essentials", on) { RowValue("From Zen") }
+                EssentialsAction.None -> SheetRow(KoanIcons.Essentials, "Add to Essentials", on) { RowValue("No page") }
+            }
             SheetDivider()
             SheetRow(KoanIcons.Download, "Downloads", on, enabled = false)
             SheetDivider()

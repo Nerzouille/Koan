@@ -75,6 +75,16 @@ data class PageInfo(
 
 private const val SEARCH_HINT = "Search or type URL"
 
+/** Find in page, while it is open: what it found and what it can do. */
+@Immutable
+class FindUi(
+    /** "3/12", "No matches", or empty before the first search. */
+    val count: String,
+    val onQuery: (String) -> Unit,
+    val onNext: (forward: Boolean) -> Unit,
+    val onClose: () -> Unit,
+)
+
 /**
  * What the address pill shows for a neighbour while a swipe heads to it: a tab (favicon and domain)
  * or a space (its icon and name).
@@ -115,6 +125,8 @@ fun AddressRow(
     shownUrl: String? = null,
     /** Page view space mode: the pill shows this space instead of the page's domain. */
     space: SwipeTarget? = null,
+    /** Find in page is open: the find bar takes the row. */
+    find: FindUi? = null,
 ) {
     val pageOnly = Modifier.graphicsLayer { alpha = 1f - overview() }
     Row(
@@ -124,7 +136,9 @@ fun AddressRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(BarTokens.RowGap),
     ) {
-        if (editing) {
+        if (find != null && !editing && !overviewOpen) {
+            FindBar(find, Modifier.weight(1f))
+        } else if (editing) {
             AddressInput(
                 initial = if (page.url == "about:blank") "" else page.url,
                 onSubmit = onSubmit,
@@ -319,6 +333,53 @@ private fun AddressInput(
         BarIcon(KoanIcons.Close, onClick = onCancel)
     }
     BackHandler(onBack = onCancel)
+}
+
+/** Find in page: the query, how many matches, previous / next, close. Back closes it too. */
+@Composable
+private fun FindBar(find: FindUi, modifier: Modifier = Modifier) {
+    var value by remember { mutableStateOf(TextFieldValue("")) }
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    val palette = KoanTheme.colors
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .weight(1f)
+                .height(BarTokens.FieldHeight)
+                .clip(CircleShape)
+                .background(palette.BarField)
+                .padding(start = BarTokens.FieldPadding - SearchFieldTokens.GlyphGap / 2, end = BarTokens.FieldPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(KoanIcons.Search, null, tint = palette.FieldHint, modifier = Modifier.size(SearchFieldTokens.Glyph))
+            Spacer(Modifier.width(SearchFieldTokens.GlyphGap))
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (value.text.isEmpty()) Text("Find in page", color = palette.FieldHint, fontSize = BarTokens.FieldTextSize)
+                BasicTextField(
+                    value = value,
+                    onValueChange = {
+                        if (it.text != value.text) find.onQuery(it.text)
+                        value = it
+                    },
+                    singleLine = true,
+                    textStyle = TextStyle(color = palette.TextPrimary, fontSize = BarTokens.FieldTextSize),
+                    cursorBrush = SolidColor(palette.TextPrimary),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search, autoCorrectEnabled = false),
+                    keyboardActions = KeyboardActions(onSearch = { find.onNext(true) }),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                )
+            }
+            if (find.count.isNotEmpty()) {
+                Spacer(Modifier.width(SearchFieldTokens.GlyphGap))
+                Text(find.count, color = palette.TextSecondary, fontSize = BarTokens.TabsCountSize * 1.15f, maxLines = 1)
+            }
+        }
+        BarIcon(KoanIcons.ArrowUp, onClick = { find.onNext(false) })
+        BarIcon(KoanIcons.ChevronDown, onClick = { find.onNext(true) })
+        BarIcon(KoanIcons.Close, onClick = find.onClose)
+    }
+    BackHandler(onBack = find.onClose)
 }
 
 @Composable

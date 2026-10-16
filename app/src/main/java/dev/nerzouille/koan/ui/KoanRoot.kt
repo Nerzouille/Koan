@@ -29,9 +29,10 @@ import dev.nerzouille.koan.BuildConfig
 import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
-import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.resolveInput
+import dev.nerzouille.koan.search.resolveShared
+import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.thumbs.BakedBlur
 import dev.nerzouille.koan.ui.bar.AddressRow
 import dev.nerzouille.koan.ui.bar.DrawerContent
@@ -46,17 +47,6 @@ import dev.nerzouille.koan.ui.bar.SwipeTarget
 import dev.nerzouille.koan.ui.bar.BarGestures
 import dev.nerzouille.koan.ui.bar.SpaceScrub
 import dev.nerzouille.koan.ui.sheet.Detent
-import dev.nerzouille.koan.ui.sheet.KoanCard
-import dev.nerzouille.koan.ui.sheet.KoanSheet
-import dev.nerzouille.koan.ui.sheet.SheetNav
-import dev.nerzouille.koan.ui.menu.AccountRow
-import dev.nerzouille.koan.ui.menu.MenuActions
-import dev.nerzouille.koan.ui.menu.MenuPage
-import dev.nerzouille.koan.ui.menu.MenuRoot
-import dev.nerzouille.koan.ui.menu.SettingsPage
-import dev.nerzouille.koan.ui.menu.SignOutConfirm
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import dev.nerzouille.koan.ui.browser.TabSwipe
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.search.displayHost
@@ -108,7 +98,7 @@ fun KoanRoot(components: Components) {
     // A new tab always starts with the search sheet open.
     LaunchedEffect(blankId) { if (blankId != null) editing = true }
     val palette = KoanTheme.colors
-    val themeMode by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
+    val searchEngine by components.settings.searchEngine.collectAsStateWithLifecycle(SearchEngine.DuckDuckGo)
     val models = remember(spaces, activeTabId, palette) { spaces.map { it.toModel(activeTabId, palette) } }
 
     // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph. A swipe on the
@@ -166,11 +156,9 @@ fun KoanRoot(components: Components) {
     val drawer = remember(density) { SheetState(scope, splineBasedDecay(density)) }
     LaunchedEffect(overviewOpen) { if (!overviewOpen) drawer.snapClosed() }
 
-    // The ⋯ menu sheet and the sign-out confirmation (a floating card).
-    val menu = remember(density) { SheetState(scope, splineBasedDecay(density)) }
-    val menuNav = remember { SheetNav<MenuPage>(scope, MenuPage.Root) }
-    val signOutCard = remember(density) { SheetState(scope, splineBasedDecay(density)) }
-    LaunchedEffect(overviewOpen) { if (overviewOpen) menu.snapClosed() }
+    // The ⋯ menu, the long-press menu, find, Settings (see KoanOverlays).
+    val overlays = remember(density) { Overlays(scope, density) }
+    LaunchedEffect(overviewOpen, activeTabId) { overlays.dismissAll() }
 
     // Blur radii baked for the cards behind the open drawer (weakest first, see drawerBackdrop).
     val drawerBlurs = remember(density) {
@@ -184,7 +172,7 @@ fun KoanRoot(components: Components) {
     val dock = remember { DockState(scope) }
     val tabSwipe = remember { TabSwipe(scope, tabs.current) }
     tabSwipe.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { BarTokens.TabSwipeGap.toPx() }
-    SideEffect { dock.locked = overviewOpen || editing }
+    SideEffect { dock.locked = overviewOpen || editing || overlays.finding }
     LaunchedEffect(activeTabId) { dock.snapShown() }
 
     fun openOverview() {
@@ -228,6 +216,28 @@ fun KoanRoot(components: Components) {
     fun tabById(id: String) = spaces.firstNotNullOfOrNull { s ->
         s.stack.firstNotNullOfOrNull { item -> item.tabs.firstOrNull { it.koanTabId == id } }
             ?: (s.pinnedTabs + s.essentials).firstOrNull { it.koanTabId == id }
+    }
+    /** A url as a new tab of the current space; [nextToCurrent]: right after the current card. */
+    fun openNewTab(url: String, select: Boolean, nextToCurrent: Boolean) {
+        val index = currentSpace.coerceIn(0, (spaces.size - 1).coerceAtLeast(0))
+        val space = spaces.getOrNull(index) ?: return
+        val opener = if (nextToCurrent) activeTabId?.let(::tabById) else null
+        val id = tabs.openNew(space.space.uuid, url, opener, select)
+        if (!select) return
+        currentTabs[space.space.uuid] = id
+        editing = false
+        zoomIn.value = false
+        overviewOpen = false
+    }
+    // Links and text other apps send (default browser, share): a new tab in the current space.
+    LaunchedEffect(tabsStarted, spaces.isEmpty(), placeRestored) {
+        if (!tabsStarted || spaces.isEmpty() || !placeRestored) return@LaunchedEffect
+        components.incoming.collect { incoming ->
+            if (incoming == null) return@collect
+            components.incoming.value = null
+            overlays.settingsOpen = false
+            openNewTab(if (incoming.isUrl) incoming.text else resolveShared(incoming.text, searchEngine), select = true, nextToCurrent = false)
+        }
     }
     /** The tab a space shows when switched to from the page view: its current card, else its newest. */
     fun lastTabOf(index: Int): TabEntity? {
@@ -416,9 +426,12 @@ fun KoanRoot(components: Components) {
         val session = components.sessionUseCases
         // What the address row shows: the current tab (a blank new tab has no page yet).
         val page by store.observeSlice(activeTabId to blankId) { state ->
-            activeTabId?.takeIf { it != blankId }?.let { state.findTab(it) }?.content.let { c ->
+            activeTabId?.takeIf { it != blankId }?.let { state.findTab(it) }.let { tab ->
+                val c = tab?.content
+                // Reader view shows its own extension page: the address stays the article's.
+                val reader = tab?.readerState?.takeIf { it.active }?.activeUrl
                 PageInfo(
-                    url = c?.url.orEmpty(),
+                    url = reader ?: c?.url.orEmpty(),
                     loading = c?.loading == true,
                     progress = (c?.progress ?: 0) / 100f,
                     canGoBack = c?.canGoBack == true,
@@ -428,6 +441,7 @@ fun KoanRoot(components: Components) {
             }
         }
         val currentPage = page
+        val findUi = rememberFindUi(components, overlays, activeTabId)
         // Page view space mode: the scrub, from the long press until the finger lifts.
         val spaceMode = !overviewOpen && bar.scrub.active
         fun spaceTarget(index: Int) = models.getOrNull(index)?.let { SwipeTarget(it.name, spaceIcon = it.icon) }
@@ -478,93 +492,46 @@ fun KoanRoot(components: Components) {
                     },
                     onSubmit = { input ->
                         editing = false
-                        tabs.load(resolveInput(input))
+                        tabs.load(resolveInput(input, searchEngine))
                     },
                     onSearchFromOverview = { newTab(pager.settled) },
                     onBack = { session.goBack(activeTabId) },
                     onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
-                    onMenu = { menu.animateTo(Detent.Compact) },
+                    onMenu = { overlays.menu.animateTo(Detent.Compact) },
                     modifier = modifier,
                     swipe = { if (overviewOpen) 0f else tabSwipe.fraction },
                     previous = tabSwipe.previous?.let(::tabTarget),
                     next = tabSwipe.next?.let(::tabTarget),
                     shownUrl = if (overviewOpen) null else tabSwipe.shown?.url,
                     space = if (spaceMode) spaceTarget(bar.scrub.index) else null,
+                    find = findUi,
                 )
             },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
 
-        // The ⋯ menu: a sheet over the page, Settings pushed inside it.
-        val clipboard = LocalClipboardManager.current
-        KoanSheet(menu, menuNav) { p, pageScope ->
-            when (p) {
-                MenuPage.Root -> MenuRoot(
-                    page = currentPage,
-                    scope = pageScope,
-                    actions = MenuActions(
-                        back = { session.goBack(activeTabId) },
-                        forward = { session.goForward(activeTabId) },
-                        reload = { session.reload(activeTabId) },
-                        stop = { session.stopLoading(activeTabId) },
-                        editAddress = {
-                            menu.animateTo(Detent.Closed)
-                            editing = true
-                        },
-                        copyLink = {
-                            clipboard.setText(AnnotatedString(currentPage.url))
-                            menu.animateTo(Detent.Closed)
-                        },
-                        newTab = {
-                            menu.animateTo(Detent.Closed)
-                            newTab(currentSpace)
-                        },
-                        desktopSite = { on -> activeTabId?.let { session.requestDesktopSite(on, it) } },
-                        settings = { menuNav.push(MenuPage.Settings) },
-                    ),
-                )
-                MenuPage.Settings -> SettingsPage(
-                    scope = pageScope,
-                    theme = themeMode,
-                    onTheme = { mode -> scope.launch { components.settings.setThemeMode(mode) } },
-                    account = when (val a = account) {
-                        is AccountState.SignedIn -> AccountRow(
-                            email = a.email,
-                            onSyncNow = { components.sync.syncNow() },
-                            onSignIn = {},
-                            onSignOut = { signOutCard.animateTo(Detent.Compact) },
-                        )
-                        AccountState.SignedOut -> AccountRow(null, {}, onSignIn = {
-                            menu.animateTo(Detent.Closed)
-                            signingIn = true
-                        }, onSignOut = {})
-                        AccountState.Loading -> null
-                    },
-                    // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
-                    devActions = if (!BuildConfig.DEBUG) emptyList() else buildList {
-                        for (n in listOf(50, 150)) {
-                            add("Fill space to $n tabs" to {
-                                spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
-                                Unit
-                            })
-                        }
-                        add("Remove fake tabs" to { components.spaces.removeFakeTabs(); Unit })
-                    },
-                )
-            }
-        }
-        KoanCard(signOutCard) { interactive ->
-            SignOutConfirm(
-                interactive = interactive,
-                onSignOut = {
-                    signOutCard.animateTo(Detent.Closed)
-                    menu.animateTo(Detent.Closed)
-                    FxAWeb.wipeWebSession()
-                    components.sync.signOut()
-                },
-                onCancel = { signOutCard.animateTo(Detent.Closed) },
-            )
-        }
+        KoanOverlays(
+            components = components,
+            overlays = overlays,
+            page = currentPage,
+            activeTabId = activeTabId,
+            activeTab = activeTab,
+            drawerStatus = drawerStatus,
+            onEditAddress = { editing = true },
+            onNewTab = { newTab(currentSpace) },
+            onOpenNew = ::openNewTab,
+            onSignIn = { signingIn = true },
+            // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
+            devActions = if (!BuildConfig.DEBUG) emptyList() else buildList {
+                for (n in listOf(50, 150)) {
+                    add("Fill space to $n tabs" to {
+                        spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
+                        Unit
+                    })
+                }
+                add("Remove fake tabs" to { components.spaces.removeFakeTabs(); Unit })
+            },
+        )
 
         // Sign-in slides up over everything and back down when done.
         val signIn = remember { Animatable(0f) }

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import dev.nerzouille.koan.search.SearchEngine
 
 private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -28,5 +29,15 @@ class Settings(context: Context) {
 
     suspend fun setThemeMode(mode: ThemeMode) {
         store.edit { it[theme] = mode.name }
+    }
+
+    private val engine = stringPreferencesKey("search_engine")
+
+    val searchEngine: Flow<SearchEngine> = store.data.map { prefs ->
+        SearchEngine.entries.firstOrNull { it.name == prefs[engine] } ?: SearchEngine.DuckDuckGo
+    }
+
+    suspend fun setSearchEngine(value: SearchEngine) {
+        store.edit { it[engine] = value.name }
     }
 }

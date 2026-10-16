@@ -89,6 +89,12 @@ fling, nested scroll only in full, same spring. Up = expand, down = compact then
 - **Floating card** (confirmations, permission prompts, the link menu): sized to its content, 10dp
   side and bottom margins, the page dimmed; drag down, tap outside or Back closes it. Never the
   brand gradient on prompts.
+- **Find in page** takes the address row's place in the dock (query, "2/7", ↑ ↓ ✕); the dock
+  stays shown while it is open; Back or ✕ closes it.
+- **Long press** on a link or an image opens the link menu on a floating card: open in new tab,
+  open in background (next to the current card), copy link, share link.
+- **Settings** (design 7n / 7o) is a full-screen page sliding up over everything, its own pages
+  pushed from the right like a sheet's; opened from the menu's Settings row.
 
 ## Cards
 

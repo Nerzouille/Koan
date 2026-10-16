@@ -141,6 +141,7 @@ dependencies {
     implementation(libs.mozilla.feature.tabs)
     implementation(libs.mozilla.browser.session.storage)
     implementation(libs.mozilla.lib.state)
+    implementation(libs.mozilla.feature.readerview)
 
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
