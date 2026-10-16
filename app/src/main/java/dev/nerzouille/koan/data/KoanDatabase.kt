@@ -154,6 +154,38 @@ interface KoanDao {
     @Query("UPDATE tabs SET essential = :essential, `order` = :order, cardOrder = :cardOrder WHERE koanTabId = :koanTabId")
     suspend fun setEssential(koanTabId: String, essential: Boolean, order: Int, cardOrder: Int?)
 
+    /** Pages whose url or title contains [q], most used first. */
+    @Query(
+        "SELECT * FROM visits WHERE url LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%' " +
+            "ORDER BY visitCount DESC, lastVisit DESC LIMIT :limit",
+    )
+    suspend fun searchVisits(q: String, limit: Int): List<VisitEntity>
+
+    @Query("SELECT * FROM visits ORDER BY lastVisit DESC LIMIT :limit")
+    suspend fun recentVisits(limit: Int): List<VisitEntity>
+
+    /** One more visit of [url] (a new row the first time). */
+    @Transaction
+    suspend fun recordVisit(url: String, title: String, at: Long) {
+        if (bumpVisit(url, title, at) == 0) insertVisit(VisitEntity(url, title, at, 1))
+    }
+
+    @Query("UPDATE visits SET visitCount = visitCount + 1, lastVisit = :at, title = CASE WHEN :title = '' THEN title ELSE :title END WHERE url = :url")
+    suspend fun bumpVisit(url: String, title: String, at: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertVisit(visit: VisitEntity)
+
+    /** A page's title arrived after its visit was recorded. */
+    @Query("UPDATE visits SET title = :title WHERE url = :url")
+    suspend fun setVisitTitle(url: String, title: String)
+
+    @Query("SELECT * FROM bookmarks WHERE url LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%' ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun searchBookmarks(q: String, limit: Int): List<BookmarkEntity>
+
+    @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun recentBookmarks(limit: Int): List<BookmarkEntity>
+
     @Query("SELECT url FROM bookmarks")
     fun observeBookmarkedUrls(): Flow<List<String>>
 
@@ -219,8 +251,8 @@ class Converters {
 }
 
 @Database(
-    entities = [SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class, BookmarkEntity::class],
-    version = 4,
+    entities = [SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class, BookmarkEntity::class, VisitEntity::class],
+    version = 5,
 )
 @TypeConverters(Converters::class)
 abstract class KoanDatabase : RoomDatabase() {
@@ -232,7 +264,7 @@ abstract class KoanDatabase : RoomDatabase() {
                 // v1 only ever held M1's fake data. From v2 on, rows are real Zen data and phone
                 // tabs: every schema change needs a real Migration.
                 .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1)
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
 
         /** M3: live pinned tabs' stack position, and the url Zen last sent (see ZenDiff). */
@@ -252,6 +284,17 @@ abstract class KoanDatabase : RoomDatabase() {
                         "`title` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
                 )
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bookmarks_url` ON `bookmarks` (`url`)")
+            }
+        }
+
+        /** M5: pages visited on the phone, for search. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `visits` (`url` TEXT NOT NULL, `title` TEXT NOT NULL, " +
+                        "`lastVisit` INTEGER NOT NULL, `visitCount` INTEGER NOT NULL, PRIMARY KEY(`url`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_visits_lastVisit` ON `visits` (`lastVisit`)")
             }
         }
     }

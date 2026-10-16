@@ -39,6 +39,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import dev.nerzouille.koan.ui.theme.DownloadTokens
+import dev.nerzouille.koan.ui.search.SearchField
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalDensity
@@ -64,6 +65,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.search.displayHost
@@ -150,6 +158,12 @@ fun AddressRow(
     /** Something is downloading: its progress (0..1, NaN = size unknown), shown as a ring in the pill. */
     download: Float? = null,
     onDownloads: () -> Unit = {},
+    /** The text being edited, shared with the search sheet. */
+    search: SearchField = remember { SearchField() },
+    /** Inline completion: the full address for what was typed, if a page starts with it. */
+    complete: (String) -> String? = { null },
+    /** The completed page's title, shown after it ("— Title"). */
+    completedTitle: () -> String? = { null },
 ) {
     val pageOnly = Modifier.graphicsLayer { alpha = 1f - overview() }
     Row(
@@ -164,6 +178,9 @@ fun AddressRow(
         } else if (editing) {
             AddressInput(
                 initial = if (page.url == "about:blank") "" else page.url,
+                field = search,
+                complete = complete,
+                completedTitle = completedTitle,
                 onSubmit = onSubmit,
                 onCancel = { onEditingChange(false) },
                 modifier = Modifier.weight(1f),
@@ -348,11 +365,17 @@ private fun FieldText(text: String, primary: Boolean, modifier: Modifier) {
 @Composable
 private fun AddressInput(
     initial: String,
+    field: SearchField,
+    complete: (String) -> String?,
+    completedTitle: () -> String?,
     onSubmit: (String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var value by remember { mutableStateOf(TextFieldValue(initial, selection = TextRange(0, initial.length))) }
+    // Editing starts on the page's address, all selected (set before the first frame).
+    remember { field.start(initial); true }
+    val value = field.value
+    val completing = !value.selection.collapsed && value.selection.end == value.text.length && value.selection.start > 0
     val focusRequester = remember { FocusRequester() }
     var hadFocus by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
@@ -394,7 +417,7 @@ private fun AddressInput(
             }
             BasicTextField(
                 value = value,
-                onValueChange = { value = it },
+                onValueChange = { field.onChange(it, complete) },
                 singleLine = true,
                 textStyle = TextStyle(color = KoanTheme.colors.TextPrimary, fontSize = BarTokens.FieldTextSize),
                 cursorBrush = if (at) BrandHorizontal else SolidColor(palette.TextPrimary),
@@ -404,6 +427,11 @@ private fun AddressInput(
                     autoCorrectEnabled = false,
                 ),
                 keyboardActions = KeyboardActions(onGo = { onSubmit(value.text) }),
+                // The completed page's title follows the address, quietly ("github.com — GitHub").
+                visualTransformation = run {
+                    val title = completedTitle()
+                    if (completing && !title.isNullOrBlank()) TitleAfter(title, palette.FieldHint) else VisualTransformation.None
+                },
                 modifier = textStart
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
@@ -417,6 +445,27 @@ private fun AddressInput(
         BarIcon(KoanIcons.Close, onClick = onCancel)
     }
     BackHandler(onBack = onCancel)
+}
+
+/** Shows " — [title]" after the text (not part of it: the cursor and selection never go there). */
+private class TitleAfter(private val title: String, private val color: Color) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val shown = buildAnnotatedString {
+            append(text)
+            withStyle(SpanStyle(color = color)) { append(" — $title") }
+        }
+        val length = text.length
+        return TransformedText(
+            shown,
+            object : OffsetMapping {
+                override fun originalToTransformed(offset: Int) = offset
+                override fun transformedToOriginal(offset: Int) = offset.coerceAtMost(length)
+            },
+        )
+    }
+
+    override fun equals(other: Any?) = other is TitleAfter && other.title == title && other.color == color
+    override fun hashCode() = title.hashCode() * 31 + color.hashCode()
 }
 
 /** Find in page: the query, how many matches, previous / next, close. Back closes it too. */

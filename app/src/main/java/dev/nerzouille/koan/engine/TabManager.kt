@@ -400,6 +400,7 @@ class TabManager(
             val url = content.url
             if (url.isEmpty() || url == "about:blank") return@launch
             val title = content.title
+            recordVisit(id, url, title)
             appScope.launch {
                 val row = dao.tab(id) ?: return@launch
                 if (row.url == url && (title.isEmpty() || row.title == title)) return@launch
@@ -413,6 +414,23 @@ class TabManager(
                     iconUrl = if (keepIcon) row.iconUrl else null,
                     staticIcon = row.staticIcon,
                 )
+            }
+        }
+    }
+
+    /** The url each tab's last recorded visit was for: a title change is not a new visit. */
+    private val visited = HashMap<String, String>()
+
+    /** History for search: one visit per page a tab lands on (web pages only). */
+    private fun recordVisit(tabId: String, url: String, title: String) {
+        if (!url.startsWith("http://") && !url.startsWith("https://")) return
+        val again = visited[tabId] == url
+        visited[tabId] = url
+        appScope.launch {
+            if (again) {
+                if (title.isNotEmpty()) dao.setVisitTitle(url, title)
+            } else {
+                dao.recordVisit(url, title, System.currentTimeMillis())
             }
         }
     }

@@ -714,6 +714,28 @@ object DownloadTokens {
     val RingStroke = 2.dp
 }
 
+/** The search sheet above the address field (design 7a–7d). */
+object SearchTokens {
+    val Margin = 10.dp
+    val GroupGap = 8.dp
+    val GroupRadius = 18.dp
+    val LabelSize = 12.sp
+    val LabelPadding = 12.dp
+    val RowHeight = 54.dp
+    val RowPadding = 12.dp
+    val Favicon = 26.dp
+    val TitleSize = 15.sp
+    val UrlSize = 12.sp
+    val ChipHeight = 34.dp
+    val ChipTextSize = 14.sp
+    val ChipGap = 8.dp
+    val ChipIcon = 14.dp
+    val SpaceIcon = 14.dp
+    val TileHeight = 58.dp
+    val PickerRadius = 28.dp
+    val PickerPadding = 16.dp
+}
+
 object PagerTokens {
     /** Drag past this fraction of the page width to commit to the next space. */
     const val COMMIT_FRACTION = 0.25f

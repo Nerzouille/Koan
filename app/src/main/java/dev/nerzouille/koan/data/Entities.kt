@@ -108,3 +108,12 @@ data class BookmarkEntity(
     val title: String,
     val createdAt: Long,
 )
+
+/** A page visited on the phone (M5: local history for search; never synced). One row per url. */
+@Entity(tableName = "visits", indices = [Index("lastVisit")])
+data class VisitEntity(
+    @PrimaryKey val url: String,
+    val title: String,
+    val lastVisit: Long,
+    val visitCount: Int,
+)

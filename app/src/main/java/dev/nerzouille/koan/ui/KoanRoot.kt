@@ -32,6 +32,19 @@ import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.resolveInput
 import dev.nerzouille.koan.search.resolveShared
+import dev.nerzouille.koan.search.Hit
+import dev.nerzouille.koan.search.completion
+import dev.nerzouille.koan.search.parseQuery
+import dev.nerzouille.koan.ui.search.SearchActions
+import dev.nerzouille.koan.ui.search.SearchField
+import dev.nerzouille.koan.ui.search.SearchSheet
+import dev.nerzouille.koan.ui.search.TabTarget
+import dev.nerzouille.koan.ui.search.rememberSearch
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.thumbs.BakedBlur
 import dev.nerzouille.koan.ui.bar.AddressRow
@@ -164,6 +177,9 @@ fun KoanRoot(components: Components) {
 
     // The ⋯ menu, the long-press menu, find, Settings (see KoanOverlays).
     val overlays = remember(density) { Overlays(scope, density) }
+    // The address field's text while editing, and what it finds.
+    val searchField = remember { SearchField() }
+    val search = rememberSearch(searchField, components.database.dao(), spaces, models, activeTabId)
     val toasts = remember { ToastState() }
     LaunchedEffect(overviewOpen, activeTabId) { overlays.dismissAll() }
 
@@ -253,6 +269,30 @@ fun KoanRoot(components: Components) {
             components.incoming.value = null
             overlays.settingsOpen = false
             openNewTab(if (incoming.isUrl) incoming.text else resolveShared(incoming.text, searchEngine), select = true, nextToCurrent = false)
+        }
+    }
+    /** A search result picked: an open tab is switched to (in its space), any other page loads here. */
+    fun openHit(hit: Hit) {
+        editing = false
+        val target = hit.payload as? TabTarget
+        val tab = target?.let { tabById(it.tabId) }
+        if (target != null && tab != null) openTab(target.spaceIndex, tab) else tabs.load(hit.url)
+    }
+    /** Go on the keyboard: "@wiki koan" searches there, the completed top hit opens, else url or search. */
+    fun submitSearch(input: String) {
+        val parsed = parseQuery(input)
+        val top = search.results.top
+        when {
+            parsed.shortcut != null -> {
+                editing = false
+                tabs.load(if (parsed.rest.isEmpty()) parsed.shortcut.home else parsed.shortcut.searchUrl(parsed.rest))
+            }
+            parsed.scope != null -> search.results.let { r -> (r.tabs + r.history + r.bookmarks).firstOrNull() }?.let(::openHit)
+            top != null && input.equals(completion(searchField.typed, top) ?: "\u0000", ignoreCase = true) -> openHit(top)
+            else -> {
+                editing = false
+                tabs.load(resolveInput(input, searchEngine))
+            }
         }
     }
     /** The tab a space shows when switched to from the page view: its current card, else its newest. */
@@ -491,6 +531,27 @@ fun KoanRoot(components: Components) {
         fun tabTarget(tab: TabEntity) = SwipeTarget(displayHost(tab.url).ifEmpty { tab.title }, url = tab.url, favicon = tab.iconUrl, staticIcon = tab.staticIcon)
         // A new page load brings the dock back.
         LaunchedEffect(currentPage.loading) { if (currentPage.loading) dock.show() }
+        // Typing in the address field: results above it, below the dock.
+        if (editing) {
+            SearchSheet(
+                field = searchField,
+                search = search,
+                engine = searchEngine,
+                bottom = barZone(overview = false) + WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding(),
+                actions = SearchActions(
+                    open = ::openHit,
+                    search = { url ->
+                        editing = false
+                        tabs.load(url)
+                    },
+                    pick = searchField::set,
+                    cancel = {
+                        editing = false
+                        tabs.cancelBlank()
+                    },
+                ),
+            )
+        }
         KoanBar(
             overviewOpen = overviewOpen,
             overview = { motion.progress },
@@ -533,10 +594,7 @@ fun KoanRoot(components: Components) {
                         // Closing the sheet of a new tab that never got a url discards it.
                         if (!on) tabs.cancelBlank()
                     },
-                    onSubmit = { input ->
-                        editing = false
-                        tabs.load(resolveInput(input, searchEngine))
-                    },
+                    onSubmit = ::submitSearch,
                     onSearchFromOverview = { newTab(pager.settled) },
                     onBack = { session.goBack(activeTabId) },
                     onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
@@ -548,6 +606,9 @@ fun KoanRoot(components: Components) {
                     shownUrl = if (overviewOpen) null else tabSwipe.shown?.url,
                     space = if (spaceMode) spaceTarget(bar.scrub.index) else null,
                     find = findUi,
+                    search = searchField,
+                    complete = search::complete,
+                    completedTitle = { search.results.top?.title },
                     download = downloadProgress,
                     onDownloads = { overlays.downloadsOpen = true },
                 )
