@@ -674,6 +674,12 @@ object SettingsTokens {
     val AppNameSize = 30.sp
     val VersionSize = 14.sp
     val FooterSize = 12.sp
+    val ChipHeight = 30.dp
+    val ChipPadding = 12.dp
+    val ChipGap = 6.dp
+    val ChipGlyph = 13.dp
+    val ChipTextSize = 13.sp
+    val ChipShadow = 1.dp
 }
 
 /** The bottom toast ("Opened in background · Switch", later "Closed · Undo"). */

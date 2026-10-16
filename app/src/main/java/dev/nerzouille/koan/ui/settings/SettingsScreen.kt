@@ -40,6 +40,7 @@ import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.brandOutline
+import dev.nerzouille.koan.update.UpdateStatus
 import kotlin.math.abs
 
 /** Settings' pages. */
@@ -72,6 +73,8 @@ class SettingsUi(
     val isDefault: Boolean,
     val onMakeDefault: () -> Unit,
     val version: String,
+    /** One look at GitHub's releases (About calls it when it opens). */
+    val checkUpdate: suspend () -> UpdateStatus,
     /** Opens a page (changelog, licences) in a new tab. */
     val onOpenUrl: (String) -> Unit,
     /** Debug builds only. */

@@ -95,6 +95,7 @@ import dev.nerzouille.koan.ui.sheet.SheetNav
 import dev.nerzouille.koan.ui.sheet.SheetState
 import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.update.UpdateCheck
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.findTab
@@ -541,6 +542,7 @@ fun KoanOverlays(
                 isDefault = isDefault,
                 onMakeDefault = { askDefault.launch(roles.createRequestRoleIntent(RoleManager.ROLE_BROWSER)) },
                 version = BuildConfig.VERSION_NAME,
+                checkUpdate = { UpdateCheck.check(BuildConfig.VERSION_NAME) },
                 onOpenUrl = { url ->
                     overlays.settingsOpen = false
                     onOpenNew(url, true, false)
