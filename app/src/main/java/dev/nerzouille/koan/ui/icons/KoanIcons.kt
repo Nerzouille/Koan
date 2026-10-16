@@ -131,6 +131,60 @@ object KoanIcons {
             }
         }
     }
+    val Location: ImageVector by lazy {
+        stroked("location") {
+            moveTo(12f, 21f)
+            curveTo(8f, 16.5f, 5.5f, 13f, 5.5f, 9.5f)
+            arcTo(6.5f, 6.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 18.5f, y1 = 9.5f)
+            curveTo(18.5f, 13f, 16f, 16.5f, 12f, 21f)
+            close()
+            circle(12f, 9.5f, 2.3f)
+        }
+    }
+    val Camera: ImageVector by lazy {
+        stroked("camera") {
+            moveTo(3.5f, 7.5f); lineTo(15.5f, 7.5f); lineTo(15.5f, 17f); lineTo(3.5f, 17f); close()
+            moveTo(15.5f, 11f); lineTo(20.5f, 8f); lineTo(20.5f, 16.5f); lineTo(15.5f, 13.5f)
+        }
+    }
+    val Mic: ImageVector by lazy {
+        stroked("mic") {
+            moveTo(9f, 6.5f)
+            arcTo(3f, 3f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 15f, y1 = 6.5f)
+            lineTo(15f, 11.5f)
+            arcTo(3f, 3f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 9f, y1 = 11.5f)
+            close()
+            moveTo(6f, 11f); curveTo(6f, 18f, 18f, 18f, 18f, 11f); moveTo(12f, 16.5f); lineTo(12f, 20.5f)
+        }
+    }
+    val Database: ImageVector by lazy {
+        stroked("database") {
+            moveTo(5f, 6f); curveTo(5f, 3.5f, 19f, 3.5f, 19f, 6f); curveTo(19f, 8.5f, 5f, 8.5f, 5f, 6f)
+            lineTo(5f, 18f); curveTo(5f, 20.5f, 19f, 20.5f, 19f, 18f); lineTo(19f, 6f)
+            moveTo(5f, 12f); curveTo(5f, 14.5f, 19f, 14.5f, 19f, 12f)
+        }
+    }
+    val Pause: ImageVector by lazy { stroked("pause") { moveTo(9f, 6f); lineTo(9f, 18f); moveTo(15f, 6f); lineTo(15f, 18f) } }
+    val Play: ImageVector by lazy { stroked("play") { moveTo(8f, 5f); lineTo(19f, 12f); lineTo(8f, 19f); close() } }
+    val File: ImageVector by lazy {
+        stroked("file") {
+            moveTo(6f, 3f); lineTo(14f, 3f); lineTo(19f, 8f); lineTo(19f, 21f); lineTo(6f, 21f); close()
+            moveTo(14f, 3f); lineTo(14f, 8f); lineTo(19f, 8f)
+        }
+    }
+    val Trash: ImageVector by lazy {
+        stroked("trash") {
+            moveTo(4f, 7f); lineTo(20f, 7f); moveTo(9f, 7f); lineTo(9f, 4f); lineTo(15f, 4f); lineTo(15f, 7f)
+            moveTo(6f, 7f); lineTo(7f, 20f); lineTo(17f, 20f); lineTo(18f, 7f)
+        }
+    }
+    val Open: ImageVector by lazy {
+        stroked("open") {
+            moveTo(14f, 4f); lineTo(20f, 4f); lineTo(20f, 10f); moveTo(20f, 4f); lineTo(11f, 13f)
+            moveTo(18f, 14f); lineTo(18f, 20f); lineTo(4f, 20f); lineTo(4f, 6f); lineTo(10f, 6f)
+        }
+    }
+    val Retry: ImageVector get() = Reload
     val Info: ImageVector by lazy {
         stroked("info") {
             circle(12f, 12f, 8.5f)

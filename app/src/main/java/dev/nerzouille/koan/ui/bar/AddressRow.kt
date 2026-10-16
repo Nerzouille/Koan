@@ -29,6 +29,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import dev.nerzouille.koan.ui.theme.DownloadTokens
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalDensity
@@ -137,6 +145,9 @@ fun AddressRow(
     space: SwipeTarget? = null,
     /** Find in page is open: the find bar takes the row. */
     find: FindUi? = null,
+    /** Something is downloading: its progress (0..1, NaN = size unknown), shown as a ring in the pill. */
+    download: Float? = null,
+    onDownloads: () -> Unit = {},
 ) {
     val pageOnly = Modifier.graphicsLayer { alpha = 1f - overview() }
     Row(
@@ -165,6 +176,8 @@ fun AddressRow(
                 next = next,
                 shownUrl = shownUrl,
                 space = space,
+                download = if (overviewOpen) null else download,
+                onDownloads = onDownloads,
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 modifier = Modifier.weight(1f),
             )
@@ -188,6 +201,8 @@ private fun AddressField(
     next: SwipeTarget?,
     shownUrl: String?,
     space: SwipeTarget?,
+    download: Float?,
+    onDownloads: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -220,6 +235,36 @@ private fun AddressField(
         FieldText(SEARCH_HINT, primary = false, Modifier.graphicsLayer { alpha = overview() })
         previous?.let { SwipeLabel(it, -1f, swipe, overview) }
         next?.let { SwipeLabel(it, 1f, swipe, overview) }
+        if (download != null) DownloadRing(download, onDownloads, Modifier.align(Alignment.CenterEnd))
+    }
+}
+
+/**
+ * A download is running (design 7g): a small neutral ring at the end of the pill, filling with
+ * its progress; tap = Downloads. Its tap consumes the lift, so the pill doesn't start editing.
+ */
+@Composable
+private fun DownloadRing(progress: Float, onClick: () -> Unit, modifier: Modifier) {
+    val palette = KoanTheme.colors
+    Box(
+        modifier
+            .size(BarTokens.IconTouch)
+            .pointerInput(Unit) { detectTapGestures { onClick() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .size(DownloadTokens.Ring)
+                .drawBehind {
+                    val stroke = DownloadTokens.RingStroke.toPx()
+                    val inset = stroke / 2f
+                    val arcSize = Size(size.width - stroke, size.height - stroke)
+                    drawArc(palette.Glass, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                    // Size unknown: a quarter, so it still reads as "working".
+                    val sweep = if (progress.isNaN()) 90f else 360f * progress.coerceIn(0f, 1f)
+                    drawArc(palette.TextSecondary, -90f, sweep, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                },
+        )
     }
 }
 

@@ -38,9 +38,10 @@ import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SheetTokens
 
-/** The pages of the ⋯ menu sheet (Site settings joins in C2). */
+/** The pages of the ⋯ menu sheet. */
 sealed interface MenuPage {
     data object Root : MenuPage
+    data object SiteSettings : MenuPage
 }
 
 /** What "Add to Essentials" can do for the current tab. */
@@ -53,6 +54,8 @@ data class MenuState(
     val readerAvailable: Boolean = false,
     val readerActive: Boolean = false,
     val essentials: EssentialsAction = EssentialsAction.None,
+    val activeDownloads: Int = 0,
+    val secure: Boolean = false,
 )
 
 /** What the menu's root page does. Rows without an action yet show as "Soon". */
@@ -72,6 +75,8 @@ class MenuActions(
     val reader: () -> Unit,
     val essentials: () -> Unit,
     val settings: () -> Unit,
+    val downloads: () -> Unit,
+    val siteSettings: () -> Unit,
 )
 
 /**
@@ -101,7 +106,11 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
             SheetTile(KoanIcons.Search, "Find", on, enabled = hasPage, onClick = actions.find)
         }
         SheetGroup {
-            SheetRow(KoanIcons.Lock, "Site settings", on, enabled = false)
+            SheetRow(
+                KoanIcons.Lock, "Site settings", on,
+                subtitle = if (!hasPage) null else if (state.secure) "Secure" else "Not secure",
+                onClick = if (hasPage) actions.siteSettings else null,
+            ) { if (hasPage) RowChevron() }
             SheetDivider()
             SheetRow(KoanIcons.Desktop, "Desktop site", on, onClick = { actions.desktopSite(!page.desktopSite) }) {
                 KoanToggle(checked = page.desktopSite, onCheckedChange = if (on) actions.desktopSite else null)
@@ -119,7 +128,9 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
                 EssentialsAction.None -> SheetRow(KoanIcons.Essentials, "Add to Essentials", on) { RowValue("No page") }
             }
             SheetDivider()
-            SheetRow(KoanIcons.Download, "Downloads", on, enabled = false)
+            SheetRow(KoanIcons.Download, "Downloads", on, onClick = actions.downloads) {
+                if (state.activeDownloads > 0) RowValue("${state.activeDownloads} active") else RowChevron()
+            }
             SheetDivider()
             SheetRow(KoanIcons.Settings, "Settings", on, onClick = actions.settings) { RowChevron() }
         }

@@ -46,6 +46,7 @@ sealed interface SettingsPage {
     data object SearchEngines : SettingsPage
     data object Account : SettingsPage
     data object About : SettingsPage
+    data object DownloadFolder : SettingsPage
 }
 
 /** Everything Settings shows and does. [email] null = signed out. */
@@ -68,6 +69,11 @@ class SettingsUi(
     val onOpenUrl: (String) -> Unit,
     /** Debug builds only. */
     val devActions: List<Pair<String, () -> Unit>>,
+    /** Where downloads go: null = the phone's Download folder, else the picked folder's name. */
+    val downloadFolder: String?,
+    val onPickDownloadFolder: () -> Unit,
+    val onDefaultDownloadFolder: () -> Unit,
+    val onShowDownloads: () -> Unit,
 )
 
 /**
@@ -103,6 +109,7 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.SearchEngines -> EnginesPage(ui, interactive, back)
                         SettingsPage.Account -> AccountPage(ui, interactive, back)
                         SettingsPage.About -> AboutPage(ui, interactive, back)
+                        SettingsPage.DownloadFolder -> FolderPage(ui, interactive, back)
                     }
                 }
             }
@@ -139,7 +146,9 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
         SettingsRow(KoanIcons.Shield, "uBlock Origin", on, enabled = false)
 
         SettingsSection("Koan")
-        SettingsRow(KoanIcons.Download, "Downloads", on, enabled = false)
+        SettingsRow(KoanIcons.Download, "Downloads", on, chevron = true, onClick = ui.onShowDownloads)
+        SettingsDivider()
+        SettingsRow(KoanIcons.Folder, "Save downloads to", on, value = ui.downloadFolder ?: "Download", chevron = true, onClick = { push(SettingsPage.DownloadFolder) })
         SettingsDivider()
         SettingsRow(KoanIcons.Info, "About Koan", on, value = ui.version, chevron = true, onClick = { push(SettingsPage.About) })
 
@@ -225,6 +234,20 @@ private fun EnginesPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
                     Icon(KoanIcons.Check, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))
                 }
             }
+        }
+    }
+}
+
+/** Where downloads go: the phone's Download folder (default) or a folder picked once. */
+@Composable
+private fun FolderPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
+    SettingsPageFrame("Save downloads to", on, onBack) {
+        SettingsRow(null, "Download", on, subtitle = "The phone's Download folder", onClick = ui.onDefaultDownloadFolder) {
+            if (ui.downloadFolder == null) Icon(KoanIcons.Check, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))
+        }
+        SettingsDivider()
+        SettingsRow(null, ui.downloadFolder ?: "Choose a folder…", on, subtitle = if (ui.downloadFolder != null) "Tap to choose another folder" else null, onClick = ui.onPickDownloadFolder) {
+            if (ui.downloadFolder != null) Icon(KoanIcons.Check, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))
         }
     }
 }

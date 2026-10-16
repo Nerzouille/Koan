@@ -142,6 +142,9 @@ dependencies {
     implementation(libs.mozilla.browser.session.storage)
     implementation(libs.mozilla.lib.state)
     implementation(libs.mozilla.feature.readerview)
+    implementation(libs.mozilla.feature.downloads)
+    // Already shipped with feature-downloads; declared to compile against its DownloadFileUtils.
+    implementation(libs.mozilla.support.utils)
 
     testImplementation(libs.junit)
     testImplementation(libs.org.json)

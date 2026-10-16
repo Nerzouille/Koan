@@ -48,6 +48,8 @@ mozilla-feature-tabs = { module = "org.mozilla.components:feature-tabs", version
 mozilla-browser-session-storage = { module = "org.mozilla.components:browser-session-storage", version.ref = "mozillaComponents" }
 mozilla-lib-state = { module = "org.mozilla.components:lib-state", version.ref = "mozillaComponents" }
 mozilla-feature-readerview = { module = "org.mozilla.components:feature-readerview", version.ref = "mozillaComponents" }
+mozilla-feature-downloads = { module = "org.mozilla.components:feature-downloads", version.ref = "mozillaComponents" }
+mozilla-support-utils = { module = "org.mozilla.components:support-utils", version.ref = "mozillaComponents" }
 
 junit = { module = "junit:junit", version.ref = "junit" }
 org-json = { module = "org.json:json", version.ref = "orgJson" }

@@ -1,6 +1,14 @@
 package dev.nerzouille.koan
 
 import android.app.SearchManager
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationManagerCompat
+import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.engine.downloads.KoanDownloadService
+import mozilla.components.feature.downloads.DownloadsFeature
+import mozilla.components.feature.downloads.manager.FetchDownloadManager
+import mozilla.components.support.base.android.NotificationsDelegate
 import android.content.Intent
 import android.graphics.Color
 import dev.nerzouille.koan.engine.Incoming
@@ -52,6 +60,8 @@ class MainActivity : FragmentActivity() {
         lifecycle.addObserver(WindowFeature(components.store, components.tabsUseCases))
         components.sync.start()
         components.pageTools.start()
+        components.watchDownloadLocation()
+        startDownloads(components)
         // A fresh start from a link (default browser, share); a recreated activity already had it.
         if (savedInstanceState == null) handleIntent(intent)
 
@@ -83,6 +93,45 @@ class MainActivity : FragmentActivity() {
                 KoanRoot(components)
             }
         }
+    }
+
+    private var downloads: DownloadsFeature? = null
+
+    private companion object {
+        /** Per process, not per activity (a recreated activity must not restore twice). */
+        val savedDownloadsRestored = java.util.concurrent.atomic.AtomicBoolean(false)
+    }
+
+    // Downloads need the notification permission for their progress notification (Android 13+).
+    private val askPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+        val names = results.keys.toTypedArray()
+        val grants = IntArray(names.size) { if (results.getValue(names[it])) PackageManager.PERMISSION_GRANTED else PackageManager.PERMISSION_DENIED }
+        downloads?.onPermissionsResult(names, grants)
+    }
+
+    /**
+     * Pages start downloads; the service runs them. No confirmation dialog: a download starts at
+     * once (design 7g) and the end of it shows in a toast (KoanRoot, via [Components.downloadDone]).
+     */
+    private fun startDownloads(components: Components) {
+        // The download list lives on disk (DownloadStorage): back into the store once per process.
+        if (savedDownloadsRestored.compareAndSet(false, true)) components.downloadsUseCases.restoreDownloads()
+        val feature = DownloadsFeature(
+            applicationContext,
+            store = components.store,
+            useCases = components.downloadsUseCases,
+            onNeedToRequestPermissions = { askPermissions.launch(it) },
+            onDownloadStopped = { download, _, status -> components.downloadDone.tryEmit(download to status) },
+            downloadFileUtils = components.downloadFiles,
+            downloadManager = FetchDownloadManager(
+                applicationContext, components.store, KoanDownloadService::class,
+                notificationsDelegate = NotificationsDelegate(NotificationManagerCompat.from(applicationContext)),
+            ),
+            customFirstPartyDownloadDialog = { current, _, positive, _, _ -> positive.value(current.value) },
+            customThirdPartyDownloadDialog = { _, _, negative -> negative.value() },
+        )
+        downloads = feature
+        lifecycle.addObserver(feature)
     }
 
     override fun onNewIntent(intent: Intent) {

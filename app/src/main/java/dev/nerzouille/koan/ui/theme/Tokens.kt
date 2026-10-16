@@ -680,10 +680,37 @@ object ToastTokens {
     val Radius = 16.dp
     val PaddingH = 18.dp
     val TextSize = 15.sp
+    val TallHeight = 60.dp
+    val DetailSize = 12.sp
+    const val DETAIL_ALPHA = 0.65f
     const val SHOW_MS = 3000L
 
     /** Slides up this far as it appears. */
     val Rise = 16.dp
+}
+
+/** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
+object DownloadTokens {
+    val FileTile = 40.dp
+    val FileTileRadius = 10.dp
+    val FileGlyph = 18.dp
+    val FileExtSize = 7.sp
+    val RowGap = 12.dp
+    val RowPaddingV = 12.dp
+    val ProgressHeight = 4.dp
+    val ProgressTop = 8.dp
+    val RoundButton = 36.dp
+    val ActionHeight = 40.dp
+    val ActionGap = 8.dp
+    val GroupRadius = 18.dp
+    val ChipHeight = 32.dp
+    val ChipTextSize = 13.sp
+    val SearchHeight = 48.dp
+    val BottomGap = 10.dp
+
+    /** The ring in the address pill while something downloads. */
+    val Ring = 18.dp
+    val RingStroke = 2.dp
 }
 
 object PagerTokens {

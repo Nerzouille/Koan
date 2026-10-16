@@ -31,6 +31,15 @@ class Settings(context: Context) {
         store.edit { it[theme] = mode.name }
     }
 
+    private val downloads = stringPreferencesKey("download_location")
+
+    /** Where downloads go: a folder the owner picked (a content:// tree), or null = the phone's Download folder. */
+    val downloadLocation: Flow<String?> = store.data.map { it[downloads] }
+
+    suspend fun setDownloadLocation(value: String?) {
+        store.edit { if (value == null) it.remove(downloads) else it[downloads] = value }
+    }
+
     private val engine = stringPreferencesKey("search_engine")
 
     val searchEngine: Flow<SearchEngine> = store.data.map { prefs ->

@@ -4,6 +4,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import dev.nerzouille.koan.ui.theme.brandOutline
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -33,9 +35,19 @@ import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.ToastTokens
 import kotlinx.coroutines.delay
 
-/** One toast: a short message and at most one action ("Switch", "Undo"). */
+/**
+ * One toast: a short message and at most one action ("Switch", "Undo", "Open"). [detail]: a quiet
+ * second line. [moment]: Koan just finished something for you (a download): a brand-gradient
+ * outline for that moment.
+ */
 @Immutable
-class Toast(val message: String, val action: String? = null, val onAction: (() -> Unit)? = null)
+class Toast(
+    val message: String,
+    val action: String? = null,
+    val detail: String? = null,
+    val moment: Boolean = false,
+    val onAction: (() -> Unit)? = null,
+)
 
 /**
  * The one bottom toast, shared by everything that confirms quietly. A new toast replaces the one
@@ -93,19 +105,25 @@ fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) 
                     translationY = (1f - shown.value) * ToastTokens.Rise.toPx()
                 }
                 .fillMaxWidth()
-                .height(ToastTokens.Height)
+                .height(if (toast.detail != null) ToastTokens.TallHeight else ToastTokens.Height)
                 .clip(RoundedCornerShape(ToastTokens.Radius))
-                .background(palette.Primary),
+                .background(palette.Primary)
+                .then(if (toast.moment) Modifier.brandOutline(RoundedCornerShape(ToastTokens.Radius)) else Modifier),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                toast.message,
-                color = palette.OnPrimary,
-                fontSize = ToastTokens.TextSize,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).padding(start = ToastTokens.PaddingH),
-            )
+            Column(Modifier.weight(1f).padding(start = ToastTokens.PaddingH)) {
+                Text(
+                    toast.message,
+                    color = palette.OnPrimary,
+                    fontSize = ToastTokens.TextSize,
+                    fontWeight = if (toast.detail != null) FontWeight.SemiBold else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                toast.detail?.let {
+                    Text(it, color = palette.OnPrimary.copy(alpha = ToastTokens.DETAIL_ALPHA), fontSize = ToastTokens.DetailSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
             val action = toast.action
             if (action != null) {
                 Box(

@@ -17,15 +17,24 @@ import dev.nerzouille.koan.ui.theme.SheetTokens
 /** Floating card before signing out: the Zen Spaces leave the phone, phone-only tabs stay. */
 @Composable
 fun SignOutConfirm(interactive: Boolean, onSignOut: () -> Unit, onCancel: () -> Unit) {
+    Confirm(
+        title = "Sign out?",
+        text = "Your Zen Spaces leave this phone until you sign in again. Tabs opened only on this phone stay.",
+        confirm = "Sign out",
+        interactive = interactive,
+        onConfirm = onSignOut,
+        onCancel = onCancel,
+    )
+}
+
+/** A small confirmation on a floating card: what happens, then the (red) action and Cancel. */
+@Composable
+fun Confirm(title: String, text: String, confirm: String, interactive: Boolean, onConfirm: () -> Unit, onCancel: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
-        Text("Sign out?", color = KoanTheme.colors.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold)
-        Text(
-            "Your Zen Spaces leave this phone until you sign in again. Tabs opened only on this phone stay.",
-            color = KoanTheme.colors.TextSecondary,
-            fontSize = SheetTokens.CardTextSize,
-        )
+        Text(title, color = KoanTheme.colors.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold)
+        Text(text, color = KoanTheme.colors.TextSecondary, fontSize = SheetTokens.CardTextSize)
         Spacer(Modifier.height(SheetTokens.Gap / 2))
-        DestructiveButton("Sign out", onClick = { if (interactive) onSignOut() }, modifier = Modifier.fillMaxWidth())
+        DestructiveButton(confirm, onClick = { if (interactive) onConfirm() }, modifier = Modifier.fillMaxWidth())
         QuietButton("Cancel", onClick = { if (interactive) onCancel() }, modifier = Modifier.fillMaxWidth())
     }
 }

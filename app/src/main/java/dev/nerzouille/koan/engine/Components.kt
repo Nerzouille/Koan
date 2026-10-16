@@ -14,6 +14,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import mozilla.components.browser.state.state.content.DownloadState
+import kotlinx.coroutines.launch
+import android.os.Environment
+import dev.nerzouille.koan.engine.downloads.Downloads
+import dev.nerzouille.koan.engine.downloads.KoanDownloadService
+import mozilla.components.feature.downloads.DownloadMiddleware
+import mozilla.components.feature.downloads.DownloadStorage
+import mozilla.components.feature.downloads.DownloadsUseCases
+import mozilla.components.support.utils.DefaultDownloadFileUtils
 import mozilla.components.feature.readerview.ReaderViewMiddleware
 import mozilla.components.browser.engine.gecko.GeckoEngine
 import mozilla.components.browser.session.storage.SessionStorage
@@ -49,7 +59,44 @@ class Components(context: Context) {
         )
     }
 
-    val store by lazy { BrowserStore(middleware = EngineMiddleware.create(engine) + ReaderViewMiddleware()) }
+    val store by lazy {
+        BrowserStore(
+            middleware = EngineMiddleware.create(engine) + ReaderViewMiddleware() +
+                DownloadMiddleware(
+                    appContext, KoanDownloadService::class.java,
+                    // Removing a download from the list never deletes the file (Delete does that explicitly).
+                    deleteFileFromStorage = { false },
+                    downloadFileUtils = downloadFiles, downloadStorage = downloadStorage,
+                ),
+        )
+    }
+
+    // ---- downloads ----
+
+    /**
+     * Where downloads go, read without waiting: the folder picked in Settings (a content:// tree)
+     * or the phone's Download folder. Kept current by [watchDownloadLocation].
+     */
+    @Volatile
+    private var pickedDownloadFolder: String? = null
+
+    val defaultDownloadFolder: String
+        get() = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path
+
+    val downloadFiles by lazy { DefaultDownloadFileUtils(appContext) { pickedDownloadFolder ?: defaultDownloadFolder } }
+    val downloadStorage by lazy { DownloadStorage(appContext) }
+    val downloadsUseCases by lazy { DownloadsUseCases(store, downloadFiles) }
+    val downloads by lazy { Downloads(appContext, downloadFiles, downloadsUseCases) }
+
+    /** A download stopped (completed, failed, cancelled): KoanRoot shows the "downloaded" toast. */
+    val downloadDone = MutableSharedFlow<Pair<DownloadState, DownloadState.Status>>(extraBufferCapacity = 4)
+
+    fun watchDownloadLocation() = appScope.launch {
+        settings.downloadLocation.collect { pickedDownloadFolder = it }
+    }
+
+    /** What sites may do: answers to their requests, and Site settings. */
+    val sitePermissions by lazy { SitePermissions(appContext, runtime) }
 
     /** Reader view, find in page, the long-press result. */
     val pageTools by lazy { PageTools(appContext, engine, store) }

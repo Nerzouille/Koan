@@ -45,6 +45,9 @@ import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
 import dev.nerzouille.koan.ui.bar.barZone
 import dev.nerzouille.koan.ui.kit.KoanToastHost
 import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.downloads.host
+import dev.nerzouille.koan.ui.downloads.sizeText
+import mozilla.components.browser.state.state.content.DownloadState
 import dev.nerzouille.koan.ui.kit.ToastState
 import dev.nerzouille.koan.ui.bar.SwipeTarget
 import dev.nerzouille.koan.ui.bar.BarGestures
@@ -455,6 +458,33 @@ fun KoanRoot(components: Components) {
         }
         val currentPage = page
         val findUi = rememberFindUi(components, overlays, activeTabId)
+        // Downloads running: their combined progress for the ring in the pill (NaN = size unknown).
+        val downloadProgress by store.observeSlice(Unit) { s ->
+            val running = s.downloads.values.filter { !it.private && it.status == DownloadState.Status.DOWNLOADING }
+            if (running.isEmpty()) {
+                null
+            } else {
+                val total = running.sumOf { it.contentLength ?: 0L }
+                if (running.any { it.contentLength == null } || total <= 0L) Float.NaN else running.sumOf { it.currentBytesCopied }.toFloat() / total
+            }
+        }
+        // A download finished (or failed): say so, with Open (or Retry).
+        LaunchedEffect(Unit) {
+            components.downloadDone.collect { (download, status) ->
+                val name = download.fileName ?: "File"
+                when (status) {
+                    DownloadState.Status.COMPLETED -> toasts.show(
+                        Toast(
+                            "$name downloaded", "Open",
+                            detail = listOfNotNull(sizeText(download.contentLength ?: download.currentBytesCopied), host(download)).joinToString(" · "),
+                            moment = true,
+                        ) { components.downloads.open(download) },
+                    )
+                    DownloadState.Status.FAILED -> toasts.show(Toast("Couldn't download $name", "Retry") { components.downloads.retry(download) })
+                    else -> Unit
+                }
+            }
+        }
         // Page view space mode: the scrub, from the long press until the finger lifts.
         val spaceMode = !overviewOpen && bar.scrub.active
         fun spaceTarget(index: Int) = models.getOrNull(index)?.let { SwipeTarget(it.name, spaceIcon = it.icon) }
@@ -518,6 +548,8 @@ fun KoanRoot(components: Components) {
                     shownUrl = if (overviewOpen) null else tabSwipe.shown?.url,
                     space = if (spaceMode) spaceTarget(bar.scrub.index) else null,
                     find = findUi,
+                    download = downloadProgress,
+                    onDownloads = { overlays.downloadsOpen = true },
                 )
             },
             modifier = Modifier.align(Alignment.BottomCenter),

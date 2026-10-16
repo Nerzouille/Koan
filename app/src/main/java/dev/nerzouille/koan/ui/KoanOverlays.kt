@@ -3,6 +3,24 @@ package dev.nerzouille.koan.ui
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.compose.runtime.produceState
+import dev.nerzouille.koan.engine.SiteAsk
+import dev.nerzouille.koan.engine.SiteDecision
+import dev.nerzouille.koan.search.displayHost
+import dev.nerzouille.koan.ui.menu.PermissionPrompt
+import dev.nerzouille.koan.ui.menu.SiteSettingsPage
+import dev.nerzouille.koan.ui.menu.SiteSettingsUi
+import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.state.SecurityInfo
+import mozilla.components.concept.engine.permission.Permission
+import mozilla.components.concept.engine.permission.PermissionRequest
+import android.net.Uri
+import android.provider.DocumentsContract
+import dev.nerzouille.koan.ui.downloads.DownloadsScreen
+import dev.nerzouille.koan.ui.menu.Confirm
+import mozilla.components.browser.state.state.content.DownloadState
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.LocalView
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -68,6 +86,13 @@ class Overlays(scope: CoroutineScope, density: Density) {
     var link by mutableStateOf<LinkTarget?>(null)
     val signOutCard = SheetState(scope, splineBasedDecay(density))
     var settingsOpen by mutableStateOf(false)
+    var downloadsOpen by mutableStateOf(false)
+    val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
+    val clearSiteCard = SheetState(scope, splineBasedDecay(density))
+
+    /** A site's request waiting on the card, and what it asks for. */
+    val permissionCard = SheetState(scope, splineBasedDecay(density))
+    var permission by mutableStateOf<Pair<PermissionRequest, SiteAsk>?>(null)
     val settingsNav = SheetNav<SettingsPage>(scope, SettingsPage.Root)
 
     /** Find in page is open, and what was typed in it. */
@@ -118,6 +143,30 @@ fun KoanOverlays(
     val account by components.accounts.state.collectAsStateWithLifecycle()
     val theme by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
     val engine by components.settings.searchEngine.collectAsStateWithLifecycle(SearchEngine.DuckDuckGo)
+    val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
+    // Gecko's verdict; unknown (a download, a page still loading) falls back to the scheme.
+    val secure by components.store.observeSlice(activeTabId) { s ->
+        val content = activeTabId?.let { s.findTab(it) }?.content
+        when (content?.securityInfo) {
+            is SecurityInfo.Secure -> true
+            is SecurityInfo.Insecure -> false
+            else -> content?.url?.startsWith("https://") == true
+        }
+    }
+    // Site settings' list: loaded when the page shows, again after each change.
+    var decisionsVersion by remember { mutableStateOf(0) }
+    val showingSite = overlays.menuNav.depth > 0
+    val siteDecisions by produceState<List<SiteDecision>?>(null, page.url, decisionsVersion, showingSite) {
+        value = if (showingSite && page.url.isNotEmpty()) components.sitePermissions.decisions(page.url) else null
+    }
+    val downloadLocation by components.settings.downloadLocation.collectAsStateWithLifecycle(null)
+    val folderName = downloadLocation?.let(::folderLabel)
+    val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        runCatching { context.contentResolver.takePersistableUriPermission(uri, flags) }
+        scope.launch { components.settings.setDownloadLocation(uri.toString()) }
+    }
 
     fun share(url: String, subject: String) {
         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, url)
@@ -137,6 +186,8 @@ fun KoanOverlays(
             activeTab.origin == TabOrigin.LOCAL -> EssentialsAction.Remove
             else -> EssentialsAction.FromZen
         },
+        activeDownloads = downloads.count { !it.private && it.status in ACTIVE },
+        secure = secure,
     )
     KoanSheet(menu, overlays.menuNav) { p, pageScope ->
         when (p) {
@@ -176,8 +227,116 @@ fun KoanOverlays(
                         close()
                         overlays.settingsOpen = true
                     },
+                    downloads = {
+                        close()
+                        overlays.downloadsOpen = true
+                    },
+                    siteSettings = { overlays.menuNav.push(MenuPage.SiteSettings) },
                 ),
             )
+            MenuPage.SiteSettings -> SiteSettingsPage(
+                SiteSettingsUi(
+                    url = page.url,
+                    secure = secure,
+                    decisions = siteDecisions,
+                    onSet = { d, allow ->
+                        scope.launch {
+                            components.sitePermissions.set(page.url, d, allow)
+                            decisionsVersion++
+                        }
+                    },
+                    readerAvailable = reader.first,
+                    readerActive = reader.second,
+                    onReader = { activeTabId?.let(components.pageTools::toggleReader) },
+                    onClearData = { overlays.clearSiteCard.animateTo(Detent.Compact) },
+                ),
+                pageScope,
+            )
+        }
+    }
+    val clearSite = overlays.clearSiteCard
+    KoanCard(clearSite) { interactive ->
+        Confirm(
+            title = "Clear data for ${displayHost(page.url)}?",
+            text = "Its cookies and stored data go: you'll be signed out of it. What it may do stays.",
+            confirm = "Clear site data",
+            interactive = interactive,
+            onConfirm = {
+                clearSite.animateTo(Detent.Closed)
+                scope.launch {
+                    components.sitePermissions.clearSiteData(page.url)
+                    session.reload(activeTabId)
+                }
+            },
+            onCancel = { clearSite.animateTo(Detent.Closed) },
+        )
+    }
+
+    // ---- a site asks for something (location, camera…) ----
+    val request by components.store.observeSlice(activeTabId) { s -> activeTabId?.let { s.findTab(it) }?.content?.permissionRequestsList?.firstOrNull() }
+    val appRequest by components.store.observeSlice(activeTabId) { s -> activeTabId?.let { s.findTab(it) }?.content?.appPermissionRequestsList?.firstOrNull() }
+    val sites = components.sitePermissions
+    fun consume(r: PermissionRequest) { activeTabId?.let { components.store.dispatch(ContentAction.ConsumePermissionsRequest(it, r)) } }
+    LaunchedEffect(request) {
+        val r = request ?: return@LaunchedEffect
+        sites.autoAnswer(r)?.let { allow ->
+            if (allow) r.grant() else r.reject()
+            consume(r)
+            return@LaunchedEffect
+        }
+        val ask = sites.askOf(r)
+        if (ask == null) {
+            r.reject()
+            consume(r)
+            return@LaunchedEffect
+        }
+        val remembered = r.uri?.let { sites.remembered(it, ask) }
+        if (remembered != null) {
+            if (remembered) r.grant() else r.reject()
+            consume(r)
+            return@LaunchedEffect
+        }
+        overlays.permission = r to ask
+        overlays.permissionCard.animateTo(Detent.Compact)
+    }
+    val permissionCard = overlays.permissionCard
+    fun answer(allow: Boolean, always: Boolean) {
+        val (r, ask) = overlays.permission ?: return
+        overlays.permission = null
+        permissionCard.animateTo(Detent.Closed)
+        scope.launch { sites.answer(r, ask, allow, always) }
+        consume(r)
+    }
+    // Dismissed (tap outside, Back): blocked this time, nothing remembered.
+    LaunchedEffect(permissionCard.open) { if (!permissionCard.open && overlays.permission != null) answer(allow = false, always = false) }
+    KoanCard(permissionCard) { interactive ->
+        val (r, ask) = overlays.permission ?: return@KoanCard
+        PermissionPrompt(
+            host = displayHost(r.uri.orEmpty()).ifEmpty { "This site" },
+            ask = ask,
+            interactive = interactive,
+            onBlock = { answer(allow = false, always = true) },
+            onAlways = { answer(allow = true, always = true) },
+            onOnce = { answer(allow = true, always = false) },
+        )
+    }
+    // Gecko needs Android's own permission too (location, camera, microphone); it asks for it itself.
+    var pendingApp by remember { mutableStateOf<PermissionRequest?>(null) }
+    val askAndroid = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+        val r = pendingApp ?: return@rememberLauncherForActivityResult
+        pendingApp = null
+        if (results.values.all { it }) r.grant() else r.reject()
+        activeTabId?.let { components.store.dispatch(ContentAction.ConsumeAppPermissionsRequest(it, r)) }
+    }
+    LaunchedEffect(appRequest) {
+        val r = appRequest ?: return@LaunchedEffect
+        val wanted = r.permissions.flatMap { androidPermissions(it) }.distinct()
+        if (wanted.isEmpty() || wanted.all { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }) {
+            if (wanted.isEmpty()) r.reject() else r.grant()
+            activeTabId?.let { components.store.dispatch(ContentAction.ConsumeAppPermissionsRequest(it, r)) }
+        } else {
+            pendingApp = r
+            askAndroid.launch(wanted.toTypedArray())
         }
     }
 
@@ -246,10 +405,43 @@ fun KoanOverlays(
                     onOpenNew(url, true, false)
                 },
                 devActions = devActions,
+                downloadFolder = folderName,
+                onPickDownloadFolder = { pickFolder.launch(null) },
+                onDefaultDownloadFolder = { scope.launch { components.settings.setDownloadLocation(null) } },
+                onShowDownloads = { overlays.downloadsOpen = true },
             ),
             nav = overlays.settingsNav,
             onClose = { overlays.settingsOpen = false },
             modifier = Modifier.graphicsLayer { translationY = (1f - slide.value) * size.height },
+        )
+    }
+
+    // ---- Downloads, full screen, over Settings too ----
+    val downloadsSlide = remember { Animatable(0f) }
+    LaunchedEffect(overlays.downloadsOpen) { downloadsSlide.animateTo(if (overlays.downloadsOpen) 1f else 0f, Motion.Sheet) }
+    val downloadsVisible by remember { derivedStateOf { overlays.downloadsOpen || downloadsSlide.value > 0f } }
+    if (downloadsVisible) {
+        DownloadsScreen(
+            downloads = downloads,
+            folder = folderName ?: "Download",
+            actions = components.downloads,
+            onClear = { overlays.clearDownloadsCard.animateTo(Detent.Compact) },
+            onClose = { overlays.downloadsOpen = false },
+            modifier = Modifier.graphicsLayer { translationY = (1f - downloadsSlide.value) * size.height },
+        )
+    }
+    val clearCard = overlays.clearDownloadsCard
+    KoanCard(clearCard) { interactive ->
+        Confirm(
+            title = "Clear the download list?",
+            text = "The files stay in ${folderName ?: "Download"}.",
+            confirm = "Clear list",
+            interactive = interactive,
+            onConfirm = {
+                clearCard.animateTo(Detent.Closed)
+                components.downloads.clearHistory()
+            },
+            onCancel = { clearCard.animateTo(Detent.Closed) },
         )
     }
 
@@ -293,4 +485,22 @@ fun rememberFindUi(components: Components, overlays: Overlays, activeTabId: Stri
             components.pageTools.stopFind(activeTabId)
         },
     )
+}
+
+/** Downloads still going (for the menu's "2 active"). */
+private val ACTIVE = setOf(DownloadState.Status.INITIATED, DownloadState.Status.DOWNLOADING, DownloadState.Status.PAUSED)
+
+/** A picked folder's name, from its tree uri ("primary:Documents/Books" → "Books"). */
+private fun folderLabel(uri: String): String =
+    runCatching { DocumentsContract.getTreeDocumentId(Uri.parse(uri)) }.getOrNull()
+        ?.substringAfter(':')?.substringAfterLast('/')?.ifEmpty { "Phone storage" }
+        ?: "Picked folder"
+
+/** The Android permissions Gecko needs for a page's request. */
+private fun androidPermissions(p: Permission): List<String> = when (p) {
+    is Permission.AppLocationCoarse -> listOf(Manifest.permission.ACCESS_COARSE_LOCATION)
+    is Permission.AppLocationFine -> listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+    is Permission.AppCamera -> listOf(Manifest.permission.CAMERA)
+    is Permission.AppAudio -> listOf(Manifest.permission.RECORD_AUDIO)
+    else -> emptyList()
 }
