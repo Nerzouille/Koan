@@ -60,8 +60,8 @@ class Components(context: Context) {
             DefaultSettings(
                 trackingProtectionPolicy = TrackingProtectionPolicy.recommended(),
                 preferredColorScheme = PreferredColorScheme.System,
-                // History: the engine's visits, redirects left out.
-                historyTrackingDelegate = HistoryRecorder(database.dao(), appScope),
+                // Visited links, and page titles for history.
+                historyTrackingDelegate = history,
             ),
             runtime,
         )
@@ -149,8 +149,11 @@ class Components(context: Context) {
     /** Saves on tab changes; MainActivity adds "every few seconds in the foreground" and "on stop". */
     val autoSave by lazy { sessionStorage.autoSave(store).whenSessionsChange(appScope) }
 
+    /** History: the pages tabs settle on, redirects left out. */
+    val history by lazy { HistoryRecorder(database.dao(), appScope) }
+
     val tabs by lazy {
-        TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, appScope)
+        TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, history, appScope)
     }
 }
 

@@ -273,6 +273,8 @@ fun KoanRoot(components: Components) {
             if (incoming == null) return@collect
             components.incoming.value = null
             overlays.settingsOpen = false
+            overlays.historyOpen = false
+            overlays.downloadsOpen = false
             openNewTab(if (incoming.isUrl) incoming.text else resolveShared(incoming.text, searchEngine), select = true, nextToCurrent = false, fromApp = true)
         }
     }

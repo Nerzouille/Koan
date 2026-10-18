@@ -60,6 +60,7 @@ class TabManager(
     private val dao: KoanDao,
     private val spaces: StateFlow<List<SpaceWithTabs>>,
     private val lastPlace: LastPlace,
+    private val history: HistoryRecorder,
     /** For Room writes and file work that must outlive any screen. */
     private val appScope: CoroutineScope,
 ) {
@@ -253,7 +254,10 @@ class TabManager(
      */
     fun close(ids: List<String>, rows: List<TabEntity>, keepThumbnails: Boolean = false) = main.launch {
         val keep = rows.filter { it.pinned || it.essential }.mapTo(HashSet()) { it.koanTabId }
-        ids.forEach { openers.remove(it) }
+        ids.forEach {
+            openers.remove(it)
+            history.forget(it)
+        }
         if (_current.value in ids) setCurrent(null)
         if (_blank.value in ids) _blank.value = null
         removeEngineTabs(ids)
@@ -442,6 +446,7 @@ class TabManager(
             val url = content.url
             if (url.isEmpty() || url == "about:blank") return@launch
             val title = content.title
+            history.pageShown(id, url, title)
             appScope.launch {
                 val row = dao.tab(id) ?: return@launch
                 if (row.url == url && (title.isEmpty() || row.title == title)) return@launch
