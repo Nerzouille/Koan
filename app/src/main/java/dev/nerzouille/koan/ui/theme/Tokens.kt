@@ -771,6 +771,9 @@ object PullTokens {
 
     /** A reload that never starts loading lets the indicator go after this. */
     const val START_TIMEOUT_MS = 3000L
+
+    /** The brand spinner turns at least this long, even for an instant reload. */
+    const val MIN_SPIN_MS = 600L
 }
 
 object HistoryTokens {

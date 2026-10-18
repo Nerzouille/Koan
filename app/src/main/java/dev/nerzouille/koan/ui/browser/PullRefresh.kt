@@ -74,14 +74,14 @@ class PullRefresh(private val scope: CoroutineScope) {
 
 /**
  * Watches (never consumes) the fingers on the page: a pull down that starts while the page is at
- * its top ([atTop]), and that the page lets overscroll its top ([canOverscrollTop]: the browser,
- * not the page, handles the touch, and the page doesn't keep its own pull, as maps and chats do)
- * moves the indicator. A second finger, a sideways start or the page scrolling cancels it.
+ * its top ([atTop]) and that the page doesn't keep for itself ([pageKeepsTouch]: maps, canvases,
+ * pages with their own pull) moves the indicator. A second finger, a sideways start or the page
+ * scrolling cancels it.
  */
 fun Modifier.pullToRefresh(
     state: PullRefresh,
     atTop: () -> Boolean,
-    canOverscrollTop: () -> Boolean,
+    pageKeepsTouch: () -> Boolean,
     onRefresh: () -> Unit,
     onTick: () -> Unit,
 ): Modifier =
@@ -110,13 +110,13 @@ fun Modifier.pullToRefresh(
                     if (!decided) {
                         if (abs(dx) < slop && abs(dy) < slop) continue
                         decided = true
-                        pulling = dy > 0 && dy > abs(dx) && canOverscrollTop()
+                        pulling = dy > 0 && dy > abs(dx) && !pageKeepsTouch()
                         if (!pulling) break
                         startY = change.position.y
                         continue
                     }
                     // The page scrolled after all (it took the gesture): let it go.
-                    if (!canOverscrollTop() || !atTop()) {
+                    if (pageKeepsTouch() || !atTop()) {
                         state.done()
                         pulling = false
                         break

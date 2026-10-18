@@ -40,6 +40,7 @@ import dev.nerzouille.koan.ui.bar.barZone
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.PageTokens
 import dev.nerzouille.koan.ui.theme.PullTokens
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -129,9 +130,12 @@ fun BrowserScreen(
     LaunchedEffect(currentId) { pull.done() }
     LaunchedEffect(pull.refreshing) {
         if (!pull.refreshing) return@LaunchedEffect
+        val start = System.currentTimeMillis()
         val loading = store.flow().map { s -> s.selectedTabId?.let(s::findTab)?.content?.loading == true }
         withTimeoutOrNull(PullTokens.START_TIMEOUT_MS) { loading.first { it } }
         loading.first { !it }
+        // A quick reload still shows that it happened.
+        delay(PullTokens.MIN_SPIN_MS - (System.currentTimeMillis() - start))
         pull.done()
     }
     val view = LocalView.current
@@ -146,7 +150,9 @@ fun BrowserScreen(
             .pullToRefresh(
                 pull,
                 atTop = { !swipe.active && engineView.verticalScrollPosition.value < 1f },
-                canOverscrollTop = { engineView.getInputResultDetail().canOverscrollTop() },
+                // Gecko's own "can overscroll top" is never set while the dock is on the page:
+                // the page only has to keep its touches (maps, canvases, pages with their own pull).
+                pageKeepsTouch = { engineView.getInputResultDetail().let { it.isTouchHandledByWebsite() || it.isTouchHandlingUnknown() } },
                 onRefresh = { currentId?.let { session.reload(it) } },
                 onTick = { view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK) },
             )
