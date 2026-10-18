@@ -698,6 +698,10 @@ object ToastTokens {
     const val DETAIL_ALPHA = 0.65f
     const val SHOW_MS = 3000L
 
+    /** Swiped past this fraction of its width (or flung), a toast goes away. */
+    const val SWIPE_FRACTION = 0.3f
+    val SwipeFling = 800.dp // per second
+
     /** Slides up this far as it appears. */
     val Rise = 16.dp
 }
