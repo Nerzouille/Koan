@@ -224,6 +224,9 @@ object ButtonTokens {
 
 /** The address input: neutral ring while typing, the brand gradient flows around it on "@". */
 object SearchFieldTokens {
+    /** The text scrolls so the cursor stays this far inside the field's edges. */
+    val CursorEdge = 40.dp
+
     val Ring = 1.5.dp
     val AtRing = 2.dp
 

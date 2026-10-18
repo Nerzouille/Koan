@@ -6,6 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +28,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -60,7 +65,13 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.draw.clipToBounds
+import kotlin.math.roundToInt
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -85,7 +96,6 @@ import dev.nerzouille.koan.ui.theme.BrandHorizontal
 import dev.nerzouille.koan.ui.theme.SearchFieldTokens
 import androidx.compose.animation.core.Animatable
 import android.provider.Settings
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.abs
@@ -417,6 +427,40 @@ private fun AddressInput(
             if (value.text.isEmpty()) {
                 Text(SEARCH_HINT, color = palette.FieldHint, fontSize = BarTokens.FieldTextSize, modifier = textStart)
             }
+            // The text scrolls inside the field (its frame stays put) and keeps the cursor a
+            // little inside the edges. A cursor handle held at an edge maps to the text now under
+            // it at each move, so the text keeps scrolling (the field's own scrolling stops at
+            // the last visible character).
+            var scrollX by remember { mutableFloatStateOf(0f) }
+            var contentWidth by remember { mutableIntStateOf(0) }
+            var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+            var viewport by remember { mutableIntStateOf(0) }
+            val edgePx = with(LocalDensity.current) { SearchFieldTokens.CursorEdge.toPx() }
+            fun maxScroll() = (contentWidth - viewport).coerceAtLeast(0).toFloat()
+            // Editing starts all selected: the start of the address shows.
+            val previous = remember { arrayOf<TextRange?>(null) }
+            val following = remember { intArrayOf(0) }
+            LaunchedEffect(value.selection, layout, viewport) {
+                val l = layout ?: return@LaunchedEffect
+                if (viewport == 0) return@LaunchedEffect
+                val sel = value.selection
+                // The end that moved: the cursor, or the selection handle being dragged.
+                val follow = when {
+                    sel == previous[0] -> following[0]
+                    sel.start != previous[0]?.start -> sel.start
+                    else -> sel.end
+                }
+                previous[0] = sel
+                following[0] = follow
+                val x = l.getHorizontalPosition(follow.coerceIn(0, l.layoutInput.text.length), usePrimaryDirection = true)
+                val margin = minOf(edgePx, viewport / 4f)
+                val target = when {
+                    x < scrollX + margin -> x - margin
+                    x > scrollX + viewport - margin -> x - viewport + margin
+                    else -> return@LaunchedEffect
+                }
+                scrollX = target.coerceIn(0f, maxScroll())
+            }
             BasicTextField(
                 value = value,
                 onValueChange = { field.onChange(it, complete) },
@@ -433,6 +477,28 @@ private fun AddressInput(
                 visualTransformation = run {
                     val title = completedTitle()
                     if (completing && !title.isNullOrBlank()) TitleAfter(title, palette.FieldHint) else VisualTransformation.None
+                },
+                onTextLayout = { layout = it },
+                decorationBox = { inner ->
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .clipToBounds()
+                            .onSizeChanged { viewport = it.width }
+                            // Dragging the text scrolls it.
+                            .draggable(
+                                rememberDraggableState { dx -> scrollX = (scrollX - dx).coerceIn(0f, maxScroll()) },
+                                Orientation.Horizontal,
+                            ),
+                    ) {
+                        Box(
+                            Modifier.layout { measurable, constraints ->
+                                val p = measurable.measure(constraints.copy(minWidth = 0, maxWidth = Constraints.Infinity))
+                                contentWidth = p.width
+                                layout(constraints.maxWidth, p.height) { p.place(-scrollX.roundToInt(), 0) }
+                            },
+                        ) { inner() }
+                    }
                 },
                 modifier = textStart
                     .fillMaxWidth()
