@@ -60,6 +60,8 @@ class Components(context: Context) {
             DefaultSettings(
                 trackingProtectionPolicy = TrackingProtectionPolicy.recommended(),
                 preferredColorScheme = PreferredColorScheme.System,
+                // History: the engine's visits, redirects left out.
+                historyTrackingDelegate = HistoryRecorder(database.dao(), appScope),
             ),
             runtime,
         )

@@ -15,6 +15,7 @@ import androidx.room.TypeConverters
 import androidx.room.Upsert
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import dev.nerzouille.koan.search.HistoryFilter
 import kotlinx.coroutines.flow.Flow
 import org.json.JSONArray
 
@@ -156,13 +157,50 @@ interface KoanDao {
 
     /** Pages whose url or title contains [q], most used first. */
     @Query(
-        "SELECT * FROM visits WHERE url LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%' " +
+        "SELECT * FROM visits WHERE NOT hidden AND (url LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%') " +
             "ORDER BY visitCount DESC, lastVisit DESC LIMIT :limit",
     )
     suspend fun searchVisits(q: String, limit: Int): List<VisitEntity>
 
-    @Query("SELECT * FROM visits ORDER BY lastVisit DESC LIMIT :limit")
+    @Query("SELECT * FROM visits WHERE NOT hidden ORDER BY lastVisit DESC LIMIT :limit")
     suspend fun recentVisits(limit: Int): List<VisitEntity>
+
+    /** The History sheet: newest first; [q] (may be empty) narrows on the url or the title. */
+    @Query(
+        "SELECT * FROM visits WHERE NOT hidden AND (:q = '' OR url LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%') " +
+            "ORDER BY lastVisit DESC LIMIT :limit",
+    )
+    fun observeHistory(q: String, limit: Int): Flow<List<VisitEntity>>
+
+    /** Which of [urls] were visited (visited links). */
+    @Query("SELECT url FROM visits WHERE url IN (:urls) AND NOT hidden")
+    suspend fun visitedAmong(urls: List<String>): List<String>
+
+    /** Removed from History: the phone's own visit goes; a synced one is only hidden here (no write-back). */
+    @Transaction
+    suspend fun removeVisit(url: String) {
+        deleteLocalVisit(url)
+        hideSyncedVisit(url)
+    }
+
+    @Query("DELETE FROM visits WHERE url = :url AND NOT fromSync")
+    suspend fun deleteLocalVisit(url: String)
+
+    @Query("UPDATE visits SET hidden = 1 WHERE url = :url AND fromSync")
+    suspend fun hideSyncedVisit(url: String)
+
+    /** Clear browsing data: the phone's history goes, the synced history is hidden. */
+    @Transaction
+    suspend fun clearHistory() {
+        deleteAllLocalVisits()
+        hideAllSyncedVisits()
+    }
+
+    @Query("DELETE FROM visits WHERE NOT fromSync")
+    suspend fun deleteAllLocalVisits()
+
+    @Query("UPDATE visits SET hidden = 1 WHERE fromSync")
+    suspend fun hideAllSyncedVisits()
 
     /** One more visit of [url] (a new row the first time). */
     @Transaction
@@ -170,7 +208,11 @@ interface KoanDao {
         if (bumpVisit(url, title, at) == 0) insertVisit(VisitEntity(url, title, at, 1))
     }
 
-    @Query("UPDATE visits SET visitCount = visitCount + 1, lastVisit = :at, title = CASE WHEN :title = '' THEN title ELSE :title END WHERE url = :url")
+    // Visited here (again): shown again if it was removed, and the phone's own from now on.
+    @Query(
+        "UPDATE visits SET visitCount = visitCount + 1, lastVisit = :at, title = CASE WHEN :title = '' THEN title ELSE :title END, " +
+            "hidden = 0, fromSync = 0 WHERE url = :url",
+    )
     suspend fun bumpVisit(url: String, title: String, at: Long): Int
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -317,7 +359,7 @@ class Converters {
 
 @Database(
     entities = [SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class, BookmarkEntity::class, VisitEntity::class, LoginEntity::class],
-    version = 6,
+    version = 7,
 )
 @TypeConverters(Converters::class)
 abstract class KoanDatabase : RoomDatabase() {
@@ -329,7 +371,7 @@ abstract class KoanDatabase : RoomDatabase() {
                 // v1 only ever held M1's fake data. From v2 on, rows are real Zen data and phone
                 // tabs: every schema change needs a real Migration.
                 .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1)
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build()
 
         /** M3: live pinned tabs' stack position, and the url Zen last sent (see ZenDiff). */
@@ -375,6 +417,21 @@ abstract class KoanDatabase : RoomDatabase() {
                         "`local` INTEGER NOT NULL, PRIMARY KEY(`guid`))",
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_logins_origin` ON `logins` (`origin`)")
+            }
+        }
+
+        /** Beta: history rows removed on the phone, and the redirect pages older builds recorded. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE visits ADD COLUMN `hidden` INTEGER NOT NULL DEFAULT 0")
+                val redirects = ArrayList<String>()
+                db.query("SELECT url, title FROM visits").use { c ->
+                    while (c.moveToNext()) {
+                        val url = c.getString(0)
+                        if (HistoryFilter.isRedirect(url, c.getString(1))) redirects += url
+                    }
+                }
+                redirects.forEach { db.execSQL("DELETE FROM visits WHERE url = ?", arrayOf(it)) }
             }
         }
     }
