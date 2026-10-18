@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,6 +30,9 @@ import dev.nerzouille.koan.BuildConfig
 import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
+import android.app.Activity
+import dev.nerzouille.koan.engine.ClosedTab
+import dev.nerzouille.koan.engine.Opener
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.resolveInput
 import dev.nerzouille.koan.search.resolveShared
@@ -213,7 +217,7 @@ fun KoanRoot(components: Components) {
         }
         overviewOpen = true
     }
-    fun openTab(index: Int, tab: TabEntity) {
+    fun openTab(index: Int, tab: TabEntity, captureLeaving: Boolean = !overviewOpen) {
         // From the page view (a scrub, a swipe to a card in another space) the pager follows too:
         // the next scrub starts from it and it saves the place.
         if (index != pager.settled) pager.snapTo(index)
@@ -225,7 +229,7 @@ fun KoanRoot(components: Components) {
         }
         zoomIn.value = overviewOpen
         // From the overview the page was captured when it opened; from the page view, now.
-        tabs.open(tab, captureLeaving = !overviewOpen)
+        tabs.open(tab, captureLeaving = captureLeaving)
         overviewOpen = false
     }
     fun newTab(index: Int) {
@@ -242,11 +246,11 @@ fun KoanRoot(components: Components) {
             ?: (s.pinnedTabs + s.essentials).firstOrNull { it.koanTabId == id }
     }
     /** A url as a new tab of the current space; [nextToCurrent]: right after the current card. */
-    fun openNewTab(url: String, select: Boolean, nextToCurrent: Boolean) {
+    fun openNewTab(url: String, select: Boolean, nextToCurrent: Boolean, fromApp: Boolean = false) {
         val index = currentSpace.coerceIn(0, (spaces.size - 1).coerceAtLeast(0))
         val space = spaces.getOrNull(index) ?: return
         val opener = if (nextToCurrent) activeTabId?.let(::tabById) else null
-        val id = tabs.openNew(space.space.uuid, url, opener, select)
+        val id = tabs.openNew(space.space.uuid, url, opener, select, fromApp)
         if (!select) {
             toasts.show(
                 Toast("Opened in background", "Switch") {
@@ -269,7 +273,7 @@ fun KoanRoot(components: Components) {
             if (incoming == null) return@collect
             components.incoming.value = null
             overlays.settingsOpen = false
-            openNewTab(if (incoming.isUrl) incoming.text else resolveShared(incoming.text, searchEngine), select = true, nextToCurrent = false)
+            openNewTab(if (incoming.isUrl) incoming.text else resolveShared(incoming.text, searchEngine), select = true, nextToCurrent = false, fromApp = true)
         }
     }
     /** A search result picked: an open tab is switched to (in its space), any other page loads here. */
@@ -406,10 +410,64 @@ fun KoanRoot(components: Components) {
     val canGoBack by components.store.observeSlice(activeTabId) { state ->
         activeTabId?.let { state.findTab(it) }?.content?.canGoBack == true
     }
-    // Page view: Back goes through the page's history, then to the overview.
+    val activity = LocalContext.current as? Activity
+    /** Undo of a tab closed by Back: back in its place, and shown. */
+    fun undoClose(closed: ClosedTab) {
+        scope.launch {
+            tabs.reopen(closed)
+            val index = spaces.indexOfFirst { it.space.uuid == closed.row.spaceUuid }
+            openTab(if (index >= 0) index else currentSpace, closed.row)
+        }
+    }
+    /**
+     * Back on a tab's first page: a tab another app opened closes and Back returns to that app; a
+     * tab opened from a link closes back to its opener; any other tab closes onto its neighbour in
+     * the stack (the overview after the space's last one), with Undo. A pinned tab, an essential or
+     * a split view never closes: the overview, as before.
+     */
+    fun backFromFirstPage(id: String) {
+        val tab = tabById(id)
+        val card = currentCard()
+        if (tab == null || card == null || tab.pinned || tab.essential || stackItem(spaces[card.first].stack[card.second].id)?.tabs.orEmpty().size > 1) {
+            openOverview()
+            return
+        }
+        val (si, i) = card
+        val opener = tabs.openerOf(id)
+        val parent = (opener as? Opener.Tab)?.let { tabById(it.id) }
+        val stack = spaces[si].stack
+        val next = stack.getOrNull(i + 1)?.first ?: stack.getOrNull(i - 1)?.first
+        scope.launch {
+            when {
+                opener == Opener.App -> {
+                    // Coming back to Koan later shows the tab next to it.
+                    if (next != null) openTab(si, next, captureLeaving = false)
+                    tabs.closeForUndo(id)
+                    activity?.moveTaskToBack(true)
+                    return@launch
+                }
+                parent != null -> {
+                    val index = spaces.indexOfFirst { s -> s.space.uuid == parent.spaceUuid }
+                    openTab(if (index >= 0) index else si, parent, captureLeaving = false)
+                    tabs.closeForUndo(id)
+                    return@launch
+                }
+                next != null -> openTab(si, next, captureLeaving = false)
+            }
+            val closed = tabs.closeForUndo(id) ?: return@launch
+            if (next == null) openOverview()
+            toasts.show(Toast("Tab closed", "Undo") { undoClose(closed) })
+        }
+    }
+    // Page view: Back goes through the page's history, then closes the tab (see backFromFirstPage).
     BackHandler(enabled = !overviewOpen && !editing) {
         val id = activeTabId
-        if (canGoBack && id != null) components.sessionUseCases.goBack(id) else openOverview()
+        when {
+            id == null -> openOverview()
+            canGoBack -> components.sessionUseCases.goBack(id)
+            id == blankId -> openOverview()
+            else -> backFromFirstPage(id)
+        }
     }
 
     Box(Modifier.fillMaxSize()) {
