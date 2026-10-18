@@ -749,6 +749,23 @@ object SearchTokens {
 
 }
 
+object PullTokens {
+    val Size = 40.dp
+    val Arc = 20.dp
+    val Stroke = 2.5.dp
+    val Elevation = 4.dp
+
+    /** Pulled this far (after resistance), a release reloads. */
+    val Trigger = 72.dp
+    val Max = 120.dp
+
+    /** The indicator moves this much of the finger's travel. */
+    const val RESISTANCE = 0.5f
+
+    /** A reload that never starts loading lets the indicator go after this. */
+    const val START_TIMEOUT_MS = 3000L
+}
+
 object HistoryTokens {
     val TitleSize = 22.sp
     val DaySize = 13.sp
