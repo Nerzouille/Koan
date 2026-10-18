@@ -749,6 +749,20 @@ object SearchTokens {
 
 }
 
+object HistoryTokens {
+    val TitleSize = 22.sp
+    val DaySize = 13.sp
+    val TitleRowSize = 15.sp
+    val Favicon = 24.dp
+    val SyncGlyph = 16.dp
+
+    /** The inner corners of a day's rows (one group, drawn row by row). */
+    val Flat = 0.dp
+
+    /** Rows loaded at most (newest first). */
+    const val LIMIT = 3000
+}
+
 object PagerTokens {
     /** Drag past this fraction of the page width to commit to the next space. */
     const val COMMIT_FRACTION = 0.25f

@@ -36,6 +36,8 @@ import mozilla.components.concept.engine.permission.PermissionRequest
 import android.net.Uri
 import android.provider.DocumentsContract
 import dev.nerzouille.koan.ui.downloads.DownloadsScreen
+import dev.nerzouille.koan.ui.history.ClearDataCard
+import dev.nerzouille.koan.ui.history.HistorySheet
 import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.kit.Toast
 import mozilla.components.browser.state.state.content.DownloadState
@@ -110,6 +112,8 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val signOutCard = SheetState(scope, splineBasedDecay(density))
     var settingsOpen by mutableStateOf(false)
     var downloadsOpen by mutableStateOf(false)
+    var historyOpen by mutableStateOf(false)
+    val clearDataCard = SheetState(scope, splineBasedDecay(density))
     val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
     val clearSiteCard = SheetState(scope, splineBasedDecay(density))
 
@@ -271,6 +275,10 @@ fun KoanOverlays(
                     downloads = {
                         close()
                         overlays.downloadsOpen = true
+                    },
+                    history = {
+                        close()
+                        overlays.historyOpen = true
                     },
                     siteSettings = { overlays.menuNav.push(MenuPage.SiteSettings) },
                     ublockToggle = components.ublock::setEnabled,
@@ -610,6 +618,34 @@ fun KoanOverlays(
                 components.downloads.clearHistory()
             },
             onCancel = { clearCard.animateTo(Detent.Closed) },
+        )
+    }
+
+    // ---- History, a full-height sheet, and Clear browsing data ----
+    HistorySheet(
+        open = overlays.historyOpen,
+        dao = components.database.dao(),
+        onOpen = { url ->
+            overlays.historyOpen = false
+            onOpenNew(url, true, false)
+        },
+        onRemove = { v -> scope.launch { components.database.dao().removeVisit(v.url) } },
+        onClearData = { overlays.clearDataCard.animateTo(Detent.Compact) },
+        onClose = { overlays.historyOpen = false },
+    )
+    val clearData = overlays.clearDataCard
+    KoanCard(clearData) { interactive ->
+        ClearDataCard(
+            interactive = interactive,
+            onClear = { choice ->
+                clearData.animateTo(Detent.Closed)
+                scope.launch {
+                    if (choice.history) components.database.dao().clearHistory()
+                    val ok = components.sitePermissions.clearAll(cookies = choice.cookies, cache = choice.cache)
+                    onToast(Toast(if (ok) "Browsing data cleared" else "Couldn't clear everything"))
+                }
+            },
+            onCancel = { clearData.animateTo(Detent.Closed) },
         )
     }
 
