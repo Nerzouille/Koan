@@ -18,7 +18,7 @@ object Suggestions {
     /** [url]: the engine's suggestion url for [query] (see SearchEngine / Shortcut). */
     suspend fun fetch(query: String, url: String?): List<String> = withContext(Dispatchers.IO) {
         val q = query.trim()
-        if (url == null || q.length < 2 || looksLikeUrl(q)) return@withContext emptyList()
+        if (url == null || q.isEmpty() || looksLikeUrl(q)) return@withContext emptyList()
         runCatching {
             val connection = (URL(url).openConnection() as HttpURLConnection).apply {
                 connectTimeout = TIMEOUT_MS

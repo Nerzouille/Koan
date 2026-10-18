@@ -534,27 +534,26 @@ fun KoanRoot(components: Components) {
         LaunchedEffect(currentPage.loading) { if (currentPage.loading) dock.show() }
         // Typing in the address field: results above it, below the dock.
         val searchBottom = barZone(overview = false) + WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
-        if (editing) {
-            SearchSheet(
-                field = searchField,
-                search = search,
-                engine = searchEngine,
-                bottom = searchBottom,
-                currentSpace = currentSpace,
-                actions = SearchActions(
-                    open = ::openHit,
-                    search = { url ->
-                        editing = false
-                        tabs.load(url)
-                    },
-                    pick = searchField::set,
-                    cancel = {
-                        editing = false
-                        tabs.cancelBlank()
-                    },
-                ),
-            )
-        }
+        SearchSheet(
+            open = editing,
+            field = searchField,
+            search = search,
+            engine = searchEngine,
+            bottom = searchBottom,
+            currentSpace = currentSpace,
+            actions = SearchActions(
+                open = ::openHit,
+                search = { url ->
+                    editing = false
+                    tabs.load(url)
+                },
+                pick = searchField::set,
+                cancel = {
+                    editing = false
+                    tabs.cancelBlank()
+                },
+            ),
+        )
         KoanBar(
             overviewOpen = overviewOpen,
             overview = { motion.progress },

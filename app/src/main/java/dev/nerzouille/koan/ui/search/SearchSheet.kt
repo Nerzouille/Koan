@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -22,7 +23,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +54,7 @@ import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.SearchTokens
 
 /** An open tab a result switches to: where it lives. */
@@ -73,10 +78,12 @@ class SearchActions(
  * the results are laid out bottom-up from the field (the best match right above it, less relevant
  * groups further up), capped below the status bar (it scrolls inside). "@" shows the engines and
  * scopes instead (7d). A tap outside the results closes it. [bottom]: the dock's height above the
- * keyboard.
+ * keyboard. [open]: the address field is being edited; the dim fades in and out with it, whether
+ * or not there is anything to show yet.
  */
 @Composable
 fun SearchSheet(
+    open: Boolean,
     field: SearchField,
     search: SearchState,
     engine: SearchEngine,
@@ -84,6 +91,30 @@ fun SearchSheet(
     currentSpace: Int,
     actions: SearchActions,
     modifier: Modifier = Modifier,
+) {
+    val fade = remember { Animatable(0f) }
+    LaunchedEffect(open) { fade.animateTo(if (open) 1f else 0f, Motion.SearchScrim) }
+    if (!open && fade.value == 0f) return
+    val palette = KoanTheme.colors
+    Box(
+        modifier
+            .fillMaxSize()
+            .drawBehind { drawRect(palette.SheetScrim, alpha = fade.value) }
+            .then(if (open) Modifier.pointerInput(Unit) { detectTapGestures { actions.cancel() } } else Modifier),
+    ) {
+        if (open) Results(field, search, engine, bottom, currentSpace, actions)
+    }
+}
+
+/** What the sheet shows for what is typed: the "@" picker, or the result groups. */
+@Composable
+private fun BoxScope.Results(
+    field: SearchField,
+    search: SearchState,
+    engine: SearchEngine,
+    bottom: Dp,
+    currentSpace: Int,
+    actions: SearchActions,
 ) {
     val palette = KoanTheme.colors
     val parsed = parseQuery(field.typed)
@@ -97,71 +128,64 @@ fun SearchSheet(
     val pickable = parsed.picking && (
         Shortcut.entries.any { pickMatch(parsed.rest, it.key, it.label) } || Scope.entries.any { pickMatch(parsed.rest, it.key, it.label) }
         )
-    val showing = pickable || (!parsed.picking && (!results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty())))
+    if (pickable) {
+        Picker(parsed.rest, engine, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom).heightIn(max = cap))
+        return
+    }
+    val showing = !parsed.picking && (!results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty()))
     if (!showing) return
-    Box(
-        modifier
-            .fillMaxSize()
-            .drawBehind { drawRect(palette.SheetScrim) }
-            .pointerInput(Unit) { detectTapGestures { actions.cancel() } },
+    Column(
+        Modifier
+            .align(Alignment.BottomCenter)
+            .padding(bottom = bottom + SearchTokens.GroupGap)
+            .padding(horizontal = SearchTokens.Margin)
+            .heightIn(max = cap)
+            // Starts at its bottom (the best results), scrolls up to the rest.
+            .verticalScroll(rememberScrollState(), reverseScrolling = true)
+            // Taps between groups land here, not on the "close" behind.
+            .pointerInput(Unit) { detectTapGestures { } },
+        verticalArrangement = Arrangement.spacedBy(SearchTokens.GroupGap, Alignment.Bottom),
     ) {
-        if (pickable) {
-            Picker(parsed.rest, engine, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom).heightIn(max = cap))
-            return@Box
-        }
-        Column(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = bottom + SearchTokens.GroupGap)
-                .padding(horizontal = SearchTokens.Margin)
-                .heightIn(max = cap)
-                // Starts at its bottom (the best results), scrolls up to the rest.
-                .verticalScroll(rememberScrollState(), reverseScrolling = true)
-                // Taps between groups land here, not on the "close" behind.
-                .pointerInput(Unit) { detectTapGestures { } },
-            verticalArrangement = Arrangement.spacedBy(SearchTokens.GroupGap, Alignment.Bottom),
-        ) {
-            // Top to bottom = furthest to closest to the thumb: history and bookmarks, then open
-            // tabs, then the engine's suggestions right on the field.
-            if (results.pages.isNotEmpty()) {
-                val label = when {
-                    results.pages.all { it.source == Source.Bookmark } -> "Bookmarks"
-                    results.pages.any { it.source == Source.Bookmark } -> "History & bookmarks"
-                    else -> "History"
-                }
-                Group(label, KoanIcons.Reload) { results.pages.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
+        // Top to bottom = furthest to closest to the thumb: history and bookmarks, then open
+        // tabs, then the engine's suggestions right on the field.
+        if (results.pages.isNotEmpty()) {
+            val label = when {
+                results.pages.all { it.source == Source.Bookmark } -> "Bookmarks"
+                results.pages.any { it.source == Source.Bookmark } -> "History & bookmarks"
+                else -> "History"
             }
-            if (results.tabs.isNotEmpty()) Group("Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
-            if (suggestions.isNotEmpty()) {
-                Group(search.suggestionsFrom, null) {
-                    Row(
-                        Modifier
-                            .horizontalScroll(rememberScrollState())
-                            .padding(start = SearchTokens.RowPadding, end = SearchTokens.RowPadding, bottom = SearchTokens.RowPadding),
-                        horizontalArrangement = Arrangement.spacedBy(SearchTokens.ChipGap),
-                    ) {
-                        suggestions.forEach { s ->
-                            Chip(s, KoanIcons.Search) {
-                                actions.search(shortcut?.searchUrl(s) ?: engine.searchUrl(s))
-                            }
+            Group(label, KoanIcons.Reload) { results.pages.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
+        }
+        if (results.tabs.isNotEmpty()) Group("Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
+        if (suggestions.isNotEmpty()) {
+            Group(search.suggestionsFrom, null) {
+                Row(
+                    Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(start = SearchTokens.RowPadding, end = SearchTokens.RowPadding, bottom = SearchTokens.RowPadding),
+                    horizontalArrangement = Arrangement.spacedBy(SearchTokens.ChipGap),
+                ) {
+                    suggestions.forEach { s ->
+                        Chip(s, KoanIcons.Search) {
+                            actions.search(shortcut?.searchUrl(s) ?: engine.searchUrl(s))
                         }
                     }
                 }
             }
-            if (shortcut != null && parsed.rest.isNotEmpty()) {
-                Group(null, null) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(SearchTokens.RowHeight)
-                            .clickable { actions.search(shortcut.searchUrl(parsed.rest)) }
-                            .padding(horizontal = SearchTokens.RowPadding),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Favicon(shortcut.home, SearchTokens.Favicon)
-                        Spacer(Modifier.width(SearchTokens.RowPadding))
-                        Text("Search ${shortcut.label} for “${parsed.rest}”", color = palette.TextPrimary, fontSize = SearchTokens.TitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
+        }
+        if (shortcut != null && parsed.rest.isNotEmpty()) {
+            Group(null, null) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(SearchTokens.RowHeight)
+                        .clickable { actions.search(shortcut.searchUrl(parsed.rest)) }
+                        .padding(horizontal = SearchTokens.RowPadding),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Favicon(shortcut.home, SearchTokens.Favicon)
+                    Spacer(Modifier.width(SearchTokens.RowPadding))
+                    Text("Search ${shortcut.label} for “${parsed.rest}”", color = palette.TextPrimary, fontSize = SearchTokens.TitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
