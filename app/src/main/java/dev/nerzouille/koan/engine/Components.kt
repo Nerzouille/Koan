@@ -62,6 +62,8 @@ class Components(context: Context) {
                 preferredColorScheme = PreferredColorScheme.System,
                 // Visited links, and page titles for history.
                 historyTrackingDelegate = history,
+                // tel:, mailto:, intent:// … open in their app.
+                requestInterceptor = ExternalLinks(appContext),
             ),
             runtime,
         )
