@@ -61,6 +61,7 @@ class MainActivity : FragmentActivity() {
         components.sync.start()
         components.pageTools.start()
         components.startExtensions()
+        components.startMedia()
         components.watchDownloadLocation()
         startDownloads(components)
         // A fresh start from a link (default browser, share); a recreated activity already had it.

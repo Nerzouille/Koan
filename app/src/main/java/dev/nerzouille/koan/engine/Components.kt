@@ -29,6 +29,13 @@ import mozilla.components.feature.downloads.DownloadsUseCases
 import mozilla.components.support.utils.DefaultDownloadFileUtils
 import mozilla.components.feature.readerview.ReaderViewMiddleware
 import mozilla.components.browser.engine.gecko.GeckoEngine
+import mozilla.components.feature.media.MediaSessionFeature
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import mozilla.components.lib.state.ext.flow
+import mozilla.components.browser.state.action.ContentAction
+import dev.nerzouille.koan.favicon.FaviconLoader
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.store.BrowserStore
@@ -116,6 +123,27 @@ class Components(context: Context) {
         extensionsStarted = true
         WebExtensionSupport.initialize(engine, store, openPopupInTab = false)
         ublock.start()
+    }
+
+    private var mediaStarted = false
+
+    /** Media notification and lock screen controls for pages playing (KoanMediaService). Once per process. */
+    fun startMedia() {
+        if (mediaStarted) return
+        mediaStarted = true
+        MediaSessionFeature(appContext, KoanMediaService::class.java, store).start()
+        // The notification shows the tab's icon: Koan's favicons, given to a tab once it plays.
+        appScope.launch {
+            store.flow()
+                .map { s -> s.tabs.filter { it.mediaSessionState != null && it.content.icon == null }.map { it.id to it.content.url } }
+                .distinctUntilChanged()
+                .collect { playing ->
+                    playing.forEach { (id, url) ->
+                        val icon = FaviconLoader.image(url, null) ?: return@forEach
+                        withContext(Dispatchers.Main) { store.dispatch(ContentAction.UpdateIconAction(id, url, icon)) }
+                    }
+                }
+        }
     }
 
     /** What sites may do: answers to their requests, and Site settings. */

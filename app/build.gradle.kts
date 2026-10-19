@@ -156,6 +156,8 @@ dependencies {
     implementation(libs.mozilla.lib.state)
     implementation(libs.mozilla.feature.readerview)
     implementation(libs.mozilla.feature.downloads)
+    // Background audio: the media notification and lock screen controls.
+    implementation(libs.mozilla.feature.media)
     // Login prompts carry its Login types (approved for M5).
     implementation(libs.mozilla.concept.storage)
     // Already shipped with feature-downloads; declared to compile against its DownloadFileUtils.

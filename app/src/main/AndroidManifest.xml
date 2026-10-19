@@ -63,6 +63,11 @@
             android:name=".engine.downloads.KoanDownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <!-- Audio and video keep playing with Koan in the background: the media notification. -->
+        <service
+            android:name=".engine.KoanMediaService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
         <!-- Photos and videos taken for a page's file field (<input type=file>). -->
         <provider
             android:name="androidx.core.content.FileProvider"
