@@ -14,6 +14,16 @@ folders you have on the desktop.
 - **Download:** the latest APK is on the [releases page](https://github.com/Nerzouille/Koan/releases)
   (pre-releases); what changed is in [`CHANGELOG.md`](CHANGELOG.md).
 
+## Screenshots
+
+| Tab overview | A page | Search |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/overview.png" width="240" alt="The tab overview: a stack of page cards"> | <img src="docs/screenshots/page.png" width="240" alt="A page with the dock at the bottom"> | <img src="docs/screenshots/search.png" width="240" alt="The search sheet: switch to tab, suggestions and inline completion"> |
+| **⋯ menu** | **History** | **About (dark theme)** |
+| <img src="docs/screenshots/menu.png" width="240" alt="The menu sheet over a page"> | <img src="docs/screenshots/history.png" width="240" alt="The history page, one card per day"> | <img src="docs/screenshots/about-dark.png" width="240" alt="About Koan in the dark theme"> |
+
+Taken on a fresh install without an account (one local space), so no Zen Spaces are shown.
+
 ## Status
 
 A one-person hobby project, built for my own phone and shared as-is.
