@@ -149,8 +149,9 @@ internal fun SearchBox(value: String, hint: String, onChange: (String) -> Unit) 
 }
 
 /**
- * Settings › Passwords › a site: each account with where it comes from, its username (Copy) and
- * its password, hidden until Reveal (Copy marks it sensitive).
+ * Settings › Passwords › a site: each account with where it comes from, its username and its
+ * password, hidden until Reveal. Tapping either copies it (a password is marked sensitive); a site
+ * with one account also has the big Copy password button.
  */
 @Composable
 internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack: () -> Unit) {
@@ -166,6 +167,13 @@ internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack
                     if (i > 0) Spacer(Modifier.height(SettingsTokens.SectionTop))
                     Account(s, unlocked[s.guid], on)
                 }
+            }
+            // One account: its password one big tap away.
+            val single = accounts.singleOrNull()?.let { unlocked[it.guid] }
+            if (single != null) {
+                val context = LocalContext.current
+                Spacer(Modifier.height(SettingsTokens.SectionTop))
+                PrimaryButton("Copy password", onClick = { if (on) copy(context, "Password", single.password, sensitive = true) }, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -186,10 +194,9 @@ private fun Account(s: LoginSummary, login: Login?, on: Boolean) {
             onClick = if (login.username.isEmpty()) null else { { copy(context, "Username", login.username, sensitive = false) } },
         ) { if (login.username.isNotEmpty()) RowAction("Copy") }
         SettingsDivider()
-        SettingsRow(null, if (shown) login.password else "••••••••••", on, subtitle = "Password", onClick = { shown = !shown }) {
-            RowAction(if (shown) "Hide" else "Reveal")
-            Spacer(Modifier.width(SettingsTokens.RowInset * 1.5f))
-            RowAction("Copy") { if (on) copy(context, "Password", login.password, sensitive = true) }
+        // Tapping the password copies it, hidden or shown; Reveal / Hide is its own tap.
+        SettingsRow(null, if (shown) login.password else "••••••••••", on, subtitle = "Password", onClick = { copy(context, "Password", login.password, sensitive = true) }) {
+            RowAction(if (shown) "Hide" else "Reveal") { if (on) shown = !shown }
         }
     }
 }
