@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import dev.nerzouille.koan.data.StartPageAfter
 import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
@@ -61,6 +62,9 @@ class SettingsUi(
     val onTheme: (ThemeMode) -> Unit,
     val engine: SearchEngine,
     val onEngine: (SearchEngine) -> Unit,
+    /** How long unused before Koan comes back on the start page. */
+    val startPageAfter: StartPageAfter,
+    val onStartPageAfter: (StartPageAfter) -> Unit,
     /** Suggestions from the search engine while typing. */
     val suggestions: Boolean,
     val onSuggestions: (Boolean) -> Unit,
@@ -158,6 +162,10 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
             listOf(ThemeMode.Light to "Light", ThemeMode.Dark to "Dark", ThemeMode.System to "Follow system"),
             ui.theme, on, ui.onTheme,
         )
+        Spacer(Modifier.height(SettingsTokens.Divider * 10))
+        SettingsDivider()
+        SettingsRow(KoanIcons.Essentials, "Start page", on, subtitle = "When Koan comes back after this long unused")
+        Segmented(StartPageAfter.entries.map { it to it.label }, ui.startPageAfter, on, ui.onStartPageAfter)
         Spacer(Modifier.height(SettingsTokens.Divider * 10))
         SettingsDivider()
         SettingsRow(

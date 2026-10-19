@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.overview.CardModel
 import dev.nerzouille.koan.ui.overview.DrawerRow
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.overview.SpaceModel
@@ -129,6 +130,29 @@ fun DrawerContent(
     }
 }
 
+/** A space's essentials, 4 per row (the drawer, the start page). */
+@Composable
+fun EssentialsGrid(essentials: List<CardModel>, interactive: Boolean, onOpenTab: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(DrawerTokens.Gap)) {
+        essentials.chunked(4).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(DrawerTokens.EssentialGap)) {
+                row.forEach { tab ->
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(DrawerTokens.EssentialHeight)
+                            .clip(RoundedCornerShape(DrawerTokens.EssentialRadius))
+                            .background(KoanTheme.colors.Glass)
+                            .then(if (interactive) Modifier.clickable { onOpenTab(tab.id) } else Modifier),
+                        contentAlignment = Alignment.Center,
+                    ) { Favicon(tab.url, DrawerTokens.EssentialFavicon, icon = tab.icon, staticIcon = tab.staticIcon) }
+                }
+                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
 @Composable
 private fun DrawerPage(
     space: SpaceModel,
@@ -152,23 +176,8 @@ private fun DrawerPage(
                 modifier = Modifier.padding(vertical = DrawerTokens.Padding),
             )
         }
-        // Every essential Zen sends, 4 per row: no Koan-side cap (the full detent shows them all).
-        space.essentials.chunked(4).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(DrawerTokens.EssentialGap)) {
-                row.forEach { tab ->
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .height(DrawerTokens.EssentialHeight)
-                            .clip(RoundedCornerShape(DrawerTokens.EssentialRadius))
-                            .background(KoanTheme.colors.Glass)
-                            .then(if (interactive) Modifier.clickable { onOpenTab(tab.id) } else Modifier),
-                        contentAlignment = Alignment.Center,
-                    ) { Favicon(tab.url, DrawerTokens.EssentialFavicon, icon = tab.icon, staticIcon = tab.staticIcon) }
-                }
-                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
+        // Every essential Zen sends: no Koan-side cap (the full detent shows them all).
+        if (space.essentials.isNotEmpty()) EssentialsGrid(space.essentials, interactive, onOpenTab)
         if (space.pinned.isNotEmpty()) {
             Column(
                 Modifier

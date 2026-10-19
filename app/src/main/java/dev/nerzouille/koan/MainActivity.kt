@@ -33,6 +33,8 @@ import dev.nerzouille.koan.ui.RefreshBooster
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.feature.tabs.WindowFeature
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     private val refresh = RefreshBooster(this)
@@ -102,6 +104,9 @@ class MainActivity : FragmentActivity() {
     private companion object {
         /** Per process, not per activity (a recreated activity must not restore twice). */
         val savedDownloadsRestored = java.util.concurrent.atomic.AtomicBoolean(false)
+
+        /** When Koan last went to the background; null in a new process (then read from disk). */
+        @Volatile var hiddenAt: Long? = null
     }
 
     // Downloads need the notification permission for their progress notification (Android 13+).
@@ -150,7 +155,29 @@ class MainActivity : FragmentActivity() {
             else -> null
         } ?: return
         if (incoming.text.isBlank()) return
+        openedFromLink = true
         (application as KoanApp).components.incoming.value = incoming
+    }
+
+    /** This time Koan came to the front for a link or a share: never the start page. */
+    private var openedFromLink = false
+
+    /**
+     * Back after being unused longer than the setting (not for a link): the start page. Checked
+     * once per return to the front, after any new intent has arrived.
+     */
+    private fun checkStartPage() {
+        val components = (application as KoanApp).components
+        val fromLink = openedFromLink
+        openedFromLink = false
+        val known = hiddenAt
+        hiddenAt = Long.MAX_VALUE
+        if (fromLink || known == Long.MAX_VALUE) return
+        components.appScope.launch {
+            val at = known ?: components.lastPlace.hiddenAt() ?: return@launch
+            val after = components.settings.startPageAfter.first().millis ?: return@launch
+            if (System.currentTimeMillis() - at >= after) components.startPage.value = true
+        }
     }
 
     // High refresh only while the user interacts (and the animations that follow); see RefreshBooster.
@@ -169,8 +196,20 @@ class MainActivity : FragmentActivity() {
         (application as KoanApp).components.sync.onForeground()
     }
 
+    override fun onResume() {
+        super.onResume()
+        checkStartPage()
+    }
+
     override fun onStop() {
-        (application as KoanApp).components.sync.onBackground()
+        val components = (application as KoanApp).components
+        // Not for a rotation: the activity comes straight back.
+        if (!isChangingConfigurations) {
+            val now = System.currentTimeMillis()
+            hiddenAt = now
+            components.appScope.launch { components.lastPlace.saveHiddenAt(now) }
+        }
+        components.sync.onBackground()
         super.onStop()
     }
 

@@ -91,6 +91,7 @@ import kotlinx.coroutines.flow.first
 import dev.nerzouille.koan.ui.overview.toModel
 import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
+import dev.nerzouille.koan.ui.start.StartPage
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import kotlinx.coroutines.launch
@@ -119,6 +120,10 @@ fun KoanRoot(components: Components) {
     val tabsStarted by tabs.started.collectAsStateWithLifecycle()
     var overviewOpen by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
+    // The start page is up (with the field): not a tab until something opens from it. It goes
+    // with the field.
+    var startPage by remember { mutableStateOf(false) }
+    LaunchedEffect(editing) { if (!editing) startPage = false }
     // A new tab always starts with the search sheet open.
     LaunchedEffect(blankId) { if (blankId != null) editing = true }
     val palette = KoanTheme.colors
@@ -279,12 +284,16 @@ fun KoanRoot(components: Components) {
             openNewTab(if (incoming.isUrl) incoming.text else resolveShared(incoming.text, searchEngine), select = true, nextToCurrent = false, fromApp = true)
         }
     }
+    /** A url from the field: loads in the current tab, or in a new one from the start page. */
+    fun loadHere(url: String) {
+        if (startPage) openNewTab(url, select = true, nextToCurrent = false) else tabs.load(url)
+    }
     /** A search result picked: an open tab is switched to (in its space), any other page loads here. */
     fun openHit(hit: Hit) {
         editing = false
         val target = hit.payload as? TabTarget
         val tab = target?.let { tabById(it.tabId) }
-        if (target != null && tab != null) openTab(target.spaceIndex, tab) else tabs.load(hit.url)
+        if (target != null && tab != null) openTab(target.spaceIndex, tab) else loadHere(hit.url)
     }
     /** Go on the keyboard: "@wiki koan" searches there, the completed top hit opens, else url or search. */
     fun submitSearch(input: String) {
@@ -293,13 +302,13 @@ fun KoanRoot(components: Components) {
         when {
             parsed.shortcut != null -> {
                 editing = false
-                tabs.load(if (parsed.rest.isEmpty()) parsed.shortcut.home else parsed.shortcut.searchUrl(parsed.rest))
+                loadHere(if (parsed.rest.isEmpty()) parsed.shortcut.home else parsed.shortcut.searchUrl(parsed.rest))
             }
             parsed.scope != null -> search.results.let { r -> (r.tabs + r.pages).firstOrNull() }?.let(::openHit)
             top != null && input.equals(completion(searchField.typed, top) ?: "\u0000", ignoreCase = true) -> openHit(top)
             else -> {
                 editing = false
-                tabs.load(resolveInput(input, searchEngine))
+                loadHere(resolveInput(input, searchEngine))
             }
         }
     }
@@ -368,6 +377,27 @@ fun KoanRoot(components: Components) {
         if (tab != null) openTab(index, tab) else openOverview()
     }
 
+    // Back after a while unused (MainActivity decides): the start page over the last tab. A link
+    // from another app wins.
+    val startRequested by components.startPage.collectAsStateWithLifecycle()
+    LaunchedEffect(startRequested, tabsStarted, spaces.isEmpty(), placeRestored) {
+        if (!startRequested || !tabsStarted || spaces.isEmpty() || !placeRestored) return@LaunchedEffect
+        components.startPage.value = false
+        if (components.incoming.value != null || activeTabId == null || signingIn) return@LaunchedEffect
+        tabSwipe.cancel()
+        tabs.cancelBlank()
+        overlays.dismissAll()
+        overlays.menu.snapClosed()
+        overlays.settingsOpen = false
+        overlays.historyOpen = false
+        overlays.downloadsOpen = false
+        zoomIn.value = false
+        overviewOpen = false
+        searchField.start("")
+        startPage = true
+        editing = true
+    }
+
     // No tab to show (first run, or the last one was closed in Zen): the overview.
     LaunchedEffect(tabsStarted, activeTabId, spaces.isEmpty()) {
         if (tabsStarted && activeTabId == null && spaces.isNotEmpty() && !overviewOpen) openOverview()
@@ -422,6 +452,32 @@ fun KoanRoot(components: Components) {
             openTab(if (index >= 0) index else currentSpace, closed.row)
         }
     }
+    /**
+     * Close tab from the tab counter's menu: onto its neighbour in the stack (the overview after
+     * the space's last one), with Undo. A pinned tab or an essential goes back to its row, a split
+     * view closes whole.
+     */
+    fun closeCurrentTab() {
+        val id = activeTabId ?: return
+        val (si, i) = currentCard() ?: return
+        val stack = spaces[si].stack
+        val rows = stackItem(stack[i].id)?.tabs.orEmpty()
+        val next = stack.getOrNull(i + 1)?.first ?: stack.getOrNull(i - 1)?.first
+        val tab = tabById(id)
+        if (tab == null || tab.pinned || tab.essential || rows.size > 1) {
+            if (next != null) openTab(si, next, captureLeaving = false)
+            tabs.close(rows.map { it.koanTabId }.ifEmpty { listOf(id) }, rows)
+            if (next == null) openOverview()
+            return
+        }
+        scope.launch {
+            if (next != null) openTab(si, next, captureLeaving = false)
+            val closed = tabs.closeForUndo(id) ?: return@launch
+            if (next == null) openOverview()
+            toasts.show(Toast("Tab closed", "Undo") { undoClose(closed) })
+        }
+    }
+
     /**
      * Back on a tab's first page: a tab another app opened closes and Back returns to that app; a
      * tab opened from a link closes back to its opener; any other tab closes onto its neighbour in
@@ -598,8 +654,19 @@ fun KoanRoot(components: Components) {
         LaunchedEffect(currentPage.loading) { if (currentPage.loading) dock.show() }
         // Typing in the address field: results above it, below the dock.
         val searchBottom = barZone(overview = false) + WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
+        StartPage(
+            open = startPage,
+            space = models.getOrNull(currentSpace),
+            bottom = searchBottom,
+            onOpenTab = { id ->
+                editing = false
+                spaces.getOrNull(currentSpace)?.findTab(id)?.let { openTab(currentSpace, it) }
+            },
+            onDismiss = { editing = false },
+        )
         SearchSheet(
-            open = editing,
+            // On the start page the essentials stay usable until something is typed.
+            open = editing && !(startPage && searchField.typed.isEmpty()),
             field = searchField,
             search = search,
             engine = searchEngine,
@@ -609,12 +676,17 @@ fun KoanRoot(components: Components) {
                 open = ::openHit,
                 search = { url ->
                     editing = false
-                    tabs.load(url)
+                    loadHere(url)
                 },
                 pick = searchField::set,
                 cancel = {
-                    editing = false
-                    tabs.cancelBlank()
+                    // The start page stays: a tap beside the results only clears the field.
+                    if (startPage) {
+                        searchField.set("")
+                    } else {
+                        editing = false
+                        tabs.cancelBlank()
+                    }
                 },
             ),
         )
@@ -623,7 +695,7 @@ fun KoanRoot(components: Components) {
             overviewOpen = overviewOpen,
             overview = { motion.progress },
             bar = bar,
-            loading = currentPage.loading,
+            loading = currentPage.loading && !startPage,
             loadProgress = currentPage.progress,
             dockHide = { dock.offset },
             drawerContent = { modifier ->
@@ -651,7 +723,7 @@ fun KoanRoot(components: Components) {
             },
             address = { modifier ->
                 AddressRow(
-                    page = currentPage,
+                    page = if (startPage) PageInfo("", loading = false, progress = 0f, canGoBack = false, canGoForward = false) else currentPage,
                     tabCount = models.getOrNull(currentSpace)?.stack?.size ?: 0,
                     editing = editing,
                     overviewOpen = overviewOpen,
@@ -666,6 +738,10 @@ fun KoanRoot(components: Components) {
                     onBack = { session.goBack(activeTabId) },
                     onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
                     onMenu = { overlays.menu.animateTo(Detent.Compact) },
+                    onNewTab = { newTab(pager.settled) },
+                    onSettings = { overlays.settingsOpen = true },
+                    onTabsMenu = { overlays.tabMenuOpen = true },
+                    claimHold = { bar.holdClaimed = true },
                     modifier = modifier,
                     swipe = { if (overviewOpen) 0f else tabSwipe.fraction },
                     previous = tabSwipe.previous?.let(::tabTarget),
@@ -692,6 +768,7 @@ fun KoanRoot(components: Components) {
             drawerStatus = drawerStatus,
             onEditAddress = { editing = true },
             onNewTab = { newTab(currentSpace) },
+            onCloseTab = ::closeCurrentTab,
             onOpenNew = ::openNewTab,
             onSignIn = { signingIn = true },
             onToast = toasts::show,

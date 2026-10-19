@@ -20,6 +20,14 @@ enum class ThemeMode(val label: String) {
     Dark("Dark"),
 }
 
+/** How long Koan stays unused before it comes back on the start page instead of the last tab. */
+enum class StartPageAfter(val label: String, val millis: Long?) {
+    HalfHour("30 min", 30 * 60_000L),
+    Hour("1 h", 60 * 60_000L),
+    FourHours("4 h", 4 * 60 * 60_000L),
+    Never("Never", null),
+}
+
 /** The owner's settings. */
 class Settings(context: Context) {
     private val store = context.applicationContext.settingsStore
@@ -85,5 +93,15 @@ class Settings(context: Context) {
 
     suspend fun setSearchEngine(value: SearchEngine) {
         store.edit { it[engine] = value.name }
+    }
+
+    private val startAfter = stringPreferencesKey("start_page_after")
+
+    val startPageAfter: Flow<StartPageAfter> = store.data.map { prefs ->
+        StartPageAfter.entries.firstOrNull { it.name == prefs[startAfter] } ?: StartPageAfter.Hour
+    }
+
+    suspend fun setStartPageAfter(value: StartPageAfter) {
+        store.edit { it[startAfter] = value.name }
     }
 }
