@@ -17,7 +17,7 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 - Download `koan-v0.2.0.apk` from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
 - Installing over a previous Koan version keeps your tabs, spaces, logins and settings.
-- The APK is about 210 MB. See [Known limitations](#13-known-limitations).
+- The APK is about 212 MB. See [Known limitations](#13-known-limitations).
 
 ### First run
 
@@ -80,9 +80,11 @@ Koan only reads. Nothing you do on the phone is written to your account or to Ze
 - **In the overview:** swipe sideways on the dock, or tap a space icon in the switcher row. One
   light tick per switch.
 - **In a page:** long-press the address pill (a tick: "space mode", the pill shows the current
-  space), then slide sideways without lifting: you scrub through your spaces, a tick per space.
-  Lift on a space to open its current tab (or its overview if it has none). Lift without sliding to
-  cancel.
+  space), then slide sideways without lifting: you scrub through your spaces, a tick per space,
+  the space under your finger highlighted. The steps fit your screen: sliding towards an edge
+  always reaches the first or last space a little before the edge, however many spaces you have.
+  Lift on a space to open its current tab (or its overview if it has none). Lift where you started
+  to cancel.
 
 ### Essentials, pinned tabs and folders (the drawer)
 
@@ -138,13 +140,26 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 - **Space mode:** long-press the pill, then slide (see [Switching spaces](#switching-spaces)).
 - **The dock hides** while you scroll a page down and comes back when you scroll up or a new page
   loads.
+- **Pull to refresh:** at the top of a page, pull down: a small circle follows your finger; let go
+  past the tick to reload, and it turns with Koan's gradient until the page has loaded. Pages that
+  handle the touch themselves (maps, drawing apps, sites with their own pull) keep their own
+  gesture.
+- **Toasts** (the small bar at the bottom: "Tab closed · Undo", "Opened in background · Switch",
+  a finished download): swipe one sideways or down to dismiss it early, without its action.
 
 ### Back
 
-- In a page: back through the page's history, then to the overview.
+- In a page: back through the page's history first. When there's nothing left to go back to:
+  - a tab another app opened (a link from a chat, an email…) closes, and you're back in that app;
+  - a tab opened from a link in another tab closes, and you're back on that tab;
+  - any other tab closes and the next one in the stack shows, with a **Tab closed · Undo** toast
+    (Undo brings it back with its page history). After the space's last tab, the overview opens,
+    with the same toast;
+  - a pinned tab or an essential never closes: the overview opens, as before.
+- A full screen video: Back leaves full screen first.
 - In the overview: back to the current tab.
-- Any sheet, card or panel (menu, drawer, a prompt, Settings, Downloads): Back closes it, or goes
-  back one page inside it.
+- Any sheet, card or panel (menu, drawer, a prompt, Settings, History, Downloads): Back closes it,
+  or goes back one page inside it.
 - The search field and find in page: one Back (the gesture or the key) closes both the keyboard
   and the field.
 
@@ -154,9 +169,12 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 
 ### The search sheet
 
-- Tap the address pill: the address is selected, ready to type over.
-- As you type, results appear above the field, and the page behind dims. From the field upward:
-  1. **Suggestions** from your search engine (one row of chips).
+- Tap the address pill: the address is selected, ready to type over. The page behind dims at once.
+- A long address scrolls to keep the cursor in view, also while you drag the cursor handle to an
+  edge; you can drag the text itself to scroll it.
+- As you type, results appear above the field. From the field upward:
+  1. **Suggestions** from your search engine (one row of chips, from the first letter, with the
+     engine's icon next to its name).
   2. **Switch to tab:** up to 2 open tabs, in any space. A tab in another space shows that space's
      name.
   3. **History & bookmarks:** up to 2 pages, ranked by how often and how recently you visited them.
@@ -164,7 +182,8 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 - What matches: under 3 characters, only the start of a site's address (`sa` → samsung.com). From 3
   characters, also the start of a word in the page's title.
 - **Inline completion:** the field completes the best matching site as you type (`git` →
-  `github.com — GitHub`). Keep typing to replace it, or Backspace to remove it.
+  `github.com — GitHub`). Keep typing to replace it, or Backspace to remove it. It only completes
+  to open tabs, bookmarks and sites you visit often or recently, never to sign-in or redirect pages.
 - **Go** on the keyboard: opens the completed page (switching to its tab if it's open). Otherwise
   it opens what you typed as an address, or searches it.
 - Tap a result to open it; tap a suggestion to search it. Tap the dimmed page to close.
@@ -194,7 +213,7 @@ Tap **⋯** in a page. It opens as a sheet at half height; swipe up for all of i
 - **Top row:** back, forward, the address (tap to edit it), copy link, reload / stop.
 - **New tab**, **Bookmark** (saved on the phone; the star fills), **Share**, **Find**.
 - **Site settings** (see below), **Desktop site** (toggle), **Reader view**, **Add to Essentials**,
-  **Downloads**, **Settings**, and the **uBlock Origin** card.
+  **History**, **Downloads**, **Settings**, and the **uBlock Origin** card.
 
 ### Find in page
 
@@ -252,6 +271,30 @@ address):
 
 ⋯ › **Desktop site** asks the site for its desktop version, for this tab.
 
+### Links to other apps
+
+Phone numbers (`tel:`), email addresses (`mailto:`) and links meant for an app (`intent://`, or
+an app's own link) open in that app when you tap them. A page can't open an app by itself, only
+when you tap. An app link with a web fallback opens the web page when the app isn't installed.
+
+### Uploading a file
+
+A site's "choose a file" button opens Android's picker: your files, photos and the camera (for
+fields that take pictures or videos). A field that asks for a capture opens the camera directly.
+Koan asks for the camera permission the first time. Closing the picker leaves the field empty.
+
+### Full screen video
+
+When a video goes full screen, the status bar, navigation bar and dock hide, and the screen turns
+to the video's orientation (landscape, or portrait for a portrait video). Swipe from an edge to
+see the system bars for a moment. Back leaves full screen.
+
+### Audio and video in the background
+
+A page playing sound shows a media notification, also on the lock screen: the page's title and
+icon, play/pause, and next/previous when the site offers them (YouTube does). Playback keeps going
+with Koan in the background or the screen off.
+
 ---
 
 ## 7. Downloads
@@ -266,8 +309,10 @@ address):
   (Koan asks for the notification permission the first time).
 - **Downloads page** (⋯ › Downloads, the ring, or Settings › Downloads):
   - **In progress:** progress, pause / resume, cancel (or retry when it failed).
-  - Finished downloads by day. Tap one for **Open**, **Share**, **Delete** (deletes the file).
-  - **Search downloads** at the bottom, and **Clear** to empty the list (asks first; the files stay).
+  - Finished downloads, one card per day (Today, Yesterday, then dates). Tap one for **Open**,
+    **Share**, **Delete** (deletes the file).
+  - **Search downloads** at the bottom, and **Clear** next to it to empty the list (asks first; the
+    files stay).
   - The chip at the top shows the folder; tap it for Android's own downloads view.
 - **Where files go:** the phone's **Download** folder. To use another folder: Settings › **Save
   downloads to** › **Choose a folder…** (Android's folder picker).
@@ -287,11 +332,13 @@ address):
 - Android's own autofill service (for example Google Password Manager) is kept out of pages, so a
   login isn't offered to be saved twice.
 - **Settings › Passwords:**
-  - The list shows the sites only, until you **Unlock** with your fingerprint or the device PIN.
-    Tapping a site while locked asks for it too, then opens that login.
-  - After unlocking: usernames, a search field, and each login's page with **Reveal** for the
-    password, and **Copy** for the username or password. A copied password is marked sensitive so
-    Android hides it in clipboard previews.
+  - One row per site, with a search field. A site with several accounts says how many ("3
+    accounts"); once unlocked, a site with one account shows its username.
+  - Tap a site: Koan asks for your fingerprint or the device PIN (once per visit), then shows all
+    the site's accounts on one page: where each comes from, its username and its password (hidden).
+  - Tap a username or a password to copy it; **Reveal** shows the password, **Hide** hides it again.
+    A site with one account also has a big **Copy password** button. A copied password is marked
+    sensitive so Android hides it in clipboard previews.
   - Leaving the Passwords pages locks them again.
 - Logins from your account can't be edited or deleted in Koan, and phone-only logins can't be
   deleted yet either.
@@ -300,11 +347,22 @@ address):
 
 ## 9. History and bookmarks
 
-- Koan records the pages you visit, on the phone only. Your account's history (5000 most recent
-  pages) and bookmarks are added after each sync.
-- Bookmark the current page with ⋯ › **Bookmark** (on the phone only).
-- They're used by the search sheet, and `@history` / `@bookmarks` search only them.
-- There's no history or bookmarks screen yet: use search.
+- Koan records the pages you visit, on the phone only. Redirect pages (the in-between steps of a
+  sign-in, for example) are left out. Your account's history (5000 most recent pages) and bookmarks
+  are added after each sync.
+- **History page** (⋯ › **History**): the pages you visited, newest first, one card per day
+  (Today, Yesterday, then dates). Pages from your desktop's history carry a small computer icon.
+  - **Search history** at the bottom.
+  - Tap a page to open it in a new tab.
+  - Swipe a page left to remove it: a **Removed from history · Undo** toast follows. A page from
+    your desktop is only hidden on the phone; your account isn't changed.
+  - **Clear** (next to the search field) opens **Clear browsing data**: History (on), Cached images
+    and files (on), Cookies and site data (off: it signs you out of most sites). Desktop history is
+    only hidden on the phone.
+- Bookmark the current page with ⋯ › **Bookmark** (on the phone only). There's no bookmarks screen
+  yet: use search.
+- History and bookmarks are used by the search sheet, and `@history` / `@bookmarks` search only
+  them.
 - Signing out removes your account's history and bookmarks; what you visited and bookmarked on the
   phone stays.
 
@@ -368,11 +426,13 @@ the background. If the check fails (no network), tap the chip to try again.
   space, no editing folders. Card reordering works within a space only.
 - **Unofficial sign-in:** see [Signing in](#signing-in-with-a-mozilla-account).
 - **Android 14+ and arm64 only.**
-- **APK size (~210 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
+- **APK size (~212 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.
-- **Not there yet:** web notifications, a history / bookmarks screen, deleting saved logins,
-  other add-ons than uBlock Origin. Opening and closing a tab is a simple
-  crossfade (the motion polish comes later).
+- **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
+  the page itself) may reload when you pull down at the top of the list.
+- **Not there yet:** web notifications, a bookmarks screen, deleting saved logins, other add-ons
+  than uBlock Origin, picture-in-picture, private tabs, adding a page to the home screen. Opening
+  and closing a tab is a simple crossfade (the motion polish comes later).
 - **Not affiliated** with Zen Browser or Mozilla. Zen is an independent project; "Firefox" and
   "Mozilla" are trademarks of the Mozilla Foundation.

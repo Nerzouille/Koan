@@ -7,16 +7,20 @@ folders you have on the desktop.
 
 > Not affiliated with, endorsed by or connected to Zen Browser or Mozilla.
 
-**What it can do, and how:** [`docs/FEATURES.md`](docs/FEATURES.md), the user guide.
+**Beta: daily-driver ready, sync is read-only.**
+
+- **What it can do, and how:** [`docs/FEATURES.md`](docs/FEATURES.md), the user guide.
+- **What it sends, and to whom:** [`docs/PRIVACY.md`](docs/PRIVACY.md).
+- **Download:** the latest APK is on the [releases page](https://github.com/Nerzouille/Koan/releases)
+  (pre-releases); what changed is in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Status
 
 A one-person hobby project, built for my own phone and shared as-is.
 
 - Sideloaded only: no Play Store, no support. Issues and PRs may go unanswered.
-- Occasional APKs as GitHub pre-releases; see [`CHANGELOG.md`](CHANGELOG.md).
-- Android 14+ (minSdk 34).
-- Work in progress. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what is done and what is planned.
+- Android 14+ (minSdk 34), 64-bit ARM (arm64-v8a) only.
+- See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what is done and what is planned.
 
 ## Sign-in and sync
 

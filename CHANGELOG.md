@@ -1,33 +1,48 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-19 (beta)
 
-### New
-
-- **Update check in About:** opening About looks once at Koan's GitHub releases and says "Up to
-  date" or "Update available" (tap to open the release). Never in the background.
-- **Privacy notice** ([`docs/PRIVACY.md`](docs/PRIVACY.md)), linked from About: every server Koan
-  talks to and what it sends.
-
-## 0.2.0 — 2026-10-16 (pre-release)
-
-Browser essentials. Android 14+ (minSdk 34), arm64-v8a only. Installs over 0.1.0 and keeps your
-data. Full guide: [`docs/FEATURES.md`](docs/FEATURES.md).
+The first beta: Koan is ready to be your everyday browser. Sync stays read-only. Android 14+
+(minSdk 34), arm64-v8a only. Installs over 0.1.0 and keeps your data. Full guide:
+[`docs/FEATURES.md`](docs/FEATURES.md).
 
 ### New
 
 - **⋯ menu as a sheet:** the page's navigation row (back, forward, address, copy link,
   reload/stop), New tab, Bookmark, Share, Find, Site settings, Desktop site, Reader view, Add to
-  Essentials, Downloads, Settings and uBlock Origin. Same detents and gestures as the drawer.
+  Essentials, History, Downloads, Settings and uBlock Origin. Same heights and gestures as the
+  drawer.
 - **Settings:** Mozilla account (Sync now, Sign out with confirmation), search engine, search
   suggestions, theme, default browser, passwords, uBlock Origin, downloads and where they go, About.
-- **Search sheet:** results above the field while you type (engine suggestions, open tabs in any
-  space, history and bookmarks), inline completion of the best site, and `@` shortcuts for
-  DuckDuckGo, Google, Wikipedia, YouTube and for searching only tabs, history or bookmarks.
-- **Search engines:** DuckDuckGo, Google, Brave Search, Startpage, each with its own suggestions;
-  suggestions can be turned off.
-- **Default browser:** links from other apps, web searches and shared text open as a new tab in the
-  current space.
+- **About:** version, an update check that looks once at Koan's GitHub releases when you open it
+  ("Up to date" or "Update available", never in the background), what's new, the privacy notice
+  and the open-source licences.
+- **Privacy notice** ([`docs/PRIVACY.md`](docs/PRIVACY.md)): every server Koan talks to and what
+  it sends.
+- **Search sheet:** results above the field while you type (engine suggestions right above the
+  field, then open tabs in any space, then history and bookmarks), inline completion of the best
+  site, and `@` shortcuts for DuckDuckGo, Google, Wikipedia, YouTube and for searching only tabs,
+  history or bookmarks.
+- **Search engines:** DuckDuckGo, Google, Brave Search, Startpage, each with its own suggestions
+  (shown with its icon); suggestions can be turned off.
+- **History page** (⋯ › History): the pages you visited, on the phone and synced from your
+  desktop (marked with a small computer icon), one card per day. Search it, tap a page to open it
+  in a new tab, swipe it left to remove it (with Undo).
+- **Clear browsing data** (History › Clear): history, cached files and, if you ask, cookies and
+  site data.
+- **Back closes a tab when there's nothing left to go back to:** a tab another app opened closes
+  and takes you back to that app; a tab opened from a link goes back to the tab it came from; any
+  other tab closes onto the next one, with Undo. Pinned tabs and essentials never close.
+- **Pull to refresh:** pull down at the top of a page to reload it.
+- **Media controls:** audio and video keep playing with Koan in the background, with a
+  notification and lock screen controls (play/pause, and next/previous when the site offers them).
+- **Full screen video:** hides the bars and the dock, turns to the video's orientation; Back
+  leaves full screen first.
+- **File upload:** a site's "choose a file" button opens Android's picker, with the camera for
+  photos and videos.
+- **Phone, email and app links** (`tel:`, `mailto:`, `intent://`) open in their app.
+- **Default browser:** links from other apps, web searches and shared text open as a new tab in
+  the current space.
 - **Find in page** (blue highlights, match count, previous/next) and **reader view**.
 - **Long-press menus:** for links (open in new tab, open in background with a Switch toast, copy,
   share) and images (save, open, copy link), with a preview of what you pressed.
@@ -38,23 +53,37 @@ data. Full guide: [`docs/FEATURES.md`](docs/FEATURES.md).
   folder by default or a folder you pick.
 - **Passwords:** your Mozilla account's passwords, read-only and encrypted on the phone; autofill
   chips above the keyboard and a full "Sign in with" list; "Save in Koan" for new logins (phone
-  only); Settings › Passwords behind your fingerprint or PIN, with search, reveal and copy.
-- **History and bookmarks:** your account's (read-only) and the phone's, used by search; bookmark a
-  page from the menu.
+  only); Settings › Passwords behind your fingerprint or PIN, one row per site.
+- **Bookmarks:** your account's (read-only) and the phone's, used by search; bookmark a page from
+  the menu.
 - **uBlock Origin:** installed on first start; its blocked count on the menu card, its own panel in
   the menu, on/off and the week's count in Settings.
 - **Add to Essentials** from the menu (phone-only copy for tabs that came from Zen).
 
 ### Improved
 
-- Light theme: neutral greys and white instead of a wash of the space colour; the space colour only
-  marks its pill and icons.
+- **Passwords:** a site with several accounts is one row ("3 accounts"); after your fingerprint,
+  all its accounts show on one page. Tap a username or password to copy it, Reveal to see the
+  password; a single account also has a big Copy password button.
+- **Space scrub:** long-press the address pill and slide: the steps now fit your screen and number
+  of spaces, so the first and last spaces are always reached just before the edges.
+- **Toasts** can be swiped away, sideways or down, and sit above the keyboard.
+- **Downloads** shows one card per day (Today, Yesterday, then dates), like History.
+- **Address field:** a long address scrolls to keep the cursor in view, also while you drag the
+  cursor handle.
+- **Search:** the page dims behind the search sheet as soon as it opens; suggestions start from the
+  first letter; inline completion only goes to sites you actually visit, never to sign-in or
+  redirect pages.
+- **Light theme:** neutral greys and white instead of a wash of the space colour; the space colour
+  only marks its pill and icons.
 - The drawer shows all essentials (no limit of 8).
 - One Back closes the search field or find in page together with the keyboard.
 - Sign-out asks first, and the account's passwords, bookmarks and history leave the phone with it.
 
 ### Fixed
 
+- Redirect pages (like a sign-in's "Redirection" step) no longer end up in history; the ones
+  recorded before are cleaned up.
 - A tab opened straight onto a file no longer stays empty and downloads the file again later.
 - The address pill's download ring has its own tap target (it used to start editing the address).
 - The long-press card no longer grows when the image preview arrives.

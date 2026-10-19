@@ -203,7 +203,7 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 | | Swipe down | Nothing (already the top level) |
 | | Horizontal swipe on the address row | Previous / next **tab** in the current space (Safari-style): the page and the pill follow the finger, the neighbour tab's screenshot slides in beside it. Commit past 25% of the width or a fling. First/last tab: rubber band, no wrap |
 | | Long-press the address row | **Space mode** (haptic tick): the pill shows the current space's icon and name |
-| | …then swipe horizontally | Switch **space**, the neighbour space's icon and name slide into the pill; landing opens that space's current tab (or its overview if it has none). Lifting without a swipe leaves space mode |
+| | …then swipe horizontally | Switch **space**, the neighbour space's icon and name slide into the pill; landing opens that space's current tab (or its overview if it has none). Lifting without a swipe leaves space mode. Steps fit the screen: the way to each edge (minus 48 dp) is shared by the spaces on that side, 24–90 dp each |
 | | Tap the pill | Edit the address (as before) |
 | **Overview**, drawer closed | Swipe up on the dock | Drawer opens (compact) |
 | | Swipe down on the dock | Back to the page of the current tab (morph follows the drag) |

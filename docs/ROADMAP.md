@@ -48,7 +48,7 @@ System Trace during scroll and space switching.
 **Done when:** first run checked on a clean install, the APK updates the owner's install without
 losing data, and the owner has approved and published the release.
 
-## M5 — Browser essentials (≈ 1–2 weeks)
+## M5 — Browser essentials (≈ 1–2 weeks) — done 2026-10-19 (tag `m5`, v0.2.0 beta)
 - Read-only passwords from Firefox Sync → login autofill. History + bookmarks → search suggestions.
 - uBlock Origin install via add-ons; add-on manager in settings.
 - Downloads, site permissions, context menu (open in new tab / in Glance later / copy link),
@@ -57,6 +57,17 @@ losing data, and the owner has approved and published the release.
   polled in the background.
 - Logins saved on the phone ("Save in Koan, this phone only") stay local and encrypted until M6.
 **Done when:** owner can uninstall Opera.
+
+### Open items after v0.2.0 (not scheduled yet)
+- **App icon / logo:** a real launcher icon and logo.
+- **Search backdrop retry:** the old dim plus a subtle blur behind the suggestion cards only (also
+  listed under M4).
+- **Desktop site:** revisit the toggle.
+- **Add to home screen:** a page as a launcher shortcut.
+- **Picture-in-picture** for video when leaving Koan.
+- **Private tab:** a tab that keeps no history, cookies or cache.
+- **Pull to refresh in chats:** a site whose list scrolls inside the page (not the page itself) may
+  reload on a pull at the top of the list. Gecko doesn't say whether an inner list can scroll up.
 
 ## M4 — Motion polish (≈ 1–2 weeks, iterate with owner)
 - Hero open/close morph per `UI_SPEC.md` (springs, thumbnail → live swap, pre-scroll on close).
@@ -90,13 +101,14 @@ conflict is handled without data loss.
 
 **Tabs**
 - **Undo close**: after closing a card (swipe or ✕), a small "Undo" toast for a few seconds.
+  (Done for Back on a tab's first page in v0.2.0; not yet for a card closed in the overview.)
 - **Recently closed**: long-press the tab button → list of recently closed tabs, tap to reopen.
 - **Previous tab**: double-tap the tab button → switch back to the previous tab (Alt-Tab style).
 - **Glance a card** (maybe): long-press a card in the overview to preview it larger without switching. Same sheet as Glance. To evaluate.
 - **Auto-archive**: phone-only tabs untouched for N days (setting) move to an "Archived" list instead of piling up. Never touches tabs that come from Zen.
 
 **Media**
-- **Background audio**: audio/video keeps playing with the screen off or Koan in the background, with media controls in the notification.
+- ~~**Background audio**: audio/video keeps playing with the screen off or Koan in the background, with media controls in the notification.~~ Done in v0.2.0.
 - **Picture-in-picture** for video when leaving Koan.
 
 **Phone → PC**

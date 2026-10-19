@@ -9,6 +9,10 @@ Your tabs, spaces, history, bookmarks, downloads, site permissions and settings 
 only. The passwords and Mozilla account keys Koan keeps are encrypted with a key held by Android's
 Keystore. Passwords you save in Koan stay on this phone and are never uploaded to your account.
 
+While a page plays audio or video, its title and icon show in Android's media notification,
+including on the lock screen. Links like `tel:` or `mailto:` are handed to the app you choose,
+only when you tap them.
+
 ## The servers Koan talks to
 
 Apart from the sites you open, Koan only connects to these:
@@ -31,6 +35,9 @@ the pages you visit are not sent to anyone.
 
 - **Settings › Mozilla account › Sign out** removes your account's passwords, bookmarks and history
   from the phone.
+- **History:** swipe a page left to remove it. **Clear** › **Clear browsing data** deletes the
+  phone's history and cached files, and if you choose, every site's cookies and site data. History
+  that came from your account is only hidden on the phone: Koan never changes your account.
 - **Site settings › Clear site data** clears one site's cookies, storage and permission answers.
 - Uninstalling Koan removes everything it stored.
 

@@ -27,7 +27,7 @@ android {
         minSdk = 34
         targetSdk = 37
         // versionCode only goes up: 2 was the m3 build already on the phone.
-        versionCode = 4
+        versionCode = 5
         versionName = "0.2.0"
         // GeckoView-omni ships every ABI; both owner phones are arm64.
         ndk { abiFilters += "arm64-v8a" }
