@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -109,7 +111,8 @@ fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) 
     Box(
         modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars)
+            // Above the keyboard too while it is up (History's search).
+            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
             .padding(start = ToastTokens.Margin, end = ToastTokens.Margin, bottom = bottom + ToastTokens.Gap),
         contentAlignment = Alignment.BottomCenter,
     ) {

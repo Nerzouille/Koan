@@ -23,6 +23,8 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.drop
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -111,8 +113,10 @@ fun HistoryScreen(
 private fun HistoryRow(v: VisitEntity, first: Boolean, last: Boolean, onOpen: (String) -> Unit, onRemove: (VisitEntity) -> Unit) {
     val palette = KoanTheme.colors
     val state = rememberSwipeToDismissBoxState()
-    LaunchedEffect(state.currentValue) {
-        if (state.currentValue == SwipeToDismissBoxValue.EndToStart) onRemove(v)
+    LaunchedEffect(state) {
+        // The list keeps a row's state by its key: a row back from Undo comes back swiped away.
+        if (state.currentValue != SwipeToDismissBoxValue.Settled) state.snapTo(SwipeToDismissBoxValue.Settled)
+        snapshotFlow { state.currentValue }.drop(1).collect { if (it == SwipeToDismissBoxValue.EndToStart) onRemove(v) }
     }
     SwipeToDismissBox(
         state = state,
