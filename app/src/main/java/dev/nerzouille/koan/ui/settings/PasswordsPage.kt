@@ -59,7 +59,7 @@ class PasswordsUi(
  * fingerprint or the device PIN. Tapping a site while locked unlocks and opens it.
  */
 @Composable
-internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpen: (String) -> Unit) {
+internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpen: (String) -> Unit, onOpenSite: (String) -> Unit) {
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
     SettingsPageFrame("Passwords", on, onBack) {
@@ -93,24 +93,64 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
         if (shown.isEmpty()) {
             Text("No password matches “$q”.", color = palette.TextSecondary, fontSize = SettingsTokens.RowValueSize)
         }
-        shown.forEachIndexed { i, s ->
+        // One row per site: several accounts on one site open their own list.
+        shown.groupBy(::siteOf).entries.forEachIndexed { i, (site, logins) ->
             if (i > 0) SettingsDivider()
-            val login = unlocked?.get(s.guid)
-            SettingsRow(
-                KoanIcons.Key, displayHost(s.origin).ifEmpty { s.origin }, on,
-                subtitle = when {
-                    unlocked == null -> null
-                    login == null -> "…"
-                    else -> login.username.ifEmpty { "No username" }
-                },
-                value = if (s.local) "This phone" else null,
-                chevron = true,
-                // Locked: the fingerprint first, then straight to this login.
-                onClick = { if (unlocked == null) ui.onUnlock(s.guid) else onOpen(s.guid) },
-            )
+            if (logins.size == 1) {
+                LoginRow(logins.first(), ui, on, onOpen)
+            } else {
+                SettingsRow(KoanIcons.Key, site, on, value = "${logins.size} accounts", chevron = true, onClick = { onOpenSite(site) })
+            }
         }
     }
 }
+
+/** Settings › Passwords › a site with several accounts: one row per account. */
+@Composable
+internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack: () -> Unit, onOpen: (String) -> Unit) {
+    SettingsPageFrame(site, on, onBack) {
+        val logins = ui.summaries.filter { siteOf(it) == site }
+        if (ui.unlocked == null) {
+            PrimaryButton("Unlock", onClick = { if (on) ui.onUnlock(null) }, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(SettingsTokens.RowInset))
+        }
+        logins.forEachIndexed { i, s ->
+            if (i > 0) SettingsDivider()
+            LoginRow(s, ui, on, onOpen, title = { login -> login?.username?.ifEmpty { "No username" } ?: "Account ${i + 1}" }, subtitle = null)
+        }
+    }
+}
+
+/** A login's row: its site and (once unlocked) its username; tapping opens it, unlocking first. */
+@Composable
+private fun LoginRow(
+    s: LoginSummary,
+    ui: PasswordsUi,
+    on: Boolean,
+    onOpen: (String) -> Unit,
+    title: (Login?) -> String = { siteOf(s) },
+    subtitle: ((Login?) -> String?)? = { login ->
+        when {
+            ui.unlocked == null -> null
+            login == null -> "…"
+            else -> login.username.ifEmpty { "No username" }
+        }
+    },
+) {
+    val unlocked = ui.unlocked
+    val login = unlocked?.get(s.guid)
+    SettingsRow(
+        KoanIcons.Key, title(login), on,
+        subtitle = subtitle?.invoke(login),
+        value = if (s.local) "This phone" else null,
+        chevron = true,
+        // Locked: the fingerprint first, then straight to this login.
+        onClick = { if (unlocked == null) ui.onUnlock(s.guid) else onOpen(s.guid) },
+    )
+}
+
+/** The site a login is for, as the list shows it. */
+private fun siteOf(s: LoginSummary): String = displayHost(s.origin).ifEmpty { s.origin }
 
 /** A search field in a settings page. */
 @Composable
