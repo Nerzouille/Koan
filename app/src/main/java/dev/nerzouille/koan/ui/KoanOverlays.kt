@@ -38,6 +38,7 @@ import android.provider.DocumentsContract
 import dev.nerzouille.koan.ui.downloads.DownloadsScreen
 import dev.nerzouille.koan.ui.history.ClearDataCard
 import dev.nerzouille.koan.ui.history.HistoryScreen
+import dev.nerzouille.koan.ui.menu.FilePrompt
 import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.kit.Toast
 import mozilla.components.browser.state.state.content.DownloadState
@@ -412,6 +413,8 @@ fun KoanOverlays(
         activeTabId?.let { s.findTab(it) }?.content?.promptRequests
             ?.firstOrNull { it is PromptRequest.SelectLoginPrompt || it is PromptRequest.SaveLoginPrompt }
     }
+    // A page's file field: Android's picker (and the camera).
+    FilePrompt(components, activeTabId)
     fun consumePrompt(p: PromptRequest) { activeTabId?.let { components.store.dispatch(ContentAction.ConsumePromptRequestAction(it, p)) } }
     val select = loginPrompt as? PromptRequest.SelectLoginPrompt
     if (select != null && select.logins.isNotEmpty()) {

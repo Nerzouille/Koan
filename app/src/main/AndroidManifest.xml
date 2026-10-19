@@ -10,6 +10,16 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
+    <!-- The camera apps a page's file field can offer (photo, video). -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.VIDEO_CAPTURE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".KoanApp"
         android:allowBackup="false"
@@ -53,5 +63,15 @@
             android:name=".engine.downloads.KoanDownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <!-- Photos and videos taken for a page's file field (<input type=file>). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>
