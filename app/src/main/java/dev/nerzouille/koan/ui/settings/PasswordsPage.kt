@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -153,34 +154,42 @@ internal fun SearchBox(value: String, hint: String, onChange: (String) -> Unit) 
  */
 @Composable
 internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack: () -> Unit) {
-    val context = LocalContext.current
     SettingsPageFrame(site, on, onBack) {
         val accounts = ui.summaries.filter { siteOf(it) == site }
         val unlocked = ui.unlocked
         if (unlocked == null) {
             PrimaryButton("Unlock", onClick = { if (on) ui.onUnlock(site, accounts.map { it.guid }) }, modifier = Modifier.fillMaxWidth())
-            return@SettingsPageFrame
+        } else {
+            accounts.forEachIndexed { i, s ->
+                // Keyed: the accounts open one by one, each one's rows change as it does.
+                key(s.guid) {
+                    if (i > 0) Spacer(Modifier.height(SettingsTokens.SectionTop))
+                    Account(s, unlocked[s.guid], on)
+                }
+            }
         }
-        accounts.forEachIndexed { i, s ->
-            if (i > 0) Spacer(Modifier.height(SettingsTokens.SectionTop))
-            val login = unlocked[s.guid]
-            var shown by remember(s.guid) { mutableStateOf(false) }
-            SettingsRow(KoanIcons.Globe, s.origin, on, subtitle = if (s.local) "Saved on this phone" else "From your Mozilla account")
-            SettingsDivider()
-            if (login == null) {
-                SettingsRow(null, "…", on, subtitle = "Username")
-                return@forEachIndexed
-            }
-            SettingsRow(
-                null, login.username.ifEmpty { "No username" }, on, subtitle = "Username",
-                onClick = if (login.username.isEmpty()) null else { { copy(context, "Username", login.username, sensitive = false) } },
-            ) { if (login.username.isNotEmpty()) RowAction("Copy") }
-            SettingsDivider()
-            SettingsRow(null, if (shown) login.password else "••••••••••", on, subtitle = "Password", onClick = { shown = !shown }) {
-                RowAction(if (shown) "Hide" else "Reveal")
-                Spacer(Modifier.width(SettingsTokens.RowInset * 1.5f))
-                RowAction("Copy") { if (on) copy(context, "Password", login.password, sensitive = true) }
-            }
+    }
+}
+
+/** One account of a site: where it comes from, its username, its password ([login] null = still opening). */
+@Composable
+private fun Account(s: LoginSummary, login: Login?, on: Boolean) {
+    val context = LocalContext.current
+    var shown by remember { mutableStateOf(false) }
+    SettingsRow(KoanIcons.Globe, s.origin, on, subtitle = if (s.local) "Saved on this phone" else "From your Mozilla account")
+    SettingsDivider()
+    if (login == null) {
+        SettingsRow(null, "…", on, subtitle = "Username")
+    } else {
+        SettingsRow(
+            null, login.username.ifEmpty { "No username" }, on, subtitle = "Username",
+            onClick = if (login.username.isEmpty()) null else { { copy(context, "Username", login.username, sensitive = false) } },
+        ) { if (login.username.isNotEmpty()) RowAction("Copy") }
+        SettingsDivider()
+        SettingsRow(null, if (shown) login.password else "••••••••••", on, subtitle = "Password", onClick = { shown = !shown }) {
+            RowAction(if (shown) "Hide" else "Reveal")
+            Spacer(Modifier.width(SettingsTokens.RowInset * 1.5f))
+            RowAction("Copy") { if (on) copy(context, "Password", login.password, sensitive = true) }
         }
     }
 }
