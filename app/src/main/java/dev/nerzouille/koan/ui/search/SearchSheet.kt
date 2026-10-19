@@ -158,7 +158,7 @@ private fun BoxScope.Results(
         }
         if (results.tabs.isNotEmpty()) Group("Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
         if (suggestions.isNotEmpty()) {
-            Group(search.suggestionsFrom, null) {
+            Group(search.suggestionsFrom, null, favicon = search.suggestionsHome) {
                 Row(
                     Modifier
                         .horizontalScroll(rememberScrollState())
@@ -193,7 +193,7 @@ private fun BoxScope.Results(
 }
 
 @Composable
-private fun Group(label: String?, icon: ImageVector?, content: @Composable ColumnScope.() -> Unit) {
+private fun Group(label: String?, icon: ImageVector?, favicon: String? = null, content: @Composable ColumnScope.() -> Unit) {
     val palette = KoanTheme.colors
     Column(
         Modifier
@@ -205,6 +205,10 @@ private fun Group(label: String?, icon: ImageVector?, content: @Composable Colum
             Row(Modifier.padding(start = SearchTokens.LabelPadding, top = SearchTokens.LabelPadding, bottom = SearchTokens.ChipGap / 2), verticalAlignment = Alignment.CenterVertically) {
                 if (icon != null) {
                     Icon(icon, null, tint = palette.TextSecondary, modifier = Modifier.size(SearchTokens.ChipIcon))
+                    Spacer(Modifier.width(SearchTokens.ChipGap / 2))
+                }
+                if (!favicon.isNullOrEmpty()) {
+                    Favicon(favicon, SearchTokens.ChipIcon)
                     Spacer(Modifier.width(SearchTokens.ChipGap / 2))
                 }
                 Text(label, color = palette.TextSecondary, fontSize = SearchTokens.LabelSize, fontWeight = FontWeight.Medium)
