@@ -8,6 +8,7 @@ class SpaceScrubTest {
     private fun scrub() = SpaceScrub(TestScope()).apply {
         minStepPx = 24f
         maxStepPx = 90f
+        edgePx = 100f
     }
 
     /** Drags in small moves (like a finger) by [totalPx]; the highlighted space after. */
@@ -17,15 +18,23 @@ class SpaceScrubTest {
         return index
     }
 
-    @Test fun `an edge reaches the first and the last space whatever the count`() {
+    @Test fun `the first and the last space are reached before the edges whatever the count`() {
         for (count in listOf(2, 5, 12, 40)) {
             val s = scrub()
             s.begin(current = count / 2, count = count, fingerX = 300f, widthPx = 1000f)
-            assertEquals(0, s.drag(-300f))
+            // 100 px short of the left edge.
+            assertEquals(0, s.drag(-200f))
             val t = scrub()
             t.begin(current = count / 2, count = count, fingerX = 300f, widthPx = 1000f)
-            assertEquals(count - 1, t.drag(700f))
+            assertEquals(count - 1, t.drag(600f))
         }
+    }
+
+    @Test fun `a thumb on the right of the pill still reaches the last space comfortably`() {
+        val s = scrub()
+        // 4 spaces on the right, 380 px to the edge: the last one 100 px before it.
+        s.begin(current = 1, count = 6, fingerX = 700f, widthPx = 1080f)
+        assertEquals(5, s.drag(280f))
     }
 
     @Test fun `steps are capped for a few spaces`() {

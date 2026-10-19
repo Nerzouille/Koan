@@ -17,7 +17,7 @@ import kotlin.math.roundToInt
  * Page view space mode: after a long press on the dock, the space row shows above the pill and a
  * sideways move scrubs the highlight from space to space. The steps fit the screen: the way to the
  * left edge is shared by the spaces on the left, the way to the right edge by those on the right,
- * so an edge always reaches the first or last space ([minStepPx] … [maxStepPx] each, smaller only
+ * so sliding towards an edge always reaches the first or last space just before it ([minStepPx] … [maxStepPx] each, smaller only
  * when that many spaces wouldn't fit). Releasing switches to the highlighted space; releasing on
  * the current one cancels. Nothing changes until release.
  */
@@ -41,6 +41,9 @@ class SpaceScrub(private val scope: CoroutineScope) {
 
     var minStepPx = 1f
     var maxStepPx = 1f
+
+    /** The first and last spaces are reached this far before the screen's edges. */
+    var edgePx = 0f
     private var leftStep = 1f
     private var rightStep = 1f
     private var start = 0
@@ -86,7 +89,8 @@ class SpaceScrub(private val scope: CoroutineScope) {
     /** One step on a side with [spaces] spaces and [roomPx] to its edge. */
     private fun stepFor(roomPx: Float, spaces: Int): Float {
         if (spaces <= 0) return maxStepPx
-        val fit = roomPx / spaces
+        // The thumb never has to reach the very edge.
+        val fit = (roomPx - edgePx).coerceAtLeast(spaces.toFloat()) / spaces
         // Too many spaces for the smallest step: the whole way to the edge, shared evenly.
         return if (fit < minStepPx) fit.coerceAtLeast(1f) else fit.coerceAtMost(maxStepPx)
     }

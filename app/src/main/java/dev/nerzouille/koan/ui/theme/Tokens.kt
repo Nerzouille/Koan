@@ -504,6 +504,9 @@ object BarTokens {
     val ScrubStepMin = 24.dp
     val ScrubStepMax = 90.dp
 
+    /** …and the first / last space is reached this far before the screen's edge. */
+    val ScrubEdge = 48.dp
+
     /** Page view: tabs slide this far apart while a swipe on the dock switches tab. */
     val TabSwipeGap = 24.dp
 
