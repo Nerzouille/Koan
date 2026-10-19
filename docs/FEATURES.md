@@ -338,12 +338,16 @@ address):
 | uBlock Origin | On/off, blocked this week, or Install |
 | Downloads | The Downloads page |
 | Save downloads to | The phone's Download folder, or a folder you pick |
-| About Koan | Version, links to the changelog and the open-source licences |
+| About Koan | Version, update check, links to the changelog, the privacy notice and the open-source licences |
 
 **As the default browser:** links you open in other apps, web searches, and text or links shared to
 Koan open as a new tab in your current space.
 
-**Update check:** About doesn't check for updates yet. Look at the GitHub releases page.
+**Update check:** opening About looks once at Koan's GitHub releases and says **Up to date** or
+**Update available** (tap it to open the release page and download the APK). Koan never checks in
+the background. If the check fails (no network), tap the chip to try again.
+
+**Privacy:** what Koan sends and to whom is in the [privacy notice](PRIVACY.md).
 
 ---
 
@@ -368,7 +372,7 @@ Koan open as a new tab in your current space.
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.
 - **Not there yet:** web notifications, a history / bookmarks screen, deleting saved logins,
-  About's update check, other add-ons than uBlock Origin. Opening and closing a tab is a simple
+  other add-ons than uBlock Origin. Opening and closing a tab is a simple
   crossfade (the motion polish comes later).
 - **Not affiliated** with Zen Browser or Mozilla. Zen is an independent project; "Firefox" and
   "Mozilla" are trademarks of the Mozilla Foundation.

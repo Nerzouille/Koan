@@ -33,6 +33,10 @@ class SearchState {
     var suggestionsFrom by mutableStateOf("")
         internal set
 
+    /** Their engine's site, for its favicon next to the label. */
+    var suggestionsHome by mutableStateOf("")
+        internal set
+
     /** The completion the field shows for [typed] (from the latest results). */
     fun complete(typed: String): String? = completion(typed, results.top)
 }
@@ -102,6 +106,7 @@ fun rememberSearch(
         delay(SUGGEST_DELAY_MS)
         state.suggestions = Suggestions.fetch(parsed.rest, url)
         state.suggestionsFrom = shortcut?.label ?: engine.label
+        state.suggestionsHome = shortcut?.home ?: engine.home
     }
     return state
 }

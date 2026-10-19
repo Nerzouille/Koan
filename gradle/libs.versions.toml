@@ -51,6 +51,7 @@ mozilla-browser-session-storage = { module = "org.mozilla.components:browser-ses
 mozilla-lib-state = { module = "org.mozilla.components:lib-state", version.ref = "mozillaComponents" }
 mozilla-feature-readerview = { module = "org.mozilla.components:feature-readerview", version.ref = "mozillaComponents" }
 mozilla-feature-downloads = { module = "org.mozilla.components:feature-downloads", version.ref = "mozillaComponents" }
+mozilla-feature-media = { module = "org.mozilla.components:feature-media", version.ref = "mozillaComponents" }
 mozilla-concept-storage = { module = "org.mozilla.components:concept-storage", version.ref = "mozillaComponents" }
 mozilla-support-utils = { module = "org.mozilla.components:support-utils", version.ref = "mozillaComponents" }
 mozilla-support-webextensions = { module = "org.mozilla.components:support-webextensions", version.ref = "mozillaComponents" }

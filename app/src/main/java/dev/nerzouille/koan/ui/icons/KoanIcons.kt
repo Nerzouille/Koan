@@ -24,6 +24,14 @@ object KoanIcons {
             moveTo(19f, 4.5f); lineTo(19f, 9f); lineTo(14.5f, 9f)
         }
     }
+    val History: ImageVector by lazy {
+        stroked("history") {
+            moveTo(20f, 12f)
+            arcTo(8f, 8f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 4f, y1 = 12f)
+            arcTo(8f, 8f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 20f, y1 = 12f)
+            moveTo(12f, 7.5f); lineTo(12f, 12f); lineTo(15f, 14f)
+        }
+    }
     val Plus: ImageVector by lazy {
         stroked("plus") { moveTo(12f, 5f); lineTo(12f, 19f); moveTo(5f, 12f); lineTo(19f, 12f) }
     }

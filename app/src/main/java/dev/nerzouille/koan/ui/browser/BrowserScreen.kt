@@ -13,9 +13,13 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -23,7 +27,9 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.viewinterop.AndroidView
+import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -33,7 +39,14 @@ import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.bar.barZone
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.PageTokens
+import dev.nerzouille.koan.ui.theme.PullTokens
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withTimeoutOrNull
+import mozilla.components.browser.state.selector.findTab
+import mozilla.components.lib.state.ext.flow
 import mozilla.components.browser.engine.gecko.GeckoEngineView
 import mozilla.components.feature.session.SessionFeature
 import kotlin.math.roundToInt
@@ -47,6 +60,8 @@ import kotlin.math.roundToInt
 fun BrowserScreen(
     components: Components,
     dock: DockState,
+    /** A fullscreen video: the page takes the whole screen (no dock, no status bar inset). */
+    fullScreen: Boolean,
     cover: CoverTarget?,
     zoomIn: () -> Boolean,
     swipe: TabSwipe,
@@ -88,7 +103,7 @@ fun BrowserScreen(
     val density = LocalDensity.current
     val imeUp = WindowInsets.isImeVisible
     val navPx = WindowInsets.navigationBars.getBottom(density)
-    val dockPx = with(density) { barZone(overview = false).toPx() } + if (imeUp) 0 else navPx
+    val dockPx = if (fullScreen) 0f else with(density) { barZone(overview = false).toPx() } + if (imeUp) 0 else navPx
     dock.heightPx = dockPx
     LaunchedEffect(dockPx) {
         engineView.setDynamicToolbarMaxHeight(dockPx.roundToInt())
@@ -106,13 +121,43 @@ fun BrowserScreen(
         }
     }
 
+    // Pull to refresh: the indicator lets go once the reload has loaded (or another tab came up).
+    val scope = rememberCoroutineScope()
+    val pull = remember { PullRefresh(scope) }
+    with(density) {
+        pull.triggerPx = PullTokens.Trigger.toPx()
+        pull.maxPx = PullTokens.Max.toPx()
+    }
+    val currentId by components.tabs.current.collectAsState()
+    LaunchedEffect(currentId) { pull.done() }
+    LaunchedEffect(pull.refreshing) {
+        if (!pull.refreshing) return@LaunchedEffect
+        val start = System.currentTimeMillis()
+        val loading = store.flow().map { s -> s.selectedTabId?.let(s::findTab)?.content?.loading == true }
+        withTimeoutOrNull(PullTokens.START_TIMEOUT_MS) { loading.first { it } }
+        loading.first { !it }
+        // A quick reload still shows that it happened.
+        delay(PullTokens.MIN_SPIN_MS - (System.currentTimeMillis() - start))
+        pull.done()
+    }
+    val view = LocalView.current
+
     Box(
         Modifier
             .fillMaxSize()
             .background(KoanTheme.colors.Base)
-            .statusBarsPadding()
+            .then(if (fullScreen) Modifier else Modifier.statusBarsPadding())
             .windowInsetsPadding(WindowInsets.ime)
             .nestedScroll(dock.nestedScroll)
+            .pullToRefresh(
+                pull,
+                atTop = { !fullScreen && !swipe.active && engineView.verticalScrollPosition.value < 1f },
+                // Gecko's own "can overscroll top" is never set while the dock is on the page:
+                // the page only has to keep its touches (maps, canvases, pages with their own pull).
+                pageKeepsTouch = { engineView.getInputResultDetail().let { it.isTouchHandledByWebsite() || it.isTouchHandlingUnknown() } },
+                onRefresh = { currentId?.let { session.reload(it) } },
+                onTick = { view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK) },
+            )
             .pointerInput(dock) {
                 // Watch (never consume) the fingers on the page: the dock settles when they lift.
                 awaitPointerEventScope {
@@ -138,6 +183,7 @@ fun BrowserScreen(
         ) {
             AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())
             PageCover(cover, store, zoomIn)
+            PullIndicator(pull, Modifier.align(Alignment.TopCenter))
         }
         if (swipe.active) {
             val strip = swipe.strip

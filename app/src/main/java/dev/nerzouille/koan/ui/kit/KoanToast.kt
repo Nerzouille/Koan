@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,7 +35,14 @@ import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.ToastTokens
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.sign
 
 /**
  * One toast: a short message and at most one action ("Switch", "Undo", "Open"). [detail]: a quiet
@@ -79,6 +88,14 @@ class ToastState {
 @Composable
 fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) {
     val shown = androidx.compose.runtime.remember { Animatable(0f) }
+    // A swipe sideways or down sends the toast away early (no action).
+    val dragX = androidx.compose.runtime.remember { Animatable(0f) }
+    val dragY = androidx.compose.runtime.remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(state.serial) {
+        dragX.snapTo(0f)
+        dragY.snapTo(0f)
+    }
     LaunchedEffect(state.serial, state.visible) {
         if (state.visible) {
             shown.animateTo(1f, Motion.Toast)
@@ -94,15 +111,55 @@ fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) 
     Box(
         modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars)
+            // Above the keyboard too while it is up (History's search).
+            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
             .padding(start = ToastTokens.Margin, end = ToastTokens.Margin, bottom = bottom + ToastTokens.Gap),
         contentAlignment = Alignment.BottomCenter,
     ) {
         Row(
             Modifier
                 .graphicsLayer {
-                    alpha = shown.value
-                    translationY = (1f - shown.value) * ToastTokens.Rise.toPx()
+                    alpha = shown.value * (1f - abs(dragX.value) / size.width).coerceIn(0f, 1f)
+                    translationX = dragX.value
+                    translationY = (1f - shown.value) * ToastTokens.Rise.toPx() + dragY.value
+                }
+                .pointerInput(state) {
+                    val tracker = VelocityTracker()
+                    val fling = ToastTokens.SwipeFling.toPx()
+                    detectDragGestures(
+                        onDragStart = { tracker.resetTracking() },
+                        onDragEnd = {
+                            val v = tracker.calculateVelocity()
+                            val w = size.width.toFloat()
+                            scope.launch {
+                                when {
+                                    abs(dragX.value) > w * ToastTokens.SWIPE_FRACTION || abs(v.x) > fling -> {
+                                        val sign = if (dragX.value != 0f) sign(dragX.value) else sign(v.x)
+                                        state.dismiss()
+                                        dragX.animateTo(sign * w, Motion.Toast)
+                                    }
+                                    dragY.value > size.height * ToastTokens.SWIPE_FRACTION * 2 || v.y > fling -> state.dismiss()
+                                    else -> {
+                                        launch { dragX.animateTo(0f, Motion.Toast) }
+                                        dragY.animateTo(0f, Motion.Toast)
+                                    }
+                                }
+                            }
+                        },
+                        onDragCancel = {
+                            scope.launch {
+                                launch { dragX.animateTo(0f, Motion.Toast) }
+                                dragY.animateTo(0f, Motion.Toast)
+                            }
+                        },
+                    ) { change, delta ->
+                        change.consume()
+                        tracker.addPosition(change.uptimeMillis, change.position)
+                        scope.launch {
+                            dragX.snapTo(dragX.value + delta.x)
+                            dragY.snapTo((dragY.value + delta.y).coerceAtLeast(0f))
+                        }
+                    }
                 }
                 .fillMaxWidth()
                 .height(if (toast.detail != null) ToastTokens.TallHeight else ToastTokens.Height)

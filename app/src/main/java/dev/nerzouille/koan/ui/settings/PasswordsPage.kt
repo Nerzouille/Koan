@@ -9,7 +9,6 @@ import androidx.biometric.BiometricManager.Authenticators
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,20 +46,20 @@ import dev.nerzouille.koan.ui.theme.SettingsTokens
 /**
  * What the Passwords pages need. [unlocked]: the logins opened so far after the fingerprint or PIN
  * (they fill in progressively), null while locked. [onUnlock]: asks for the fingerprint, then
- * opens the login [then] if given.
+ * opens [site]'s page if given (its logins [first] are opened before the others).
  */
 class PasswordsUi(
     val summaries: List<LoginSummary>,
     val unlocked: Map<String, Login>?,
-    val onUnlock: (then: String?) -> Unit,
+    val onUnlock: (site: String?, first: List<String>) -> Unit,
 )
 
 /**
- * Settings › Passwords: the sites, searchable; usernames and passwords only once unlocked with the
- * fingerprint or the device PIN. Tapping a site while locked unlocks and opens it.
+ * Settings › Passwords: one row per site, searchable. Tapping a site asks for the fingerprint or
+ * the device PIN (once per visit), then opens its page with every account on it.
  */
 @Composable
-internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpen: (String) -> Unit) {
+internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpenSite: (String) -> Unit) {
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
     SettingsPageFrame("Passwords", on, onBack) {
@@ -82,7 +82,7 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
                 fontSize = SettingsTokens.RowValueSize,
             )
             Spacer(Modifier.height(SettingsTokens.RowInset))
-            PrimaryButton("Unlock", onClick = { if (on) ui.onUnlock(null) }, modifier = Modifier.fillMaxWidth())
+            PrimaryButton("Unlock", onClick = { if (on) ui.onUnlock(null, emptyList()) }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(SettingsTokens.RowInset))
         }
         val q = query.trim()
@@ -93,20 +93,22 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
         if (shown.isEmpty()) {
             Text("No password matches “$q”.", color = palette.TextSecondary, fontSize = SettingsTokens.RowValueSize)
         }
-        shown.forEachIndexed { i, s ->
+        shown.groupBy(::siteOf).entries.forEachIndexed { i, (site, logins) ->
             if (i > 0) SettingsDivider()
-            val login = unlocked?.get(s.guid)
+            val single = logins.singleOrNull()
             SettingsRow(
-                KoanIcons.Key, displayHost(s.origin).ifEmpty { s.origin }, on,
-                subtitle = when {
-                    unlocked == null -> null
-                    login == null -> "…"
-                    else -> login.username.ifEmpty { "No username" }
+                KoanIcons.Key, site, on,
+                // One account: its username once unlocked; several: how many.
+                subtitle = single?.let { s ->
+                    when {
+                        unlocked == null -> null
+                        else -> unlocked[s.guid]?.username?.ifEmpty { "No username" } ?: "…"
+                    }
                 },
-                value = if (s.local) "This phone" else null,
+                value = if (single == null) "${logins.size} accounts" else if (single.local) "This phone" else null,
                 chevron = true,
-                // Locked: the fingerprint first, then straight to this login.
-                onClick = { if (unlocked == null) ui.onUnlock(s.guid) else onOpen(s.guid) },
+                // Locked: the fingerprint first, then straight to the site's accounts.
+                onClick = { if (unlocked == null) ui.onUnlock(site, logins.map { it.guid }) else onOpenSite(site) },
             )
         }
     }
@@ -146,34 +148,72 @@ internal fun SearchBox(value: String, hint: String, onChange: (String) -> Unit) 
     }
 }
 
-/** One login: where, who, and the password hidden until Reveal; Copy marks it sensitive. */
+/**
+ * Settings › Passwords › a site: each account with where it comes from, its username and its
+ * password, hidden until Reveal. Tapping either copies it (a password is marked sensitive); a site
+ * with one account also has the big Copy password button.
+ */
 @Composable
-internal fun PasswordDetailPage(login: Login?, on: Boolean, onBack: () -> Unit) {
-    // Opened right after the fingerprint: the login may arrive a moment after the page.
-    val context = LocalContext.current
-    var shown by remember(login?.guid) { mutableStateOf(false) }
-    SettingsPageFrame(login?.let { displayHost(it.origin) } ?: "Password", on, onBack) {
-        if (login == null) return@SettingsPageFrame
-        SettingsRow(KoanIcons.Globe, login.origin, on, subtitle = if (login.local) "Saved on this phone" else "From your Mozilla account")
-        SettingsDivider()
-        SettingsRow(null, login.username.ifEmpty { "No username" }, on, subtitle = "Username", onClick = if (login.username.isEmpty()) null else { { copy(context, "Username", login.username, sensitive = false) } }) {
-            if (login.username.isNotEmpty()) CopyLabel()
-        }
-        SettingsDivider()
-        SettingsRow(null, if (shown) login.password else "••••••••••", on, subtitle = "Password", onClick = { shown = !shown }) {
-            Text(if (shown) "Hide" else "Reveal", color = KoanTheme.colors.TextSecondary, fontSize = SettingsTokens.RowValueSize)
-        }
-        Spacer(Modifier.height(SettingsTokens.SectionTop))
-        Row(horizontalArrangement = Arrangement.spacedBy(SettingsTokens.RowInset)) {
-            PrimaryButton("Copy password", onClick = { if (on) copy(context, "Password", login.password, sensitive = true) }, modifier = Modifier.weight(1f))
+internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack: () -> Unit) {
+    SettingsPageFrame(site, on, onBack) {
+        val accounts = ui.summaries.filter { siteOf(it) == site }
+        val unlocked = ui.unlocked
+        if (unlocked == null) {
+            PrimaryButton("Unlock", onClick = { if (on) ui.onUnlock(site, accounts.map { it.guid }) }, modifier = Modifier.fillMaxWidth())
+        } else {
+            accounts.forEachIndexed { i, s ->
+                // Keyed: the accounts open one by one, each one's rows change as it does.
+                key(s.guid) {
+                    if (i > 0) Spacer(Modifier.height(SettingsTokens.SectionTop))
+                    Account(s, unlocked[s.guid], on)
+                }
+            }
+            // One account: its password one big tap away.
+            val single = accounts.singleOrNull()?.let { unlocked[it.guid] }
+            if (single != null) {
+                val context = LocalContext.current
+                Spacer(Modifier.height(SettingsTokens.SectionTop))
+                PrimaryButton("Copy password", onClick = { if (on) copy(context, "Password", single.password, sensitive = true) }, modifier = Modifier.fillMaxWidth())
+            }
         }
     }
 }
 
+/** One account of a site: where it comes from, its username, its password ([login] null = still opening). */
 @Composable
-private fun CopyLabel() {
-    Text("Copy", color = KoanTheme.colors.TextSecondary, fontSize = SettingsTokens.RowValueSize)
+private fun Account(s: LoginSummary, login: Login?, on: Boolean) {
+    val context = LocalContext.current
+    var shown by remember { mutableStateOf(false) }
+    SettingsRow(KoanIcons.Globe, s.origin, on, subtitle = if (s.local) "Saved on this phone" else "From your Mozilla account")
+    SettingsDivider()
+    if (login == null) {
+        SettingsRow(null, "…", on, subtitle = "Username")
+    } else {
+        SettingsRow(
+            null, login.username.ifEmpty { "No username" }, on, subtitle = "Username",
+            onClick = if (login.username.isEmpty()) null else { { copy(context, "Username", login.username, sensitive = false) } },
+        ) { if (login.username.isNotEmpty()) RowAction("Copy") }
+        SettingsDivider()
+        // Tapping the password copies it, hidden or shown; Reveal / Hide is its own tap.
+        SettingsRow(null, if (shown) login.password else "••••••••••", on, subtitle = "Password", onClick = { copy(context, "Password", login.password, sensitive = true) }) {
+            RowAction(if (shown) "Hide" else "Reveal") { if (on) shown = !shown }
+        }
+    }
 }
+
+/** A quiet word at a row's end ("Copy", "Reveal"); tappable on its own when [onClick] is given. */
+@Composable
+private fun RowAction(label: String, onClick: (() -> Unit)? = null) {
+    Text(
+        label,
+        color = KoanTheme.colors.TextSecondary,
+        fontSize = SettingsTokens.RowValueSize,
+        modifier = if (onClick == null) Modifier else Modifier.clip(CircleShape).clickable(onClick = onClick).padding(SettingsTokens.Divider * 6),
+    )
+}
+
+/** The site a login is for, as the list shows it. */
+private fun siteOf(s: LoginSummary): String = displayHost(s.origin).ifEmpty { s.origin }
 
 /** Copies [value]; a password is flagged sensitive so Android hides it in clipboard previews. */
 private fun copy(context: Context, label: String, value: String, sensitive: Boolean) {

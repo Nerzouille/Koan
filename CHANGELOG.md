@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### New
+
+- **Update check in About:** opening About looks once at Koan's GitHub releases and says "Up to
+  date" or "Update available" (tap to open the release). Never in the background.
+- **Privacy notice** ([`docs/PRIVACY.md`](docs/PRIVACY.md)), linked from About: every server Koan
+  talks to and what it sends.
+
 ## 0.2.0 — 2026-10-16 (pre-release)
 
 Browser essentials. Android 14+ (minSdk 34), arm64-v8a only. Installs over 0.1.0 and keeps your

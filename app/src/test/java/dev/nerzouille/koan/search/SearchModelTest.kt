@@ -98,4 +98,33 @@ class SearchModelTest {
         assertNull(completion("docs", top))
         assertNull(completion("exa mple", top))
     }
+
+    @Test fun `only places visited enough complete inline, never sign-in or redirect hops`() {
+        val pages = listOf(
+            Hit("https://accounts.example.com/signin", "Sign in", Source.History, visits = 30, lastUsed = daysAgo(1)),
+            Hit("https://www.example.com/accounts/SetSID", "Redirection", Source.History, visits = 30, lastUsed = daysAgo(1)),
+            Hit("https://once.example/", "Once, long ago", Source.History, visits = 1, lastUsed = daysAgo(80)),
+            Hit("https://app.example/login", "Log in", Source.History, visits = 9, lastUsed = daysAgo(1)),
+        )
+        assertNull(rank("acc", emptyList(), pages, emptyList(), now = now).top)
+        assertNull(rank("www.example.com/acc", emptyList(), pages, emptyList(), now = now).top)
+        assertNull(rank("onc", emptyList(), pages, emptyList(), now = now).top)
+        assertNull(rank("app.example/l", emptyList(), pages, emptyList(), now = now).top)
+        // Still offered as rows, just not typed-to.
+        assertEquals(1, rank("acc", emptyList(), pages, emptyList(), now = now).pages.size)
+        assertEquals("https://www.example.com/docs", rank("exa", emptyList(), history, emptyList(), now = now).top?.url)
+    }
+
+    @Test fun `redirect pages are recognised`() {
+        assertTrue(HistoryFilter.isRedirect("https://accounts.example.fr/accounts/SetSID?ssdc=1", ""))
+        assertTrue(HistoryFilter.isRedirect("https://example.com/r", "Redirection"))
+        assertTrue(HistoryFilter.isRedirect("https://example.com/r", "Redirecting…"))
+        assertTrue(HistoryFilter.isRedirect("https://example.com/r", "302 Found"))
+        assertFalse(HistoryFilter.isRedirect("https://example.com/r", "Found: a story"))
+        assertFalse(HistoryFilter.isRedirect("https://example.com/redirects-explained", "How redirects work"))
+        assertTrue(HistoryFilter.isAuth("https://login.example.com/"))
+        assertTrue(HistoryFilter.isAuth("https://example.com/oauth2/authorize?x=1"))
+        assertFalse(HistoryFilter.isAuth("https://example.com/blog/login-tips-for-all"))
+        assertFalse(HistoryFilter.isAuth("https://example.com/"))
+    }
 }

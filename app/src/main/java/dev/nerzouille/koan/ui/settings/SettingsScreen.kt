@@ -40,6 +40,7 @@ import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.brandOutline
+import dev.nerzouille.koan.update.UpdateStatus
 import kotlin.math.abs
 
 /** Settings' pages. */
@@ -50,7 +51,7 @@ sealed interface SettingsPage {
     data object About : SettingsPage
     data object DownloadFolder : SettingsPage
     data object Passwords : SettingsPage
-    data class PasswordDetail(val guid: String) : SettingsPage
+    data class PasswordSite(val site: String) : SettingsPage
 }
 
 /** Everything Settings shows and does. [email] null = signed out. */
@@ -72,6 +73,8 @@ class SettingsUi(
     val isDefault: Boolean,
     val onMakeDefault: () -> Unit,
     val version: String,
+    /** One look at GitHub's releases (About calls it when it opens). */
+    val checkUpdate: suspend () -> UpdateStatus,
     /** Opens a page (changelog, licences) in a new tab. */
     val onOpenUrl: (String) -> Unit,
     /** Debug builds only. */
@@ -124,8 +127,11 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.Account -> AccountPage(ui, interactive, back)
                         SettingsPage.About -> AboutPage(ui, interactive, back)
                         SettingsPage.DownloadFolder -> FolderPage(ui, interactive, back)
-                        SettingsPage.Passwords -> PasswordsPage(ui.passwords, interactive, back) { nav.push(SettingsPage.PasswordDetail(it)) }
-                        is SettingsPage.PasswordDetail -> PasswordDetailPage(ui.passwords.unlocked?.get(page.guid), interactive, back)
+                        SettingsPage.Passwords -> PasswordsPage(
+                            ui.passwords, interactive, back,
+                            onOpenSite = { nav.push(SettingsPage.PasswordSite(it)) },
+                        )
+                        is SettingsPage.PasswordSite -> PasswordSitePage(ui.passwords, page.site, interactive, back)
                     }
                 }
             }

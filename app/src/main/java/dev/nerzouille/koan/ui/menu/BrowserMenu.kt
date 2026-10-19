@@ -78,6 +78,7 @@ class MenuActions(
     val essentials: () -> Unit,
     val settings: () -> Unit,
     val downloads: () -> Unit,
+    val history: () -> Unit,
     val siteSettings: () -> Unit,
     val ublockToggle: (Boolean) -> Unit,
     val ublockOpen: () -> Unit,
@@ -132,6 +133,8 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
                 EssentialsAction.FromZen -> SheetRow(KoanIcons.Essentials, "In Essentials", on) { RowValue("From Zen") }
                 EssentialsAction.None -> SheetRow(KoanIcons.Essentials, "Add to Essentials", on) { RowValue("No page") }
             }
+            SheetDivider()
+            SheetRow(KoanIcons.History, "History", on, onClick = actions.history) { RowChevron() }
             SheetDivider()
             SheetRow(KoanIcons.Download, "Downloads", on, onClick = actions.downloads) {
                 if (state.activeDownloads > 0) RowValue("${state.activeDownloads} active") else RowChevron()

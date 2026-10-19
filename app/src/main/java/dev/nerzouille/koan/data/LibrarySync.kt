@@ -1,6 +1,7 @@
 package dev.nerzouille.koan.data
 
 import android.util.Log
+import dev.nerzouille.koan.search.HistoryFilter
 import dev.nerzouille.koan.sync.SyncClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -68,7 +69,8 @@ class LibrarySync(private val dao: KoanDao, private val logins: LoginStore) {
             val r = runCatching { client.decryptRecord("history", record) }.getOrNull() ?: return@mapNotNull null
             if (r.optBoolean("deleted")) return@mapNotNull null
             val url = r.optString("histUri")
-            if (!url.startsWith("http")) return@mapNotNull null
+            // Redirect pages are not history, here or on the phone.
+            if (!url.startsWith("http") || HistoryFilter.isRedirect(url, r.optString("title"))) return@mapNotNull null
             val visits = r.optJSONArray("visits")
             val dates = if (visits == null) emptyList() else List(visits.length()) { visits.optJSONObject(it)?.optLong("date") ?: 0L }
             val last = (dates.maxOrNull() ?: 0L) / 1000 // microseconds → ms

@@ -24,6 +24,7 @@ import mozilla.components.lib.state.ext.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.action.CrashAction
@@ -33,6 +34,7 @@ import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
@@ -58,6 +60,7 @@ class TabManager(
     private val dao: KoanDao,
     private val spaces: StateFlow<List<SpaceWithTabs>>,
     private val lastPlace: LastPlace,
+    private val history: HistoryRecorder,
     /** For Room writes and file work that must outlive any screen. */
     private val appScope: CoroutineScope,
 ) {
@@ -90,6 +93,12 @@ class TabManager(
     private val windowTabs = HashSet<String>()
 
     private var engineView = WeakReference<EngineView>(null)
+
+    /** Tabs opened from a link in another tab: that tab, for Back on their first page. */
+    private val openers = HashMap<String, String>()
+
+    /** The tab another app opened (a link, a share), while it is the current one: Back goes back there. */
+    private var fromApp: String? = null
 
     // ---- start -------------------------------------------------------------------------------
 
@@ -184,10 +193,20 @@ class TabManager(
      * new tab"), else at the bottom of the stack. [select]: shown now; otherwise it waits in the
      * stack and loads when opened. Returns the new tab's id.
      */
-    fun openNew(spaceUuid: String, url: String, opener: TabEntity? = null, select: Boolean = true): String {
+    fun openNew(spaceUuid: String, url: String, opener: TabEntity? = null, select: Boolean = true, fromApp: Boolean = false): String {
         val id = UUID.randomUUID().toString()
-        main.launch { openNew(id, spaceUuid, url, opener, select) }
+        if (opener != null) openers[id] = opener.koanTabId
+        main.launch {
+            openNew(id, spaceUuid, url, opener, select)
+            if (fromApp) this@TabManager.fromApp = id
+        }
         return id
+    }
+
+    /** Who opened tab [id], for Back on its first page; null = nobody in particular. */
+    fun openerOf(id: String): Opener? = when {
+        fromApp == id -> Opener.App
+        else -> openers[id]?.let { Opener.Tab(it) }
     }
 
     private suspend fun openNew(id: String, spaceUuid: String, url: String, opener: TabEntity?, select: Boolean) {
@@ -233,8 +252,12 @@ class TabManager(
      * Closes a card ([ids] = its tabs; a split card has several). Normal tabs close; a pinned or
      * essential tab is only unloaded back to its drawer row, its screenshot kept so it reopens instantly.
      */
-    fun close(ids: List<String>, rows: List<TabEntity>) = main.launch {
+    fun close(ids: List<String>, rows: List<TabEntity>, keepThumbnails: Boolean = false) = main.launch {
         val keep = rows.filter { it.pinned || it.essential }.mapTo(HashSet()) { it.koanTabId }
+        ids.forEach {
+            openers.remove(it)
+            history.forget(it)
+        }
         if (_current.value in ids) setCurrent(null)
         if (_blank.value in ids) _blank.value = null
         removeEngineTabs(ids)
@@ -242,9 +265,30 @@ class TabManager(
             keep.forEach { dao.setCardOrder(it, null) }
             val gone = ids.filter { it !in keep }
             if (gone.isNotEmpty()) dao.closeTabs(gone)
-            rows.filter { it.koanTabId in gone }.mapNotNull { it.thumbnailKey }.forEach { ThumbnailStore.delete(it) }
-            gone.forEach { dao.setThumbnail(it, null) }
+            // Kept for Undo: if the tab doesn't come back, the next start's cleanup drops it.
+            if (!keepThumbnails) {
+                rows.filter { it.koanTabId in gone }.mapNotNull { it.thumbnailKey }.forEach { ThumbnailStore.delete(it) }
+                gone.forEach { dao.setThumbnail(it, null) }
+            }
         }
+    }
+
+    /** Closes normal tab [id] like [close], keeping what [reopen] needs to bring it back. */
+    suspend fun closeForUndo(id: String): ClosedTab? {
+        val row = dao.tab(id) ?: return null
+        val closed = ClosedTab(row, store.state.findTab(id)?.engineState?.engineSessionState)
+        close(listOf(id), listOf(row), keepThumbnails = true).join()
+        return closed
+    }
+
+    /** Undo: [closed] is back in its place in the stack, its page history and scroll too (not opened yet). */
+    suspend fun reopen(closed: ClosedTab) {
+        val row = closed.row
+        ownTabs += row.koanTabId
+        withContext(Dispatchers.Main) {
+            store.dispatch(TabListAction.AddTabAction(createTab(url = row.url, id = row.koanTabId, engineSessionState = closed.state), select = false))
+        }
+        appScope.launch { dao.upsertTabs(listOf(row)) }.join()
     }
 
     /** Closes a tab that only held a download, back to the tab used before it. */
@@ -267,6 +311,8 @@ class TabManager(
 
     private fun setCurrent(id: String?) {
         if (_current.value != id) switches++
+        // Another tab now: Back from the app's tab no longer goes back to that app.
+        if (id != fromApp) fromApp = null
         _current.value = id
         if (id != null) touch(id)
         appScope.launch { lastPlace.saveTab(id) }
@@ -400,7 +446,7 @@ class TabManager(
             val url = content.url
             if (url.isEmpty() || url == "about:blank") return@launch
             val title = content.title
-            recordVisit(id, url, title)
+            history.pageShown(id, url, title)
             appScope.launch {
                 val row = dao.tab(id) ?: return@launch
                 if (row.url == url && (title.isEmpty() || row.title == title)) return@launch
@@ -418,27 +464,11 @@ class TabManager(
         }
     }
 
-    /** The url each tab's last recorded visit was for: a title change is not a new visit. */
-    private val visited = HashMap<String, String>()
-
-    /** History for search: one visit per page a tab lands on (web pages only). */
-    private fun recordVisit(tabId: String, url: String, title: String) {
-        if (!url.startsWith("http://") && !url.startsWith("https://")) return
-        val again = visited[tabId] == url
-        visited[tabId] = url
-        appScope.launch {
-            if (again) {
-                if (title.isNotEmpty()) dao.setVisitTitle(url, title)
-            } else {
-                dao.recordVisit(url, title, System.currentTimeMillis())
-            }
-        }
-    }
-
     private fun adoptWindowTab(tab: TabSessionState) {
         ownTabs += tab.id
         windowTabs += tab.id
         val parentId = tab.parentId ?: _current.value
+        if (parentId != null) openers[tab.id] = parentId
         appScope.launch {
             val parent = parentId?.let { dao.tab(it) }
             val spaceUuid = parent?.spaceUuid ?: spaces.value.firstOrNull()?.space?.uuid ?: return@launch
@@ -584,3 +614,12 @@ private fun List<SpaceWithTabs>.allTabs(): List<TabEntity> =
 
 /** Has (or should have) a card: normal tabs, and pinned/essential tabs opened on the phone. */
 private fun TabEntity.hasCard() = !closed && inStack
+
+/** Who opened a tab: another tab (a link), or another app. */
+sealed interface Opener {
+    data class Tab(val id: String) : Opener
+    data object App : Opener
+}
+
+/** A closed tab, kept for Undo: its Room row and its engine state (page history, scroll). */
+class ClosedTab(val row: TabEntity, val state: EngineSessionState?)

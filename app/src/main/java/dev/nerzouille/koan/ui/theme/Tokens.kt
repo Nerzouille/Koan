@@ -224,6 +224,9 @@ object ButtonTokens {
 
 /** The address input: neutral ring while typing, the brand gradient flows around it on "@". */
 object SearchFieldTokens {
+    /** The text scrolls so the cursor stays this far inside the field's edges. */
+    val CursorEdge = 40.dp
+
     val Ring = 1.5.dp
     val AtRing = 2.dp
 
@@ -497,8 +500,12 @@ object BarTokens {
     /** Release faster than this (vertical) goes page ↔ overview regardless of position. */
     val OverviewFling = 600.dp // per second
 
-    /** Page view space scrub: finger travel from one space to the next. */
-    val ScrubStep = 56.dp
+    /** Page view space scrub: finger travel from one space to the next (fitted to the screen, see SpaceScrub). */
+    val ScrubStepMin = 24.dp
+    val ScrubStepMax = 90.dp
+
+    /** …and the first / last space is reached this far before the screen's edge. */
+    val ScrubEdge = 48.dp
 
     /** Page view: tabs slide this far apart while a swipe on the dock switches tab. */
     val TabSwipeGap = 24.dp
@@ -674,6 +681,12 @@ object SettingsTokens {
     val AppNameSize = 30.sp
     val VersionSize = 14.sp
     val FooterSize = 12.sp
+    val ChipHeight = 30.dp
+    val ChipPadding = 12.dp
+    val ChipGap = 6.dp
+    val ChipGlyph = 13.dp
+    val ChipTextSize = 13.sp
+    val ChipShadow = 1.dp
 }
 
 /** The bottom toast ("Opened in background · Switch", later "Closed · Undo"). */
@@ -688,6 +701,10 @@ object ToastTokens {
     val DetailSize = 12.sp
     const val DETAIL_ALPHA = 0.65f
     const val SHOW_MS = 3000L
+
+    /** Swiped past this fraction of its width (or flung), a toast goes away. */
+    const val SWIPE_FRACTION = 0.3f
+    val SwipeFling = 800.dp // per second
 
     /** Slides up this far as it appears. */
     val Rise = 16.dp
@@ -741,6 +758,34 @@ object SearchTokens {
     /** The results never go higher than the status bar plus this. */
     val StatusGap = 16.dp
 
+}
+
+object PullTokens {
+    val Size = 40.dp
+    val Arc = 20.dp
+    val Stroke = 2.5.dp
+    val Elevation = 4.dp
+
+    /** Pulled this far (after resistance), a release reloads. */
+    val Trigger = 72.dp
+    val Max = 120.dp
+
+    /** The indicator moves this much of the finger's travel. */
+    const val RESISTANCE = 0.5f
+
+    /** A reload that never starts loading lets the indicator go after this. */
+    const val START_TIMEOUT_MS = 3000L
+
+    /** The brand spinner turns at least this long, even for an instant reload. */
+    const val MIN_SPIN_MS = 600L
+}
+
+object HistoryTokens {
+    val Favicon = 24.dp
+    val SyncGlyph = 16.dp
+
+    /** Rows loaded at most (newest first). */
+    const val LIMIT = 3000
 }
 
 object PagerTokens {
@@ -844,6 +889,9 @@ object Motion {
 
     /** Full-screen sheets (sign-in) sliding up and down. */
     val Sheet: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 380f)
+
+    /** The page dimming behind the search sheet. */
+    val SearchScrim: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 700f)
 
     /** Overview open/close; also drives the bar morph. */
     val Overview: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)

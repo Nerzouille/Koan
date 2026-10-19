@@ -110,7 +110,7 @@ data class BookmarkEntity(
     val createdAt: Long,
 )
 
-/** A page visited on the phone (M5: local history for search; never synced). One row per url. */
+/** A page visited on the phone, or in the account's history (read-only copy). One row per url. */
 @Entity(tableName = "visits", indices = [Index("lastVisit")])
 data class VisitEntity(
     @PrimaryKey val url: String,
@@ -119,6 +119,8 @@ data class VisitEntity(
     val visitCount: Int,
     /** First known from the Mozilla account's history (removed on sign-out), not visited here. */
     @ColumnInfo(defaultValue = "0") val fromSync: Boolean = false,
+    /** Removed from History on the phone while still in the account's history: kept so a sync doesn't bring it back. */
+    @ColumnInfo(defaultValue = "0") val hidden: Boolean = false,
 )
 
 /**

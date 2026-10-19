@@ -36,6 +36,9 @@ import mozilla.components.concept.engine.permission.PermissionRequest
 import android.net.Uri
 import android.provider.DocumentsContract
 import dev.nerzouille.koan.ui.downloads.DownloadsScreen
+import dev.nerzouille.koan.ui.history.ClearDataCard
+import dev.nerzouille.koan.ui.history.HistoryScreen
+import dev.nerzouille.koan.ui.menu.FilePrompt
 import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.kit.Toast
 import mozilla.components.browser.state.state.content.DownloadState
@@ -46,13 +49,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.splineBasedDecay
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -95,6 +98,7 @@ import dev.nerzouille.koan.ui.sheet.SheetNav
 import dev.nerzouille.koan.ui.sheet.SheetState
 import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.update.UpdateCheck
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.findTab
@@ -109,6 +113,8 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val signOutCard = SheetState(scope, splineBasedDecay(density))
     var settingsOpen by mutableStateOf(false)
     var downloadsOpen by mutableStateOf(false)
+    var historyOpen by mutableStateOf(false)
+    val clearDataCard = SheetState(scope, splineBasedDecay(density))
     val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
     val clearSiteCard = SheetState(scope, splineBasedDecay(density))
 
@@ -271,6 +277,10 @@ fun KoanOverlays(
                         close()
                         overlays.downloadsOpen = true
                     },
+                    history = {
+                        close()
+                        overlays.historyOpen = true
+                    },
                     siteSettings = { overlays.menuNav.push(MenuPage.SiteSettings) },
                     ublockToggle = components.ublock::setEnabled,
                     ublockOpen = {
@@ -403,6 +413,8 @@ fun KoanOverlays(
         activeTabId?.let { s.findTab(it) }?.content?.promptRequests
             ?.firstOrNull { it is PromptRequest.SelectLoginPrompt || it is PromptRequest.SaveLoginPrompt }
     }
+    // A page's file field: Android's picker (and the camera).
+    FilePrompt(components, activeTabId)
     fun consumePrompt(p: PromptRequest) { activeTabId?.let { components.store.dispatch(ContentAction.ConsumePromptRequestAction(it, p)) } }
     val select = loginPrompt as? PromptRequest.SelectLoginPrompt
     if (select != null && select.logins.isNotEmpty()) {
@@ -541,6 +553,7 @@ fun KoanOverlays(
                 isDefault = isDefault,
                 onMakeDefault = { askDefault.launch(roles.createRequestRoleIntent(RoleManager.ROLE_BROWSER)) },
                 version = BuildConfig.VERSION_NAME,
+                checkUpdate = { UpdateCheck.check(BuildConfig.VERSION_NAME) },
                 onOpenUrl = { url ->
                     overlays.settingsOpen = false
                     onOpenNew(url, true, false)
@@ -557,18 +570,19 @@ fun KoanOverlays(
                 passwords = PasswordsUi(
                     summaries = loginSummaries,
                     unlocked = unlockedLogins,
-                    onUnlock = { then ->
+                    onUnlock = { site, first ->
                         (context as? FragmentActivity)?.let { activity ->
                             authenticate(activity, "Unlock your passwords") {
-                                // Unlocked at once; the logins fill in as they're opened (the tapped one first).
+                                // Unlocked at once; the logins fill in as they're opened (the tapped site's first).
                                 unlockedLogins = emptyMap()
-                                if (then != null) overlays.settingsNav.push(SettingsPage.PasswordDetail(then))
+                                val onSite = overlays.settingsNav.pages.lastOrNull() == SettingsPage.PasswordSite(site ?: "")
+                                if (site != null && !onSite) overlays.settingsNav.push(SettingsPage.PasswordSite(site))
                                 scope.launch {
                                     fun add(logins: List<Login>) {
                                         val current = unlockedLogins ?: return
                                         unlockedLogins = current + logins.associateBy { it.guid }
                                     }
-                                    then?.let { components.logins.openOne(it) }?.let { add(listOf(it)) }
+                                    add(first.mapNotNull { components.logins.openOne(it) })
                                     components.logins.openAll(::add)
                                 }
                             }
@@ -608,6 +622,43 @@ fun KoanOverlays(
                 components.downloads.clearHistory()
             },
             onCancel = { clearCard.animateTo(Detent.Closed) },
+        )
+    }
+
+    // ---- History, full screen like Downloads, and Clear browsing data ----
+    val historySlide = remember { Animatable(0f) }
+    LaunchedEffect(overlays.historyOpen) { historySlide.animateTo(if (overlays.historyOpen) 1f else 0f, Motion.Sheet) }
+    val historyVisible by remember { derivedStateOf { overlays.historyOpen || historySlide.value > 0f } }
+    if (historyVisible) {
+        val dao = components.database.dao()
+        HistoryScreen(
+            dao = dao,
+            onOpen = { url ->
+                overlays.historyOpen = false
+                onOpenNew(url, true, false)
+            },
+            onRemove = { v ->
+                scope.launch { dao.removeVisit(v.url) }
+                onToast(Toast("Removed from history", "Undo") { scope.launch { dao.restoreVisit(v) } })
+            },
+            onClear = { overlays.clearDataCard.animateTo(Detent.Compact) },
+            onClose = { overlays.historyOpen = false },
+            modifier = Modifier.graphicsLayer { translationY = (1f - historySlide.value) * size.height },
+        )
+    }
+    val clearData = overlays.clearDataCard
+    KoanCard(clearData) { interactive ->
+        ClearDataCard(
+            interactive = interactive,
+            onClear = { choice ->
+                clearData.animateTo(Detent.Closed)
+                scope.launch {
+                    if (choice.history) components.database.dao().clearHistory()
+                    val ok = components.sitePermissions.clearAll(cookies = choice.cookies, cache = choice.cache)
+                    onToast(Toast(if (ok) "Browsing data cleared" else "Couldn't clear everything"))
+                }
+            },
+            onCancel = { clearData.animateTo(Detent.Closed) },
         )
     }
 

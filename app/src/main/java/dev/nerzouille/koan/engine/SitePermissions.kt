@@ -141,6 +141,19 @@ class SitePermissions(private val context: Context, private val runtime: GeckoRu
         return runtime.storageController.clearDataFromBaseDomain(host, flags).awaitDone()
     }
 
+    /**
+     * Clear browsing data, for every site: [cookies] = cookies, storage and logged-in sessions
+     * (add-ons keep theirs), [cache] = cached pages and images. Site permissions stay. False when
+     * Gecko failed.
+     */
+    suspend fun clearAll(cookies: Boolean, cache: Boolean): Boolean {
+        var flags = 0L
+        if (cookies) flags = flags or StorageController.ClearFlags.COOKIES or StorageController.ClearFlags.DOM_STORAGES or StorageController.ClearFlags.AUTH_SESSIONS
+        if (cache) flags = flags or StorageController.ClearFlags.NETWORK_CACHE or StorageController.ClearFlags.IMAGE_CACHE
+        if (flags == 0L) return true
+        return runtime.storageController.clearData(flags).awaitDone()
+    }
+
     private suspend fun geckoRecords(url: String): List<ContentPermission> =
         runtime.storageController.getPermissions(url).await().orEmpty()
 

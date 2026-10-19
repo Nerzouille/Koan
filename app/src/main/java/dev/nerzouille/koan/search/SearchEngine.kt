@@ -17,5 +17,8 @@ enum class SearchEngine(val label: String, private val prefix: String, private v
 
     fun searchUrl(query: String): String = prefix + URLEncoder.encode(query, Charsets.UTF_8)
 
+    /** Its site, for its favicon: "https://duckduckgo.com". */
+    val home: String get() = prefix.substring(0, prefix.indexOf('/', "https://".length))
+
     fun suggestUrl(query: String): String? = suggestPrefix?.let { it + URLEncoder.encode(query, Charsets.UTF_8) }
 }

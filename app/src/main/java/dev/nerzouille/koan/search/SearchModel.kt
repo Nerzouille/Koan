@@ -78,8 +78,8 @@ data class Hit(
 )
 
 /**
- * The sheet's groups. [top]: the best page whose address starts with what was typed (inline
- * completion shows it; it also leads its group). [pages]: history and bookmarks together.
+ * The sheet's groups. [top]: the best page whose address starts with what was typed and may be
+ * completed inline (see completable). [pages]: history and bookmarks together.
  */
 data class Results(
     val top: Hit? = null,
@@ -174,11 +174,23 @@ fun rank(
     val top = if (scope != null || q.isEmpty() || ' ' in q) {
         null
     } else {
-        (tabGroup + pageGroup).filter { it.prefixMatches(q) }.maxByOrNull { frecency(it, now) + if (it.source == Source.Tab) 0.5 else 0.0 }
+        (inTabs + inPages).filter { it.prefixMatches(q) && it.completable(now) }
+            .maxByOrNull { frecency(it, now) + if (it.source == Source.Tab) 0.5 else 0.0 }
     }
     return Results(top = top, tabs = tabGroup, pages = pageGroup)
 }
 
+/**
+ * May be completed inline: an open tab or a bookmark, or a page from history visited often or
+ * recently enough ([MIN_COMPLETE_FRECENCY]); never a sign-in or redirect endpoint.
+ */
+private fun Hit.completable(now: Long): Boolean {
+    if (HistoryFilter.isAuth(url) || HistoryFilter.isRedirect(url, title)) return false
+    return source != Source.History || frecency(this, now) >= MIN_COMPLETE_FRECENCY
+}
+
+/** One visit in the last month, a few in the last three. */
+private const val MIN_COMPLETE_FRECENCY = 1.0
 private const val MIN_WORD_QUERY = 3
 private const val TAB_LIMIT = 2
 private const val PAGE_LIMIT = 2
