@@ -738,7 +738,7 @@ fun KoanRoot(components: Components) {
                     onBack = { session.goBack(activeTabId) },
                     onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
                     onMenu = { overlays.menu.animateTo(Detent.Compact) },
-                    onNewTab = { newTab(pager.settled) },
+                    onHistory = { overlays.historyOpen = true },
                     onSettings = { overlays.settingsOpen = true },
                     onTabsMenu = { overlays.tabMenuOpen = true },
                     claimHold = { bar.holdClaimed = true },

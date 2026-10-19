@@ -138,7 +138,7 @@ data class SwipeTarget(
 
 /**
  * back · address field · tabs · menu. In the page view, tapping the field turns it into an input.
- * The overview ([overview] → 1) keeps the layout and swaps the buttons: back becomes + (new tab),
+ * The overview ([overview] → 1) keeps the layout and swaps the buttons: back becomes History,
  * the field "new search", ⋯ Settings.
  */
 @Composable
@@ -155,8 +155,8 @@ fun AddressRow(
     onTabs: () -> Unit,
     /** ⋯: opens the menu sheet. */
     onMenu: () -> Unit,
-    /** Overview: + in back's place. */
-    onNewTab: () -> Unit,
+    /** Overview: History in back's place. */
+    onHistory: () -> Unit,
     /** Overview: Settings in ⋯'s place. */
     onSettings: () -> Unit,
     /** Page view: a long press on the tab counter (its small menu). */
@@ -208,7 +208,7 @@ fun AddressRow(
         } else {
             Box {
                 BarIcon(KoanIcons.Back, enabled = page.canGoBack, interactive = !overviewOpen, onClick = onBack, modifier = pageOnly)
-                BarIcon(KoanIcons.Plus, interactive = overviewOpen, onClick = onNewTab, modifier = overviewOnly)
+                BarIcon(KoanIcons.History, interactive = overviewOpen, onClick = onHistory, modifier = overviewOnly)
             }
             AddressField(
                 page = page,

@@ -37,7 +37,7 @@ outside the repo; the interaction rules below always apply.
 ╭──────────────────────────────╮  the dock (own surface, 24dp top corners)
 │            ▬▬                │  drawer handle
 │     🏡  ( 💼 Work )  🎓       │  workspace switcher  ┐ the bottom bar
-│ +  [ Search or type URL ] ⧉ ⚙│  address row         ┘
+│ 🕘 [ Search or type URL ] ⧉ ⚙│  address row         ┘
 └──────────────────────────────┘
 ```
 
@@ -250,7 +250,7 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   out (350ms). Page view only.
 - **Overview:** the same strip grows upward; the workspace switcher row (with the drawer handle)
   appears on top, the address row keeps its layout and only the buttons change: back crossfades
-  to **+** (new tab), the field becomes "Search or type URL" (tap = new tab with search), the tab
+  to **History**, the field becomes "Search or type URL" (tap = new tab with search), the tab
   count stays (tap = back to the page), the menu crossfades to **Settings**. From here it can grow further into the drawer (see "Essentials & pinned drawer").
   The morph only draws/transforms (no relayout per frame).
 - The dock covers the bottom of the stack (see "The dock covers the bottom of the stack").
@@ -283,7 +283,7 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   overshoot. If the card's slot is off-screen, the stack pre-scrolls so the slot is visible first.
 - During the morph, show the cached thumbnail, then swap to the live GeckoView once its first
   frame is ready (never show a blank white page during the morph).
-- **New tab (+, in the dock):** a new card grows from the + button into the stack bottom, then immediately
+- **New tab:** a new card grows from the address field into the stack bottom, then immediately
   morphs open with the address sheet focused.
 
 ## Themes
