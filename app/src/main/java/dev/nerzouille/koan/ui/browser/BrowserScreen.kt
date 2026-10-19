@@ -60,6 +60,8 @@ import kotlin.math.roundToInt
 fun BrowserScreen(
     components: Components,
     dock: DockState,
+    /** A fullscreen video: the page takes the whole screen (no dock, no status bar inset). */
+    fullScreen: Boolean,
     cover: CoverTarget?,
     zoomIn: () -> Boolean,
     swipe: TabSwipe,
@@ -101,7 +103,7 @@ fun BrowserScreen(
     val density = LocalDensity.current
     val imeUp = WindowInsets.isImeVisible
     val navPx = WindowInsets.navigationBars.getBottom(density)
-    val dockPx = with(density) { barZone(overview = false).toPx() } + if (imeUp) 0 else navPx
+    val dockPx = if (fullScreen) 0f else with(density) { barZone(overview = false).toPx() } + if (imeUp) 0 else navPx
     dock.heightPx = dockPx
     LaunchedEffect(dockPx) {
         engineView.setDynamicToolbarMaxHeight(dockPx.roundToInt())
@@ -144,12 +146,12 @@ fun BrowserScreen(
         Modifier
             .fillMaxSize()
             .background(KoanTheme.colors.Base)
-            .statusBarsPadding()
+            .then(if (fullScreen) Modifier else Modifier.statusBarsPadding())
             .windowInsetsPadding(WindowInsets.ime)
             .nestedScroll(dock.nestedScroll)
             .pullToRefresh(
                 pull,
-                atTop = { !swipe.active && engineView.verticalScrollPosition.value < 1f },
+                atTop = { !fullScreen && !swipe.active && engineView.verticalScrollPosition.value < 1f },
                 // Gecko's own "can overscroll top" is never set while the dock is on the page:
                 // the page only has to keep its touches (maps, canvases, pages with their own pull).
                 pageKeepsTouch = { engineView.getInputResultDetail().let { it.isTouchHandledByWebsite() || it.isTouchHandlingUnknown() } },

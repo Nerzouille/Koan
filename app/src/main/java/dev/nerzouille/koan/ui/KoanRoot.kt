@@ -76,6 +76,7 @@ import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.theme.BarTokens
 import androidx.compose.animation.splineBasedDecay
 import dev.nerzouille.koan.ui.browser.BrowserScreen
+import dev.nerzouille.koan.ui.browser.rememberFullscreen
 import dev.nerzouille.koan.ui.browser.CoverTarget
 import dev.nerzouille.koan.ui.browser.DockState
 import dev.nerzouille.koan.ui.browser.observeSlice
@@ -471,12 +472,15 @@ fun KoanRoot(components: Components) {
             else -> backFromFirstPage(id)
         }
     }
+    // A fullscreen video: no bars, the video's orientation; Back leaves fullscreen first.
+    val fullScreen = rememberFullscreen(components, activeTabId)
 
     Box(Modifier.fillMaxSize()) {
         val activeTab = activeTabId?.let(::tabById)
         BrowserScreen(
             components = components,
             dock = dock,
+            fullScreen = fullScreen,
             cover = activeTabId?.let { id ->
                 when {
                     id == blankId -> CoverTarget(id, "", null, false, null, blank = true)
@@ -614,7 +618,8 @@ fun KoanRoot(components: Components) {
                 },
             ),
         )
-        KoanBar(
+        // Fullscreen: the page alone.
+        if (!fullScreen) KoanBar(
             overviewOpen = overviewOpen,
             overview = { motion.progress },
             bar = bar,
