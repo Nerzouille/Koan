@@ -98,7 +98,8 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
             } else {
                 // Held still: space mode, a scrubber across all spaces, from the first move on.
                 scrubbing = true
-                g.scrub.begin(g.pager.settled, g.pager.count)
+                // The row spans the screen: its x is the finger's on screen.
+                g.scrub.begin(g.pager.settled, g.pager.count, down.position.x, size.width.toFloat())
                 tick()
                 null
             }

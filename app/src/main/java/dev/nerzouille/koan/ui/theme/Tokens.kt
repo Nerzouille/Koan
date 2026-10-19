@@ -500,8 +500,9 @@ object BarTokens {
     /** Release faster than this (vertical) goes page ↔ overview regardless of position. */
     val OverviewFling = 600.dp // per second
 
-    /** Page view space scrub: finger travel from one space to the next. */
-    val ScrubStep = 56.dp
+    /** Page view space scrub: finger travel from one space to the next (fitted to the screen, see SpaceScrub). */
+    val ScrubStepMin = 24.dp
+    val ScrubStepMax = 90.dp
 
     /** Page view: tabs slide this far apart while a swipe on the dock switches tab. */
     val TabSwipeGap = 24.dp

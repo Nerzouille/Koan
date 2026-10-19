@@ -15,8 +15,11 @@ import kotlin.math.roundToInt
 
 /**
  * Page view space mode: after a long press on the dock, the space row shows above the pill and a
- * small sideways move scrubs the highlight from space to space ([stepPx] each). Releasing switches
- * to the highlighted space; releasing on the current one cancels. Nothing changes until release.
+ * sideways move scrubs the highlight from space to space. The steps fit the screen: the way to the
+ * left edge is shared by the spaces on the left, the way to the right edge by those on the right,
+ * so an edge always reaches the first or last space ([minStepPx] … [maxStepPx] each, smaller only
+ * when that many spaces wouldn't fit). Releasing switches to the highlighted space; releasing on
+ * the current one cancels. Nothing changes until release.
  */
 @Stable
 class SpaceScrub(private val scope: CoroutineScope) {
@@ -36,16 +39,22 @@ class SpaceScrub(private val scope: CoroutineScope) {
     var shown by mutableFloatStateOf(0f)
         private set
 
-    var stepPx = 1f
+    var minStepPx = 1f
+    var maxStepPx = 1f
+    private var leftStep = 1f
+    private var rightStep = 1f
     private var start = 0
     private var count = 1
     private var raw = 0f
     private var posJob: Job? = null
     private var shownJob: Job? = null
 
-    fun begin(current: Int, count: Int) {
+    /** [fingerX]: where the finger is, on a [widthPx] wide screen. */
+    fun begin(current: Int, count: Int, fingerX: Float, widthPx: Float) {
         this.count = count.coerceAtLeast(1)
         start = current.coerceIn(0, this.count - 1)
+        leftStep = stepFor(fingerX, start)
+        rightStep = stepFor(widthPx - fingerX, this.count - 1 - start)
         index = start
         posJob?.cancel()
         pos = start.toFloat()
@@ -57,8 +66,9 @@ class SpaceScrub(private val scope: CoroutineScope) {
     /** Finger moved by [dxPx]. Returns true when the highlight moved to another space. */
     fun dragBy(dxPx: Float): Boolean {
         // Kept within half a step past the ends, so coming back never needs extra travel.
-        raw = (raw + dxPx).coerceIn((-start - 0.5f) * stepPx, (count - 1 - start + 0.5f) * stepPx)
-        val i = (start + (raw / stepPx).roundToInt()).coerceIn(0, count - 1)
+        raw = (raw + dxPx).coerceIn((-start - 0.5f) * leftStep, (count - 1 - start + 0.5f) * rightStep)
+        val step = if (raw < 0f) leftStep else rightStep
+        val i = (start + (raw / step).roundToInt()).coerceIn(0, count - 1)
         if (i == index) return false
         index = i
         posJob?.cancel()
@@ -71,6 +81,14 @@ class SpaceScrub(private val scope: CoroutineScope) {
         active = false
         reveal(0f)
         return index.takeIf { it != start }
+    }
+
+    /** One step on a side with [spaces] spaces and [roomPx] to its edge. */
+    private fun stepFor(roomPx: Float, spaces: Int): Float {
+        if (spaces <= 0) return maxStepPx
+        val fit = roomPx / spaces
+        // Too many spaces for the smallest step: the whole way to the edge, shared evenly.
+        return if (fit < minStepPx) fit.coerceAtLeast(1f) else fit.coerceAtMost(maxStepPx)
     }
 
     private fun reveal(to: Float) {

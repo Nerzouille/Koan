@@ -106,7 +106,8 @@ fun KoanBar(
         drawer.compactCapPx = windowPx * SheetTokens.COMPACT_MAX_FRACTION - rows - below
         drawer.fullCapPx = windowPx - top - rows - below
         drawer.minStepPx = SheetTokens.MinDetentStep.toPx()
-        bar.scrub.stepPx = BarTokens.ScrubStep.toPx()
+        bar.scrub.minStepPx = BarTokens.ScrubStepMin.toPx()
+        bar.scrub.maxStepPx = BarTokens.ScrubStepMax.toPx()
     }
     val gestures = Modifier.barGestures(bar, view)
 
