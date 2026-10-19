@@ -100,7 +100,7 @@ fun SpacePage(
     settled: Boolean = true,
 ) {
     Column(modifier.fillMaxSize()) {
-        SpaceHeader(space, sync.badge, onBack = onDismiss, onNewTab = onNewTab, onBadge = onBadge)
+        SpaceHeader(space, sync.badge, onBack = onDismiss, onBadge = onBadge)
         val connect = sync.connect && !space.zen
         if (connect && space.stack.isNotEmpty()) ConnectCard(onConnect, compact = true)
         Box(
@@ -186,9 +186,9 @@ internal fun SkeletonStack(modifier: Modifier = Modifier) {
     )
 }
 
-/** Compact header: back, space icon + name, sync badge, new tab. Swipe down on it = back to the current tab. */
+/** Compact header: back, space icon + name, sync badge. Swipe down on it = back to the current tab. */
 @Composable
-internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit, onNewTab: () -> Unit, onBadge: () -> Unit) {
+internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit, onBadge: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -213,7 +213,6 @@ internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit
             contentAlignment = Alignment.Center,
         ) { ZenIcon(space.icon, OverviewTokens.SpaceIconGlyph, tint = KoanTheme.colors.TextPrimary) }
         Spacer(Modifier.width(OverviewTokens.TitleGap))
-        // Name + badge take the free width, so the + always sits at the right edge.
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 space.name,
@@ -225,17 +224,6 @@ internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit
                 modifier = Modifier.weight(1f, fill = false),
             )
             SyncBadgeView(badge, onBadge)
-        }
-        Box(
-            Modifier
-                .padding(end = OverviewTokens.HeaderPadding)
-                .size(OverviewTokens.NewTabButton)
-                .clip(CircleShape)
-                .background(KoanTheme.colors.Primary)
-                .clickable(onClick = onNewTab),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(KoanIcons.Plus, "New tab", tint = KoanTheme.colors.OnPrimary, modifier = Modifier.size(OverviewTokens.NewTabGlyph))
         }
     }
 }

@@ -69,6 +69,8 @@ import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.data.TabOrigin
 import dev.nerzouille.koan.data.ThemeMode
+import dev.nerzouille.koan.data.StartPageAfter
+import dev.nerzouille.koan.ui.menu.TabMenu
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
@@ -111,6 +113,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val linkCard = SheetState(scope, splineBasedDecay(density))
     var link by mutableStateOf<LinkTarget?>(null)
     val signOutCard = SheetState(scope, splineBasedDecay(density))
+
+    /** The tab counter's long-press menu: New tab, Close tab. */
+    var tabMenuOpen by mutableStateOf(false)
     var settingsOpen by mutableStateOf(false)
     var downloadsOpen by mutableStateOf(false)
     var historyOpen by mutableStateOf(false)
@@ -136,6 +141,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
         menu.snapClosed()
         linkCard.snapClosed()
         signOutCard.snapClosed()
+        tabMenuOpen = false
         finding = false
         findQuery = ""
     }
@@ -155,6 +161,8 @@ fun KoanOverlays(
     drawerStatus: DrawerStatus,
     onEditAddress: () -> Unit,
     onNewTab: () -> Unit,
+    /** Closes the current tab (the tab counter's menu). */
+    onCloseTab: () -> Unit,
     onOpenNew: (url: String, select: Boolean, nextToCurrent: Boolean) -> Unit,
     onSignIn: () -> Unit,
     devActions: List<Pair<String, () -> Unit>>,
@@ -177,6 +185,7 @@ fun KoanOverlays(
     val account by components.accounts.state.collectAsStateWithLifecycle()
     val theme by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
     val engine by components.settings.searchEngine.collectAsStateWithLifecycle(SearchEngine.DuckDuckGo)
+    val startPageAfter by components.settings.startPageAfter.collectAsStateWithLifecycle(StartPageAfter.Hour)
     val suggestionsOn by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
     // uBlock Origin on this page: on or off, and its badge (the tab's own, else the default).
@@ -510,6 +519,14 @@ fun KoanOverlays(
         )
     }
 
+    // ---- the tab counter's long-press menu ----
+    TabMenu(
+        open = overlays.tabMenuOpen,
+        onDismiss = { overlays.tabMenuOpen = false },
+        onNewTab = { overlays.tabMenuOpen = false; onNewTab() },
+        onCloseTab = { overlays.tabMenuOpen = false; onCloseTab() },
+    )
+
     // ---- Settings, full screen, sliding up over everything ----
     val roles = remember { context.getSystemService(Context.ROLE_SERVICE) as RoleManager }
     var isDefault by remember { mutableStateOf(roles.isRoleHeld(RoleManager.ROLE_BROWSER)) }
@@ -540,6 +557,8 @@ fun KoanOverlays(
                 onTheme = { mode -> scope.launch { components.settings.setThemeMode(mode) } },
                 engine = engine,
                 onEngine = { e -> scope.launch { components.settings.setSearchEngine(e) } },
+                startPageAfter = startPageAfter,
+                onStartPageAfter = { v -> scope.launch { components.settings.setStartPageAfter(v) } },
                 suggestions = suggestionsOn,
                 onSuggestions = { on -> scope.launch { components.settings.setSearchSuggestions(on) } },
                 email = signedIn?.email,
@@ -637,9 +656,10 @@ fun KoanOverlays(
                 overlays.historyOpen = false
                 onOpenNew(url, true, false)
             },
-            onRemove = { v ->
-                scope.launch { dao.removeVisit(v.url) }
-                onToast(Toast("Removed from history", "Undo") { scope.launch { dao.restoreVisit(v) } })
+            onRemove = { visits ->
+                scope.launch { visits.forEach { dao.removeVisit(it.url) } }
+                val what = if (visits.size == 1) "Removed from history" else "Removed ${visits.size} pages from history"
+                onToast(Toast(what, "Undo") { scope.launch { visits.forEach { dao.restoreVisit(it) } } })
             },
             onClear = { overlays.clearDataCard.animateTo(Detent.Compact) },
             onClose = { overlays.historyOpen = false },

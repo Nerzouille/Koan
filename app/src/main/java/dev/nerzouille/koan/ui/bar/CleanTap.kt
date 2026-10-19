@@ -51,3 +51,40 @@ private suspend fun AwaitPointerEventScope.awaitCleanUp(id: PointerId): Boolean 
         if (total.getDistance() > viewConfiguration.touchSlop) return false
     }
 }
+
+/**
+ * A long press on a bar button: [onDown] as the finger lands (before the bar's own handler sees
+ * it), [onHold] once it has been held still for the long-press timeout. The rest of that gesture
+ * is then the button's: no tap, no swipe follows.
+ */
+@Composable
+internal fun Modifier.holdPress(enabled: Boolean, onDown: () -> Unit, onHold: () -> Unit): Modifier {
+    val down by rememberUpdatedState(onDown)
+    val hold by rememberUpdatedState(onHold)
+    if (!enabled) return this
+    return pointerInput(Unit) {
+        awaitEachGesture {
+            val first = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            down()
+            val ended = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) { awaitLiftOrSlop(first.id) }
+            if (ended != null) return@awaitEachGesture
+            hold()
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                event.changes.forEach { it.consume() }
+                if (event.changes.none { it.pressed }) break
+            }
+        }
+    }
+}
+
+/** Returns once pointer [id] lifts or moves past the slop (read before the bar's drags). */
+private suspend fun AwaitPointerEventScope.awaitLiftOrSlop(id: PointerId) {
+    var total = Offset.Zero
+    while (true) {
+        val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == id } ?: return
+        if (!change.pressed) return
+        total += change.position - change.previousPosition
+        if (total.getDistance() > viewConfiguration.touchSlop) return
+    }
+}

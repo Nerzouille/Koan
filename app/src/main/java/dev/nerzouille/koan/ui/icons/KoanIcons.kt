@@ -127,16 +127,23 @@ object KoanIcons {
     }
     val Settings: ImageVector by lazy {
         stroked("settings") {
-            moveTo(15f, 12f)
-            arcTo(3f, 3f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 9f, y1 = 12f)
-            arcTo(3f, 3f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 15f, y1 = 12f)
-            // Eight short teeth around the hub.
-            for (i in 0 until 8) {
-                val a = i * Math.PI / 4
-                val c = Math.cos(a).toFloat()
-                val s = Math.sin(a).toFloat()
-                moveTo(12f + 6f * c, 12f + 6f * s); lineTo(12f + 8.5f * c, 12f + 8.5f * s)
+            // A gear: eight teeth around a ring, and the hub.
+            val teeth = 8
+            val step = 2 * Math.PI / teeth
+            fun at(r: Float, a: Double) = (12f + r * Math.cos(a).toFloat()) to (12f + r * Math.sin(a).toFloat())
+            for (i in 0 until teeth) {
+                val c = i * step
+                val (x0, y0) = at(7.2f, c - step * 0.32)
+                val (x1, y1) = at(9.6f, c - step * 0.18)
+                val (x2, y2) = at(9.6f, c + step * 0.18)
+                val (x3, y3) = at(7.2f, c + step * 0.32)
+                val (x4, y4) = at(7.2f, c + step * 0.68)
+                if (i == 0) moveTo(x0, y0)
+                lineTo(x1, y1); lineTo(x2, y2); lineTo(x3, y3)
+                arcTo(7.2f, 7.2f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = x4, y1 = y4)
             }
+            close()
+            circle(12f, 12f, 2.8f)
         }
     }
     val Location: ImageVector by lazy {

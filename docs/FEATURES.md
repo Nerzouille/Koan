@@ -1,11 +1,12 @@
-# Koan — user guide (v0.2.0)
+# Koan — user guide (v0.2.1)
 
 Everything that works in this build, how to use it, and what isn't there yet. Koan is a browser
 built on GeckoView (Firefox's engine). Its workspaces are your Zen Browser Spaces, read from your
 Mozilla account. Koan is not affiliated with, endorsed by or connected to Zen Browser or Mozilla.
 
 The bottom bar is called **the dock** in this guide. In a page it holds: back, the **address pill**
-(the site's name), the **tab count** and **⋯** (the menu).
+(the site's name), the **tab count** and **⋯** (the menu). In the overview the same row holds
+**History** (clock), the search field, the tab count and **Settings** (gear).
 
 ---
 
@@ -14,7 +15,7 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 ### Install
 
 - Requirements: Android 14 or newer, a 64-bit ARM phone (arm64-v8a). Other CPUs are not built.
-- Download `koan-v0.2.0.apk` from the GitHub release and open it. Android asks you to allow
+- Download `koan-v0.2.1.apk` from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
 - Installing over a previous Koan version keeps your tabs, spaces, logins and settings.
 - The APK is about 212 MB. See [Known limitations](#13-known-limitations).
@@ -111,14 +112,29 @@ Koan only reads. Nothing you do on the phone is written to your account or to Ze
 - **Close a tab:** swipe the front card sideways, or tap its ✕. A pinned tab or essential's card is
   only unloaded (see above).
 - **Reorder:** long-press a card, drag it, drop it. Within the same space only.
-- **New tab:** the **+** in the header, or tap the dock's search field ("Search or type URL"). The
-  search sheet opens right away. An empty space shows a button for it too.
+- **New tab:** tap the dock's search field ("Search or type URL"). The search sheet opens right
+  away. An empty space shows a button for it too.
+- **History and Settings:** the clock (left) and the gear (right) on the dock.
 - **Back to the page:** swipe down on the dock, swipe down on the header, tap **‹** in the header,
   or Back.
 - Up to 4 tabs stay live; the others are saved and reload where they were when you open them.
   Cards show a screenshot of the page; tabs that were never opened on the phone show their site's
   icon instead.
 - Koan reopens on your last space and tab after being closed or killed by the system.
+
+### The start page
+
+When you come back to Koan after not using it for a while (1 hour by default; Settings › **Start
+page**: 30 min, 1 h, 4 h or Never), it opens on a start page instead of your last tab:
+
+- the current space's **essentials** (tap one to open it);
+- a **Continue** card with the tab you left (its icon, title and site): tap it to go back to it.
+  It isn't there if that tab was closed meanwhile (in Zen, for example);
+- the dock's search field, ready to type, keyboard up.
+
+The start page isn't a tab: a tab only exists once you search or open something from it. Back, a
+swipe down or the field's ✕ take you back to your tab, leaving nothing behind. Koan never shows it
+when a link or a share from another app opened it.
 
 ---
 
@@ -138,6 +154,9 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
   neighbour tab's screenshot follow your finger. Keep swiping to go through several tabs; the tab
   you stop on loads. At the first and last tab it rubber-bands, no wrap-around.
 - **Space mode:** long-press the pill, then slide (see [Switching spaces](#switching-spaces)).
+- **Tab count menu (in a page):** long-press the tab count: a small menu with **New tab** and
+  **Close tab** (the next tab shows, with a **Tab closed · Undo** toast; a pinned tab or an
+  essential goes back to its row).
 - **The dock hides** while you scroll a page down and comes back when you scroll up or a new page
   loads.
 - **Pull to refresh:** at the top of a page, pull down: a small circle follows your finger; let go
@@ -158,6 +177,7 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
   - a pinned tab or an essential never closes: the overview opens, as before.
 - A full screen video: Back leaves full screen first.
 - In the overview: back to the current tab.
+- On the start page: back to your tab (the keyboard goes with it).
 - Any sheet, card or panel (menu, drawer, a prompt, Settings, History, Downloads): Back closes it,
   or goes back one page inside it.
 - The search field and find in page: one Back (the gesture or the key) closes both the keyboard
@@ -350,12 +370,18 @@ with Koan in the background or the screen off.
 - Koan records the pages you visit, on the phone only. Redirect pages (the in-between steps of a
   sign-in, for example) are left out. Your account's history (5000 most recent pages) and bookmarks
   are added after each sync.
-- **History page** (⋯ › **History**): the pages you visited, newest first, one card per day
-  (Today, Yesterday, then dates). Pages from your desktop's history carry a small computer icon.
+- **History page** (⋯ › **History**, or the clock on the overview's dock): the pages you visited,
+  newest first, one card per day (Today, Yesterday, then dates). Pages from your desktop's history
+  carry a small computer icon.
+  - **Groups:** several pages of the same site visited one after another make one row: the site,
+    "N pages · time range" and a chevron. Tap it to open the pages in place, again to fold them. A
+    single visit stays a normal row; the same page twice in a row shows once.
+  - Searching shows every matching page, without groups.
   - **Search history** at the bottom.
   - Tap a page to open it in a new tab.
-  - Swipe a page left to remove it: a **Removed from history · Undo** toast follows. A page from
-    your desktop is only hidden on the phone; your account isn't changed.
+  - Swipe a page left to remove it: a **Removed from history · Undo** toast follows. Swipe a group
+    to remove all its pages at once. A page from your desktop is only hidden on the phone; your
+    account isn't changed.
   - **Clear** (next to the search field) opens **Clear browsing data**: History (on), Cached images
     and files (on), Cookies and site data (off: it signs you out of most sites). Desktop history is
     only hidden on the phone.
@@ -383,7 +409,8 @@ with Koan in the background or the screen off.
 
 ## 11. Settings
 
-⋯ › **Settings** (it slides up over everything; ‹ or Back closes it).
+⋯ › **Settings**, or the gear on the overview's dock (it slides up over everything; ‹ or Back
+closes it).
 
 | Setting | What it does |
 |---|---|
@@ -391,6 +418,7 @@ with Koan in the background or the screen off.
 | Search engine | DuckDuckGo, Google, Brave Search, Startpage |
 | Search suggestions | On by default; off = no suggestions at all |
 | Theme | Light, Dark, Follow system (pages follow it too) |
+| Start page | After how long unused Koan opens on the [start page](#the-start-page): 30 min, 1 h (default), 4 h, Never |
 | Default browser | Opens Android's choice to make Koan the default browser |
 | Passwords | See [Passwords and autofill](#8-passwords-and-autofill) |
 | uBlock Origin | On/off, blocked this week, or Install |

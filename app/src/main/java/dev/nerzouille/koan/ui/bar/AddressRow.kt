@@ -138,7 +138,8 @@ data class SwipeTarget(
 
 /**
  * back · address field · tabs · menu. In the page view, tapping the field turns it into an input.
- * In the overview ([overview] → 1) back and menu fade out and the field becomes "new search".
+ * The overview ([overview] → 1) keeps the layout and swaps the buttons: back becomes History,
+ * the field "new search", ⋯ Settings.
  */
 @Composable
 fun AddressRow(
@@ -154,6 +155,14 @@ fun AddressRow(
     onTabs: () -> Unit,
     /** ⋯: opens the menu sheet. */
     onMenu: () -> Unit,
+    /** Overview: History in back's place. */
+    onHistory: () -> Unit,
+    /** Overview: Settings in ⋯'s place. */
+    onSettings: () -> Unit,
+    /** Page view: a long press on the tab counter (its small menu). */
+    onTabsMenu: () -> Unit,
+    /** A press starts on the tab counter: the bar's own long press (space scrub) stands down. */
+    claimHold: () -> Unit,
     modifier: Modifier = Modifier,
     /** Page view swipe: -1..1 towards [previous] / [next]; read in layers only. */
     swipe: () -> Float = { 0f },
@@ -176,6 +185,7 @@ fun AddressRow(
     completedTitle: () -> String? = { null },
 ) {
     val pageOnly = Modifier.graphicsLayer { alpha = 1f - overview() }
+    val overviewOnly = Modifier.graphicsLayer { alpha = overview() }
     Row(
         modifier
             .fillMaxWidth()
@@ -196,7 +206,10 @@ fun AddressRow(
                 modifier = Modifier.weight(1f),
             )
         } else {
-            BarIcon(KoanIcons.Back, enabled = page.canGoBack, interactive = !overviewOpen, onClick = onBack, modifier = pageOnly)
+            Box {
+                BarIcon(KoanIcons.Back, enabled = page.canGoBack, interactive = !overviewOpen, onClick = onBack, modifier = pageOnly)
+                BarIcon(KoanIcons.History, interactive = overviewOpen, onClick = onHistory, modifier = overviewOnly)
+            }
             AddressField(
                 page = page,
                 overview = overview,
@@ -210,8 +223,11 @@ fun AddressRow(
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 modifier = Modifier.weight(1f),
             )
-            TabsButton(count = tabCount, onClick = onTabs)
-            BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly)
+            TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu, claimHold = claimHold)
+            Box {
+                BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly)
+                BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
+            }
         }
     }
 }
@@ -620,9 +636,25 @@ private fun FindBar(find: FindUi, modifier: Modifier = Modifier) {
     BackHandler(onBack = find.onClose)
 }
 
+/** The tab counter: tap = overview (and back); [onHold]: a long press opens its menu, with a tick. */
 @Composable
-private fun TabsButton(count: Int, onClick: () -> Unit) {
-    Box(Modifier.size(BarTokens.IconTouch).clip(CircleShape).cleanTap(onTap = onClick), contentAlignment = Alignment.Center) {
+private fun TabsButton(count: Int, onClick: () -> Unit, onHold: (() -> Unit)?, claimHold: () -> Unit) {
+    val view = LocalView.current
+    Box(
+        Modifier
+            .size(BarTokens.IconTouch)
+            .clip(CircleShape)
+            .cleanTap(onTap = onClick)
+            .holdPress(
+                enabled = onHold != null,
+                onDown = claimHold,
+                onHold = {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    onHold?.invoke()
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
         Box(
             Modifier
                 .size(BarTokens.TabsBadge)

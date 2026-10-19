@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
@@ -21,6 +22,7 @@ class LastPlace(context: Context) {
     private val store = context.applicationContext.lastPlaceStore
     private val space = stringPreferencesKey("space")
     private val tab = stringPreferencesKey("tab")
+    private val hidden = longPreferencesKey("hidden_at")
 
     suspend fun read(): Place = store.data.first().let { Place(it[space], it[tab]) }
 
@@ -30,5 +32,12 @@ class LastPlace(context: Context) {
 
     suspend fun saveTab(id: String?) {
         store.edit { if (id == null) it.remove(tab) else it[tab] = id }
+    }
+
+    /** When Koan last went to the background (ms), or null: decides the start page after a cold start. */
+    suspend fun hiddenAt(): Long? = store.data.first()[hidden]
+
+    suspend fun saveHiddenAt(at: Long) {
+        store.edit { it[hidden] = at }
     }
 }

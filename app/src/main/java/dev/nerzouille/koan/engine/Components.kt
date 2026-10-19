@@ -155,6 +155,9 @@ class Components(context: Context) {
     /** A link or text another app sent to Koan (default browser, share): opened as a new tab. */
     val incoming = MutableStateFlow<Incoming?>(null)
 
+    /** Koan came back after being unused a while: the UI shows the start page (then clears it). */
+    val startPage = MutableStateFlow(false)
+
     val sessionUseCases by lazy { SessionUseCases(store) }
     val tabsUseCases by lazy { TabsUseCases(store) }
 

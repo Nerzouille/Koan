@@ -39,7 +39,7 @@ internal fun GhostSpace(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize()) {
-        SpaceHeader(space, badge, onBack = {}, onNewTab = {}, onBadge = {})
+        SpaceHeader(space, badge, onBack = {}, onBadge = {})
         Box(Modifier.weight(1f).fillMaxWidth().stackParallax(pageOffset)) {
             GhostStack(space.stack, focus)
         }

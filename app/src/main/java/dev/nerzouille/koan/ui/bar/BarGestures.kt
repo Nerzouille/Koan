@@ -44,6 +44,9 @@ class BarGestures(
 ) {
     var overviewOpen: () -> Boolean = { false }
 
+    /** Set by a button with its own long press as a press lands on it: no space scrub for this one. */
+    var holdClaimed = false
+
     /** Page → overview: open it under the finger (its progress follows the drag). */
     var onOverviewDragStart: () -> Unit = {}
 
@@ -81,13 +84,16 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
 
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
+        // The button under the finger saw the press first (Initial pass) and may have claimed it.
+        val claimed = g.holdClaimed
+        g.holdClaimed = false
         val tracker = VelocityTracker()
         tracker.addPosition(down.uptimeMillis, down.position)
         val inOverview = g.overviewOpen()
         val outside = drawerArea && down.position.y < g.drawer.sheetTop()
 
         var scrubbing = false
-        val start: Slop? = if (inOverview) {
+        val start: Slop? = if (inOverview || claimed) {
             awaitSlop(down.id, tracker, PointerEventPass.Main)
         } else {
             val first = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {

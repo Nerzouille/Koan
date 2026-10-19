@@ -14,14 +14,20 @@ outside the repo; the interaction rules below always apply.
 3. **Address/search sheet.** Opens from the address pill: input at the bottom (above the keyboard),
    suggestions above it (history, bookmarks, open tabs in any space, search suggestions).
 4. **Glance sheet** (M7). Floating rounded sheet over the current page.
-5. **Settings.** Plain list: account, sync, search engine, write-back toggle, add-ons, about.
-6. **Sign-in.** Mozilla accounts web login (see `docs/SYNC.md`).
+5. **Start page.** When Koan comes back after being unused a while (Settings: 30 min / 1 h / 4 h /
+   Never, default 1 h), it opens on the current space's essentials grid, a "Continue" card for the
+   last tab (favicon, title, domain; tap = back to it; hidden if that tab is gone) and the dock's
+   search field focused, instead of the last tab. Not a tab: one only exists once a search or an essential
+   opens something. Back, swipe down or the field's ✕ return to the last tab, leaving nothing
+   behind. Never shown when a link or a share from another app brought Koan up.
+6. **Settings.** Plain list: account, sync, search engine, write-back toggle, add-ons, about.
+7. **Sign-in.** Mozilla accounts web login (see `docs/SYNC.md`).
 
 ## Space overview layout (top → bottom)
 
 ```
 ┌──────────────────────────────┐
-│ ‹  💼 Work                +  │  compact header: back, space icon + name, new tab
+│ ‹  💼 Work                   │  compact header: back, space icon + name
 │      ╭────────────────╮      │  pile: back cards converge upward
 │    ╭──────────────────────╮  │
 │ ╭──────────────────────────╮ │  focused card (big, upright)
@@ -32,7 +38,7 @@ outside the repo; the interaction rules below always apply.
 ╭──────────────────────────────╮  the dock (own surface, 24dp top corners)
 │            ▬▬                │  drawer handle
 │     🏡  ( 💼 Work )  🎓       │  workspace switcher  ┐ the bottom bar
-│     [ Search or type URL ] ⧉ │  address row         ┘
+│ 🕘 [ Search or type URL ] ⧉ ⚙│  address row         ┘
 └──────────────────────────────┘
 ```
 
@@ -238,13 +244,15 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 - **Page view:** the dock, full width, square: back · big address field (50dp, 17sp, domain
   only) · tab count · menu. Swipe up on the bar (or tap the tab count) opens the overview;
   sideways switches tab; long-press then sideways switches space (see the gesture model above).
+  Long-press the tab count (haptic) opens a small floating card: New tab · Close tab (Undo toast).
 - **Loading line** (design 4d, 7g): a 2dp line in the **brand gradient** on the dock's top edge,
   from the left, with a soft glow. It eases towards the engine's progress (800ms, never backwards), a
   lighter streak sweeps along it while it waits, and on completion it runs to the end and fades
   out (350ms). Page view only.
 - **Overview:** the same strip grows upward; the workspace switcher row (with the drawer handle)
-  appears on top, the address field stays underneath (tap = new tab with search). Back and menu
-  fade out. From here it can grow further into the drawer (see "Essentials & pinned drawer").
+  appears on top, the address row keeps its layout and only the buttons change: back crossfades
+  to **History**, the field becomes "Search or type URL" (tap = new tab with search), the tab
+  count stays (tap = back to the page), the menu crossfades to **Settings**. From here it can grow further into the drawer (see "Essentials & pinned drawer").
   The morph only draws/transforms (no relayout per frame).
 - The dock covers the bottom of the stack (see "The dock covers the bottom of the stack").
 - The switcher is Zen's icon row (design 4a): one icon per space (initial if it has none), the
@@ -276,7 +284,7 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   overshoot. If the card's slot is off-screen, the stack pre-scrolls so the slot is visible first.
 - During the morph, show the cached thumbnail, then swap to the live GeckoView once its first
   frame is ready (never show a blank white page during the morph).
-- **New tab (+):** a new card grows from the + button into the stack bottom, then immediately
+- **New tab:** a new card grows from the address field into the stack bottom, then immediately
   morphs open with the address sheet focused.
 
 ## Themes

@@ -395,7 +395,6 @@ object OverviewTokens {
     val SpaceIconRadius = 10.dp
     val SpaceIconGlyph = 20.dp
     val TitleSize = 20.sp
-    val NewTabButton = 40.dp
     val NewTabGlyph = 20.dp
     val SwipeDownToDismiss = 48.dp
 
@@ -735,6 +734,44 @@ object DownloadTokens {
 }
 
 /** The search sheet above the address field (design 7a–7d). */
+/** The tab counter's long-press menu: a small popup just above it. */
+object TabMenuTokens {
+    val Radius = 16.dp
+    val Shadow = 12.dp
+    val Gap = 8.dp
+    val RowHeight = 44.dp
+    val RowPadding = 16.dp
+    val Icon = 18.dp
+    val IconGap = 12.dp
+    val TextSize = 15.sp
+    const val SCALE_FROM = 0.85f
+    const val IN_MS = 160
+    const val OUT_MS = 120
+}
+
+/** The start page Koan comes back on after a while unused. */
+object StartPageTokens {
+    val SidePadding = 16.dp
+    /** Between the essentials and the dock. */
+    val BottomGap = 20.dp
+    val TitleGap = 14.dp
+    val SwipeDownToDismiss = 64.dp
+
+    /** The "Continue" card: the last tab, between the essentials and the field. */
+    val ContinueTop = 20.dp
+    val ContinueLabelGap = 8.dp
+    val ContinueRadius = 16.dp
+    val ContinuePadding = 12.dp
+    val ContinueFavicon = 24.dp
+    val ContinueTile = 40.dp
+    val ContinueTileRadius = 10.dp
+    val ContinueGap = 12.dp
+    val ContinueTitleSize = 15.sp
+    val ContinueSubtitleSize = 13.sp
+    val LabelSize = 13.sp
+    const val FADE_OUT_MS = 180
+}
+
 object SearchTokens {
     val Margin = 10.dp
     val GroupGap = 8.dp
@@ -783,6 +820,11 @@ object PullTokens {
 object HistoryTokens {
     val Favicon = 24.dp
     val SyncGlyph = 16.dp
+    val Chevron = 18.dp
+
+    /** The pages of an open group sit this far in, under the group's text. */
+    val GroupIndent = 20.dp
+    const val CHEVRON_MS = 200
 
     /** Rows loaded at most (newest first). */
     const val LIMIT = 3000
