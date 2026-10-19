@@ -37,7 +37,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import dev.nerzouille.koan.ui.downloads.DownloadsScreen
 import dev.nerzouille.koan.ui.history.ClearDataCard
-import dev.nerzouille.koan.ui.history.HistorySheet
+import dev.nerzouille.koan.ui.history.HistoryScreen
 import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.kit.Toast
 import mozilla.components.browser.state.state.content.DownloadState
@@ -48,13 +48,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.splineBasedDecay
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -621,18 +621,27 @@ fun KoanOverlays(
         )
     }
 
-    // ---- History, a full-height sheet, and Clear browsing data ----
-    HistorySheet(
-        open = overlays.historyOpen,
-        dao = components.database.dao(),
-        onOpen = { url ->
-            overlays.historyOpen = false
-            onOpenNew(url, true, false)
-        },
-        onRemove = { v -> scope.launch { components.database.dao().removeVisit(v.url) } },
-        onClearData = { overlays.clearDataCard.animateTo(Detent.Compact) },
-        onClose = { overlays.historyOpen = false },
-    )
+    // ---- History, full screen like Downloads, and Clear browsing data ----
+    val historySlide = remember { Animatable(0f) }
+    LaunchedEffect(overlays.historyOpen) { historySlide.animateTo(if (overlays.historyOpen) 1f else 0f, Motion.Sheet) }
+    val historyVisible by remember { derivedStateOf { overlays.historyOpen || historySlide.value > 0f } }
+    if (historyVisible) {
+        val dao = components.database.dao()
+        HistoryScreen(
+            dao = dao,
+            onOpen = { url ->
+                overlays.historyOpen = false
+                onOpenNew(url, true, false)
+            },
+            onRemove = { v ->
+                scope.launch { dao.removeVisit(v.url) }
+                onToast(Toast("Removed from history", "Undo") { scope.launch { dao.restoreVisit(v) } })
+            },
+            onClear = { overlays.clearDataCard.animateTo(Detent.Compact) },
+            onClose = { overlays.historyOpen = false },
+            modifier = Modifier.graphicsLayer { translationY = (1f - historySlide.value) * size.height },
+        )
+    }
     val clearData = overlays.clearDataCard
     KoanCard(clearData) { interactive ->
         ClearDataCard(

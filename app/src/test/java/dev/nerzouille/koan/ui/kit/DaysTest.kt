@@ -1,12 +1,11 @@
-package dev.nerzouille.koan.ui.history
+package dev.nerzouille.koan.ui.kit
 
-import dev.nerzouille.koan.data.VisitEntity
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneId
 
-class HistoryDaysTest {
+class DaysTest {
     private val today = LocalDate.of(2026, 10, 19)
     private fun at(date: LocalDate, hour: Int) = date.atTime(hour, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
@@ -17,14 +16,10 @@ class HistoryDaysTest {
         assertEquals("24 December 2025", dayLabel(LocalDate.of(2025, 12, 24), today))
     }
 
-    @Test fun `groups by day, newest day first`() {
-        val visits = listOf(
-            VisitEntity("https://example.com/a", "A", at(today, 9), 1),
-            VisitEntity("https://example.org/b", "B", at(today.minusDays(3), 20), 1),
-            VisitEntity("https://example.net/c", "C", at(today, 8), 1, fromSync = true),
-        )
-        val days = byDay(visits, today)
+    @Test fun `groups by day, newest day and newest item first`() {
+        val items = listOf("a" to at(today, 8), "b" to at(today.minusDays(3), 20), "c" to at(today, 9))
+        val days = byDay(items, { it.second }, today)
         assertEquals(listOf("Today", "Friday 16 October"), days.map { it.first })
-        assertEquals(listOf("A", "C"), days.first().second.map { it.title })
+        assertEquals(listOf("c", "a"), days.first().second.map { it.first })
     }
 }

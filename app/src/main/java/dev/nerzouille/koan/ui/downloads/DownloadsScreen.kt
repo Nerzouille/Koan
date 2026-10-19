@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.downloads
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,27 +7,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,24 +30,23 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.engine.downloads.Downloads
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.DayCard
+import dev.nerzouille.koan.ui.kit.ListPage
+import dev.nerzouille.koan.ui.kit.byDay
 import dev.nerzouille.koan.ui.settings.SettingsDivider
 import dev.nerzouille.koan.ui.settings.SettingsSection
 import dev.nerzouille.koan.ui.theme.BrandHorizontal
 import dev.nerzouille.koan.ui.theme.DownloadTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
-import dev.nerzouille.koan.ui.settings.settingsWash
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.DownloadState.Status
-import java.util.Calendar
 
 /**
  * Downloads (design 7i): what is downloading (gradient progress, pause / resume, cancel), then
@@ -69,7 +62,6 @@ fun DownloadsScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BackHandler(onBack = onClose)
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf<String?>(null) }
@@ -79,26 +71,15 @@ fun DownloadsScreen(
         .sortedByDescending { it.createdTime }
     val (running, done) = shown.partition { it.status in RUNNING }
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(palette.Base)
-            .settingsWash(palette.isDark)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding(),
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .height(SettingsTokens.TopBar)
-                .padding(horizontal = SettingsTokens.Padding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(Modifier.size(SettingsTokens.TopBar).clip(CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.CenterStart) {
-                Icon(KoanIcons.Back, null, tint = palette.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph + SettingsTokens.Divider * 4))
-            }
-            Text("Downloads", color = palette.TextPrimary, fontSize = SettingsTokens.TitleSize * 0.7f, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+    ListPage(
+        title = "Downloads",
+        query = query,
+        searchHint = "Search downloads",
+        onQuery = { query = it },
+        onClear = if (downloads.isNotEmpty()) onClear else null,
+        onClose = onClose,
+        modifier = modifier,
+        headerTrailing = {
             Row(
                 Modifier
                     .height(DownloadTokens.ChipHeight)
@@ -112,8 +93,8 @@ fun DownloadsScreen(
                 Spacer(Modifier.width(SettingsTokens.Divider * 6))
                 Text(folder, color = palette.TextSecondary, fontSize = DownloadTokens.ChipTextSize, maxLines = 1)
             }
-        }
-
+        },
+    ) {
         Column(
             Modifier
                 .weight(1f)
@@ -130,11 +111,12 @@ fun DownloadsScreen(
             }
             if (running.isNotEmpty()) {
                 SettingsSection("In progress")
-                Group { running.forEachIndexed { i, d -> if (i > 0) SettingsDivider(); RunningRow(d, actions) } }
+                DayCard { running.forEachIndexed { i, d -> if (i > 0) SettingsDivider(); RunningRow(d, actions) } }
             }
-            byDay(done).forEach { (day, items) ->
+            // One card per day, newest first.
+            byDay(done, { it.createdTime }).forEach { (day, items) ->
                 SettingsSection(day)
-                Group {
+                DayCard {
                     items.forEachIndexed { i, d ->
                         if (i > 0) SettingsDivider()
                         DoneRow(d, open = expanded == d.id, actions = actions) { expanded = if (expanded == d.id) null else d.id }
@@ -143,64 +125,10 @@ fun DownloadsScreen(
             }
             Spacer(Modifier.height(SettingsTokens.SectionTop))
         }
-
-        Row(
-            Modifier.padding(horizontal = SettingsTokens.Padding, vertical = DownloadTokens.BottomGap),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                Modifier
-                    .weight(1f)
-                    .height(DownloadTokens.SearchHeight)
-                    .clip(CircleShape)
-                    .background(palette.BarField)
-                    .padding(horizontal = SettingsTokens.Padding),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(KoanIcons.Search, null, tint = palette.FieldHint, modifier = Modifier.size(SettingsTokens.RowGlyph))
-                Spacer(Modifier.width(SettingsTokens.RowInset))
-                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (query.isEmpty()) Text("Search downloads", color = palette.FieldHint, fontSize = SettingsTokens.RowTitleSize)
-                    BasicTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        singleLine = true,
-                        textStyle = TextStyle(color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize),
-                        cursorBrush = SolidColor(palette.TextPrimary),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-            if (downloads.isNotEmpty()) {
-                Spacer(Modifier.width(DownloadTokens.ActionGap))
-                Box(
-                    Modifier
-                        .height(DownloadTokens.SearchHeight)
-                        .clip(CircleShape)
-                        .background(palette.Card)
-                        .clickable(onClick = onClear)
-                        .padding(horizontal = SettingsTokens.Padding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Clear", color = palette.Destructive, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium)
-                }
-            }
-        }
     }
 }
 
 private val RUNNING = setOf(Status.INITIATED, Status.DOWNLOADING, Status.PAUSED, Status.FAILED)
-
-@Composable
-private fun Group(content: @Composable () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(DownloadTokens.GroupRadius))
-            .background(KoanTheme.colors.Card)
-            .padding(horizontal = SettingsTokens.RowInset),
-    ) { content() }
-}
 
 @Composable
 private fun RunningRow(d: DownloadState, actions: Downloads) {
@@ -341,22 +269,6 @@ fun FileTile(d: DownloadState, background: Color = KoanTheme.colors.GroupedRow) 
         Icon(KoanIcons.File, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(DownloadTokens.FileGlyph))
         if (ext.isNotEmpty()) Text(ext, color = KoanTheme.colors.TextSecondary, fontSize = DownloadTokens.FileExtSize, fontWeight = FontWeight.SemiBold)
     }
-}
-
-/** Finished downloads by day: Today, Yesterday, Earlier this week, Earlier. */
-private fun byDay(items: List<DownloadState>): List<Pair<String, List<DownloadState>>> {
-    val startOfToday = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-    }.timeInMillis
-    val day = 24 * 60 * 60 * 1000L
-    return items.groupBy {
-        when {
-            it.createdTime >= startOfToday -> "Today"
-            it.createdTime >= startOfToday - day -> "Yesterday"
-            it.createdTime >= startOfToday - 6 * day -> "Earlier this week"
-            else -> "Earlier"
-        }
-    }.toList()
 }
 
 fun sizeText(bytes: Long): String = when {

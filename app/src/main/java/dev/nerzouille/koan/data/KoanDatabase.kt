@@ -186,6 +186,12 @@ interface KoanDao {
     @Query("DELETE FROM visits WHERE url = :url AND NOT fromSync")
     suspend fun deleteLocalVisit(url: String)
 
+    /** Undo of [removeVisit]: the row as it was, shown again. */
+    suspend fun restoreVisit(visit: VisitEntity) = replaceVisit(visit.copy(hidden = false))
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun replaceVisit(visit: VisitEntity)
+
     @Query("UPDATE visits SET hidden = 1 WHERE url = :url AND fromSync")
     suspend fun hideSyncedVisit(url: String)
 
