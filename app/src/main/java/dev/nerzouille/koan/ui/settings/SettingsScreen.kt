@@ -51,7 +51,6 @@ sealed interface SettingsPage {
     data object About : SettingsPage
     data object DownloadFolder : SettingsPage
     data object Passwords : SettingsPage
-    data class PasswordDetail(val guid: String) : SettingsPage
     data class PasswordSite(val site: String) : SettingsPage
 }
 
@@ -130,11 +129,9 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.DownloadFolder -> FolderPage(ui, interactive, back)
                         SettingsPage.Passwords -> PasswordsPage(
                             ui.passwords, interactive, back,
-                            onOpen = { nav.push(SettingsPage.PasswordDetail(it)) },
                             onOpenSite = { nav.push(SettingsPage.PasswordSite(it)) },
                         )
-                        is SettingsPage.PasswordSite -> PasswordSitePage(ui.passwords, page.site, interactive, back) { nav.push(SettingsPage.PasswordDetail(it)) }
-                        is SettingsPage.PasswordDetail -> PasswordDetailPage(ui.passwords.unlocked?.get(page.guid), interactive, back)
+                        is SettingsPage.PasswordSite -> PasswordSitePage(ui.passwords, page.site, interactive, back)
                     }
                 }
             }

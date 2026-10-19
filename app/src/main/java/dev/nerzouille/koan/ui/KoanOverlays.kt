@@ -570,18 +570,19 @@ fun KoanOverlays(
                 passwords = PasswordsUi(
                     summaries = loginSummaries,
                     unlocked = unlockedLogins,
-                    onUnlock = { then ->
+                    onUnlock = { site, first ->
                         (context as? FragmentActivity)?.let { activity ->
                             authenticate(activity, "Unlock your passwords") {
-                                // Unlocked at once; the logins fill in as they're opened (the tapped one first).
+                                // Unlocked at once; the logins fill in as they're opened (the tapped site's first).
                                 unlockedLogins = emptyMap()
-                                if (then != null) overlays.settingsNav.push(SettingsPage.PasswordDetail(then))
+                                val onSite = overlays.settingsNav.pages.lastOrNull() == SettingsPage.PasswordSite(site ?: "")
+                                if (site != null && !onSite) overlays.settingsNav.push(SettingsPage.PasswordSite(site))
                                 scope.launch {
                                     fun add(logins: List<Login>) {
                                         val current = unlockedLogins ?: return
                                         unlockedLogins = current + logins.associateBy { it.guid }
                                     }
-                                    then?.let { components.logins.openOne(it) }?.let { add(listOf(it)) }
+                                    add(first.mapNotNull { components.logins.openOne(it) })
                                     components.logins.openAll(::add)
                                 }
                             }
