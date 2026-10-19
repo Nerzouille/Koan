@@ -46,7 +46,11 @@ class HistoryRecorder(private val dao: KoanDao, private val scope: CoroutineScop
         next.job = scope.launch {
             delay(HOLD_MS)
             if (HistoryFilter.isRedirect(next.url, next.title)) return@launch
-            dao.recordVisit(next.url, next.title, next.at)
+            val title = next.title
+            dao.recordVisit(next.url, title, next.at)
+            // The title arrived while the visit was being written.
+            val now = next.title
+            if (now != title) onTitleChanged(next.url, now)
         }
     }
 
