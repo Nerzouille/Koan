@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.1 — 2026-10-19 (beta)
+
+Installs over 0.2.0 and keeps your data. Full guide: [`docs/FEATURES.md`](docs/FEATURES.md).
+
+### New
+
+- **Start page:** when Koan comes back after being unused for a while, it opens on the current
+  space's essentials, a **Continue** card for the tab you left (tap it to go back) and the search
+  field, keyboard up. Nothing becomes a tab until you search or open something; Back or a swipe
+  down returns to your tab. Never when a link from another app opens Koan. Settings › **Start
+  page**: 30 min, 1 h (default), 4 h or Never.
+- **Overview dock:** same layout as in a page, only the buttons change: **History** on the left,
+  the search field, the tab count (tap = back to the page) and **Settings** on the right. The **+**
+  left the overview's header: tap the search field for a new tab.
+- **Tab count menu:** in a page, long-press the tab count for a small menu with **New tab** and
+  **Close tab** (with Undo).
+- **History, grouped:** back-to-back visits to the same site on a day make one row ("N pages ·
+  time range") that opens in place; a single visit stays a normal row, and the same page visited
+  twice in a row shows once. Swipe a group to remove all its pages (with Undo). Searching shows
+  every page, ungrouped.
+
+### Fixed
+
+- The Settings icon is a gear (it looked like a sun).
+
 ## 0.2.0 — 2026-10-19 (beta)
 
 The first beta: Koan is ready to be your everyday browser. Sync stays read-only. Android 14+

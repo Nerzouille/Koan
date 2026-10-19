@@ -15,8 +15,9 @@ outside the repo; the interaction rules below always apply.
    suggestions above it (history, bookmarks, open tabs in any space, search suggestions).
 4. **Glance sheet** (M7). Floating rounded sheet over the current page.
 5. **Start page.** When Koan comes back after being unused a while (Settings: 30 min / 1 h / 4 h /
-   Never, default 1 h), it opens on the current space's essentials grid with the dock's search
-   field focused, instead of the last tab. Not a tab: one only exists once a search or an essential
+   Never, default 1 h), it opens on the current space's essentials grid, a "Continue" card for the
+   last tab (favicon, title, domain; tap = back to it; hidden if that tab is gone) and the dock's
+   search field focused, instead of the last tab. Not a tab: one only exists once a search or an essential
    opens something. Back, swipe down or the field's ✕ return to the last tab, leaving nothing
    behind. Never shown when a link or a share from another app brought Koan up.
 6. **Settings.** Plain list: account, sync, search engine, write-back toggle, add-ons, about.
