@@ -3,6 +3,7 @@ package dev.nerzouille.koan.ui.start
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,7 +33,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.bar.EssentialsGrid
+import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.overview.SpaceModel
 import dev.nerzouille.koan.ui.theme.DrawerTokens
@@ -40,17 +44,26 @@ import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.StartPageTokens
 
 /**
- * Where Koan comes back after a while unused: the current space's essentials above the dock, whose
- * search field is focused. Not a tab: nothing exists until a search or an essential opens one.
+ * Where Koan comes back after a while unused: the current space's essentials and a "Continue" card
+ * for the last tab ([last], none if it's gone) above the dock, whose search field is focused. Not a tab: nothing exists until a search or an essential opens one.
  * Swipe down (or Back, or the field's ✕) goes back to the last tab. It shows at once and fades out.
  * [bottom]: the dock's height above the keyboard.
  */
 @Composable
-fun StartPage(open: Boolean, space: SpaceModel?, bottom: Dp, onOpenTab: (String) -> Unit, onDismiss: () -> Unit) {
+fun StartPage(
+    open: Boolean,
+    space: SpaceModel?,
+    last: ContinueTab?,
+    bottom: Dp,
+    onOpenTab: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val alpha = remember { Animatable(0f) }
     // The last space shown stays while it fades out.
     var shown by remember { mutableStateOf(space) }
     if (open && space != null) shown = space
+    var shownLast by remember { mutableStateOf(last) }
+    if (open) shownLast = last
     LaunchedEffect(open) {
         if (open) alpha.snapTo(1f) else alpha.animateTo(0f, tween(StartPageTokens.FADE_OUT_MS))
     }
@@ -112,6 +125,54 @@ fun StartPage(open: Boolean, space: SpaceModel?, bottom: Dp, onOpenTab: (String)
                 )
             } else {
                 EssentialsGrid(current.essentials, interactive = open, onOpenTab = onOpenTab)
+            }
+            shownLast?.let { tab ->
+                Spacer(Modifier.height(StartPageTokens.ContinueTop))
+                ContinueCard(tab, interactive = open, onClick = onDismiss)
+            }
+        }
+    }
+}
+
+/** The tab the start page covers: what the "Continue" card shows. */
+@Immutable
+data class ContinueTab(val url: String, val title: String, val icon: String?, val staticIcon: Boolean)
+
+/** "Continue": the last tab (favicon, title, domain); a tap goes back to it, like Back. */
+@Composable
+private fun ContinueCard(tab: ContinueTab, interactive: Boolean, onClick: () -> Unit) {
+    val palette = KoanTheme.colors
+    val host = displayHost(tab.url)
+    Text("Continue", color = palette.TextSecondary, fontSize = StartPageTokens.LabelSize, fontWeight = FontWeight.Medium)
+    Spacer(Modifier.height(StartPageTokens.ContinueLabelGap))
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(StartPageTokens.ContinueRadius))
+            .background(palette.Glass)
+            .then(if (interactive) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(StartPageTokens.ContinuePadding),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(StartPageTokens.ContinueTile)
+                .clip(RoundedCornerShape(StartPageTokens.ContinueTileRadius))
+                .background(palette.Base),
+            contentAlignment = Alignment.Center,
+        ) { Favicon(tab.url, StartPageTokens.ContinueFavicon, icon = tab.icon, staticIcon = tab.staticIcon) }
+        Spacer(Modifier.width(StartPageTokens.ContinueGap))
+        Column(Modifier.weight(1f)) {
+            Text(
+                tab.title.ifBlank { host },
+                color = palette.TextPrimary,
+                fontSize = StartPageTokens.ContinueTitleSize,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (host.isNotEmpty()) {
+                Text(host, color = palette.TextSecondary, fontSize = StartPageTokens.ContinueSubtitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

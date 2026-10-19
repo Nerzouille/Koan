@@ -91,6 +91,7 @@ import kotlinx.coroutines.flow.first
 import dev.nerzouille.koan.ui.overview.toModel
 import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
+import dev.nerzouille.koan.ui.start.ContinueTab
 import dev.nerzouille.koan.ui.start.StartPage
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -383,7 +384,7 @@ fun KoanRoot(components: Components) {
     LaunchedEffect(startRequested, tabsStarted, spaces.isEmpty(), placeRestored) {
         if (!startRequested || !tabsStarted || spaces.isEmpty() || !placeRestored) return@LaunchedEffect
         components.startPage.value = false
-        if (components.incoming.value != null || activeTabId == null || signingIn) return@LaunchedEffect
+        if (components.incoming.value != null || signingIn) return@LaunchedEffect
         tabSwipe.cancel()
         tabs.cancelBlank()
         overlays.dismissAll()
@@ -398,9 +399,10 @@ fun KoanRoot(components: Components) {
         editing = true
     }
 
-    // No tab to show (first run, or the last one was closed in Zen): the overview.
-    LaunchedEffect(tabsStarted, activeTabId, spaces.isEmpty()) {
-        if (tabsStarted && activeTabId == null && spaces.isNotEmpty() && !overviewOpen) openOverview()
+    // No tab to show (first run, or the last one was closed in Zen): the overview (once the start
+    // page, if up, is left).
+    LaunchedEffect(tabsStarted, activeTabId, spaces.isEmpty(), startPage) {
+        if (tabsStarted && activeTabId == null && spaces.isNotEmpty() && !overviewOpen && !startPage) openOverview()
     }
 
     val signedIn = account is AccountState.SignedIn
@@ -657,6 +659,8 @@ fun KoanRoot(components: Components) {
         StartPage(
             open = startPage,
             space = models.getOrNull(currentSpace),
+            // The tab under the start page; none once it's gone (closed in Zen meanwhile).
+            last = activeTab?.takeIf { activeTabId != blankId }?.let { ContinueTab(it.url, it.title, it.iconUrl, it.staticIcon) },
             bottom = searchBottom,
             onOpenTab = { id ->
                 editing = false

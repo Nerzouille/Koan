@@ -656,9 +656,10 @@ fun KoanOverlays(
                 overlays.historyOpen = false
                 onOpenNew(url, true, false)
             },
-            onRemove = { v ->
-                scope.launch { dao.removeVisit(v.url) }
-                onToast(Toast("Removed from history", "Undo") { scope.launch { dao.restoreVisit(v) } })
+            onRemove = { visits ->
+                scope.launch { visits.forEach { dao.removeVisit(it.url) } }
+                val what = if (visits.size == 1) "Removed from history" else "Removed ${visits.size} pages from history"
+                onToast(Toast(what, "Undo") { scope.launch { visits.forEach { dao.restoreVisit(it) } } })
             },
             onClear = { overlays.clearDataCard.animateTo(Detent.Compact) },
             onClose = { overlays.historyOpen = false },
