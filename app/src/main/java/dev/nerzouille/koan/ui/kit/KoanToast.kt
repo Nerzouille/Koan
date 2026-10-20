@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.kit
 
+import android.os.Build
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -57,6 +58,13 @@ class Toast(
     val moment: Boolean = false,
     val onAction: (() -> Unit)? = null,
 )
+
+/**
+ * Confirms a copy to the clipboard. Android 13+ shows its own confirmation; below it nothing would,
+ * so Koan says "[what] copied" itself.
+ */
+fun copiedToast(what: String): Toast? =
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) Toast("$what copied") else null
 
 /**
  * The one bottom toast, shared by everything that confirms quietly. A new toast replaces the one

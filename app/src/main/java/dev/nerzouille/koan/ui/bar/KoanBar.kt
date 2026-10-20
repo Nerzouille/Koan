@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
+import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -118,6 +119,7 @@ fun KoanBar(
             .graphicsLayer { translationY = if (overviewOpen) 0f else dockHide() }
             .drawWithCache {
                 val shadowPx = BarTokens.DockShadowHeight.toPx()
+                val noBlurShadowPx = DrawerTokens.NoBlurShadowHeight.toPx()
                 val shimmerPx = BarTokens.ShimmerWidth.toPx()
                 onDrawBehind {
                     val o = overview()
@@ -135,6 +137,14 @@ fun KoanBar(
                         topLeft = Offset(0f, top - shadowPx),
                         size = Size(size.width, shadowPx + r),
                     )
+                    // No blur behind the drawer (Android 11): a taller, softer shadow sets it apart instead.
+                    if (!DeviceProfile.liveBlur && d > 0.01f) {
+                        drawRect(
+                            Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DrawerShadowNoBlur.copy(alpha = palette.DrawerShadowNoBlur.alpha * d), startY = top - noBlurShadowPx, endY = top + r),
+                            topLeft = Offset(0f, top - noBlurShadowPx),
+                            size = Size(size.width, noBlurShadowPx + r),
+                        )
+                    }
                     drawPath(dockPath(top, r), palette.Dock)
                     // Page load line on the top edge, page view only.
                     val a = line.alpha.value * (1f - row)

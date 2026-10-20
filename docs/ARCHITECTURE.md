@@ -67,7 +67,11 @@
 - At most **4 live engine sessions** (current + 3 most recently used). Others are suspended:
   session state saved (android-components does this via `EngineSessionState`), engine session
   closed. Opening a suspended tab restores it.
-- On `onTrimMemory(RUNNING_LOW/CRITICAL)` drop to 1 live session.
+- Phones with less RAM get smaller budgets (`DeviceProfile`, read once at startup from total RAM):
+  ≥ 6 GB as above; 4–6 GB 2 live sessions, 540 px screenshots, half the memory caches, 2 baked
+  blur levels; < 4 GB 1 live session, 480 px, a quarter of the caches, no baked placeholders.
+- On `onTrimMemory(RUNNING_LOW/CRITICAL)` drop to 1 live session; CRITICAL also empties the
+  decoded-screenshot caches. (Android 14+ no longer sends these; 11–13 do.)
 - Tabs from Zen that were never opened on the phone have **no** engine session at all, only a URL.
   First open = fresh load.
 

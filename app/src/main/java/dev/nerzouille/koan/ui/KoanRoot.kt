@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nerzouille.koan.BuildConfig
+import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
@@ -197,7 +198,7 @@ fun KoanRoot(components: Components) {
 
     // Blur radii baked for the cards behind the open drawer (weakest first, see drawerBackdrop).
     val drawerBlurs = remember(density) {
-        val levels = DrawerTokens.BLUR_LEVELS
+        val levels = DeviceProfile.tier.drawerBlurLevels
         val max = DrawerTokens.Blur.value * density.density
         List(levels) { i -> max * (i + 1) / levels }
     }
@@ -581,9 +582,12 @@ fun KoanRoot(components: Components) {
                     .drawWithContent {
                         drawContent()
                         val d = drawer.progress
-                        if (d > 0.01f) drawRect(palette.DrawerScrim, alpha = d)
+                        val scrim = if (DeviceProfile.liveBlur) palette.DrawerScrim else palette.DrawerScrimNoBlur
+                        if (d > 0.01f) drawRect(scrim, alpha = d)
                     }
-                    .drawerBackdrop({ drawer.progress }, drawerBlurs),
+                    // No blur without RenderEffect (Android 11): the stronger scrim alone, and the
+                    // sheet's taller shadow (KoanBar).
+                    .then(if (DeviceProfile.liveBlur) Modifier.drawerBackdrop({ drawer.progress }, drawerBlurs) else Modifier),
             )
         }
         if (drawer.open) {

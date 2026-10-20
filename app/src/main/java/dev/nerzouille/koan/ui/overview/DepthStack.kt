@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.overview
 
+import android.os.Build
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -265,7 +266,7 @@ fun DepthStack(
                             Gesture.LongPress -> if (hit != null) {
                                 view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                 reorder(state, hit.id, currentIds, down.id) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_TICK)
+                                    view.performHapticFeedback(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) HapticFeedbackConstants.SEGMENT_TICK else HapticFeedbackConstants.CLOCK_TICK)
                                 }?.let { order ->
                                     pendingOrder = order
                                     currentOnReorder(order)

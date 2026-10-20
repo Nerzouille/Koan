@@ -25,6 +25,18 @@ class UpdateCheckTest {
         assertEquals(UpdateStatus.UpToDate, UpdateCheck.status("0.2.0", list(release("m3"), release("v0.2.0"))))
     }
 
+    @Test fun `a non-version pre-release tag is ignored`() {
+        assertEquals(UpdateStatus.UpToDate, UpdateCheck.status("0.2.1", list(release("preview-android11"), release("v0.2.1"))))
+    }
+
+    @Test fun `a preview counts as its release version`() {
+        assertEquals(UpdateStatus.UpToDate, UpdateCheck.status("0.2.2-preview.1", list(release("v0.2.2"))))
+        assertEquals(
+            UpdateStatus.Available("0.2.3", "https://github.com/Nerzouille/Koan/releases/tag/v0.2.3"),
+            UpdateCheck.status("0.2.2-preview.1", list(release("v0.2.3"))),
+        )
+    }
+
     @Test fun `newer than every release is up to date`() {
         assertEquals(UpdateStatus.UpToDate, UpdateCheck.status("0.3.0", list(release("v0.2.0"))))
     }

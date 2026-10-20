@@ -5,9 +5,11 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapRegionDecoder
 import android.graphics.Rect
+import android.os.Build
 import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.ui.theme.ThumbTokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -19,7 +21,7 @@ import java.security.MessageDigest
 /**
  * Page screenshots for cards and the page cover (docs/ARCHITECTURE.md "Thumbnails").
  *
- * On disk: one lossy WebP per tab, [ThumbTokens.WIDTH_PX] wide, in an LRU folder capped at
+ * On disk: one lossy WebP per tab, the memory tier's width (DeviceProfile), in an LRU folder capped at
  * [ThumbTokens.DISK_CAP_BYTES] (least recently shown goes first). In memory: a small LRU of decoded
  * hardware bitmaps (GPU memory, not the Java heap). [cached] is synchronous, so a card or cover
  * whose image is in memory draws it in its first frame.
@@ -32,7 +34,7 @@ object ThumbnailStore {
     private val diskLock = Mutex()
     private var diskBytes = -1L
 
-    private val memory = object : LruCache<String, ImageBitmap>(ThumbTokens.MEMORY_CAP_BYTES) {
+    private val memory = object : LruCache<String, ImageBitmap>(DeviceProfile.tier.thumbMemoryBytes) {
         override fun sizeOf(key: String, value: ImageBitmap) = (value.width * value.height * 4).coerceAtLeast(1)
     }
 
@@ -42,6 +44,9 @@ object ThumbnailStore {
     }
 
     fun cached(key: String): ImageBitmap? = memory.get(key)
+
+    /** Drops the decoded images (memory is critically low); cards decode again from disk. */
+    fun trimMemory() = memory.evictAll()
 
     /** Decodes [key] off the main thread (and caches it). Null if the file is gone. */
     suspend fun load(key: String): ImageBitmap? {
@@ -60,7 +65,12 @@ object ThumbnailStore {
     fun decodeTop(key: String, heightPx: Int, sampleSize: Int): Bitmap? {
         val file = fileFor(key) ?: return null
         return runCatching {
-            val decoder = BitmapRegionDecoder.newInstance(file.path)
+            val decoder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                BitmapRegionDecoder.newInstance(file.path)
+            } else {
+                @Suppress("DEPRECATION")
+                BitmapRegionDecoder.newInstance(file.path, false)
+            } ?: return null
             try {
                 val opts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
                 decoder.decodeRegion(Rect(0, 0, decoder.width, heightPx.coerceAtMost(decoder.height)), opts)
@@ -87,7 +97,7 @@ object ThumbnailStore {
             capture.recycle()
             return@withContext null
         }
-        val scaled = scaleDown(capture, ThumbTokens.WIDTH_PX)
+        val scaled = scaleDown(capture, DeviceProfile.tier.thumbWidthPx)
         if (scaled !== capture) capture.recycle()
         val key = "${hash(tabId)}-${System.currentTimeMillis()}.webp"
         val file = File(folder, key)

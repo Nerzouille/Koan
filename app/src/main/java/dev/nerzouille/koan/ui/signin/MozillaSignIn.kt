@@ -5,6 +5,7 @@ package dev.nerzouille.koan.ui.signin
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.ViewGroup
@@ -255,7 +256,8 @@ internal fun signInWebView(
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.userAgentString = FxAWeb.FIREFOX_DESKTOP_UA
-        settings.isAlgorithmicDarkeningAllowed = true
+        // Android 13+; below it the sign-in page stays light.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) settings.isAlgorithmicDarkeningAllowed = true
         addJavascriptInterface(
             object {
                 @JavascriptInterface

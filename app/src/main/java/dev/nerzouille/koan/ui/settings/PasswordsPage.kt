@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.settings
 
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
@@ -52,6 +53,8 @@ class PasswordsUi(
     val summaries: List<LoginSummary>,
     val unlocked: Map<String, Login>?,
     val onUnlock: (site: String?, first: List<String>) -> Unit,
+    /** Something was copied ("Password"): confirms it where Android doesn't. */
+    val onCopied: (what: String) -> Unit,
 )
 
 /**
@@ -165,7 +168,7 @@ internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack
                 // Keyed: the accounts open one by one, each one's rows change as it does.
                 key(s.guid) {
                     if (i > 0) Spacer(Modifier.height(SettingsTokens.SectionTop))
-                    Account(s, unlocked[s.guid], on)
+                    Account(s, unlocked[s.guid], on, ui.onCopied)
                 }
             }
             // One account: its password one big tap away.
@@ -173,7 +176,7 @@ internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack
             if (single != null) {
                 val context = LocalContext.current
                 Spacer(Modifier.height(SettingsTokens.SectionTop))
-                PrimaryButton("Copy password", onClick = { if (on) copy(context, "Password", single.password, sensitive = true) }, modifier = Modifier.fillMaxWidth())
+                PrimaryButton("Copy password", onClick = { if (on) copy(context, "Password", single.password, sensitive = true, ui.onCopied) }, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -181,7 +184,7 @@ internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack
 
 /** One account of a site: where it comes from, its username, its password ([login] null = still opening). */
 @Composable
-private fun Account(s: LoginSummary, login: Login?, on: Boolean) {
+private fun Account(s: LoginSummary, login: Login?, on: Boolean, onCopied: (String) -> Unit) {
     val context = LocalContext.current
     var shown by remember { mutableStateOf(false) }
     SettingsRow(KoanIcons.Globe, s.origin, on, subtitle = if (s.local) "Saved on this phone" else "From your Mozilla account")
@@ -191,11 +194,11 @@ private fun Account(s: LoginSummary, login: Login?, on: Boolean) {
     } else {
         SettingsRow(
             null, login.username.ifEmpty { "No username" }, on, subtitle = "Username",
-            onClick = if (login.username.isEmpty()) null else { { copy(context, "Username", login.username, sensitive = false) } },
+            onClick = if (login.username.isEmpty()) null else { { copy(context, "Username", login.username, sensitive = false, onCopied) } },
         ) { if (login.username.isNotEmpty()) RowAction("Copy") }
         SettingsDivider()
         // Tapping the password copies it, hidden or shown; Reveal / Hide is its own tap.
-        SettingsRow(null, if (shown) login.password else "••••••••••", on, subtitle = "Password", onClick = { copy(context, "Password", login.password, sensitive = true) }) {
+        SettingsRow(null, if (shown) login.password else "••••••••••", on, subtitle = "Password", onClick = { copy(context, "Password", login.password, sensitive = true, onCopied) }) {
             RowAction(if (shown) "Hide" else "Reveal") { if (on) shown = !shown }
         }
     }
@@ -215,11 +218,16 @@ private fun RowAction(label: String, onClick: (() -> Unit)? = null) {
 /** The site a login is for, as the list shows it. */
 private fun siteOf(s: LoginSummary): String = displayHost(s.origin).ifEmpty { s.origin }
 
-/** Copies [value]; a password is flagged sensitive so Android hides it in clipboard previews. */
-private fun copy(context: Context, label: String, value: String, sensitive: Boolean) {
+/**
+ * Copies [value]; a password is flagged sensitive so Android 13+ hides it in clipboard previews
+ * (older versions ignore the flag).
+ */
+@SuppressLint("InlinedApi")
+private fun copy(context: Context, label: String, value: String, sensitive: Boolean, onCopied: (String) -> Unit) {
     val clip = ClipData.newPlainText(label, value)
     if (sensitive) clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
     context.getSystemService(ClipboardManager::class.java).setPrimaryClip(clip)
+    onCopied(label)
 }
 
 /** Asks for the fingerprint (or the device PIN / pattern) before passwords show. */
