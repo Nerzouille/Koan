@@ -461,6 +461,40 @@ fun KoanRoot(components: Components) {
             openTab(if (index >= 0) index else currentSpace, closed.row)
         }
     }
+    /** A tab from History's "Recently closed": back in its space and place, and opened. */
+    fun restoreClosed(id: String) {
+        val fallback = spaces.getOrNull(currentSpace)?.space?.uuid ?: return
+        scope.launch {
+            val closed = tabs.restoreClosed(id, fallback) ?: return@launch
+            val index = spaces.indexOfFirst { it.space.uuid == closed.row.spaceUuid }.let { if (it >= 0) it else currentSpace }
+            openTab(index, closed.row)
+        }
+    }
+    /**
+     * A card closed in the overview: Undo puts it back in its place, in focus. Once the overview
+     * is gone, Undo opens it like after Back.
+     */
+    fun closeCard(id: String) {
+        val rows = stackItem(id)?.tabs.orEmpty()
+        val tab = rows.singleOrNull()
+        // A live pinned/essential card is only unloaded back to its row (TabManager); a split view closes whole.
+        if (tab == null || tab.pinned || tab.essential) {
+            tabs.close(rows.map { it.koanTabId }.ifEmpty { listOf(id) }, rows)
+            return
+        }
+        scope.launch {
+            val closed = tabs.closeForUndo(id) ?: return@launch
+            toasts.show(
+                Toast("Tab closed", "Undo") {
+                    if (!overviewOpen) return@Toast undoClose(closed)
+                    scope.launch {
+                        tabs.reopen(closed)
+                        overviewFocus.value = closed.row.spaceUuid to closed.row.koanTabId
+                    }
+                },
+            )
+        }
+    }
     /**
      * A card closed in the overview: Undo puts it back in its place, in focus. Once the overview
      * is gone, Undo opens it like after Back.
@@ -774,7 +808,14 @@ fun KoanRoot(components: Components) {
                     onBack = { session.goBack(activeTabId) },
                     onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
                     onMenu = { overlays.menu.animateTo(Detent.Compact) },
-                    onHistory = { overlays.historyOpen = true },
+                    onHistory = {
+                        overlays.historyShowsClosed = false
+                        overlays.historyOpen = true
+                    },
+                    onRecentlyClosed = {
+                        overlays.historyShowsClosed = true
+                        overlays.historyOpen = true
+                    },
                     onSettings = { overlays.settingsOpen = true },
                     onTabsMenu = { overlays.tabMenuOpen = true },
                     claimHold = { bar.holdClaimed = true },
@@ -808,6 +849,7 @@ fun KoanRoot(components: Components) {
             onOpenNew = ::openNewTab,
             onSignIn = { signingIn = true },
             onToast = toasts::show,
+            onRestoreClosed = ::restoreClosed,
             // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
             devActions = if (!BuildConfig.DEBUG) emptyList() else buildList {
                 for (n in listOf(50, 150)) {

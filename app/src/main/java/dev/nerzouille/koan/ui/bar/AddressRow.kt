@@ -157,6 +157,8 @@ fun AddressRow(
     onMenu: () -> Unit,
     /** Overview: History in back's place. */
     onHistory: () -> Unit,
+    /** Long press on History: the recently closed tabs. */
+    onRecentlyClosed: () -> Unit,
     /** Overview: Settings in ⋯'s place. */
     onSettings: () -> Unit,
     /** Page view: a long press on the tab counter (its small menu). */
@@ -208,7 +210,7 @@ fun AddressRow(
         } else {
             Box {
                 BarIcon(KoanIcons.Back, enabled = page.canGoBack, interactive = !overviewOpen, onClick = onBack, modifier = pageOnly)
-                BarIcon(KoanIcons.History, interactive = overviewOpen, onClick = onHistory, modifier = overviewOnly)
+                BarIcon(KoanIcons.History, interactive = overviewOpen, onClick = onHistory, modifier = overviewOnly, onHold = onRecentlyClosed, claimHold = claimHold)
             }
             AddressField(
                 page = page,
@@ -678,12 +680,24 @@ private fun BarIcon(
     interactive: Boolean = true,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A long press (with [claimHold] as the finger lands), if the button has one. */
+    onHold: (() -> Unit)? = null,
+    claimHold: () -> Unit = {},
 ) {
+    val view = LocalView.current
     Box(
         modifier
             .size(BarTokens.IconTouch)
             .clip(CircleShape)
-            .cleanTap(enabled = enabled && interactive, onTap = onClick),
+            .cleanTap(enabled = enabled && interactive, onTap = onClick)
+            .holdPress(
+                enabled = onHold != null && enabled && interactive,
+                onDown = claimHold,
+                onHold = {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    onHold?.invoke()
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

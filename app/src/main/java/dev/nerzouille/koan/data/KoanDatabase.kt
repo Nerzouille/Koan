@@ -200,10 +200,44 @@ interface KoanDao {
     suspend fun clearHistory() {
         deleteAllLocalVisits()
         hideAllSyncedVisits()
+        deleteClosedTabs()
     }
 
     @Query("DELETE FROM visits WHERE NOT fromSync")
     suspend fun deleteAllLocalVisits()
+
+    // ---- recently closed tabs ----
+
+    @Query("SELECT * FROM closed_tabs ORDER BY closedAt DESC")
+    fun observeClosedTabs(): Flow<List<ClosedTabEntity>>
+
+    @Query("SELECT * FROM closed_tabs WHERE koanTabId = :koanTabId")
+    suspend fun closedTab(koanTabId: String): ClosedTabEntity?
+
+    /** Records [closed] and drops what falls beyond the newest [keep]; returns the dropped rows. */
+    @Transaction
+    suspend fun addClosedTab(closed: ClosedTabEntity, keep: Int): List<ClosedTabEntity> {
+        upsertClosedTab(closed)
+        val beyond = closedTabsBeyond(keep)
+        beyond.forEach { deleteClosedTab(it.koanTabId) }
+        return beyond
+    }
+
+    @Upsert
+    suspend fun upsertClosedTab(closed: ClosedTabEntity)
+
+    @Query("SELECT * FROM closed_tabs ORDER BY closedAt DESC LIMIT -1 OFFSET :keep")
+    suspend fun closedTabsBeyond(keep: Int): List<ClosedTabEntity>
+
+    @Query("DELETE FROM closed_tabs WHERE koanTabId = :koanTabId")
+    suspend fun deleteClosedTab(koanTabId: String)
+
+    @Query("DELETE FROM closed_tabs")
+    suspend fun deleteClosedTabs()
+
+    /** Screenshots a recently closed tab still needs if it comes back. */
+    @Query("SELECT tab_thumbnailKey FROM closed_tabs WHERE tab_thumbnailKey IS NOT NULL")
+    suspend fun closedTabThumbnails(): List<String>
 
     @Query("UPDATE visits SET hidden = 1 WHERE fromSync")
     suspend fun hideAllSyncedVisits()
@@ -364,8 +398,11 @@ class Converters {
 }
 
 @Database(
-    entities = [SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class, BookmarkEntity::class, VisitEntity::class, LoginEntity::class],
-    version = 7,
+    entities = [
+        SpaceEntity::class, TabEntity::class, FolderEntity::class, SplitEntity::class, SyncMetaEntity::class,
+        BookmarkEntity::class, VisitEntity::class, LoginEntity::class, ClosedTabEntity::class,
+    ],
+    version = 8,
 )
 @TypeConverters(Converters::class)
 abstract class KoanDatabase : RoomDatabase() {
@@ -377,7 +414,7 @@ abstract class KoanDatabase : RoomDatabase() {
                 // v1 only ever held M1's fake data. From v2 on, rows are real Zen data and phone
                 // tabs: every schema change needs a real Migration.
                 .fallbackToDestructiveMigrationFrom(dropAllTables = true, 1)
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build()
 
         /** M3: live pinned tabs' stack position, and the url Zen last sent (see ZenDiff). */
@@ -438,6 +475,23 @@ abstract class KoanDatabase : RoomDatabase() {
                     }
                 }
                 redirects.forEach { db.execSQL("DELETE FROM visits WHERE url = ?", arrayOf(it)) }
+            }
+        }
+
+        /** Recently closed tabs (History). */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `closed_tabs` (`koanTabId` TEXT NOT NULL, `closedAt` INTEGER NOT NULL, " +
+                        "`engineState` TEXT, `tab_koanTabId` TEXT NOT NULL, `tab_zenTabId` TEXT, `tab_spaceUuid` TEXT NOT NULL, " +
+                        "`tab_folderId` TEXT, `tab_splitId` TEXT, `tab_url` TEXT NOT NULL, `tab_title` TEXT NOT NULL, " +
+                        "`tab_iconUrl` TEXT, `tab_staticIcon` INTEGER NOT NULL, `tab_pinned` INTEGER NOT NULL, " +
+                        "`tab_essential` INTEGER NOT NULL, `tab_order` INTEGER NOT NULL, `tab_zenOrder` INTEGER NOT NULL, " +
+                        "`tab_lastAccessed` INTEGER NOT NULL, `tab_thumbnailKey` TEXT, `tab_origin` TEXT NOT NULL, " +
+                        "`tab_dirty` INTEGER NOT NULL, `tab_closed` INTEGER NOT NULL, `tab_cardOrder` INTEGER, " +
+                        "`tab_zenUrl` TEXT, PRIMARY KEY(`koanTabId`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_closed_tabs_closedAt` ON `closed_tabs` (`closedAt`)")
             }
         }
     }

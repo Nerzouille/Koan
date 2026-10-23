@@ -6,7 +6,13 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import dev.nerzouille.koan.ui.kit.PrimaryButton
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -124,6 +130,18 @@ fun SignInScreen(onLogin: suspend (FxAWebLogin) -> Unit, onClose: () -> Unit, mo
                     }
                 },
         )
+        // Mozilla's page needs crypto.randomUUID (WebView 92+): an older one would only show a blank page.
+        // Checked again on resume, after a trip to the Play Store.
+        var webViewTooOld by remember { mutableStateOf(oldWebView()) }
+        LifecycleResumeEffect(Unit) {
+            webViewTooOld = oldWebView()
+            onPauseOrDispose { }
+        }
+        val outdated = webViewTooOld
+        if (outdated != null) {
+            OutdatedWebView(outdated, Modifier.weight(1f).fillMaxWidth())
+            return@Column
+        }
         Box(Modifier.weight(1f).fillMaxWidth().imePadding()) {
             AndroidView(
                 factory = { context ->
@@ -167,5 +185,36 @@ fun SignInScreen(onLogin: suspend (FxAWebLogin) -> Unit, onClose: () -> Unit, mo
                 }
             }
         }
+    }
+}
+
+/** The system WebView's package if it is too old for Mozilla's sign-in page, else null. */
+private fun oldWebView(): String? {
+    val pkg = WebView.getCurrentWebViewPackage() ?: return null
+    val major = pkg.versionName?.substringBefore('.')?.toIntOrNull() ?: return null
+    return pkg.packageName.takeIf { major < SignInTokens.MIN_WEBVIEW }
+}
+
+/** Instead of a blank page: what to update, and a button to its Play Store page. */
+@Composable
+private fun OutdatedWebView(webViewPackage: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    Column(
+        modifier.padding(horizontal = SignInTokens.OutdatedPadding),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            "Your Android System WebView is out of date. Update it from the Play Store to sign in.",
+            color = KoanTheme.colors.TextPrimary,
+            fontSize = SignInTokens.OutdatedSize,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(SignInTokens.OutdatedGap))
+        PrimaryButton("Open Play Store", onClick = {
+            val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$webViewPackage"))
+            val web = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$webViewPackage"))
+            runCatching { context.startActivity(market) }.recoverCatching { context.startActivity(web) }
+        })
     }
 }

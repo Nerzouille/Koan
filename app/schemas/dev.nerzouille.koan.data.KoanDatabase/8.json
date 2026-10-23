@@ -1,0 +1,699 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 8,
+    "identityHash": "7c942cd1e51a835a5b1924017bf0784b",
+    "entities": [
+      {
+        "tableName": "spaces",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `icon` TEXT NOT NULL, `gradientColors` TEXT NOT NULL, `containerGuid` TEXT, `order` INTEGER NOT NULL, `zenOrigin` INTEGER NOT NULL, PRIMARY KEY(`uuid`))",
+        "fields": [
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icon",
+            "columnName": "icon",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gradientColors",
+            "columnName": "gradientColors",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "containerGuid",
+            "columnName": "containerGuid",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "order",
+            "columnName": "order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "zenOrigin",
+            "columnName": "zenOrigin",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        }
+      },
+      {
+        "tableName": "tabs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`koanTabId` TEXT NOT NULL, `zenTabId` TEXT, `spaceUuid` TEXT NOT NULL, `folderId` TEXT, `splitId` TEXT, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `iconUrl` TEXT, `staticIcon` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `essential` INTEGER NOT NULL, `order` INTEGER NOT NULL, `zenOrder` INTEGER NOT NULL, `lastAccessed` INTEGER NOT NULL, `thumbnailKey` TEXT, `origin` TEXT NOT NULL, `dirty` INTEGER NOT NULL, `closed` INTEGER NOT NULL, `cardOrder` INTEGER, `zenUrl` TEXT, PRIMARY KEY(`koanTabId`))",
+        "fields": [
+          {
+            "fieldPath": "koanTabId",
+            "columnName": "koanTabId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "zenTabId",
+            "columnName": "zenTabId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "spaceUuid",
+            "columnName": "spaceUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "folderId",
+            "columnName": "folderId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "splitId",
+            "columnName": "splitId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "iconUrl",
+            "columnName": "iconUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "staticIcon",
+            "columnName": "staticIcon",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pinned",
+            "columnName": "pinned",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "essential",
+            "columnName": "essential",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "order",
+            "columnName": "order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "zenOrder",
+            "columnName": "zenOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastAccessed",
+            "columnName": "lastAccessed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "thumbnailKey",
+            "columnName": "thumbnailKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "origin",
+            "columnName": "origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dirty",
+            "columnName": "dirty",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "closed",
+            "columnName": "closed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cardOrder",
+            "columnName": "cardOrder",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "zenUrl",
+            "columnName": "zenUrl",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "koanTabId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tabs_spaceUuid",
+            "unique": false,
+            "columnNames": [
+              "spaceUuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tabs_spaceUuid` ON `${TABLE_NAME}` (`spaceUuid`)"
+          },
+          {
+            "name": "index_tabs_zenTabId",
+            "unique": false,
+            "columnNames": [
+              "zenTabId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tabs_zenTabId` ON `${TABLE_NAME}` (`zenTabId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "folders",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`folderId` TEXT NOT NULL, `spaceUuid` TEXT NOT NULL, `parentFolderId` TEXT, `name` TEXT NOT NULL, `icon` TEXT, `collapsed` INTEGER NOT NULL, `order` INTEGER NOT NULL, PRIMARY KEY(`folderId`))",
+        "fields": [
+          {
+            "fieldPath": "folderId",
+            "columnName": "folderId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceUuid",
+            "columnName": "spaceUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentFolderId",
+            "columnName": "parentFolderId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icon",
+            "columnName": "icon",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "collapsed",
+            "columnName": "collapsed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "order",
+            "columnName": "order",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "folderId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_folders_spaceUuid",
+            "unique": false,
+            "columnNames": [
+              "spaceUuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_folders_spaceUuid` ON `${TABLE_NAME}` (`spaceUuid`)"
+          }
+        ]
+      },
+      {
+        "tableName": "splits",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`splitId` TEXT NOT NULL, `spaceUuid` TEXT NOT NULL, `tabIds` TEXT NOT NULL, `gridType` TEXT NOT NULL, PRIMARY KEY(`splitId`))",
+        "fields": [
+          {
+            "fieldPath": "splitId",
+            "columnName": "splitId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceUuid",
+            "columnName": "spaceUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tabIds",
+            "columnName": "tabIds",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gridType",
+            "columnName": "gridType",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "splitId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_splits_spaceUuid",
+            "unique": false,
+            "columnNames": [
+              "spaceUuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_splits_spaceUuid` ON `${TABLE_NAME}` (`spaceUuid`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sync_meta",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`collection` TEXT NOT NULL, `lastModified` INTEGER NOT NULL, `lastSyncAt` INTEGER NOT NULL, PRIMARY KEY(`collection`))",
+        "fields": [
+          {
+            "fieldPath": "collection",
+            "columnName": "collection",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastModified",
+            "columnName": "lastModified",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncAt",
+            "columnName": "lastSyncAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "collection"
+          ]
+        }
+      },
+      {
+        "tableName": "bookmarks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_bookmarks_url",
+            "unique": true,
+            "columnNames": [
+              "url"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_bookmarks_url` ON `${TABLE_NAME}` (`url`)"
+          }
+        ]
+      },
+      {
+        "tableName": "visits",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`url` TEXT NOT NULL, `title` TEXT NOT NULL, `lastVisit` INTEGER NOT NULL, `visitCount` INTEGER NOT NULL, `fromSync` INTEGER NOT NULL DEFAULT 0, `hidden` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`url`))",
+        "fields": [
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastVisit",
+            "columnName": "lastVisit",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visitCount",
+            "columnName": "visitCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fromSync",
+            "columnName": "fromSync",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "hidden",
+            "columnName": "hidden",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "url"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_visits_lastVisit",
+            "unique": false,
+            "columnNames": [
+              "lastVisit"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_visits_lastVisit` ON `${TABLE_NAME}` (`lastVisit`)"
+          }
+        ]
+      },
+      {
+        "tableName": "logins",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`guid` TEXT NOT NULL, `origin` TEXT NOT NULL, `formActionOrigin` TEXT, `httpRealm` TEXT, `usernameField` TEXT NOT NULL, `passwordField` TEXT NOT NULL, `secret` BLOB NOT NULL, `timeCreated` INTEGER NOT NULL, `timeLastUsed` INTEGER NOT NULL, `timePasswordChanged` INTEGER NOT NULL, `local` INTEGER NOT NULL, PRIMARY KEY(`guid`))",
+        "fields": [
+          {
+            "fieldPath": "guid",
+            "columnName": "guid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origin",
+            "columnName": "origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "formActionOrigin",
+            "columnName": "formActionOrigin",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "httpRealm",
+            "columnName": "httpRealm",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "usernameField",
+            "columnName": "usernameField",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "passwordField",
+            "columnName": "passwordField",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secret",
+            "columnName": "secret",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeCreated",
+            "columnName": "timeCreated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timeLastUsed",
+            "columnName": "timeLastUsed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timePasswordChanged",
+            "columnName": "timePasswordChanged",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "local",
+            "columnName": "local",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "guid"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_logins_origin",
+            "unique": false,
+            "columnNames": [
+              "origin"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_logins_origin` ON `${TABLE_NAME}` (`origin`)"
+          }
+        ]
+      },
+      {
+        "tableName": "closed_tabs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`koanTabId` TEXT NOT NULL, `closedAt` INTEGER NOT NULL, `engineState` TEXT, `tab_koanTabId` TEXT NOT NULL, `tab_zenTabId` TEXT, `tab_spaceUuid` TEXT NOT NULL, `tab_folderId` TEXT, `tab_splitId` TEXT, `tab_url` TEXT NOT NULL, `tab_title` TEXT NOT NULL, `tab_iconUrl` TEXT, `tab_staticIcon` INTEGER NOT NULL, `tab_pinned` INTEGER NOT NULL, `tab_essential` INTEGER NOT NULL, `tab_order` INTEGER NOT NULL, `tab_zenOrder` INTEGER NOT NULL, `tab_lastAccessed` INTEGER NOT NULL, `tab_thumbnailKey` TEXT, `tab_origin` TEXT NOT NULL, `tab_dirty` INTEGER NOT NULL, `tab_closed` INTEGER NOT NULL, `tab_cardOrder` INTEGER, `tab_zenUrl` TEXT, PRIMARY KEY(`koanTabId`))",
+        "fields": [
+          {
+            "fieldPath": "koanTabId",
+            "columnName": "koanTabId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "closedAt",
+            "columnName": "closedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "engineState",
+            "columnName": "engineState",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tab.koanTabId",
+            "columnName": "tab_koanTabId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.zenTabId",
+            "columnName": "tab_zenTabId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tab.spaceUuid",
+            "columnName": "tab_spaceUuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.folderId",
+            "columnName": "tab_folderId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tab.splitId",
+            "columnName": "tab_splitId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tab.url",
+            "columnName": "tab_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.title",
+            "columnName": "tab_title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.iconUrl",
+            "columnName": "tab_iconUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tab.staticIcon",
+            "columnName": "tab_staticIcon",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.pinned",
+            "columnName": "tab_pinned",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.essential",
+            "columnName": "tab_essential",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.order",
+            "columnName": "tab_order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.zenOrder",
+            "columnName": "tab_zenOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.lastAccessed",
+            "columnName": "tab_lastAccessed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.thumbnailKey",
+            "columnName": "tab_thumbnailKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tab.origin",
+            "columnName": "tab_origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.dirty",
+            "columnName": "tab_dirty",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.closed",
+            "columnName": "tab_closed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tab.cardOrder",
+            "columnName": "tab_cardOrder",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tab.zenUrl",
+            "columnName": "tab_zenUrl",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "koanTabId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_closed_tabs_closedAt",
+            "unique": false,
+            "columnNames": [
+              "closedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_closed_tabs_closedAt` ON `${TABLE_NAME}` (`closedAt`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7c942cd1e51a835a5b1924017bf0784b')"
+    ]
+  }
+}

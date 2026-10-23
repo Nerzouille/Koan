@@ -120,6 +120,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     var settingsOpen by mutableStateOf(false)
     var downloadsOpen by mutableStateOf(false)
     var historyOpen by mutableStateOf(false)
+
+    /** History opened on its whole "Recently closed" list (long press on the dock's History). */
+    var historyShowsClosed by mutableStateOf(false)
     val clearDataCard = SheetState(scope, splineBasedDecay(density))
     val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
     val clearSiteCard = SheetState(scope, splineBasedDecay(density))
@@ -175,6 +178,8 @@ fun KoanOverlays(
     devActions: List<Pair<String, () -> Unit>>,
     /** Quiet confirmations (the shared bottom toast). */
     onToast: (Toast) -> Unit,
+    /** A recently closed tab picked in History: back in its space and place. */
+    onRestoreClosed: (String) -> Unit,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
@@ -671,6 +676,11 @@ fun KoanOverlays(
             },
             onClear = { overlays.clearDataCard.animateTo(Detent.Compact) },
             onClose = { overlays.historyOpen = false },
+            onRestore = { id ->
+                overlays.historyOpen = false
+                onRestoreClosed(id)
+            },
+            allClosed = overlays.historyShowsClosed,
             modifier = Modifier.graphicsLayer { translationY = (1f - historySlide.value) * size.height },
         )
     }

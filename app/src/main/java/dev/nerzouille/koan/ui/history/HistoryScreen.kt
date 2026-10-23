@@ -38,7 +38,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.nerzouille.koan.data.ClosedTabEntity
 import dev.nerzouille.koan.data.KoanDao
+import dev.nerzouille.koan.ui.kit.dayLabel
+import java.time.LocalDate
 import dev.nerzouille.koan.data.VisitEntity
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
@@ -63,6 +67,10 @@ import java.util.Locale
  * group row ("N pages · time range") that opens inline; a search shows the pages flat. Search and
  * Clear (Clear browsing data) at the bottom. Tap opens a page in a new tab; a swipe left removes
  * it, or a whole group (a synced page is only hidden on the phone).
+ *
+ * On top, "Recently closed": the last tabs closed on the phone, newest first (the first few, all of
+ * them once shown, or from the start when [allClosed]: the long press on the dock's History). A tap
+ * puts one back in its space and place and opens it ([onRestore]).
  */
 @Composable
 fun HistoryScreen(
@@ -71,7 +79,9 @@ fun HistoryScreen(
     onRemove: (List<VisitEntity>) -> Unit,
     onClear: () -> Unit,
     onClose: () -> Unit,
+    onRestore: (String) -> Unit,
     modifier: Modifier = Modifier,
+    allClosed: Boolean = false,
 ) {
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
@@ -79,6 +89,8 @@ fun HistoryScreen(
     val rows by produceState<List<VisitEntity>?>(null, query) {
         dao.observeHistory(query.trim(), HistoryTokens.LIMIT).collect { value = it }
     }
+    val closed by dao.observeClosedTabs().collectAsStateWithLifecycle(emptyList())
+    var showAllClosed by remember(allClosed) { mutableStateOf(allClosed) }
     var expanded by remember { mutableStateOf(emptySet<String>()) }
     val searching = query.isNotBlank()
     ListPage(
@@ -95,6 +107,27 @@ fun HistoryScreen(
             Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(start = SettingsTokens.Padding, end = SettingsTokens.Padding, bottom = SettingsTokens.SectionTop),
         ) {
+            if (!searching && closed.isNotEmpty()) {
+                val shown = if (showAllClosed) closed else closed.take(HistoryTokens.CLOSED_PREVIEW)
+                val more = closed.size - shown.size
+                item(key = "closed") { Box(Modifier.animateItem()) { SettingsSection("Recently closed") } }
+                shown.forEachIndexed { i, c ->
+                    item(key = "closed:${c.koanTabId}") {
+                        Box(Modifier.animateItem().clip(dayRowShape(i == 0, i == shown.lastIndex && more == 0))) {
+                            ClosedRow(c, first = i == 0, onRestore)
+                        }
+                    }
+                }
+                if (more > 0) {
+                    item(key = "closed:more") {
+                        Box(Modifier.animateItem().clip(dayRowShape(first = false, last = true))) {
+                            RowFrame(first = false, indent = false, onClick = { showAllClosed = true }) {
+                                Text("Show all $more more", color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
+            }
             if (list != null && list.isEmpty()) {
                 item {
                     Text(
@@ -189,6 +222,21 @@ private fun PageRow(v: VisitEntity, first: Boolean, indent: Boolean, onOpen: (St
         if (v.fromSync) {
             Spacer(Modifier.width(DownloadTokens.ActionGap))
             Icon(KoanIcons.Desktop, "From your computer", tint = palette.TextSecondary, modifier = Modifier.size(HistoryTokens.SyncGlyph))
+        }
+    }
+}
+
+/** A closed tab: favicon, title, host and when it was closed. */
+@Composable
+private fun ClosedRow(c: ClosedTabEntity, first: Boolean, onRestore: (String) -> Unit) {
+    val url = c.tab.url
+    RowFrame(first, indent = false, onClick = { onRestore(c.koanTabId) }) {
+        FaviconTile(url)
+        Spacer(Modifier.width(DownloadTokens.RowGap))
+        Column(Modifier.weight(1f)) {
+            RowTitle(c.tab.title.ifBlank { displayHost(url) })
+            val day = dayLabel(Instant.ofEpochMilli(c.closedAt).atZone(ZoneId.systemDefault()).toLocalDate(), LocalDate.now())
+            RowSubtitle("${displayHost(url)} · ${if (day == "Today") time(c.closedAt) else day}")
         }
     }
 }

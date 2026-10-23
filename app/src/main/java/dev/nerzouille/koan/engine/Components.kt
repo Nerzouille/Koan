@@ -28,6 +28,8 @@ import mozilla.components.feature.downloads.DownloadStorage
 import mozilla.components.feature.downloads.DownloadsUseCases
 import mozilla.components.support.utils.DefaultDownloadFileUtils
 import mozilla.components.feature.readerview.ReaderViewMiddleware
+import android.util.JsonReader
+import java.io.StringReader
 import mozilla.components.browser.engine.gecko.GeckoEngine
 import mozilla.components.feature.media.MediaSessionFeature
 import kotlinx.coroutines.withContext
@@ -186,7 +188,9 @@ class Components(context: Context) {
     val history by lazy { HistoryRecorder(database.dao(), appScope) }
 
     val tabs by lazy {
-        TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, history, appScope)
+        TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, history, appScope) { json ->
+            engine.createSessionStateFrom(JsonReader(StringReader(json)))
+        }
     }
 }
 

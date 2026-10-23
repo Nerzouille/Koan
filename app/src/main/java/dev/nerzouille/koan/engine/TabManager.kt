@@ -13,6 +13,9 @@ import dev.nerzouille.koan.search.loadsOnPhone
 import dev.nerzouille.koan.thumbs.BakedBlur
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.theme.ThumbTokens
+import android.util.JsonWriter
+import dev.nerzouille.koan.data.ClosedTabEntity
+import java.io.StringWriter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -65,6 +68,8 @@ class TabManager(
     private val history: HistoryRecorder,
     /** For Room writes and file work that must outlive any screen. */
     private val appScope: CoroutineScope,
+    /** The engine's saved state back from its JSON (recently closed tabs). */
+    private val readState: (String) -> EngineSessionState,
 ) {
     private val main = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -123,7 +128,7 @@ class TabManager(
         if (tab != null) open(tab, captureLeaving = false)
         _started.value = true
         appScope.launch {
-            ThumbnailStore.retainOnly(rooms.allTabs().mapNotNullTo(HashSet()) { it.thumbnailKey })
+            ThumbnailStore.retainOnly(rooms.allTabs().mapNotNullTo(HashSet()) { it.thumbnailKey } + dao.closedTabThumbnails())
             // Blank screenshots saved by older builds go once, later, so startup isn't slowed.
             delay(BLANK_SCAN_DELAY_MS)
             val blank = ThumbnailStore.dropBlank()
@@ -275,12 +280,35 @@ class TabManager(
         }
     }
 
-    /** Closes normal tab [id] like [close], keeping what [reopen] needs to bring it back. */
+    /**
+     * Closes normal tab [id] like [close], keeping what [reopen] needs to bring it back, now (Undo)
+     * and later (Recently closed, persisted).
+     */
     suspend fun closeForUndo(id: String): ClosedTab? {
         val row = dao.tab(id) ?: return null
-        val closed = ClosedTab(row, store.state.findTab(id)?.engineState?.engineSessionState)
+        val closed = ClosedTab(row, freshState(id))
+        val json = closed.state?.let { state -> runCatching { StringWriter().also { state.writeTo(JsonWriter(it)) }.toString() }.getOrNull() }
         close(listOf(id), listOf(row), keepThumbnails = true).join()
+        appScope.launch {
+            val dropped = dao.addClosedTab(ClosedTabEntity(id, row, System.currentTimeMillis(), json), ClosedTabEntity.KEEP)
+            // Their screenshots go with them, unless the tab is open again meanwhile.
+            dropped.filter { dao.tab(it.koanTabId)?.closed != false }.mapNotNull { it.tab.thumbnailKey }.forEach { ThumbnailStore.delete(it) }
+        }.join() // Recorded before an Undo can take it back.
         return closed
+    }
+
+    /**
+     * [id]'s engine state (page history, scroll) as of now. GeckoView only reports it now and then,
+     * so a live tab is asked for it first (waiting a moment at most).
+     */
+    private suspend fun freshState(id: String): EngineSessionState? {
+        val engineState = store.state.findTab(id)?.engineState ?: return null
+        val session = engineState.engineSession ?: return engineState.engineSessionState
+        val before = engineState.engineSessionState
+        withContext(Dispatchers.Main) { session.flushSessionState() }
+        return withTimeoutOrNull(STATE_FLUSH_TIMEOUT_MS) {
+            store.flow().map { it.findTab(id)?.engineState?.engineSessionState }.first { it != null && it !== before }
+        } ?: store.state.findTab(id)?.engineState?.engineSessionState
     }
 
     /** Undo: [closed] is back in its place in the stack, its page history and scroll too (not opened yet). */
@@ -290,7 +318,34 @@ class TabManager(
         withContext(Dispatchers.Main) {
             store.dispatch(TabListAction.AddTabAction(createTab(url = row.url, id = row.koanTabId, engineSessionState = closed.state), select = false))
         }
-        appScope.launch { dao.upsertTabs(listOf(row)) }.join()
+        appScope.launch {
+            dao.deleteClosedTab(row.koanTabId)
+            // Back in its place; if another card took that place meanwhile, just behind it.
+            val taken = dao.stackTabs(row.spaceUuid).any { it.order == row.order && it.koanTabId != row.koanTabId }
+            if (taken) dao.insertInStack(row, after = row.order - 1) else dao.upsertTabs(listOf(row))
+        }.join()
+    }
+
+    /**
+     * A recently closed tab back in the stack, like [reopen]. Its space may be gone ([fallbackSpace]
+     * then), and Zen may have closed it meanwhile (it comes back as a phone tab). Null if unknown.
+     */
+    suspend fun restoreClosed(id: String, fallbackSpace: String): ClosedTab? {
+        val entry = dao.closedTab(id) ?: return null
+        val existing = dao.tab(id)
+        if (existing != null && !existing.closed) {
+            // Already back (an Undo raced it).
+            dao.deleteClosedTab(id)
+            return ClosedTab(existing, null)
+        }
+        val spaceKnown = dao.spaces().any { it.uuid == entry.tab.spaceUuid }
+        var row = entry.tab.copy(closed = false, spaceUuid = if (spaceKnown) entry.tab.spaceUuid else fallbackSpace, folderId = null, splitId = null)
+        if (row.origin == TabOrigin.ZEN && existing == null) {
+            row = row.copy(origin = TabOrigin.LOCAL, zenTabId = null, zenOrder = -1, zenUrl = null)
+        }
+        if (!spaceKnown) row = row.copy(order = dao.maxStackOrder(row.spaceUuid) + 1)
+        val state = entry.engineState?.let { json -> runCatching { readState(json) }.getOrNull() }
+        return ClosedTab(row, state).also { reopen(it) }
     }
 
     /** Closes a tab that only held a download, back to the tab used before it. */
@@ -618,6 +673,9 @@ class TabManager(
         private const val PREFETCH_BEHIND = 6
         private const val PREFETCH_FRONT = 2
         private const val BLANK_SCAN_DELAY_MS = 15_000L
+
+        /** How long a close waits for a live tab's fresh engine state. */
+        private const val STATE_FLUSH_TIMEOUT_MS = 500L
     }
 }
 

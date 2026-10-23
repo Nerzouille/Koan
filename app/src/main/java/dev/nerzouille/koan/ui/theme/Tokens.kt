@@ -462,6 +462,12 @@ object SignInTokens {
 
     /** The page fades in once it has painted, so its first (white) frame is never shown. */
     const val FADE_MS = 220
+
+    /** Oldest system WebView that can show Mozilla's sign-in (crypto.randomUUID). */
+    const val MIN_WEBVIEW = 92
+    val OutdatedPadding = 32.dp
+    val OutdatedSize = 16.sp
+    val OutdatedGap = 20.dp
 }
 
 object BarTokens {
@@ -842,6 +848,9 @@ object HistoryTokens {
 
     /** Rows loaded at most (newest first). */
     const val LIMIT = 3000
+
+    /** Recently closed tabs shown before "Show all". */
+    const val CLOSED_PREVIEW = 3
 }
 
 object PagerTokens {
