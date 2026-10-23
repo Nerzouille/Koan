@@ -660,6 +660,39 @@ object SheetTokens {
     val CardTextSize = 14.sp
 }
 
+/** What a page asks on the floating card (ui/menu/PagePrompts): <select>, pickers, dialogs. */
+object PromptTokens {
+    val TextGap = 6.dp
+    val FieldRadius = 12.dp
+
+    /** A long message scrolls past this; a long <select> list past ListMaxHeight. */
+    val MessageMaxHeight = 220.dp
+    val ListMaxHeight = 380.dp
+
+    /** Options inside an <optgroup> sit this far in. */
+    val GroupIndent = 28.dp
+
+    /** A dialog this soon after the last one offers "Don't let this page show more dialogs". */
+    const val MANY_DIALOGS_MS = 3000L
+
+    // Tick boxes (multiple <select>, "Don't let this page show more dialogs").
+    val Check = 22.dp
+    val CheckRadius = 6.dp
+    val CheckGlyph = 16.dp
+    val CheckRowPadding = 8.dp
+
+    /** A month tile of <input type=month>: width / height. */
+    const val MONTH_ASPECT = 2f
+
+    /** <input type=color>: the swatches offered before a typed hex value. */
+    val Swatches = listOf(
+        Color(0xFF000000), Color(0xFF8E8E93), Color(0xFFFFFFFF), Color(0xFFFF3B30), Color(0xFFFF9500), Color(0xFFFFCC00),
+        Color(0xFF34C759), Color(0xFF00C7BE), Color(0xFF007AFF), Color(0xFF5856D6), Color(0xFFAF52DE), Color(0xFFFF2D55),
+    )
+    const val SWATCHES_PER_ROW = 6
+    val SwatchRing = 3.dp
+}
+
 /** Settings and its pages (design 7n / 7o): full screen, rows straight on the base. */
 object SettingsTokens {
     val Padding = 20.dp

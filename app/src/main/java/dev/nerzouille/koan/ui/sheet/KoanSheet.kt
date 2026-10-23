@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -235,12 +236,16 @@ fun KoanCard(state: SheetState, modifier: Modifier = Modifier, content: @Composa
     var cardPx by remember { mutableIntStateOf(0) }
     LaunchedEffect(state) { snapshotFlow { cardPx }.collect { state.refit(intArrayOf(it), 0) } }
     val marginPx = with(density) { SheetTokens.CardMargin.toPx() }
-    val bottomPx = marginPx + WindowInsets.navigationBars.getBottom(density)
+    val imeInsets = WindowInsets.ime
+    val navInsets = WindowInsets.navigationBars
+    // Above the keyboard when a field on the card has it up. Read where it is used (layout,
+    // gestures), so the keyboard's slide moves the card without recomposing it.
+    fun bottomPx() = marginPx + maxOf(imeInsets.getBottom(density), navInsets.getBottom(density))
     Box(
         modifier
             .fillMaxSize()
             .drawBehind { drawRect(palette.SheetScrim, alpha = state.progress) }
-            .sheetGestures(state, view) { boxHeight -> boxHeight - bottomPx - state.height },
+            .sheetGestures(state, view) { boxHeight -> boxHeight - bottomPx() - state.height },
     ) {
         Layout(
             content = {
@@ -259,6 +264,7 @@ fun KoanCard(state: SheetState, modifier: Modifier = Modifier, content: @Composa
                 Constraints(maxWidth = constraints.maxWidth - 2 * side, maxHeight = constraints.maxHeight),
             )
             if (p.height != cardPx) cardPx = p.height
+            val bottomPx = bottomPx()
             layout(constraints.maxWidth, constraints.maxHeight) {
                 p.placeWithLayer(side, (constraints.maxHeight - bottomPx - p.height).toInt()) {
                     // Fully below the screen edge when closed, at rest at its height.

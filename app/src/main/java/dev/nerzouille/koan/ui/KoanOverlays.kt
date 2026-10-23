@@ -39,6 +39,7 @@ import dev.nerzouille.koan.ui.downloads.DownloadsScreen
 import dev.nerzouille.koan.ui.history.ClearDataCard
 import dev.nerzouille.koan.ui.history.HistoryScreen
 import dev.nerzouille.koan.ui.menu.FilePrompt
+import dev.nerzouille.koan.ui.menu.PagePrompts
 import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.kit.Toast
 import dev.nerzouille.koan.ui.kit.copiedToast
@@ -134,6 +135,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     /** A site's request waiting on the card, and what it asks for. */
     val permissionCard = SheetState(scope, splineBasedDecay(density))
     var permission by mutableStateOf<Pair<PermissionRequest, SiteAsk>?>(null)
+
+    /** What the page asks on the card: a <select>, a date, alert/confirm, HTTP sign-in… */
+    val promptCard = SheetState(scope, splineBasedDecay(density))
     val settingsNav = SheetNav<SettingsPage>(scope, SettingsPage.Root)
 
     /** Find in page is open, and what was typed in it. */
@@ -144,7 +148,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || settingsOpen || downloadsOpen ||
             historyOpen || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
-            saveLoginCard.open || permissionCard.open
+            saveLoginCard.open || permissionCard.open || promptCard.open
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
     fun dismissAll() {
@@ -436,6 +440,8 @@ fun KoanOverlays(
     }
     // A page's file field: Android's picker (and the camera).
     FilePrompt(components, activeTabId)
+    // Everything else a page asks: <select>, pickers, alert/confirm, HTTP sign-in, pop-ups.
+    PagePrompts(components, activeTabId, overlays.promptCard)
     fun consumePrompt(p: PromptRequest) { activeTabId?.let { components.store.dispatch(ContentAction.ConsumePromptRequestAction(it, p)) } }
     val select = loginPrompt as? PromptRequest.SelectLoginPrompt
     if (select != null && select.logins.isNotEmpty()) {
