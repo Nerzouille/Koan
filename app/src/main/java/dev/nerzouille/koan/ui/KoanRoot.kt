@@ -743,6 +743,7 @@ fun KoanRoot(components: Components) {
             loading = currentPage.loading && !startPage,
             loadProgress = currentPage.progress,
             dockHide = { dock.offset },
+            dockAway = { dock.keyboard },
             drawerContent = { modifier ->
                 DrawerContent(
                     spaces = models,
@@ -793,7 +794,8 @@ fun KoanRoot(components: Components) {
                     },
                     onSettings = { overlays.settingsOpen = true },
                     onTabsMenu = { overlays.tabMenuOpen = true },
-                    claimHold = { bar.holdClaimed = true },
+                    onBackMenu = { overlays.backMenuOpen = true },
+                    pillPressed = { bar.pressOnPill = true },
                     modifier = modifier,
                     swipe = { if (overviewOpen) 0f else tabSwipe.fraction },
                     previous = tabSwipe.previous?.let(::tabTarget),

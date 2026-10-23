@@ -53,19 +53,16 @@ private suspend fun AwaitPointerEventScope.awaitCleanUp(id: PointerId): Boolean 
 }
 
 /**
- * A long press on a bar button: [onDown] as the finger lands (before the bar's own handler sees
- * it), [onHold] once it has been held still for the long-press timeout. The rest of that gesture
- * is then the button's: no tap, no swipe follows.
+ * A long press on a bar button: [onHold] once it has been held still for the long-press timeout.
+ * The rest of that gesture is then the button's: no tap, no swipe follows.
  */
 @Composable
-internal fun Modifier.holdPress(enabled: Boolean, onDown: () -> Unit, onHold: () -> Unit): Modifier {
-    val down by rememberUpdatedState(onDown)
+internal fun Modifier.holdPress(enabled: Boolean, onHold: () -> Unit): Modifier {
     val hold by rememberUpdatedState(onHold)
     if (!enabled) return this
     return pointerInput(Unit) {
         awaitEachGesture {
             val first = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            down()
             val ended = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) { awaitLiftOrSlop(first.id) }
             if (ended != null) return@awaitEachGesture
             hold()

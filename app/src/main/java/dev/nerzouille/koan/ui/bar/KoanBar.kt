@@ -86,6 +86,8 @@ fun KoanBar(
     loadProgress: Float,
     /** Page view: how far the dock has slid down as the page scrolls (px); read in a layer. */
     dockHide: () -> Float,
+    /** Page view: a field in the page has the keyboard, the dock is not drawn (read in a layer). */
+    dockAway: () -> Boolean,
     drawerContent: @Composable (Modifier) -> Unit,
     switcher: @Composable (Modifier) -> Unit,
     address: @Composable (Modifier) -> Unit,
@@ -116,7 +118,11 @@ fun KoanBar(
     Column(
         modifier
             .fillMaxWidth()
-            .graphicsLayer { translationY = if (overviewOpen) 0f else dockHide() }
+            .graphicsLayer {
+                translationY = if (overviewOpen) 0f else dockHide()
+                // Its shadow would show above the keyboard.
+                alpha = if (!overviewOpen && dockAway()) 0f else 1f
+            }
             .drawWithCache {
                 val shadowPx = BarTokens.DockShadowHeight.toPx()
                 val noBlurShadowPx = DrawerTokens.NoBlurShadowHeight.toPx()

@@ -30,7 +30,8 @@ import kotlin.math.abs
 /**
  * Everything a drag on the bar can move. One rule everywhere: up = one level deeper, down = one
  * level back (page → overview → drawer compact → drawer full), sideways = tabs in the page view,
- * spaces in the overview; in the page view a long press scrubs across the spaces. The callbacks are set by the
+ * spaces in the overview; in the page view a long press on the address pill scrubs across the
+ * spaces (the buttons have their own long presses, never the scrub). The callbacks are set by the
  * caller on every composition.
  */
 @Stable
@@ -44,8 +45,8 @@ class BarGestures(
 ) {
     var overviewOpen: () -> Boolean = { false }
 
-    /** Set by a button with its own long press as a press lands on it: no space scrub for this one. */
-    var holdClaimed = false
+    /** Set by the address pill as a press lands on it: only a long press there scrubs the spaces. */
+    var pressOnPill = false
 
     /** Page → overview: open it under the finger (its progress follows the drag). */
     var onOverviewDragStart: () -> Unit = {}
@@ -84,16 +85,16 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
 
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
-        // The button under the finger saw the press first (Initial pass) and may have claimed it.
-        val claimed = g.holdClaimed
-        g.holdClaimed = false
+        // The pill under the finger saw the press first (Initial pass) and flagged it.
+        val onPill = g.pressOnPill
+        g.pressOnPill = false
         val tracker = VelocityTracker()
         tracker.addPosition(down.uptimeMillis, down.position)
         val inOverview = g.overviewOpen()
         val outside = drawerArea && down.position.y < g.drawer.sheetTop()
 
         var scrubbing = false
-        val start: Slop? = if (inOverview || claimed) {
+        val start: Slop? = if (inOverview || !onPill) {
             awaitSlop(down.id, tracker, PointerEventPass.Main)
         } else {
             val first = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animate
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -27,12 +28,24 @@ class DockState(private val scope: CoroutineScope) {
     /** The dock's visible height in the page view; the engine reserves this much for it. */
     var heightPx = 0f
 
-    /** Overview open, address being edited…: the dock stays put. */
-    var locked = false
+    /** Overview open, address being edited…: the dock stays put. Readable in composition. */
+    private var lockedState by mutableStateOf(false)
+    var locked: Boolean
+        get() = lockedState
         set(value) {
-            field = value
+            lockedState = value
             if (value) show()
         }
+
+    /**
+     * A field in the page has the keyboard: the dock steps aside (behind the keyboard, not drawn)
+     * until the keyboard goes, then comes back. Scrolling doesn't move it meanwhile.
+     */
+    var keyboard by mutableStateOf(false)
+        private set
+
+    /** Whether the page under the finger can scroll at all: a page that can't keeps its dock. */
+    var pageCanScroll: () -> Boolean = { true }
 
     private var job: Job? = null
 
@@ -45,7 +58,9 @@ class DockState(private val scope: CoroutineScope) {
 
     /** Page content scrolled by [dy] px (> 0 = towards the end of the page). */
     fun scrollBy(dy: Float) {
-        if (locked || heightPx <= 0f) return
+        if (locked || keyboard || heightPx <= 0f) return
+        // Nothing to scroll (a short page): the dock stays, but it never stays half hidden.
+        if (!pageCanScroll() && offset == 0f) return
         job?.cancel()
         sinceDown += dy
         offset = (offset + dy).coerceIn(0f, heightPx)
@@ -59,16 +74,25 @@ class DockState(private val scope: CoroutineScope) {
     /** Finger up: finish in the direction the page was going, or the nearest end after a nudge. */
     fun settle(slopPx: Float) {
         touching = false
-        if (offset <= 0f || offset >= heightPx) return
+        if (keyboard || offset <= 0f || offset >= heightPx) return
         val hide = if (abs(sinceDown) > slopPx) sinceDown > 0f else offset > heightPx / 2f
         animateTo(if (hide) heightPx else 0f)
     }
 
     fun show() {
-        if (offset > 0f) animateTo(0f)
+        if (!keyboard && offset > 0f) animateTo(0f)
+    }
+
+    /** The keyboard came up for a field in the page ([up]), or went: see [keyboard]. */
+    fun keyboardFor(up: Boolean) {
+        if (up == keyboard) return
+        keyboard = up
+        job?.cancel()
+        if (up) offset = heightPx else animateTo(0f)
     }
 
     fun snapShown() {
+        if (keyboard) return
         job?.cancel()
         offset = 0f
     }

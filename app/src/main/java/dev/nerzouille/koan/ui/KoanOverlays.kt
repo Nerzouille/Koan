@@ -73,6 +73,7 @@ import dev.nerzouille.koan.data.TabOrigin
 import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.data.StartPageAfter
 import dev.nerzouille.koan.ui.menu.TabMenu
+import dev.nerzouille.koan.ui.menu.BackMenu
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
@@ -118,6 +119,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
 
     /** The tab counter's long-press menu: New tab, Close tab. */
     var tabMenuOpen by mutableStateOf(false)
+
+    /** Back's long-press list: the pages before this one in the tab. */
+    var backMenuOpen by mutableStateOf(false)
     var settingsOpen by mutableStateOf(false)
     var downloadsOpen by mutableStateOf(false)
     var historyOpen by mutableStateOf(false)
@@ -146,7 +150,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
 
     /** Something covers the page or the overview (a sheet, a card, a full page): toasts make way. */
     val anyOpen: Boolean
-        get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || settingsOpen || downloadsOpen ||
+        get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
             historyOpen || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
             saveLoginCard.open || permissionCard.open || promptCard.open
 
@@ -156,6 +160,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
         linkCard.snapClosed()
         signOutCard.snapClosed()
         tabMenuOpen = false
+        backMenuOpen = false
         finding = false
         findQuery = ""
     }
@@ -543,6 +548,18 @@ fun KoanOverlays(
         onDismiss = { overlays.tabMenuOpen = false },
         onNewTab = { overlays.tabMenuOpen = false; onNewTab() },
         onCloseTab = { overlays.tabMenuOpen = false; onCloseTab() },
+    )
+
+    // ---- back's long-press list: the pages before this one ----
+    val backHistory by components.store.observeSlice(activeTabId) { s -> activeTabId?.let { s.findTab(it) }?.content?.history }
+    BackMenu(
+        open = overlays.backMenuOpen,
+        history = backHistory,
+        onDismiss = { overlays.backMenuOpen = false },
+        onGoTo = { index ->
+            overlays.backMenuOpen = false
+            activeTabId?.let { components.sessionUseCases.goToHistoryIndex(index, it) }
+        },
     )
 
     // ---- Settings, full screen, sliding up over everything ----

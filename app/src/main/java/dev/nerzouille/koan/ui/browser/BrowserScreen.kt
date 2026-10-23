@@ -5,16 +5,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,6 +53,9 @@ import mozilla.components.lib.state.ext.flow
 import mozilla.components.browser.engine.gecko.GeckoEngineView
 import mozilla.components.feature.session.SessionFeature
 import kotlin.math.roundToInt
+
+/** GeckoView's own keyboard listener (GeckoView.KEYBOARD_WINDOW_INSETS_LISTENER, GeckoView 157). */
+private const val GECKO_KEYBOARD_LISTENER = "KEYBOARD_WINDOW_INSETS_LISTENER"
 
 /**
  * Page view: the live engine view, full height under the dock (drawn by KoanRoot), which hides as
@@ -98,19 +104,45 @@ fun BrowserScreen(
         }
     }
 
-    // The dock's height over the page: the engine lays the page out above it, and lets the page
-    // grow under it as it slides away. (With the keyboard up, the dock sits on the keyboard.)
+    // The page ends above the navigation bar (a solid strip below it, as Firefox) and above the
+    // keyboard: it is exactly what can be seen. GeckoView would also take the keyboard off the
+    // page itself (it reads it from the window), hiding the bottom of the page twice: its keyboard
+    // listener goes (GeckoView adds it back each time its view attaches). The dock over the page
+    // is GeckoView's dynamic toolbar: the page is laid out above it, so a fixed bottom bar sits on
+    // the dock and follows it down as it slides away (the clipping is minus the part slid away).
+    DisposableEffect(engineView) {
+        val gecko = engineView.getChildAt(0)
+        fun dropKeyboard() = engineView.removeWindowInsetsListener(GECKO_KEYBOARD_LISTENER)
+        val onAttach = object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) = dropKeyboard()
+            override fun onViewDetachedFromWindow(v: View) = Unit
+        }
+        gecko?.addOnAttachStateChangeListener(onAttach)
+        if (gecko?.isAttachedToWindow == true) dropKeyboard()
+        onDispose { gecko?.removeOnAttachStateChangeListener(onAttach) }
+    }
     val density = LocalDensity.current
     val imeUp = WindowInsets.isImeVisible
     val navPx = WindowInsets.navigationBars.getBottom(density)
-    val dockPx = if (fullScreen) 0f else with(density) { barZone(overview = false).toPx() } + if (imeUp) 0 else navPx
-    dock.heightPx = dockPx
-    LaunchedEffect(dockPx) {
-        engineView.setDynamicToolbarMaxHeight(dockPx.roundToInt())
-        snapshotFlow { (dockPx - dock.offset).roundToInt() }.distinctUntilChanged().collect { visible ->
-            engineView.setVerticalClipping(-visible)
-        }
+    val toolbarPx = if (fullScreen) 0 else with(density) { barZone(overview = false).roundToPx() }
+    // The dock slides off the screen entirely, the strip under the page included.
+    dock.heightPx = if (fullScreen) 0f else (toolbarPx + navPx).toFloat()
+    // A field in the page has the keyboard (not the address field, find, the overview): the dock
+    // steps aside, as if slid away, so the field sits right on the keyboard. Decided as the
+    // keyboard comes up: the address field closing with the keyboard still sliding away must not
+    // flip the page into it.
+    var typingInPage by remember { mutableStateOf(false) }
+    LaunchedEffect(imeUp) { typingInPage = imeUp && !dock.locked && !fullScreen }
+    LaunchedEffect(typingInPage) { dock.keyboardFor(typingInPage) }
+    LaunchedEffect(toolbarPx) {
+        engineView.setDynamicToolbarMaxHeight(toolbarPx)
+        if (toolbarPx == 0) return@LaunchedEffect
+        snapshotFlow { if (dock.keyboard) toolbarPx else dock.offset.coerceAtMost(toolbarPx.toFloat()).roundToInt() }
+            .distinctUntilChanged()
+            .collect { slid -> engineView.setVerticalClipping(-slid) }
     }
+    // The dock follows a page's scroll only if the page (or the scroller under the finger) can scroll.
+    dock.pageCanScroll = { engineView.getInputResultDetail().let { it.canScrollToTop() || it.canScrollToBottom() } }
     LaunchedEffect(engineView) {
         // Near the top of a page the dock always shows (once the finger is off: a fling, a jump).
         val nearTop = with(density) { PageTokens.DockNearTop.toPx() }
@@ -146,8 +178,7 @@ fun BrowserScreen(
         Modifier
             .fillMaxSize()
             .background(KoanTheme.colors.Base)
-            .then(if (fullScreen) Modifier else Modifier.statusBarsPadding())
-            .windowInsetsPadding(WindowInsets.ime)
+            .then(if (fullScreen) Modifier else Modifier.statusBarsPadding().windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)))
             .nestedScroll(dock.nestedScroll)
             .pullToRefresh(
                 pull,

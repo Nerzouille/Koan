@@ -47,6 +47,10 @@ import dev.nerzouille.koan.ui.theme.DownloadTokens
 import dev.nerzouille.koan.ui.search.SearchField
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.WindowInsets
@@ -163,8 +167,10 @@ fun AddressRow(
     onSettings: () -> Unit,
     /** Page view: a long press on the tab counter (its small menu). */
     onTabsMenu: () -> Unit,
-    /** A press starts on the tab counter: the bar's own long press (space scrub) stands down. */
-    claimHold: () -> Unit,
+    /** Page view: a long press on back (the pages before this one). */
+    onBackMenu: () -> Unit,
+    /** A press lands on the address pill: only there does a long press scrub the spaces. */
+    pillPressed: () -> Unit,
     modifier: Modifier = Modifier,
     /** Page view swipe: -1..1 towards [previous] / [next]; read in layers only. */
     swipe: () -> Float = { 0f },
@@ -209,8 +215,8 @@ fun AddressRow(
             )
         } else {
             Box {
-                BarIcon(KoanIcons.Back, enabled = page.canGoBack, interactive = !overviewOpen, onClick = onBack, modifier = pageOnly)
-                BarIcon(KoanIcons.History, interactive = overviewOpen, onClick = onHistory, modifier = overviewOnly, onHold = onRecentlyClosed, claimHold = claimHold)
+                BarIcon(KoanIcons.Back, enabled = page.canGoBack, interactive = !overviewOpen, onClick = onBack, modifier = pageOnly, onHold = onBackMenu)
+                BarIcon(KoanIcons.History, interactive = overviewOpen, onClick = onHistory, modifier = overviewOnly, onHold = onRecentlyClosed)
             }
             AddressField(
                 page = page,
@@ -223,11 +229,12 @@ fun AddressRow(
                 download = if (overviewOpen) null else download,
                 onDownloads = onDownloads,
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
+                onPress = pillPressed,
                 modifier = Modifier.weight(1f),
             )
-            TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu, claimHold = claimHold)
+            TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu)
             Box {
-                BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly)
+                BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
                 BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
             }
         }
@@ -251,9 +258,12 @@ private fun AddressField(
     download: Float?,
     onDownloads: () -> Unit,
     onClick: () -> Unit,
+    /** A finger lands on the pill (before the bar's drags see it). */
+    onPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val host = displayHost(shownUrl ?: page.url)
+    val press by rememberUpdatedState(onPress)
     // The last space shown stays composed while it fades out.
     var lastSpace by remember { mutableStateOf(space) }
     if (space != null) lastSpace = space
@@ -264,7 +274,13 @@ private fun AddressField(
         modifier
             .height(BarTokens.FieldHeight)
             .clip(CircleShape)
-            .background(KoanTheme.colors.BarField),
+            .background(KoanTheme.colors.BarField)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    press()
+                }
+            },
     ) {
         Box(
             Modifier
@@ -640,7 +656,7 @@ private fun FindBar(find: FindUi, modifier: Modifier = Modifier) {
 
 /** The tab counter: tap = overview (and back); [onHold]: a long press opens its menu, with a tick. */
 @Composable
-private fun TabsButton(count: Int, onClick: () -> Unit, onHold: (() -> Unit)?, claimHold: () -> Unit) {
+private fun TabsButton(count: Int, onClick: () -> Unit, onHold: (() -> Unit)?) {
     val view = LocalView.current
     Box(
         Modifier
@@ -649,7 +665,6 @@ private fun TabsButton(count: Int, onClick: () -> Unit, onHold: (() -> Unit)?, c
             .cleanTap(onTap = onClick)
             .holdPress(
                 enabled = onHold != null,
-                onDown = claimHold,
                 onHold = {
                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     onHold?.invoke()
@@ -680,9 +695,8 @@ private fun BarIcon(
     interactive: Boolean = true,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    /** A long press (with [claimHold] as the finger lands), if the button has one. */
+    /** A long press, if the button has one. */
     onHold: (() -> Unit)? = null,
-    claimHold: () -> Unit = {},
 ) {
     val view = LocalView.current
     Box(
@@ -692,7 +706,6 @@ private fun BarIcon(
             .cleanTap(enabled = enabled && interactive, onTap = onClick)
             .holdPress(
                 enabled = onHold != null && enabled && interactive,
-                onDown = claimHold,
                 onHold = {
                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     onHold?.invoke()

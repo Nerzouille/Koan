@@ -787,7 +787,7 @@ object DownloadTokens {
 }
 
 /** The search sheet above the address field (design 7a–7d). */
-/** The tab counter's long-press menu: a small popup just above it. */
+/** The dock's long-press popups (tab counter, back): small, just above the dock. */
 object TabMenuTokens {
     val Radius = 16.dp
     val Shadow = 12.dp
@@ -800,6 +800,13 @@ object TabMenuTokens {
     const val SCALE_FROM = 0.85f
     const val IN_MS = 160
     const val OUT_MS = 120
+
+    /** The tab counter's menu is at least this wide (it widens to the right). */
+    val MinWidth = 200.dp
+
+    /** Back's history list: at most this wide, scrolls past [MAX_ROWS] (half a row peeks). */
+    val MaxWidth = 300.dp
+    const val MAX_ROWS = 6
 }
 
 /** The start page Koan comes back on after a while unused. */
