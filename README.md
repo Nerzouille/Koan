@@ -1,3 +1,5 @@
+<p align="center"><img src="branding/koan-icon.png" width="128" height="128" alt="Koan icon"></p>
+
 # Koan
 
 A personal Android web browser built on **GeckoView** (Firefox's engine): a card stack of tabs
