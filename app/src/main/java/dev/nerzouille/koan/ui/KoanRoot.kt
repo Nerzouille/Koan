@@ -580,6 +580,7 @@ fun KoanRoot(components: Components) {
             components = components,
             dock = dock,
             fullScreen = fullScreen,
+            findOpen = overlays.finding,
             cover = activeTabId?.let { id ->
                 when {
                     id == blankId -> CoverTarget(id, "", null, false, null, blank = true)

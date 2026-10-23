@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -68,6 +69,8 @@ fun BrowserScreen(
     dock: DockState,
     /** A fullscreen video: the page takes the whole screen (no dock, no status bar inset). */
     fullScreen: Boolean,
+    /** Find in page holds the dock in place: the page ends above it (its last lines reachable). */
+    findOpen: Boolean,
     cover: CoverTarget?,
     zoomIn: () -> Boolean,
     swipe: TabSwipe,
@@ -81,6 +84,8 @@ fun BrowserScreen(
             // Logins are Koan's (its cards and chips): Android's autofill service (e.g. Google
             // Password Manager) would offer to save the same login a second time.
             importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+            // window.print() goes through Android's print dialog, which needs the activity (held weakly).
+            setActivityContext(context)
         }
     }
     val sessionFeature = remember {
@@ -124,9 +129,12 @@ fun BrowserScreen(
     val density = LocalDensity.current
     val imeUp = WindowInsets.isImeVisible
     val navPx = WindowInsets.navigationBars.getBottom(density)
-    val toolbarPx = if (fullScreen) 0 else with(density) { barZone(overview = false).roundToPx() }
+    val dockZonePx = with(density) { barZone(overview = false).roundToPx() }
     // The dock slides off the screen entirely, the strip under the page included.
-    dock.heightPx = if (fullScreen) 0f else (toolbarPx + navPx).toFloat()
+    dock.heightPx = if (fullScreen) 0f else (dockZonePx + navPx).toFloat()
+    // While find is open the dock can't slide away, so it is a plain bar the page ends above: as a
+    // dynamic toolbar, the page's last lines would only show once it hides.
+    val toolbarPx = if (fullScreen || findOpen) 0 else dockZonePx
     // A field in the page has the keyboard (not the address field, find, the overview): the dock
     // steps aside, as if slid away, so the field sits right on the keyboard. Decided as the
     // keyboard comes up: the address field closing with the keyboard still sliding away must not
@@ -179,6 +187,7 @@ fun BrowserScreen(
             .fillMaxSize()
             .background(KoanTheme.colors.Base)
             .then(if (fullScreen) Modifier else Modifier.statusBarsPadding().windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)))
+            .then(if (findOpen && !fullScreen) Modifier.padding(bottom = barZone(overview = false)) else Modifier)
             .nestedScroll(dock.nestedScroll)
             .pullToRefresh(
                 pull,
