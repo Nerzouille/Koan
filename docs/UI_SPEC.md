@@ -8,7 +8,11 @@ outside the repo; the interaction rules below always apply.
 
 1. **Browser (page view).** Full-screen web page. Bottom bar (see "Bottom bar / workspace bar"): back, big
    address field (domain only, tap to edit), tabs button (shows tab count), menu. Toolbar hides on scroll down, shows on
-   scroll up (GeckoView dynamic toolbar).
+   scroll up (GeckoView dynamic toolbar); a page that can't scroll keeps it. The page ends above
+   the navigation bar (a solid strip below it, as Firefox). A page's fixed bottom bar (a chat
+   input, a cookie banner) sits on the dock and follows it down as it hides, to the page's real
+   bottom. When a field in the page has the keyboard, the dock steps aside and the page ends at
+   the keyboard, the field right on it; the dock comes back with the keyboard's going.
 2. **Space overview** (the core screen). Shown when tapping the tabs button or swiping up on the
    toolbar.
 3. **Address/search sheet.** Opens from the address pill: input at the bottom (above the keyboard),
@@ -221,7 +225,7 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 | **Page view** (the dock) | Swipe up | Overview opens under the finger (morph follows the drag) |
 | | Swipe down | Nothing (already the top level) |
 | | Horizontal swipe on the address row | Previous / next **tab** in the current space (Safari-style): the page and the pill follow the finger, the neighbour tab's screenshot slides in beside it. Commit past 25% of the width or a fling. First/last tab: rubber band, no wrap |
-| | Long-press the address row | **Space mode** (haptic tick): the pill shows the current space's icon and name |
+| | Long-press the address pill (only the pill: the buttons have their own long presses) | **Space mode** (haptic tick): the pill shows the current space's icon and name |
 | | …then swipe horizontally | Switch **space**, the neighbour space's icon and name slide into the pill; landing opens that space's current tab (or its overview if it has none). Lifting without a swipe leaves space mode. Steps fit the screen: the way to each edge (minus 48 dp) is shared by the spaces on that side, 24–90 dp each |
 | | Tap the pill | Edit the address (as before) |
 | **Overview**, drawer closed | Swipe up on the dock | Drawer opens (compact) |
@@ -257,8 +261,16 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 
 - **Page view:** the dock, full width, square: back · big address field (50dp, 17sp, domain
   only) · tab count · menu. Swipe up on the bar (or tap the tab count) opens the overview;
-  sideways switches tab; long-press then sideways switches space (see the gesture model above).
-  Long-press the tab count (haptic) opens a small floating card: New tab · Close tab (Undo toast).
+  sideways switches tab; long-press the pill then sideways switches space (see the gesture model
+  above). Long presses (each with a haptic), and only the pill's scrubs the spaces:
+  - **back:** a small popup of the pages before this one in the tab (favicon, title, most recent
+    first; scrolls past 6); tap = back to that page.
+  - **tab count:** New tab · Close tab (Undo toast).
+  - **⋯:** Settings.
+  - **History** (overview): Recently closed.
+  The dock's popups sit just above the dock, attached to its end (back's at the left margin; the
+  tab count's left edge where its own width puts it from the counter, widened to the right to at
+  least 200dp within the margin), grow out of their button and close on a tap elsewhere or Back.
 - **Loading line** (design 4d, 7g): a 2dp line in the **brand gradient** on the dock's top edge,
   from the left, with a soft glow. It eases towards the engine's progress (800ms, never backwards), a
   lighter streak sweeps along it while it waits, and on completion it runs to the end and fades
@@ -286,7 +298,7 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   - **Exactly one light haptic tick per committed switch**, on release. Never while dragging.
 - Tap a space icon = jump to it (one tick). Long-press bar = grid of all spaces (pick, reorder,
   create) — later.
-- In the page view, space mode (long-press the address row, then swipe) switches space: the host
+- In the page view, space mode (long-press the address pill, then swipe) switches space: the host
   gives way to the space's icon and name, the target space's slide in; landing opens that space's
   current (else newest) tab, or its overview with an empty state (message + big "New tab" button)
   if it has no cards. A plain horizontal swipe there switches **tab** instead.

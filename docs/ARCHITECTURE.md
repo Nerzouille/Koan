@@ -194,6 +194,12 @@ Approved for M5 (2026-10-16): AC `feature-readerview`, AC `concept-storage`, `an
   placeholder) until the engine reports a fresh first paint; no white flash on open, restore or
   cold start. Dock hides with GeckoView's dynamic toolbar (`setDynamicToolbarMaxHeight` +
   `setVerticalClipping`), driven by GeckoView's nested scrolling through Compose.
+- 2026-10-23 — **Page bottom**: the engine view ends above the navigation bar and above the
+  keyboard (Compose insets padding); the dynamic toolbar max is the dock's height, the clipping
+  minus the part of the dock slid away (fixed bottom bars follow the dock). GeckoView's own
+  keyboard listener (`KEYBOARD_WINDOW_INSETS_LISTENER`) is removed after each attach, or it would
+  take the keyboard off the already shrunk page a second time. A field in the page with the
+  keyboard: the dock steps aside (`DockState.keyboard`), clipping = fully slid away.
 
 - 2026-10-16 — **M5 visual system**: light theme fully neutral (no space wash); the brand gradient
   (`BrandTokens`) marks only "Koan is working / active / your focus" (UI_SPEC "Brand gradient").

@@ -71,7 +71,15 @@ losing data, and the owner has approved and published the release.
 - **Long screenshots:** update to GeckoView/android-components 160 (after Nov 10), then test
   whether HyperOS's scroll screenshot works; if not, consider our own stitched full-page
   screenshot or Save as PDF.
-- **Print:** `window.print()` does nothing yet (GeckoView needs an activity context delegate).
+- **Print:** `window.print()` does nothing yet: GeckoView needs an activity context
+  (`GeckoEngineView.setActivityContext`, probably a one-liner).
+- **Page painted only down to where the keyboard was** (white below, stays while scrolling):
+  seen after submitting an address that switched to an older tab. Also on 142389d, so not from
+  the dock work. Next to investigate.
+- **Find in page with the keyboard up:** check that a match is never hidden under the find bar
+  (tapping the page or scrolling already shows it).
+- **Dock ignoring taps:** happened once on a Google AI mode tab (pill and tab count did
+  nothing); not reproduced since. Watch for it.
 
 ### Android 11+ (minSdk 30) — merged 2026-10-23, ships with the next release
 - Runs on Android 11–13 too: no live blur below 12 (stronger dim instead), "copied" toasts below
