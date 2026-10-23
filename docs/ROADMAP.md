@@ -68,6 +68,10 @@ losing data, and the owner has approved and published the release.
 - **Private tab:** a tab that keeps no history, cookies or cache.
 - **Pull to refresh in chats:** a site whose list scrolls inside the page (not the page itself) may
   reload on a pull at the top of the list. Gecko doesn't say whether an inner list can scroll up.
+- **Long screenshots:** update to GeckoView/android-components 160 (after Nov 10), then test
+  whether HyperOS's scroll screenshot works; if not, consider our own stitched full-page
+  screenshot or Save as PDF.
+- **Print:** `window.print()` does nothing yet (GeckoView needs an activity context delegate).
 
 ### Android 11+ (minSdk 30) — merged 2026-10-23, ships with the next release
 - Runs on Android 11–13 too: no live blur below 12 (stronger dim instead), "copied" toasts below

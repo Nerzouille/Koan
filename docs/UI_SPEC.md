@@ -94,7 +94,20 @@ fling, nested scroll only in full, same spring. Up = expand, down = compact then
   the page under trails behind (30%); ‹ in the header or Back pops, then Back closes.
 - **Floating card** (confirmations, permission prompts, the link menu): sized to its content, 10dp
   side and bottom margins, the page dimmed; drag down, tap outside or Back closes it. Never the
-  brand gradient on prompts.
+  brand gradient on prompts. A card with a text field rises above the keyboard.
+- **What a page asks** (`ui/menu/PagePrompts`) goes on that floating card, in Koan's style:
+  `<select>` (a tap picks; multiple = tick boxes + Done; optgroups as small titles, a long list
+  scrolls and opens on the selected option), date / time / date-and-time (calendar, then the
+  clock) / month (year + 12 months) / week (a day of the week), colour (swatches or a hex value),
+  alert / confirm / prompt ("example.com says", the prompt's field focused with its text
+  selected), "Leave this page?", HTTP sign-in, "wants to open a pop-up" (Allow / Block), "Send
+  the form again?". Closing the card any other way is Cancel. A dialog within 3 s of the last one
+  offers "Don't let this page show more dialogs": ticked, that tab's alert/confirm/prompt are
+  dismissed unseen until it loads another address. A share goes to Android's share sheet, a
+  folder field to Android's folder picker, files to the file picker (`FilePrompt`). Anything
+  else is dismissed at once, so a page never waits on a dialog nobody shows.
+- **Toasts make way:** a toast goes away when a sheet, a card or a full page (History, Settings,
+  Downloads) opens.
 - **Find in page** takes the address row's place in the dock (query, "2/7", ↑ ↓ ✕); the dock
   stays shown while it is open; Back or ✕ closes it.
 - **Long press** on a link or an image opens the link menu on a floating card: open in new tab,
@@ -253,7 +266,10 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 - **Overview:** the same strip grows upward; the workspace switcher row (with the drawer handle)
   appears on top, the address row keeps its layout and only the buttons change: back crossfades
   to **History**, the field becomes "Search or type URL" (tap = new tab with search), the tab
-  count stays (tap = back to the page), the menu crossfades to **Settings**. From here it can grow further into the drawer (see "Essentials & pinned drawer").
+  count stays (tap = back to the page), the menu crossfades to **Settings**. Long press on
+  History opens it on **Recently closed**: the last 25 closed tabs (also the top section of
+  History); one tap brings a tab back in its space and place, with its back/forward history,
+  and opens it. From here it can grow further into the drawer (see "Essentials & pinned drawer").
   The morph only draws/transforms (no relayout per frame).
 - The dock covers the bottom of the stack (see "The dock covers the bottom of the stack").
 - The switcher is Zen's icon row (design 4a): one icon per space (initial if it has none), the
