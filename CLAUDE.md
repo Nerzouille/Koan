@@ -48,7 +48,9 @@ The canonical Zen sync wire format lives in Z-Sync's repo: `reference/Z-Sync/sha
   release and keep android-components and GeckoView on matching versions.
 - Room for local data, DataStore for settings, kotlinx.coroutines/Flow, kotlinx.serialization.
 - Sync layer: ported from Z-Sync's Android `sync/` package (MIT). See `docs/SYNC.md`.
-- minSdk 34 (owner's phones run Android 14+). Target the latest stable SDK.
+- minSdk 30 (Android 11+, since 2026-10-23; owner's phones run 14+). Below Android 12 there is no
+  live blur, and phones with less RAM get smaller budgets (`DeviceProfile`, `docs/ARCHITECTURE.md`).
+  Target the latest stable SDK.
 
 ## Working rules
 
