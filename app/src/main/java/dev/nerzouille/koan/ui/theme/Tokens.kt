@@ -64,6 +64,10 @@ class KoanPalette(
     val Attention: Color,
     /** Over the overview while the drawer is open, at full open. */
     val DrawerScrim: Color,
+    /** The same without blur behind the drawer (Android 11, DeviceProfile.liveBlur): stronger. */
+    val DrawerScrimNoBlur: Color,
+    /** Without blur, the drawer sheet also casts a taller shadow over the cards, at full open. */
+    val DrawerShadowNoBlur: Color,
     /** Over the page while a sheet or a floating card is open (the menu, prompts). */
     val SheetScrim: Color,
     // Depth stack.
@@ -114,6 +118,8 @@ class KoanPalette(
             Notice = Color(0xF2F2F2F5),
             Attention = Color(0xFFC0841A),
             DrawerScrim = Color(0xFF1C1C28).copy(alpha = 0.16f),
+            DrawerScrimNoBlur = Color(0xFF1C1C28).copy(alpha = 0.32f),
+            DrawerShadowNoBlur = Color(0xFF1C1C28).copy(alpha = 0.16f),
             SheetScrim = Color(0xFF1C1C28).copy(alpha = 0.30f),
             DimToBase = true,
             DimGain = 1.25f,
@@ -157,6 +163,8 @@ class KoanPalette(
             Notice = Color(0xF22C2C2E),
             Attention = Color(0xFFE8B45A),
             DrawerScrim = Color.Black.copy(alpha = 0.45f),
+            DrawerScrimNoBlur = Color.Black.copy(alpha = 0.62f),
+            DrawerShadowNoBlur = Color.Black.copy(alpha = 0.45f),
             SheetScrim = Color.Black.copy(alpha = 0.50f),
             DimToBase = false,
             DimGain = 1f,
@@ -353,6 +361,11 @@ object StackTokens {
 }
 
 object CardTokens {
+    /**
+     * A card deep enough to blur but with nothing blurred to show yet (Android 11 before its baked
+     * copies upload, or a placeholder the memory tier doesn't bake): extra dim at the deepest blur.
+     */
+    const val NO_BLUR_DIM = 0.22f
     val SkeletonTitle = 140.dp
     val SkeletonBar = 10.dp
     val Radius = 28.dp
@@ -562,12 +575,10 @@ object DrawerTokens {
     /** Cards behind the open drawer: blur radius at full open (the scrim is KoanPalette.DrawerScrim). */
     val Blur = 14.dp
 
-    /**
-     * Blurred copies of the overview baked when the drawer opens, crossfaded with the drag (up to
-     * [Blur]). One alone reads as a sharp image fading out, not as a blur growing: the half-way copy
-     * makes it read as blur. Each one is a full-screen bitmap while the drawer is open.
-     */
-    const val BLUR_LEVELS = 2
+    /** Without blur (Android 11): the sheet's shadow over the cards at full open. */
+    val NoBlurShadowHeight = 56.dp
+
+    // How many blurred copies are baked: DeviceProfile's MemoryTier.drawerBlurLevels.
 }
 
 /**
@@ -849,15 +860,10 @@ object PagerTokens {
 
 /** Page screenshots (thumbs/ThumbnailStore). */
 object ThumbTokens {
-    /**
-     * Width on disk. 480 looked soft on the POCO's focused card (~1000 px wide on screen); 720 is
-     * ~4.7 MB per decoded image at its aspect.
-     */
-    const val WIDTH_PX = 720
+    // Width on disk and memory caches: DeviceProfile's MemoryTier (480 looked soft on a ~1000 px
+    // wide focused card, so the top tier keeps 720).
     const val QUALITY = 80
     const val DISK_CAP_BYTES = 150L * 1024 * 1024
-    /** Decoded images kept in memory (GPU): ~14 at 720px, the cards around the focus. */
-    const val MEMORY_CAP_BYTES = 64 * 1024 * 1024
 
     /** Capture this long after a page finished loading (it settles: fonts, images, layout). */
     const val SETTLE_MS = 1500L
@@ -876,12 +882,6 @@ object ThumbTokens {
 
     /** A card's real screenshot fades in over its placeholder. */
     const val FADE_MS = 140
-
-    /** Pre-blurred copies per thumbnail for the pile (thumbs/BakedBlur), up to the deepest blur. */
-    const val BAKED_LEVELS = 3
-
-    /** Pre-blurred copies kept in memory (GPU): ~1.1 MB per card at 3 levels. */
-    const val BAKED_CACHE_BYTES = 24 * 1024 * 1024
 }
 
 /** Page view: the cover over the engine while a tab comes up, and the dock hiding on scroll. */

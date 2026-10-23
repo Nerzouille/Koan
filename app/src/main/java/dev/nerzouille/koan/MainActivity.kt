@@ -46,6 +46,7 @@ class MainActivity : FragmentActivity() {
         )
         super.onCreate(savedInstanceState)
 
+        DeviceProfile.initialize(this)
         val app = application as KoanApp
         val components = app.components
         app.componentsReady = true

@@ -2,6 +2,7 @@ package dev.nerzouille.koan.engine
 
 import android.content.ComponentCallbacks2
 import android.graphics.Bitmap
+import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.data.KoanDao
 import dev.nerzouille.koan.data.LastPlace
 import dev.nerzouille.koan.data.SpaceWithTabs
@@ -9,6 +10,7 @@ import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.data.TabOrigin
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.search.loadsOnPhone
+import dev.nerzouille.koan.thumbs.BakedBlur
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.theme.ThumbTokens
 import kotlinx.coroutines.CoroutineScope
@@ -47,7 +49,7 @@ import kotlin.coroutines.resume
  *
  * Every Room tab can have a BrowserStore tab with the same id. It is created the first time the tab
  * is opened on the phone (a Zen tab never opened here has none: first open = fresh load) and is
- * kept, suspended or live, until the card is closed. At most [MAX_LIVE] of them hold a live engine
+ * kept, suspended or live, until the card is closed. At most [maxLive] of them hold a live engine
  * session; the others keep only their saved state and are restored on open.
  *
  * Also: the current tab (persisted, so Koan reopens on it), navigation written back to Room, tabs
@@ -342,8 +344,11 @@ class TabManager(
 
     // ---- lifecycle and memory ----------------------------------------------------------------
 
-    /** Keeps the [MAX_LIVE] most recently opened sessions; the others are saved and closed. */
-    private fun enforceBudget(max: Int = MAX_LIVE) {
+    /** Live engine sessions kept: the memory tier's (DeviceProfile), 4 on the owner's phones. */
+    private val maxLive get() = DeviceProfile.tier.liveSessions
+
+    /** Keeps the [maxLive] most recently opened sessions; the others are saved and closed. */
+    private fun enforceBudget(max: Int = maxLive) {
         val selected = store.state.selectedTabId
         val live = store.state.tabs.filter { it.engineState.engineSession != null }
         if (live.size <= max) return
@@ -354,12 +359,21 @@ class TabManager(
     }
 
     /**
-     * Android 14+ only sends UI_HIDDEN and BACKGROUND to apps. In the background (in the LRU list,
-     * a kill may follow) only the current session stays live. (The screenshot for the next start is
-     * taken in onPause, while the page is still on screen.)
+     * In the background (in the LRU list, a kill may follow) only the current session stays live.
+     * (The screenshot for the next start is taken in onPause, while the page is still on screen.)
+     * Android 14+ only sends UI_HIDDEN and BACKGROUND to apps; older ones also warn while Koan is in
+     * the foreground (RUNNING_LOW, RUNNING_CRITICAL), with the same answer, and critical also drops
+     * the decoded screenshots.
      */
+    @Suppress("DEPRECATION")
     fun onTrimMemory(level: Int) {
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND) main.launch { enforceBudget(max = 1) }
+        val foregroundLow = level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+            level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND || foregroundLow) main.launch { enforceBudget(max = 1) }
+        if (level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) {
+            ThumbnailStore.trimMemory()
+            BakedBlur.trimMemory()
+        }
     }
 
     // ---- engine → Room -----------------------------------------------------------------------
@@ -412,7 +426,7 @@ class TabManager(
                     setCurrent(selected)
                 }
             }
-            if (state.tabs.count { it.engineState.engineSession != null } > MAX_LIVE) enforceBudget()
+            if (state.tabs.count { it.engineState.engineSession != null } > maxLive) enforceBudget()
 
             val current = state.selectedTabId?.let(state::findTab)
             // Content process died (HyperOS kills it in the background): bring the page back.
@@ -599,8 +613,6 @@ class TabManager(
     }
 
     companion object {
-        /** Live engine sessions kept: the current tab + the 3 most recently used. */
-        const val MAX_LIVE = 4
         private const val PAGE_WRITE_DEBOUNCE_MS = 400L
         private const val CRASH_RETRY_MS = 5000L
         private const val PREFETCH_BEHIND = 6

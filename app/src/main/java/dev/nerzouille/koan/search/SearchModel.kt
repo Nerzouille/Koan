@@ -29,9 +29,9 @@ enum class Shortcut(
     ),
     ;
 
-    fun searchUrl(query: String): String = prefix() + URLEncoder.encode(query, Charsets.UTF_8)
+    fun searchUrl(query: String): String = prefix() + URLEncoder.encode(query, "UTF-8")
 
-    fun suggestUrl(query: String): String? = suggestPrefix()?.let { it + URLEncoder.encode(query, Charsets.UTF_8) }
+    fun suggestUrl(query: String): String? = suggestPrefix()?.let { it + URLEncoder.encode(query, "UTF-8") }
 
     /** The setting's engine this shortcut is, for the picker's "default" label. */
     fun isDefault(engine: SearchEngine): Boolean =

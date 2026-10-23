@@ -41,6 +41,7 @@ import dev.nerzouille.koan.ui.history.HistoryScreen
 import dev.nerzouille.koan.ui.menu.FilePrompt
 import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.kit.copiedToast
 import mozilla.components.browser.state.state.content.DownloadState
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.LocalView
@@ -256,7 +257,7 @@ fun KoanOverlays(
                     reload = { session.reload(activeTabId) },
                     stop = { session.stopLoading(activeTabId) },
                     editAddress = { close(); onEditAddress() },
-                    copyLink = { clipboard.setText(AnnotatedString(page.url)); close() },
+                    copyLink = { clipboard.setText(AnnotatedString(page.url)); copiedToast("Link")?.let(onToast); close() },
                     newTab = { close(); onNewTab() },
                     bookmark = { components.bookmarks.toggle(page.url, title) },
                     share = { close(); share(page.url, title) },
@@ -504,7 +505,7 @@ fun KoanOverlays(
             LinkActions(
                 openNew = { url -> linkCard.animateTo(Detent.Closed); onOpenNew(url, true, true) },
                 openBackground = { url -> linkCard.animateTo(Detent.Closed); onOpenNew(url, false, true) },
-                copy = { url -> clipboard.setText(AnnotatedString(url)); linkCard.animateTo(Detent.Closed) },
+                copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast); linkCard.animateTo(Detent.Closed) },
                 share = { url -> linkCard.animateTo(Detent.Closed); share(url, "") },
                 saveImage = { url ->
                     linkCard.animateTo(Detent.Closed)
@@ -607,6 +608,7 @@ fun KoanOverlays(
                             }
                         }
                     },
+                    onCopied = { what -> copiedToast(what)?.let(onToast) },
                 ),
             ),
             nav = overlays.settingsNav,

@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.theme.ThumbTokens
 import androidx.compose.foundation.background
@@ -121,7 +122,7 @@ fun TabCard(
         val bakeKey = "placeholder:${card.id}:${card.url}:${card.icon}:${card.staticIcon}:${card.splitCount}:" +
             "${palette.Card.value}:${palette.TextPrimary.value}:${palette.TextSecondary.value}:${palette.IconBacking.value}"
         var baked by remember(bakeKey) { mutableStateOf(BakedBlur.cached(bakeKey)) }
-        if (baked == null && shot == null) {
+        if (baked == null && shot == null && DeviceProfile.tier.bakePlaceholders) {
             val density = LocalDensity.current.density
             LaunchedEffect(bakeKey) {
                 // Once it shows blurred (so it is drawn, into the capture layer once there is one).
@@ -154,7 +155,7 @@ fun TabCard(
                     // Once the screenshot covers it, the placeholder is skipped.
                     val covered = shot != null && shot.reveal.value >= 1f
                     alpha = if (covered) 0f else 1f
-                    renderEffect = if (covered || baked != null) null else blurFor(depth())
+                    renderEffect = if (covered || baked != null || !DeviceProfile.tier.bakePlaceholders) null else liveBlur(blurFor, depth())
                 }
                 .drawWithContent {
                     capture?.record {
@@ -178,7 +179,16 @@ fun TabCard(
             Modifier
                 .fillMaxSize()
                 .drawBehind {
-                    val dim = dimOf(depth())
+                    val d = depth()
+                    // Deep enough to blur, but nothing blurred to show (no live blur, copies not
+                    // uploaded or not baked): a stronger dim instead.
+                    val unblurred = if (shot?.image != null) {
+                        shot.baked == null && !DeviceProfile.liveBlur
+                    } else {
+                        baked == null && (!DeviceProfile.liveBlur || !DeviceProfile.tier.bakePlaceholders)
+                    }
+                    val extra = if (unblurred) CardTokens.NO_BLUR_DIM * bakedLevel(d, blurFor) else 0f
+                    val dim = (dimOf(d) + extra).coerceAtMost(1f)
                     if (dim > 0.01f) drawRect(dimColor, alpha = dim)
                 },
         )
@@ -320,7 +330,8 @@ private fun rememberScreenshot(key: String, depth: () -> Float, blurFor: (Float)
     if (state.baked == null) {
         LaunchedEffect(key) {
             // Uploaded (baked at capture) once the card shows blurred; it blurs live until then.
-            snapshotFlow { blurFor(depth()) != null }.first { it }
+            // Without live blur (Android 11), as soon as it is near: the copies are all it has.
+            snapshotFlow { if (DeviceProfile.liveBlur) blurFor(depth()) != null else near }.first { it }
             state.baked = BakedBlur.screenshot(key)
         }
     }
@@ -340,7 +351,7 @@ private fun Screenshot(state: ScreenshotState, depth: () -> Float, blurFor: (Flo
             .graphicsLayer {
                 // Hidden once the blurred slice covers it (nothing below the slice shows): the first
                 // baked copy fully faded in, or any live blur.
-                val hidden = if (state.baked != null) bakedLevel(depth(), blurFor) >= 1f else blurFor(depth()) != null
+                val hidden = if (state.baked != null) bakedLevel(depth(), blurFor) >= 1f else liveBlur(blurFor, depth()) != null
                 alpha = if (hidden) 0f else 1f
                 clip = true
                 compositingStrategy = CompositingStrategy.ModulateAlpha
@@ -359,13 +370,13 @@ private fun Screenshot(state: ScreenshotState, depth: () -> Float, blurFor: (Flo
             .height(blurSlice())
             .then(shot)
             .graphicsLayer {
-                renderEffect = if (state.baked == null) blurFor(depth()) else null
+                renderEffect = if (state.baked == null) liveBlur(blurFor, depth()) else null
                 clip = true
             }
             .drawBehind {
                 val levels = state.baked
                 if (levels == null) {
-                    if (blurFor(depth()) != null) {
+                    if (liveBlur(blurFor, depth()) != null) {
                         val h = (bitmap.height * size.width / bitmap.width).roundToInt()
                         drawImage(bitmap, dstSize = IntSize(size.width.roundToInt(), h), alpha = reveal.value, filterQuality = FilterQuality.Low)
                     }
@@ -389,6 +400,10 @@ private fun DrawScope.drawTopWidth(image: ImageBitmap, alpha: Float, quality: Fi
     val h = (image.height * size.width / image.width).roundToInt()
     drawImage(image, dstSize = IntSize(size.width.roundToInt(), h), alpha = alpha, filterQuality = quality)
 }
+
+/** [blurFor] where the GPU can blur live (Android 12+, DeviceProfile.liveBlur); never below it. */
+private fun liveBlur(blurFor: (Float) -> RenderEffect?, d: Float): RenderEffect? =
+    if (DeviceProfile.liveBlur) blurFor(d) else null
 
 /** 0 sharp … 1 blurred as deep as the pile goes; 0 wherever [blurFor] says no blur (off screen). */
 private fun bakedLevel(d: Float, blurFor: (Float) -> RenderEffect?): Float =

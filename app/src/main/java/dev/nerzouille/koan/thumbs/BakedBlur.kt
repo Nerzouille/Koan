@@ -9,6 +9,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.StackTokens
 import dev.nerzouille.koan.ui.theme.ThumbTokens
@@ -39,7 +40,7 @@ import kotlin.math.sqrt
  */
 object BakedBlur {
     /** A card's blurred copies, weakest first, one GPU bitmap each. */
-    private val memory = object : LruCache<String, List<ImageBitmap>>(ThumbTokens.BAKED_CACHE_BYTES) {
+    private val memory = object : LruCache<String, List<ImageBitmap>>(DeviceProfile.tier.bakedMemoryBytes) {
         override fun sizeOf(key: String, value: List<ImageBitmap>) = value.sumOf { it.width * it.height * 4 }.coerceAtLeast(1)
     }
     private var dir: File? = null
@@ -61,14 +62,14 @@ object BakedBlur {
         dir = File(context.filesDir, "thumbs-blur").apply { mkdirs() }
         val metrics = context.resources.displayMetrics
         val cardPx = metrics.widthPixels - 2 * StackTokens.CardSideMargin.value * metrics.density
-        val toImage = ThumbTokens.WIDTH_PX / cardPx
+        val toImage = DeviceProfile.tier.thumbWidthPx / cardPx
         sliceRows = (CardTokens.BLUR_SLICE_PX * toImage).roundToInt()
         screenshotRadii = radii(metrics.density * toImage)
     }
 
     /** Radii (px) of the baked levels, weakest first, for [pxPerDp] px per dp of card. */
     fun radii(pxPerDp: Float): List<Float> {
-        val levels = ThumbTokens.BAKED_LEVELS
+        val levels = DeviceProfile.tier.bakedLevels
         return List(levels) { i -> MAX_BLUR_DP * (i + 1) / levels * pxPerDp }
     }
 
@@ -82,6 +83,9 @@ object BakedBlur {
     }
 
     fun cached(key: String): List<ImageBitmap>? = memory.get(key)
+
+    /** Drops the uploaded copies (memory is critically low); they upload again from disk. */
+    fun trimMemory() = memory.evictAll()
 
     /**
      * Bakes thumbnail [key] from [thumb] (software, full thumbnail; the caller keeps it) to disk, in
@@ -161,7 +165,7 @@ object BakedBlur {
     private fun read(key: String): Pair<Bitmap, Int>? {
         val file = fileFor(key) ?: return null
         val bitmap = runCatching { BitmapFactory.decodeFile(file.path) }.getOrNull() ?: return null
-        return bitmap to ThumbTokens.BAKED_LEVELS
+        return bitmap to DeviceProfile.tier.bakedLevels
     }
 
     private fun write(key: String, stacked: Pair<Bitmap, Int>) {

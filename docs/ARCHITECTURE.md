@@ -67,7 +67,11 @@
 - At most **4 live engine sessions** (current + 3 most recently used). Others are suspended:
   session state saved (android-components does this via `EngineSessionState`), engine session
   closed. Opening a suspended tab restores it.
-- On `onTrimMemory(RUNNING_LOW/CRITICAL)` drop to 1 live session.
+- Phones with less RAM get smaller budgets (`DeviceProfile`, read once at startup from total RAM):
+  ≥ 6 GB as above; 4–6 GB 2 live sessions, 540 px screenshots, half the memory caches, 2 baked
+  blur levels; < 4 GB 1 live session, 480 px, a quarter of the caches, no baked placeholders.
+- On `onTrimMemory(RUNNING_LOW/CRITICAL)` drop to 1 live session; CRITICAL also empties the
+  decoded-screenshot caches. (Android 14+ no longer sends these; 11–13 do.)
 - Tabs from Zen that were never opened on the phone have **no** engine session at all, only a URL.
   First open = fresh load.
 
@@ -116,11 +120,14 @@ Default plan: option 1 (read-only) first.
 Tools: Baseline Profiles (`androidx.baselineprofile`), `JankStats`, Perfetto/System Trace, Compose
 compiler reports for unstable classes. Keep card list items `@Stable`/immutable; use `key()` by
 `koanTabId`; read scroll offsets inside `graphicsLayer {}` lambdas, never in composition.
+A/B frame timing and start times of two builds on the phone: `tools/perf/` (see its README).
 
 ## Blur strategy
 
-Start with live blur (`RenderEffect`, available on all supported devices since minSdk 34) on the
-thumbnail layer of cards behind the focus line. Measure on the POCO X4 GT in a release build at
+Start with live blur (`RenderEffect`, Android 12+) on the
+thumbnail layer of cards behind the focus line. On Android 11 (minSdk 30) there is no live blur
+(`DeviceProfile.liveBlur`): cards use their baked copies only, and a stronger dim stands in where
+a live blur would show (overview cards, behind the drawer). Measure on the POCO X4 GT in a release build at
 its max refresh rate. Only if it drops frames, switch to pre-blurred thumbnails (2-3 baked blur
 levels per thumbnail, crossfaded by depth) without changing the visual result.
 
@@ -191,6 +198,9 @@ Approved for M5 (2026-10-16): AC `feature-readerview`, AC `concept-storage`, `an
 - 2026-10-16 — **M5 visual system**: light theme fully neutral (no space wash); the brand gradient
   (`BrandTokens`) marks only "Koan is working / active / your focus" (UI_SPEC "Brand gradient").
   `SpaceColors` shrank to the switcher pill's accent and ink. Shared controls live in `ui/kit`.
+- 2026-10-23 — **minSdk 30 (Android 11+)** with RAM-based memory tiers (`DeviceProfile`, see "Tab
+  lifecycle and memory"); costs per API level in `docs/audits/MIN_SDK.md`. Phones with ≥ 6 GB on
+  Android 12+ behave exactly as before: A/B on the owner's phone showed no difference (owner).
 
 _(Claude Code: append dated decisions here, e.g. "2026-10-20 — chose android-components over raw
 GeckoView because …")_

@@ -69,6 +69,13 @@ losing data, and the owner has approved and published the release.
 - **Pull to refresh in chats:** a site whose list scrolls inside the page (not the page itself) may
   reload on a pull at the top of the list. Gecko doesn't say whether an inner list can scroll up.
 
+### Android 11+ (minSdk 30) — merged 2026-10-23, ships with the next release
+- Runs on Android 11–13 too: no live blur below 12 (stronger dim instead), "copied" toasts below
+  13, smaller memory budgets on phones under 6 GB (`DeviceProfile`). Audit: `docs/audits/MIN_SDK.md`.
+- Tested as `preview-android11` (0.2.2-preview.1, versionCode 7): no frame or start-time
+  difference on the owner's phone (`tools/perf`). The next release takes versionCode 8 or higher.
+- README and FEATURES still say Android 14+: update them with the next release's docs.
+
 ## M4 — Motion polish (≈ 1–2 weeks, iterate with owner)
 - Hero open/close morph per `UI_SPEC.md` (springs, thumbnail → live swap, pre-scroll on close).
 - Stack compression/elastic trailing while scrolling.
