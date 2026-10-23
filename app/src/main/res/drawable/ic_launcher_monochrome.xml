@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Koan K, the themed-icon (monochrome) layer of mipmap-anydpi/ic_launcher. Source: branding/koan-k-monochrome.svg. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M24.63,48.24 A4.70,4.70 0 0 1 33.20,44.39 Q40.19,58.52 47.18,72.66 A5.88,5.88 0 1 1 36.47,77.47 Q30.55,62.85 24.63,48.24Z M42.77,58.20 A3.09,3.09 0 0 1 38.13,54.16 Q47.61,41.60 57.09,29.03 A5.29,5.29 0 1 1 65.05,35.96 Q53.91,47.08 42.77,58.20Z M43.46,62.37 A3.97,3.97 0 0 1 44.21,54.56 Q59.51,53.75 74.82,52.95 A8.52,8.52 0 1 1 73.22,69.73 Q58.34,66.05 43.46,62.37Z M36.70,58.52 A2.94,2.94 0 1 1 42.58,58.52 A2.94,2.94 0 1 1 36.70,58.52Z" />
+</vector>

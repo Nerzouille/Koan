@@ -59,7 +59,6 @@ losing data, and the owner has approved and published the release.
 **Done when:** owner can uninstall Opera.
 
 ### Open items after v0.2.0 (not scheduled yet)
-- **App icon / logo:** a real launcher icon and logo.
 - **Search backdrop retry:** the old dim plus a subtle blur behind the suggestion cards only (also
   listed under M4).
 - **Desktop site:** revisit the toggle.

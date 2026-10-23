@@ -434,6 +434,10 @@ object FirstRunTokens {
     val ButtonSize = 15.sp
     val CompactPadding = 12.dp
 
+    /** The app icon at the top of the Connect card. */
+    val AppIcon = 64.dp
+    val AppIconRadius = 16.dp
+
     /** Placeholder cards breathe between these alphas, slowly. */
     const val SKELETON_ALPHA_MIN = 0.55f
     const val SKELETON_BREATH_MS = 1400

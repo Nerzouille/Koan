@@ -3,11 +3,9 @@ package dev.nerzouille.koan.ui.settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -31,7 +29,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import dev.nerzouille.koan.R
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.theme.BrandHorizontal
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 import dev.nerzouille.koan.ui.theme.brandOutline
@@ -54,15 +51,11 @@ internal fun AboutPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
     }
     SettingsPageFrame(null, on, onBack) {
         Column(Modifier.fillMaxWidth().padding(top = SettingsTokens.SectionTop * 2), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                Modifier
-                    .size(SettingsTokens.AppIcon)
-                    .clip(RoundedCornerShape(SettingsTokens.AppIconRadius))
-                    .background(BrandHorizontal),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(painterResource(R.drawable.ic_launcher_foreground), null, Modifier.fillMaxSize())
-            }
+            Image(
+                painterResource(R.drawable.koan_icon),
+                null,
+                Modifier.size(SettingsTokens.AppIcon).clip(RoundedCornerShape(SettingsTokens.AppIconRadius)),
+            )
             Spacer(Modifier.height(SettingsTokens.SectionTop))
             Text("Koan", color = palette.TextPrimary, fontSize = SettingsTokens.AppNameSize, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(SettingsTokens.Divider * 6))

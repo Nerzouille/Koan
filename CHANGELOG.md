@@ -8,6 +8,8 @@ Installs over 0.2.x (and the Android 11 preview) and keeps your data. Full guide
 
 ### New
 
+- **New icon:** the K in a colour vortex, on the launcher, About and the first-run card; Android
+  13+ themed icons use a flat K.
 - **Android 11 and up:** Koan now installs on Android 11, 12 and 13 too (tested on Android 14;
   11–13 are supported but less tested). Below Android 12 the drawer dims what's behind it
   instead of blurring it, and phones with less memory keep fewer tabs live and smaller
