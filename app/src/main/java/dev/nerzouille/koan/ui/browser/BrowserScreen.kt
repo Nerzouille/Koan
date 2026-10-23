@@ -9,14 +9,14 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
@@ -129,23 +129,37 @@ fun BrowserScreen(
     val density = LocalDensity.current
     val imeUp = WindowInsets.isImeVisible
     val navPx = WindowInsets.navigationBars.getBottom(density)
+    // The keyboard the page ends above, changed once per show or hide, never along the keyboard's
+    // slide: each resize costs Gecko frames, and a page resized every frame flashes bands between
+    // it and the keyboard. Showing: the keyboard slides up over the page, which then ends at it.
+    // Hiding: the page takes its full height at once and the keyboard slides away over it.
+    val ime = WindowInsets.ime
+    val imeTarget = WindowInsets.imeAnimationTarget
+    var keyboardPx by remember { mutableIntStateOf(0) }
+    LaunchedEffect(density) {
+        snapshotFlow { ime.getBottom(density) to imeTarget.getBottom(density) }.collect { (now, target) ->
+            if (target <= now) keyboardPx = target
+        }
+    }
     val dockZonePx = with(density) { barZone(overview = false).roundToPx() }
     // The dock slides off the screen entirely, the strip under the page included.
     dock.heightPx = if (fullScreen) 0f else (dockZonePx + navPx).toFloat()
-    // While find is open the dock can't slide away, so it is a plain bar the page ends above: as a
-    // dynamic toolbar, the page's last lines would only show once it hides.
-    val toolbarPx = if (fullScreen || findOpen) 0 else dockZonePx
     // A field in the page has the keyboard (not the address field, find, the overview): the dock
-    // steps aside, as if slid away, so the field sits right on the keyboard. Decided as the
-    // keyboard comes up: the address field closing with the keyboard still sliding away must not
-    // flip the page into it.
+    // steps aside and the page runs exactly down to the keyboard, no room kept for the dock.
+    // Decided as the keyboard comes up: the address field closing with the keyboard still sliding
+    // away must not flip the page into it.
     var typingInPage by remember { mutableStateOf(false) }
     LaunchedEffect(imeUp) { typingInPage = imeUp && !dock.locked && !fullScreen }
     LaunchedEffect(typingInPage) { dock.keyboardFor(typingInPage) }
+    // No dynamic toolbar while the dock can't slide: with the keyboard (it is away; switched in the
+    // same frame as the page's resize), and while find
+    // is open (a plain bar the page ends above; as a dynamic toolbar, the page's last lines would
+    // only show once it hides).
+    val toolbarPx = if (fullScreen || findOpen || (typingInPage && keyboardPx > navPx)) 0 else dockZonePx
     LaunchedEffect(toolbarPx) {
         engineView.setDynamicToolbarMaxHeight(toolbarPx)
         if (toolbarPx == 0) return@LaunchedEffect
-        snapshotFlow { if (dock.keyboard) toolbarPx else dock.offset.coerceAtMost(toolbarPx.toFloat()).roundToInt() }
+        snapshotFlow { dock.offset.coerceAtMost(toolbarPx.toFloat()).roundToInt() }
             .distinctUntilChanged()
             .collect { slid -> engineView.setVerticalClipping(-slid) }
     }
@@ -186,7 +200,7 @@ fun BrowserScreen(
         Modifier
             .fillMaxSize()
             .background(KoanTheme.colors.Base)
-            .then(if (fullScreen) Modifier else Modifier.statusBarsPadding().windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)))
+            .then(if (fullScreen) Modifier else Modifier.statusBarsPadding().padding(bottom = with(density) { maxOf(navPx, keyboardPx).toDp() }))
             .then(if (findOpen && !fullScreen) Modifier.padding(bottom = barZone(overview = false)) else Modifier)
             .nestedScroll(dock.nestedScroll)
             .pullToRefresh(

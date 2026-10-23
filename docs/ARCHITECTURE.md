@@ -195,11 +195,15 @@ Approved for M5 (2026-10-16): AC `feature-readerview`, AC `concept-storage`, `an
   cold start. Dock hides with GeckoView's dynamic toolbar (`setDynamicToolbarMaxHeight` +
   `setVerticalClipping`), driven by GeckoView's nested scrolling through Compose.
 - 2026-10-23 — **Page bottom**: the engine view ends above the navigation bar and above the
-  keyboard (Compose insets padding); the dynamic toolbar max is the dock's height, the clipping
+  keyboard, resized once per keyboard show or hide (`imeAnimationTarget`), never along its slide:
+  each resize costs Gecko frames and showed bands between page and keyboard. Showing, the keyboard
+  slides over the page, then the page ends at it; hiding, the page takes its full height at once; the dynamic toolbar max is the dock's height, the clipping
   minus the part of the dock slid away (fixed bottom bars follow the dock). GeckoView's own
   keyboard listener (`KEYBOARD_WINDOW_INSETS_LISTENER`) is removed after each attach, or it would
   take the keyboard off the already shrunk page a second time. A field in the page with the
-  keyboard: the dock steps aside (`DockState.keyboard`), clipping = fully slid away.
+  keyboard: the dock steps aside (`DockState.keyboard`) and the dynamic toolbar max is 0, so the
+  page runs exactly down to the keyboard (no room kept for the dock); same while find is open
+  (the page ends above the find bar instead).
 
 - 2026-10-16 — **M5 visual system**: light theme fully neutral (no space wash); the brand gradient
   (`BrandTokens`) marks only "Koan is working / active / your focus" (UI_SPEC "Brand gradient").
