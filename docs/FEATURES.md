@@ -1,4 +1,4 @@
-# Koan — user guide (v0.2.1)
+# Koan — user guide (v0.3.0)
 
 Everything that works in this build, how to use it, and what isn't there yet. Koan is a browser
 built on GeckoView (Firefox's engine). Its workspaces are your Zen Browser Spaces, read from your
@@ -14,9 +14,14 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 
 ### Install
 
-- Requirements: Android 14 or newer, a 64-bit ARM phone (arm64-v8a). Other CPUs are not built.
-- Download `koan-v0.2.1.apk` from the GitHub release and open it. Android asks you to allow
+- Requirements: Android 11 or newer (tested on Android 14; 11–13 are supported but less tested),
+  a 64-bit ARM phone (arm64-v8a). Other CPUs are not built. Below Android 12 the drawer dims
+  what's behind it instead of blurring it; phones with less memory keep fewer tabs live.
+- Download `koan-v0.3.0.apk` from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
+- **Updates:** install with [Obtainium](https://github.com/ImranR98/Obtainium) from the GitHub
+  releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you.
+  Otherwise Settings › About checks once when you open it.
 - Installing over a previous Koan version keeps your tabs, spaces, logins and settings.
 - The APK is about 212 MB. See [Known limitations](#13-known-limitations).
 
@@ -109,12 +114,16 @@ Koan only reads. Nothing you do on the phone is written to your account or to Ze
 - **Scroll:** drag up and down in the card area; flings coast.
 - **Open a tab:** tap the card in front. Tap a card in the pile or the one peeking below to bring it
   to the front.
-- **Close a tab:** swipe the front card sideways, or tap its ✕. A pinned tab or essential's card is
-  only unloaded (see above).
+- **Close a tab:** swipe the front card sideways, or tap its ✕: it goes at once, the card on the
+  side you last scrolled from comes forward, and a **Tab closed · Undo** toast follows (Undo puts
+  it back in its place, with its page history). A pinned tab or essential's card is only unloaded
+  (see above).
+- **Mouse wheel or trackpad:** scrolls the stack.
 - **Reorder:** long-press a card, drag it, drop it. Within the same space only.
 - **New tab:** tap the dock's search field ("Search or type URL"). The search sheet opens right
   away. An empty space shows a button for it too.
-- **History and Settings:** the clock (left) and the gear (right) on the dock.
+- **History and Settings:** the clock (left) and the gear (right) on the dock. Long-press the clock
+  for **Recently closed**.
 - **Back to the page:** swipe down on the dock, swipe down on the header, tap **‹** in the header,
   or Back.
 - Up to 4 tabs stay live; the others are saved and reload where they were when you open them.
@@ -153,18 +162,29 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 - **Previous / next tab (in a page):** swipe the address pill left or right. The page and the
   neighbour tab's screenshot follow your finger. Keep swiping to go through several tabs; the tab
   you stop on loads. At the first and last tab it rubber-bands, no wrap-around.
-- **Space mode:** long-press the pill, then slide (see [Switching spaces](#switching-spaces)).
-- **Tab count menu (in a page):** long-press the tab count: a small menu with **New tab** and
-  **Close tab** (the next tab shows, with a **Tab closed · Undo** toast; a pinned tab or an
-  essential goes back to its row).
+- **Long presses on the dock** (each with a light vibration):
+  - **the address pill:** space mode, then slide (see [Switching spaces](#switching-spaces)).
+    Only the pill does this;
+  - **back:** a small list of the pages before this one in the tab (icon and title, most recent
+    first); tap one to go straight back to it;
+  - **the tab count:** a small menu with **New tab** and **Close tab** (the next tab shows, with a
+    **Tab closed · Undo** toast; a pinned tab or an essential goes back to its row);
+  - **⋯:** Settings;
+  - **History** (the clock, in the overview): Recently closed.
 - **The dock hides** while you scroll a page down and comes back when you scroll up or a new page
-  loads.
+  loads. A page that can't scroll keeps it.
+- **A page's own bottom bar** (a chat's message field, a search box, a cookie banner) sits right on
+  the dock and follows it down as it hides, to the bottom of the page. Below the page there's a
+  solid strip where Android's navigation bar is.
+- **Typing in a page:** when you tap a field in the page, the dock steps aside and the page ends at
+  the keyboard, so the field shows right above it. The dock comes back when the keyboard goes.
 - **Pull to refresh:** at the top of a page, pull down: a small circle follows your finger; let go
   past the tick to reload, and it turns with Koan's gradient until the page has loaded. Pages that
   handle the touch themselves (maps, drawing apps, sites with their own pull) keep their own
   gesture.
 - **Toasts** (the small bar at the bottom: "Tab closed · Undo", "Opened in background · Switch",
-  a finished download): swipe one sideways or down to dismiss it early, without its action.
+  a finished download): swipe one sideways or down to dismiss it early, without its action. A toast
+  steps aside when a sheet, a card or a full page (History, Settings, Downloads) opens.
 
 ### Back
 
@@ -241,6 +261,7 @@ Tap **⋯** in a page. It opens as a sheet at half height; swipe up for all of i
   one stronger) with a count like `3/12`.
 - Enter or ↓ goes to the next match, ↑ to the previous one. You can tap the page to hide the
   keyboard and keep using ↑ / ↓.
+- The page ends above the find bar while it's open, so a match on the last line still shows.
 - ✕ or Back closes it.
 
 ### Reader view
@@ -277,6 +298,29 @@ Tap **⋯** in a page. It opens as a sheet at half height; swipe up for all of i
   For camera and microphone this happens before Koan's card.
 - Web notifications are refused without asking: Koan can't show them yet.
 - Video and audio with sound don't autoplay; silent autoplay is allowed.
+
+### When a page asks you something
+
+A page's questions open on Koan's floating card (swipe it down, tap outside or Back to cancel):
+
+- **Drop-down lists:** tap an option to pick it (the current one is ticked, groups have small
+  titles, a long list opens on the current option). For lists that allow several, tick them and
+  tap **Done**.
+- **Dates and times:** a calendar for dates (days outside what the page allows are greyed), the
+  clock for times, the calendar then the clock for both, a year and its twelve months for a month,
+  a calendar for a week. **Clear** empties the field.
+- **Colours:** a set of swatches, or type a hex value.
+- **Alerts, confirmations and questions** ("example.com says"); a text question opens with the
+  keyboard up and the page's suggestion selected. When a page keeps opening them, the card offers
+  **Don't let this page show more dialogs**: ticked, that page's dialogs stay quiet until the tab
+  goes to another address.
+- **Leave this page?** (unsaved changes), **site sign-in** (a username and password the site asks
+  for itself), **wants to open a pop-up** (Allow / Block), **Send the form again?** (reloading a
+  page you sent a form from).
+- A page's **share** button opens Android's share sheet; a **folder** field Android's folder
+  picker.
+- **Printing** a page (its print button, or `window.print()`) opens Android's print dialog: print
+  or save as PDF.
 
 ### Long-press on a link or an image
 
@@ -385,6 +429,10 @@ with Koan in the background or the screen off.
   - **Clear** (next to the search field) opens **Clear browsing data**: History (on), Cached images
     and files (on), Cookies and site data (off: it signs you out of most sites). Desktop history is
     only hidden on the phone.
+- **Recently closed:** the last 25 tabs you closed (from the overview, the tab count's menu or
+  Back) are at the top of the History page, or long-press the clock on the overview's dock for the
+  whole list. Tap one: it comes back in its space and place, with its back and forward history,
+  and opens.
 - Bookmark the current page with ⋯ › **Bookmark** (on the phone only). There's no bookmarks screen
   yet: use search.
 - History and bookmarks are used by the search sheet, and `@history` / `@bookmarks` search only
@@ -453,7 +501,11 @@ the background. If the check fails (no network), tap the chip to try again.
 - **No editing of Spaces:** no creating, renaming or reordering spaces, no moving a tab to another
   space, no editing folders. Card reordering works within a space only.
 - **Unofficial sign-in:** see [Signing in](#signing-in-with-a-mozilla-account).
-- **Android 14+ and arm64 only.**
+- **Android 11+ and arm64 only:** tested on Android 14; 11–13 are supported but less tested.
+- **Long screenshots:** HyperOS's scrolling screenshot doesn't scroll Koan's pages yet (a GeckoView
+  update after 10 November should help).
+- **Old WebView warning on sign-in:** shown when Android System WebView is older than 92 (it can't
+  load Mozilla's sign-in page), with a Play Store button; not yet tested on such a phone.
 - **APK size (~212 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.

@@ -27,10 +27,10 @@ android {
         // Android 11: no live blur below 12 (DeviceProfile.liveBlur); arm64 only all the same.
         minSdk = 30
         targetSdk = 37
-        // versionCode only goes up: 2 was the m3 build already on the phone. 7 is the Android 11
-        // preview (0.2.2-preview.1); the next release takes 8 or higher.
-        versionCode = 7
-        versionName = "0.2.2-preview.1"
+        // versionCode only goes up: 2 was the m3 build already on the phone, 7 the Android 11
+        // preview (0.2.2-preview.1).
+        versionCode = 8
+        versionName = "0.3.0"
         // GeckoView-omni ships every ABI; both owner phones are arm64. `-Pkoan.emulatorAbi` adds
         // x86_64 for emulator test runs only, never for a build that goes on a phone.
         ndk {

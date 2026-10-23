@@ -1,5 +1,69 @@
 # Changelog
 
+## 0.3.0 — unreleased (beta)
+
+Installs over 0.2.x (and the Android 11 preview) and keeps your data. Full guide:
+[`docs/FEATURES.md`](docs/FEATURES.md). For automatic updates, install with
+[Obtainium](https://github.com/ImranR98/Obtainium) from this repo's GitHub releases.
+
+### New
+
+- **Android 11 and up:** Koan now installs on Android 11, 12 and 13 too (tested on Android 14;
+  11–13 are supported but less tested). Below Android 12 the drawer dims what's behind it
+  instead of blurring it, and phones with less memory keep fewer tabs live and smaller
+  screenshots.
+- **What pages ask, in Koan's style:** drop-down lists (`<select>`, single and multiple choice)
+  now work, on a card with groups and the current choice ticked; a long list opens on it. Date,
+  time, date and time, month, week and colour pickers; alerts, confirmations and text prompts
+  ("example.com says"), with **Don't let this page show more dialogs** when a page keeps opening
+  them; **Leave this page?**; site sign-in (HTTP authentication); **wants to open a pop-up**
+  (Allow / Block); **Send the form again?**. A page's share button opens Android's share sheet, a
+  folder field Android's folder picker. Printing a page opens Android's print dialog (save as
+  PDF or print).
+- **Recently closed:** the last 25 tabs you closed, at the top of History, or long-press History
+  on the overview's dock. One tap brings a tab back in its space and place, with its back and
+  forward history, and opens it.
+- **Back's history:** long-press back in a page for the pages before this one in the tab (icon
+  and title, most recent first); tap one to go straight back to it.
+- **⋯ long press:** opens Settings.
+- **Close with Undo in the overview:** closing a card shows a **Tab closed · Undo** toast.
+- **Old WebView warning on sign-in:** if the phone's Android System WebView is too old for
+  Mozilla's sign-in page (older than 92), sign-in says so, with a button to update it on the
+  Play Store.
+
+### Improved
+
+- **Pages' bottom bars and the dock:** a page's own bar at the bottom (a chat's message field,
+  Google's AI mode, a cookie banner) now sits right on the dock instead of behind it, follows it
+  down as it hides, and stops at the page's real bottom. A page that can't scroll keeps its dock.
+- **Typing in a page:** when a field in the page has the keyboard, the dock steps aside and the
+  page ends at the keyboard, so the whole field shows right above it. The dock comes back when
+  the keyboard goes.
+- **Long presses on the dock:** only the address pill starts space mode. The tab count's menu is
+  wider. Every long press gives a light vibration.
+- **Closing in the overview** is instant: the stack moves on while the card flies off, bringing
+  forward the card on the side you last scrolled from.
+- **Undo keeps a tab's back history.**
+- **Mouse wheel and trackpad** scroll the overview's stack.
+- **Toasts** step aside when a sheet, a card or a full page (History, Settings, Downloads) opens.
+- **Find in page:** a match on a page's last line shows above the find bar.
+
+### Fixed
+
+- Drop-down lists (`<select>`) did nothing.
+- A page's fixed bottom bar was hidden behind the dock.
+- A page's field at the bottom was half hidden by the keyboard.
+- A card brought back with Undo could stay invisible.
+- `window.print()` did nothing.
+
+### Known limitations
+
+- **Long screenshots:** HyperOS's scrolling screenshot doesn't scroll Koan's pages yet. A
+  GeckoView update after 10 November should help; if not, Koan will get its own full-page
+  screenshot.
+- **Old WebView warning:** written but not tested on a phone with an old WebView.
+- **arm64 only** (64-bit ARM phones); APK about 212 MB.
+
 ## 0.2.1 — 2026-10-19 (beta)
 
 Installs over 0.2.0 and keeps your data. Full guide: [`docs/FEATURES.md`](docs/FEATURES.md).

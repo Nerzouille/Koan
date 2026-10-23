@@ -11,8 +11,27 @@ folders you have on the desktop.
 
 - **What it can do, and how:** [`docs/FEATURES.md`](docs/FEATURES.md), the user guide.
 - **What it sends, and to whom:** [`docs/PRIVACY.md`](docs/PRIVACY.md).
-- **Download:** the latest APK is on the [releases page](https://github.com/Nerzouille/Koan/releases)
-  (pre-releases); what changed is in [`CHANGELOG.md`](CHANGELOG.md).
+- **Download:** the latest APK is on the [releases page](https://github.com/Nerzouille/Koan/releases/latest);
+  what changed is in [`CHANGELOG.md`](CHANGELOG.md).
+- **Updates:** install with [Obtainium](https://github.com/ImranR98/Obtainium) from the GitHub
+  releases (add `https://github.com/Nerzouille/Koan`) to get new versions automatically.
+
+## Highlights
+
+- **Your Zen Spaces** as workspaces, with their essentials, pinned tabs and folders in a drawer.
+- **A card stack of tabs** with depth; swipe the dock up for it, sideways for the next tab,
+  long-press the address pill to switch space.
+- **Dock long presses:** back lists the pages before this one, the tab count opens New tab /
+  Close tab, ⋯ opens Settings, History (in the overview) opens Recently closed.
+- **Recently closed:** the last 25 closed tabs come back in their space and place, with their
+  history.
+- **What pages ask, in Koan's style:** drop-down lists, date/time/colour pickers, alerts and
+  prompts, site sign-in, pop-ups, printing.
+- **Pages fit around the dock and the keyboard:** a page's bottom bar (chat field, cookie banner)
+  sits on the dock and follows it as it hides; a field you type in shows right above the keyboard.
+- Search with suggestions and `@` shortcuts, history and bookmarks from your account, passwords
+  and autofill, downloads, find in page, reader view, uBlock Origin. Details:
+  [`docs/FEATURES.md`](docs/FEATURES.md).
 
 ## Screenshots
 
@@ -29,7 +48,8 @@ Taken on a fresh install without an account (one local space), so no Zen Spaces 
 A one-person hobby project, built for my own phone and shared as-is.
 
 - Sideloaded only: no Play Store, no support. Issues and PRs may go unanswered.
-- Android 14+ (minSdk 34), 64-bit ARM (arm64-v8a) only.
+- Android 11+ (minSdk 30): tested on Android 14; 11–13 are supported but less tested. 64-bit
+  ARM (arm64-v8a) only.
 - See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what is done and what is planned.
 
 ## Sign-in and sync
