@@ -225,11 +225,12 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 | Gesture | Where | Result |
 |---|---|---|
 | Vertical drag | card area | scroll the stack |
-| Horizontal swipe | card area | swipe-to-close **the focused card**: follows the finger with a slight tilt and fade; past 100dp it flies off (280ms, 8°); the card in front rises into focus |
+| Horizontal swipe | card area | swipe-to-close **the focused card**: follows the finger with a slight tilt and fade; past 100dp it flies off (180ms, 8°) while the gap closes at once: the card on the side last scrolled towards comes into focus (behind if not scrolled since the overview opened; the other side at an end). Nothing waits for the fly-off. "Tab closed · Undo" toast |
 | Tap focused card | card | open tab (zoom morph) |
 | Tap a pile or peek card | card | bring it into focus |
 | Long-press card | card | lift (scale 1.03 + shadow), then drag to reorder; drop on the workspace bar to move tab to another space |
 | Tap ✕ | focused card | close (same fly-off as swipe-close, to the right) |
+| Mouse wheel / two-finger trackpad | card area | scrolls the stack like a finger drag, settles on a card when the scroll stops |
 | Tap space name in header | header | space menu (rename, icon, theme, new folder) |
 | Swipe down on overview header | header | dismiss overview back to the current tab |
 

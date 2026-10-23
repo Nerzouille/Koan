@@ -137,6 +137,12 @@ class Overlays(scope: CoroutineScope, density: Density) {
     var finding by mutableStateOf(false)
     var findQuery by mutableStateOf("")
 
+    /** Something covers the page or the overview (a sheet, a card, a full page): toasts make way. */
+    val anyOpen: Boolean
+        get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || settingsOpen || downloadsOpen ||
+            historyOpen || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
+            saveLoginCard.open || permissionCard.open
+
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
     fun dismissAll() {
         menu.snapClosed()

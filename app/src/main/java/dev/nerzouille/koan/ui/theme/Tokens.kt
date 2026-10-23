@@ -313,6 +313,9 @@ object StackTokens {
     /** Finger travel that moves the stack by one slot (prototype: 230dp; shorter covers more cards). */
     val SlotDrag = 170.dp
 
+    /** A wheel/trackpad scroll settles on a card once no scroll event came for this long. */
+    const val WHEEL_SETTLE_MS = 120L
+
     /** A slow release that moved the stack more than this (in slots) commits to the next card. */
     const val SNAP_COMMIT = 0.15f
 
@@ -906,7 +909,7 @@ object Motion {
      */
     const val STACK_SNAP_TAU_SECONDS = 0.09f
     val CardSlot: SpringSpec<Float> = spring(dampingRatio = 0.8f, stiffness = 420f)
-    const val FLY_OFF_MS = 280
+    const val FLY_OFF_MS = 180
     val SwipeReturn: SpringSpec<Float> = spring(dampingRatio = 0.75f, stiffness = 500f)
     val Lift: SpringSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 600f)
     val Drop: SpringSpec<Float> = spring(dampingRatio = 0.8f, stiffness = 500f)

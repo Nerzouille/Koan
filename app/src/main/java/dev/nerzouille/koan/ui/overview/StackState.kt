@@ -13,6 +13,7 @@ import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.exp
@@ -37,8 +38,11 @@ class CardAnim(slot: Float) {
     /** Long-press lift, 0..1. */
     var lift by mutableFloatStateOf(0f)
 
-    /** Closed, waiting for Room to drop it. Not hit-testable. */
+    /** Closed: out of the stack, only drawn while it flies off. Not hit-testable. */
     var gone = false
+
+    /** Depth the card had when it was closed: it flies off from there whatever the stack does. NaN = live. */
+    var flyDepth = Float.NaN
     internal var slotJob: Job? = null
 }
 
@@ -64,6 +68,7 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
 
     internal val cards = HashMap<String, CardAnim>()
     private var scrollJob: Job? = null
+    private var wheelJob: Job? = null
 
     /** A finger is on the stack or it is still moving: data updates wait for this to clear. */
     var busy by mutableStateOf(false)
@@ -73,12 +78,25 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
     /** [pos] when the current drag started; a release snaps relative to it. */
     private var dragStart = initialPos
 
-    fun anim(id: String, index: Int): CardAnim = cards.getOrPut(id) { CardAnim(index.toFloat()) }
+    /**
+     * Which way the user last scrolled: -1 towards the cards behind (older), 1 towards the cards in
+     * front (newer), 0 not since the stack was re-centred. Picks the card a close brings forward.
+     */
+    var lastDirection = 0
+        private set
+
+    /** A card to bring into focus as soon as the stack shows it (an Undo puts it back). */
+    var focusId by mutableStateOf<String?>(null)
+
+    /** [id]'s values; a card back from a close (Undo) starts afresh, its old ones flew off. */
+    fun anim(id: String, index: Int): CardAnim =
+        cards[id]?.takeIf { !it.gone } ?: CardAnim(index.toFloat()).also { cards[id] = it }
 
     /** Finger down: stop any settling/fling and remember where this drag starts. True if it caught one. */
     fun startDrag(): Boolean {
-        val caught = scrollJob?.isActive == true
+        val caught = scrollJob?.isActive == true || wheelJob?.isActive == true
         scrollJob?.cancel()
+        wheelJob?.cancel()
         dragStart = pos
         dragging = true
         busy = true
@@ -120,6 +138,8 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
     fun release(vyPx: Float = 0f) {
         dragging = false
         val v = -vyPx / slotPx
+        val moved = if (abs(v) >= StackTokens.FLING_MIN_VELOCITY) v else pos - dragStart
+        if (abs(moved) > DIRECTION_MIN_SLOTS) lastDirection = sign(moved).toInt()
         if (abs(v) < StackTokens.FLING_MIN_VELOCITY) return animateTo(snapTarget(pos, dragStart, last))
         val target = flingTarget(pos, v, last)
         val distance = target - pos
@@ -140,11 +160,31 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         }
     }
 
+    /**
+     * A mouse wheel or two-finger trackpad scroll of [dyPx] (already in finger px, positive = like
+     * a finger moving down). Moves like a drag; once the events stop, settles like a slow release.
+     */
+    fun wheel(dyPx: Float) {
+        if (wheelJob?.isActive == true) {
+            wheelJob?.cancel()
+        } else {
+            scrollJob?.cancel()
+            dragStart = pos
+        }
+        busy = true
+        dragBy(dyPx)
+        wheelJob = scope.launch {
+            delay(StackTokens.WHEEL_SETTLE_MS)
+            release()
+        }
+    }
+
     /** Jumps to [index] without motion, e.g. to re-centre on the current tab while off screen. */
     fun snapTo(index: Int) {
         scrollJob?.cancel()
         pos = index.toFloat()
         dragStart = pos
+        lastDirection = 0
     }
 
     /** Exponential glide to [target]: fast start, no overshoot, like the prototype. */
@@ -182,3 +222,6 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
     internal suspend fun animateFlyOff(a: CardAnim) =
         animate(0f, 1f, 0f, tween(Motion.FLY_OFF_MS, easing = FastOutLinearInEasing)) { v, _ -> a.fly = v }
 }
+
+/** A drag shorter than this (in slots) says nothing about the direction. */
+private const val DIRECTION_MIN_SLOTS = 0.05f

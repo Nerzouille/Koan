@@ -86,3 +86,16 @@ fun flingTarget(pos: Float, velocitySlotsPerSec: Float, last: Int): Float {
     if (velocitySlotsPerSec < 0f && target >= pos) target = ceil(pos) - 1f
     return (target + 0f).coerceIn(0f, last.coerceAtLeast(0).toFloat())
 }
+
+/**
+ * Closing card [closed] of a stack whose last index is [last], focused on [focus]: true if the
+ * stack follows the cards behind it (they move one slot forward with the focus), false if the
+ * ones in front close the gap. For the focused card that is the side the user last scrolled
+ * towards ([direction]: -1 behind, 1 in front, 0 not scrolled = behind), or the other one when
+ * there is no card on that side.
+ */
+fun closeBringsBehind(closed: Int, focus: Int, last: Int, direction: Int): Boolean = when {
+    closed != focus -> closed < focus
+    direction > 0 -> closed == last && closed > 0
+    else -> closed > 0
+}

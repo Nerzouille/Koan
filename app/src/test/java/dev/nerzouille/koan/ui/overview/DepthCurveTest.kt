@@ -97,4 +97,21 @@ class DepthCurveTest {
         assertEquals(4f, flingTarget(3.1f, 0.1f, last = 49))
         assertEquals(2f, flingTarget(3f, -0.1f, last = 49))
     }
+
+    @Test
+    fun `closing the focused card brings forward the side last scrolled towards`() {
+        // Not scrolled, or scrolled towards the cards behind: the card behind comes forward.
+        assertTrue(closeBringsBehind(closed = 3, focus = 3, last = 6, direction = 0))
+        assertTrue(closeBringsBehind(closed = 3, focus = 3, last = 6, direction = -1))
+        // Scrolled towards the cards in front: the card in front comes forward.
+        assertEquals(false, closeBringsBehind(closed = 3, focus = 3, last = 6, direction = 1))
+        // Nothing on that side: the other one.
+        assertEquals(false, closeBringsBehind(closed = 0, focus = 0, last = 6, direction = -1))
+        assertTrue(closeBringsBehind(closed = 6, focus = 6, last = 6, direction = 1))
+        // The last card left: nothing moves.
+        assertEquals(false, closeBringsBehind(closed = 0, focus = 0, last = 0, direction = 1))
+        // A card behind the focus closes: the focus stays on its card.
+        assertTrue(closeBringsBehind(closed = 1, focus = 3, last = 6, direction = 1))
+        assertEquals(false, closeBringsBehind(closed = 5, focus = 3, last = 6, direction = -1))
+    }
 }

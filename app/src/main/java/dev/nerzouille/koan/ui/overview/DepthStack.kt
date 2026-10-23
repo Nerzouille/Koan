@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animate
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +18,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -36,6 +38,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -43,6 +46,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.KoanPalette
@@ -100,21 +104,42 @@ fun DepthStack(
 
     // Order committed by a drop, shown until Room emits it back.
     var pendingOrder by remember { mutableStateOf<List<String>?>(null) }
+    // Cards closed here: out of the stack at once (the gap closes while they fly off), whatever
+    // Room still says, until Room drops them too.
+    var removed by remember { mutableStateOf(emptySet<String>()) }
+    val flying = remember { mutableStateMapOf<String, Flying>() }
     val roomIds = shown.map { it.id }
-    val ids = pendingOrder?.takeIf { it.size == roomIds.size && it.toSet() == roomIds.toSet() } ?: roomIds
+    val ordered = pendingOrder?.takeIf { it.size == roomIds.size && it.toSet() == roomIds.toSet() } ?: roomIds
     if (pendingOrder != null && pendingOrder == roomIds) pendingOrder = null
+    val ids = if (removed.isEmpty()) ordered else ordered.filter { it !in removed }
     val byId = remember(shown) { shown.associateBy { it.id } }
     val displayed by rememberUpdatedState(ids)
     LaunchedEffect(cards) {
         if (cards == shown) return@LaunchedEffect
         snapshotFlow { state.busy }.first { !it }
         Snapshot.withMutableSnapshot {
+            val stillThere = removed.filterTo(HashSet()) { id -> cards.any { it.id == id } }
+            val next = cards.filter { it.id !in stillThere }
             val from = state.pos.roundToInt()
             val focused = displayed.getOrNull(from)
-            val to = focused?.let { id -> cards.indexOfFirst { it.id == id } } ?: -1
+            val to = focused?.let { id -> next.indexOfFirst { it.id == id } } ?: -1
             if (to >= 0) state.shiftBy(to - from)
             shown = cards
+            removed = stillThere
         }
+    }
+    // A card put back (Undo) comes into focus once the stack shows it.
+    LaunchedEffect(ids, state.focusId) {
+        val id = state.focusId ?: return@LaunchedEffect
+        // Back before Room dropped it here: it stops being hidden (this runs again with it shown).
+        if (id in removed) {
+            removed = removed - id
+            return@LaunchedEffect
+        }
+        val i = ids.indexOf(id)
+        if (i < 0) return@LaunchedEffect
+        state.focusId = null
+        state.animateTo(i.toFloat())
     }
 
     state.last = (ids.size - 1).coerceAtLeast(0)
@@ -154,7 +179,7 @@ fun DepthStack(
     }
 
     LaunchedEffect(ids) {
-        state.cards.keys.retainAll(ids.toSet())
+        state.cards.keys.retainAll(ids.toSet() + flying.keys)
         val near = window.first - WINDOW_MARGIN..window.last + WINDOW_MARGIN
         ids.forEachIndexed { i, id ->
             val a = state.anim(id, i)
@@ -194,26 +219,62 @@ fun DepthStack(
         val cardHeightDp = with(density) { geo.cardHeight.toDp() }
 
         val currentIds by rememberUpdatedState(ids)
+        val currentById by rememberUpdatedState(byId)
         val currentOnOpen by rememberUpdatedState(onOpen)
         val currentOnClose by rememberUpdatedState(onClose)
         val currentOnReorder by rememberUpdatedState(onReorder)
 
-        /** Fly the card off sideways (prototype: 280 ms ease-in, 480dp, 8°), then close it. */
+        /**
+         * Closes the card: it leaves the stack now and flies off sideways (ease-in, 480dp, 8°) while
+         * the gap closes. Nothing waits for it: the stack scrolls, closes and opens meanwhile.
+         * Closing the focused card brings forward the card on the side the user last scrolled
+         * towards (behind if they haven't), or the other one at that end of the stack.
+         */
         fun flyOff(id: String, dir: Float) {
+            val ids = currentIds
+            val i = ids.indexOf(id)
+            val card = currentById[id]
+            if (i < 0 || card == null) return
             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-            val a = state.anim(id, 0)
+            val a = state.anim(id, i)
+            a.flyDepth = geo.depthOf(a)
             a.gone = true
             a.flyFromX = a.swipeX
             a.flyDir = dir
+            flying[id] = Flying(card, a, inFrontOf = ids.getOrNull(i + 1))
+            removed = removed + id
+            val behindForward = closeBringsBehind(i, state.pos.roundToInt(), ids.lastIndex, state.lastDirection)
+            // The cards behind move one slot down the pile with the focus; the ones in front stay.
+            if (behindForward) state.shiftBy(-1)
+            currentOnClose(id)
             state.launch {
-                state.animateFlyOff(a)
-                currentOnClose(id)
+                try {
+                    state.animateFlyOff(a)
+                } finally {
+                    flying.remove(id)
+                }
             }
         }
 
         Box(
             Modifier
                 .size(maxWidth, maxHeight)
+                // Mouse wheel / trackpad (a mouse, scrcpy): the same scroll as a finger drag.
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    val factor = android.view.ViewConfiguration.get(view.context).scaledVerticalScrollFactor
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.type != PointerEventType.Scroll) continue
+                            val change = event.changes.firstOrNull() ?: continue
+                            val dy = change.scrollDelta.y
+                            if (dy == 0f || state.liftedId != null) continue
+                            state.wheel(-dy * factor)
+                            change.consume()
+                        }
+                    }
+                }
                 .pointerInput(enabled, geo) {
                     if (!enabled) return@pointerInput
                     awaitEachGesture {
@@ -278,7 +339,10 @@ fun DepthStack(
                 },
         ) {
             val visible = window
+            // Cards flying off draw where they were in the pile: over the cards behind, under the ones in front.
+            val flyingByAnchor = flying.values.groupBy { f -> f.inFrontOf?.takeIf { it in ids && ids.indexOf(it) in visible } }
             ids.forEachIndexed { index, id ->
+                flyingByAnchor[id]?.forEach { FlyingCard(it, geo, blurFor, dimColor, cardWidthDp, cardHeightDp, currentPageFade) }
                 if (index !in visible && state.liftedId != id) return@forEachIndexed
                 val card = byId[id] ?: return@forEachIndexed
                 key(id) {
@@ -317,8 +381,37 @@ fun DepthStack(
                     )
                 }
             }
+            flyingByAnchor[null]?.forEach { FlyingCard(it, geo, blurFor, dimColor, cardWidthDp, cardHeightDp, currentPageFade) }
         }
     }
+}
+
+/** A closed card on its way out; [inFrontOf]: the card that was in front of it (drawn over it). */
+private class Flying(val card: CardModel, val anim: CardAnim, val inFrontOf: String?)
+
+@Composable
+private fun BoxScope.FlyingCard(
+    f: Flying,
+    geo: StackGeometry,
+    blurFor: (Float) -> RenderEffect?,
+    dimColor: Color,
+    width: Dp,
+    height: Dp,
+    pageFade: () -> Float,
+) = key("flying:${f.card.id}") {
+    TabCard(
+        card = f.card,
+        depth = { geo.depthOf(f.anim) },
+        blurFor = blurFor,
+        dimColor = dimColor,
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .size(width, height)
+            .graphicsLayer {
+                geo.applyTo(this, f.anim)
+                alpha *= pageFade()
+            },
+    )
 }
 
 private enum class Gesture { Tap, Drag, LongPress, Cancel }
@@ -394,7 +487,7 @@ private class StackGeometry(
 
     fun topOf(d: Float): Float = frame.topOf(d)
 
-    fun depthOf(a: CardAnim): Float = state.pos - a.slot
+    fun depthOf(a: CardAnim): Float = if (a.flyDepth.isNaN()) state.pos - a.slot else a.flyDepth
 
     private fun visible(d: Float) = d <= DepthCurve.MAX_VISIBLE_D && d >= DepthCurve.MIN_VISIBLE_D
 

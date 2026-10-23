@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshotFlow
@@ -72,6 +73,8 @@ fun OverviewScreen(
     onBadge: () -> Unit,
     onConnect: () -> Unit,
     modifier: Modifier = Modifier,
+    /** (space uuid, card id) to bring into focus once that stack shows it; consumed here. */
+    focusRequest: MutableState<Pair<String, String>?>,
 ) {
     BackHandler(onBack = onDismiss)
     if (spaces.isEmpty() || models.size != spaces.size) return
@@ -141,6 +144,11 @@ fun OverviewScreen(
     }
     LaunchedEffect(open) {
         if (open) latestModels.forEach(::recentre)
+    }
+    LaunchedEffect(focusRequest.value) {
+        val (uuid, id) = focusRequest.value ?: return@LaunchedEffect
+        focusRequest.value = null
+        latestModels.firstOrNull { it.uuid == uuid }?.let { stackFor(it).focusId = id }
     }
     LaunchedEffect(pager) {
         snapshotFlow { pager.settled }.collectLatest {

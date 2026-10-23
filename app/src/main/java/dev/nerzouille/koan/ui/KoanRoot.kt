@@ -194,7 +194,13 @@ fun KoanRoot(components: Components) {
     val suggestions by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val search = rememberSearch(searchField, components.database.dao(), spaces, models, activeTabId, searchEngine, suggestions)
     val toasts = remember { ToastState() }
+    // (space uuid, card id) the overview brings into focus (a card put back by Undo).
+    val overviewFocus = remember { mutableStateOf<Pair<String, String>?>(null) }
     LaunchedEffect(overviewOpen, activeTabId) { overlays.dismissAll() }
+    // A sheet, the drawer or a full page opening sends the toast away: nothing pops above them.
+    // Toasts shown while one is open (History's Undo) still show.
+    val covered by remember { derivedStateOf { overlays.anyOpen || drawer.open || signingIn } }
+    LaunchedEffect(covered) { if (covered) toasts.dismiss() }
 
     // Blur radii baked for the cards behind the open drawer (weakest first, see drawerBackdrop).
     val drawerBlurs = remember(density) {
@@ -456,6 +462,31 @@ fun KoanRoot(components: Components) {
         }
     }
     /**
+     * A card closed in the overview: Undo puts it back in its place, in focus. Once the overview
+     * is gone, Undo opens it like after Back.
+     */
+    fun closeCard(id: String) {
+        val rows = stackItem(id)?.tabs.orEmpty()
+        val tab = rows.singleOrNull()
+        // A live pinned/essential card is only unloaded back to its row (TabManager); a split view closes whole.
+        if (tab == null || tab.pinned || tab.essential) {
+            tabs.close(rows.map { it.koanTabId }.ifEmpty { listOf(id) }, rows)
+            return
+        }
+        scope.launch {
+            val closed = tabs.closeForUndo(id) ?: return@launch
+            toasts.show(
+                Toast("Tab closed", "Undo") {
+                    if (!overviewOpen) return@Toast undoClose(closed)
+                    scope.launch {
+                        tabs.reopen(closed)
+                        overviewFocus.value = closed.row.spaceUuid to closed.row.koanTabId
+                    }
+                },
+            )
+        }
+    }
+    /**
      * Close tab from the tab counter's menu: onto its neighbour in the stack (the overview after
      * the space's last one), with Undo. A pinned tab or an essential goes back to its row, a split
      * view closes whole.
@@ -558,11 +589,8 @@ fun KoanRoot(components: Components) {
                 dock = barZone(overview = true),
                 onOpenTab = ::openTab,
                 onNewTab = ::newTab,
-                onCloseTab = { id ->
-                    // A live pinned/essential card is only unloaded back to its row (TabManager).
-                    val rows = stackItem(id)?.tabs.orEmpty()
-                    tabs.close(rows.map { it.koanTabId }.ifEmpty { listOf(id) }, rows)
-                },
+                onCloseTab = ::closeCard,
+                focusRequest = overviewFocus,
                 onReorder = { ids -> components.spaces.reorderStack(ids.mapNotNull(::stackItem)) },
                 onDismiss = ::dismissOverview,
                 sync = sync,
