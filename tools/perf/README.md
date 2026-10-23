@@ -5,11 +5,11 @@ and start times. Page rendering (GeckoView) is not measured: it is the same engi
 
 | Script | What it does |
 |---|---|
-| `frames.sh <label> [rounds]` | Page ↔ overview, stack scroll + flings, space switch on the dock, drawer open/close; one gfxinfo dump per scenario and round |
+| `frames.sh <label> [rounds]` | Page ↔ overview, stack scroll + flings, space switch on the dock, drawer open/close, dock hide/show (page scrolled down and up); one gfxinfo dump per scenario and round |
 | `start.sh <label> [rounds]` | Cold start (force-stop, launch) and warm start (from Home), `am start -W` TotalTime |
 | `compare.py <label> ...` | Median janky %, p50/90/95/99 frame times and start times per label |
 | `shot.sh <out.png>` | Pixelated screenshot to check which screen is up, without seeing page content |
-| `env.sh` | Shared settings: coordinates, output folder, the "Koan in front" guard |
+| `env.sh` | Shared settings: coordinates, output folder, the "Koan in front" guard, `KOAN_PKG` (e.g. the `.staging` copy) |
 
 Results go to `app/build/perf/<label>/` (gitignored; `KOAN_PERF_OUT` overrides it). Never commit
 them: they come from the owner's phone.
@@ -25,7 +25,10 @@ them: they come from the owner's phone.
 4. `./frames.sh b 5`, then `./start.sh b 5`.
 5. `./compare.py a b`.
 
-A downgrade needs an uninstall (data wiped), so plan the order: older versionCode first.
+A downgrade needs an uninstall (data wiped), so plan the order: older versionCode first. When the
+real app is already newer (or an older build can't open its database), compare two **staging**
+copies instead (`assembleStaging`, `KOAN_PKG=dev.nerzouille.koan.staging`): same fresh data for
+both, the real app untouched. Start the dock scenario on a long page.
 
 ## Rules for fair numbers
 

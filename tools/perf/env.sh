@@ -2,7 +2,8 @@
 # Tap/swipe coordinates are for a 1208x2624 screen at 480 dpi. On another phone, find the dock
 # with shot.sh and override them in the environment (e.g. DOCK_Y=2306 on a 1080x2460 screen).
 
-P=dev.nerzouille.koan
+# KOAN_PKG=dev.nerzouille.koan.staging measures the staging copy (its own data, the real app untouched).
+P=${KOAN_PKG:-dev.nerzouille.koan}
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # Results stay out of git (CLAUDE.md: measurements are never committed). `gradlew clean` wipes them.
 OUT=${KOAN_PERF_OUT:-$HERE/../../app/build/perf}
