@@ -113,7 +113,8 @@ fling, nested scroll only in full, same spring. Up = expand, down = compact then
 - **Toasts make way:** a toast goes away when a sheet, a card or a full page (History, Settings,
   Downloads) opens.
 - **Find in page** takes the address row's place in the dock (query, "2/7", ↑ ↓ ✕); the dock
-  stays shown while it is open; Back or ✕ closes it.
+  stays shown while it is open, and the page ends above it (so a match on the last line shows
+  above the find bar); Back or ✕ closes it.
 - **Long press** on a link or an image opens the link menu on a floating card: open in new tab,
   open in background (next to the current card), copy link, share link.
 - **Settings** (design 7n / 7o) is a full-screen page sliding up over everything, its own pages
