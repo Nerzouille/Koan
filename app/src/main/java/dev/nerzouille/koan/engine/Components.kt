@@ -15,6 +15,7 @@ import dev.nerzouille.koan.data.SpacesSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import dev.nerzouille.koan.ui.tour.TourSheet
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import mozilla.components.browser.state.state.content.DownloadState
@@ -159,6 +160,9 @@ class Components(context: Context) {
 
     /** Koan came back after being unused a while: the UI shows the start page (then clears it). */
     val startPage = MutableStateFlow(false)
+
+    /** A normal launch found the tour or a "What's new" due: the UI shows it (then clears it). */
+    val tour = MutableStateFlow<TourSheet?>(null)
 
     val sessionUseCases by lazy { SessionUseCases(store) }
     val tabsUseCases by lazy { TabsUseCases(store) }

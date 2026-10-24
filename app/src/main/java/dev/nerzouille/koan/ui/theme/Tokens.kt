@@ -424,6 +424,35 @@ object OverviewTokens {
 
 /** The bottom bar: a plain strip with the address row; + workspace switcher in the overview. */
 /** First-run card, placeholders and the quiet sync status. */
+/** The first-run tour and "What's new" sheet (ui/tour). */
+object TourTokens {
+    /** The sheet may grow this tall before it would need a full detent. */
+    const val MAX_FRACTION = 0.92f
+    val Padding = 20.dp
+    val SkipHeight = 40.dp
+    val TitleSize = 22.sp
+    val LineSize = 15.sp
+    val TitleGap = 6.dp
+    val Gap = 18.dp
+
+    /** Room for a two-line line, so every card is as tall as the others. */
+    val LineHeight = 44.dp
+
+    /** The animation box: width / height, corners. Recordings are cropped to the same shape. */
+    const val ANIMATION_ASPECT = 0.84f
+    val AnimationRadius = 22.dp
+
+    /** The soft brand glow behind the title. */
+    val GlowRadius = 150.dp
+    const val GLOW_ALPHA_LIGHT = 0.22f
+    const val GLOW_ALPHA_DARK = 0.18f
+
+    /** Page dots: the current one stretches into a pill. */
+    val Dot = 7.dp
+    val DotActiveWidth = 20.dp
+    val DotGap = 7.dp
+}
+
 object FirstRunTokens {
     const val SKELETON_CARDS = 6
     val SideMargin = 14.dp

@@ -85,6 +85,15 @@ class Settings(context: Context) {
     private fun parseDays(raw: String?): Map<String, Int> =
         raw.orEmpty().split(',').mapNotNull { e -> e.split(':').takeIf { it.size == 2 }?.let { (d, c) -> c.toIntOrNull()?.let { d to it } } }.toMap()
 
+    private val tourSeen = stringPreferencesKey("tour_seen")
+
+    /** Feature version ("0.3") whose tour or "What's new" was last seen; null = none yet. */
+    suspend fun tourSeen(): String? = store.data.first()[tourSeen]
+
+    suspend fun setTourSeen(version: String) {
+        store.edit { it[tourSeen] = version }
+    }
+
     private val engine = stringPreferencesKey("search_engine")
 
     val searchEngine: Flow<SearchEngine> = store.data.map { prefs ->

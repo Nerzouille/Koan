@@ -88,6 +88,8 @@ internal fun AboutPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
             }
         }
         Spacer(Modifier.height(SettingsTokens.Divider * 8))
+        SettingsRow(null, "Take the tour", on, chevron = true, onClick = ui.onTour)
+        SettingsDivider()
         SettingsRow(null, "What's new in ${ui.version.split('.').take(2).joinToString(".")}", on, chevron = true, onClick = { ui.onOpenUrl("$REPO/blob/main/CHANGELOG.md") })
         SettingsDivider()
         SettingsRow(null, "Privacy notice", on, chevron = true, onClick = { ui.onOpenUrl("$REPO/blob/main/docs/PRIVACY.md") })

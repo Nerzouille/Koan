@@ -122,12 +122,14 @@ fun <T : Any> KoanSheet(
     state: SheetState,
     nav: SheetNav<T>,
     modifier: Modifier = Modifier,
+    /** The compact detent's cap, as a share of the screen. */
+    compactMaxFraction: Float = SheetTokens.COMPACT_MAX_FRACTION,
     page: @Composable ColumnScope.(T, SheetPageScope) -> Unit,
 ) {
     val density = LocalDensity.current
     val windowPx = LocalWindowInfo.current.containerSize.height.toFloat()
     with(density) {
-        state.compactCapPx = windowPx * SheetTokens.COMPACT_MAX_FRACTION
+        state.compactCapPx = windowPx * compactMaxFraction
         state.fullCapPx = windowPx - WindowInsets.statusBars.getTop(density) - SheetTokens.FullTopGap.toPx()
         state.minStepPx = SheetTokens.MinDetentStep.toPx()
     }
@@ -180,7 +182,7 @@ fun <T : Any> KoanSheet(
         ) { measurables, constraints ->
             val loose = constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
             // A pushed page is at least as tall as the root: the sheet keeps its height.
-            val handle = measurables.last().measure(loose)
+            val handle = measurables.last().measure(Constraints())
             val pageMeasurables = measurables.dropLast(1)
             val root = pageMeasurables.firstOrNull()?.measure(loose)
             val rest = pageMeasurables.drop(1).map { it.measure(loose.copy(minHeight = root?.height ?: 0)) }

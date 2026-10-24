@@ -103,6 +103,9 @@ import dev.nerzouille.koan.ui.sheet.SheetNav
 import dev.nerzouille.koan.ui.sheet.SheetState
 import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.ui.tour.TourOverlay
+import dev.nerzouille.koan.ui.tour.TourSheet
+import dev.nerzouille.koan.ui.tour.featureVersion
 import dev.nerzouille.koan.update.UpdateCheck
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -144,6 +147,15 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val promptCard = SheetState(scope, splineBasedDecay(density))
     val settingsNav = SheetNav<SettingsPage>(scope, SettingsPage.Root)
 
+    /** The tour or a "What's new", over everything (Settings too: About replays the tour). */
+    val tour = SheetState(scope, splineBasedDecay(density))
+    var tourSheet by mutableStateOf<TourSheet?>(null)
+
+    fun showTour(sheet: TourSheet) {
+        tourSheet = sheet
+        tour.animateTo(Detent.Compact)
+    }
+
     /** Find in page is open, and what was typed in it. */
     var finding by mutableStateOf(false)
     var findQuery by mutableStateOf("")
@@ -152,7 +164,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
             historyOpen || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
-            saveLoginCard.open || permissionCard.open || promptCard.open
+            saveLoginCard.open || permissionCard.open || promptCard.open || tour.open
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
     fun dismissAll() {
@@ -608,6 +620,7 @@ fun KoanOverlays(
                 onMakeDefault = { askDefault.launch(roles.createRequestRoleIntent(RoleManager.ROLE_BROWSER)) },
                 version = BuildConfig.VERSION_NAME,
                 checkUpdate = { UpdateCheck.check(BuildConfig.VERSION_NAME) },
+                onTour = { overlays.showTour(TourSheet.Tour) },
                 onOpenUrl = { url ->
                     overlays.settingsOpen = false
                     onOpenNew(url, true, false)
@@ -736,6 +749,11 @@ fun KoanOverlays(
             },
             onCancel = { signOutCard.animateTo(Detent.Closed) },
         )
+    }
+
+    // ---- the tour / "What's new": on top of everything; closing it in any way counts as seen ----
+    TourOverlay(overlays.tour, overlays.tourSheet) {
+        scope.launch { components.settings.setTourSeen(featureVersion(BuildConfig.VERSION_NAME)) }
     }
 }
 

@@ -31,6 +31,8 @@ import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.KoanRoot
 import dev.nerzouille.koan.ui.RefreshBooster
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.tour.dueSheet
+import dev.nerzouille.koan.ui.tour.featureVersion
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.feature.tabs.WindowFeature
 import kotlinx.coroutines.flow.first
@@ -174,6 +176,11 @@ class MainActivity : FragmentActivity() {
         val known = hiddenAt
         hiddenAt = Long.MAX_VALUE
         if (fromLink || known == Long.MAX_VALUE) return
+        // The tour (first launch) or a version's "What's new": on a normal launch only.
+        components.appScope.launch {
+            val sheet = dueSheet(components.settings.tourSeen(), featureVersion(BuildConfig.VERSION_NAME))
+            if (sheet != null) components.tour.value = sheet
+        }
         components.appScope.launch {
             val at = known ?: components.lastPlace.hiddenAt() ?: return@launch
             val after = components.settings.startPageAfter.first().millis ?: return@launch

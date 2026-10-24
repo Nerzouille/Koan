@@ -79,6 +79,8 @@ class SettingsUi(
     val version: String,
     /** One look at GitHub's releases (About calls it when it opens). */
     val checkUpdate: suspend () -> UpdateStatus,
+    /** Replays the first-run tour (About). */
+    val onTour: () -> Unit,
     /** Opens a page (changelog, licences) in a new tab. */
     val onOpenUrl: (String) -> Unit,
     /** Debug builds only. */

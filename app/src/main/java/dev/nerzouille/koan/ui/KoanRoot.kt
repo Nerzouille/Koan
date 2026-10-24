@@ -406,6 +406,17 @@ fun KoanRoot(components: Components) {
         editing = true
     }
 
+    // The tour or a "What's new" (MainActivity: normal launches only), once the place is back and
+    // not over the sign-in. The start page's keyboard would cover the sheet: the tab shows instead.
+    val tourDue by components.tour.collectAsStateWithLifecycle()
+    LaunchedEffect(tourDue, tabsStarted, placeRestored, signingIn) {
+        val sheet = tourDue ?: return@LaunchedEffect
+        if (!tabsStarted || !placeRestored || signingIn) return@LaunchedEffect
+        components.tour.value = null
+        editing = false
+        overlays.showTour(sheet)
+    }
+
     // No tab to show (first run, or the last one was closed in Zen): the overview (once the start
     // page, if up, is left).
     LaunchedEffect(tabsStarted, activeTabId, spaces.isEmpty(), startPage) {
