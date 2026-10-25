@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — unreleased (beta)
+## 0.3.0 — 2026-10-25 (beta)
 
 Installs over 0.2.x (and the Android 11 preview) and keeps your data. Full guide:
 [`docs/FEATURES.md`](docs/FEATURES.md). For automatic updates, install with
@@ -8,6 +8,10 @@ Installs over 0.2.x (and the Android 11 preview) and keeps your data. Full guide
 
 ### New
 
+- **A tour on first launch:** a welcome card, then six short looping clips: your Zen Spaces,
+  swiping up for your tabs, swiping sideways to switch tabs, holding the bar to change space,
+  `@` search shortcuts, and the long presses. It shows once (also when you update to 0.3), Skip
+  or a swipe down closes it, and **Settings › About Koan › Take the tour** replays it.
 - **New icon:** the K in a colour vortex, on the launcher, About and the first-run card; Android
   13+ themed icons use a flat K.
 - **Android 11 and up:** Koan now installs on Android 11, 12 and 13 too (tested on Android 14;
@@ -64,7 +68,7 @@ Installs over 0.2.x (and the Android 11 preview) and keeps your data. Full guide
   GeckoView update after 10 November should help; if not, Koan will get its own full-page
   screenshot.
 - **Old WebView warning:** written but not tested on a phone with an old WebView.
-- **arm64 only** (64-bit ARM phones); APK about 212 MB.
+- **arm64 only** (64-bit ARM phones); APK about 228 MB.
 
 ## 0.2.1 — 2026-10-19 (beta)
 

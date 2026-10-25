@@ -79,12 +79,11 @@ losing data, and the owner has approved and published the release.
   nothing) after the phone sat ~10 min untouched (the screen may simply have been off); not
   reproduced since. Watch for it.
 
-### Android 11+ (minSdk 30) — merged 2026-10-23, ships with the next release
+### Android 11+ (minSdk 30) — merged 2026-10-23, shipped in v0.3.0
 - Runs on Android 11–13 too: no live blur below 12 (stronger dim instead), "copied" toasts below
   13, smaller memory budgets on phones under 6 GB (`DeviceProfile`). Audit: `docs/audits/MIN_SDK.md`.
 - Tested as `preview-android11` (0.2.2-preview.1, versionCode 7): no frame or start-time
-  difference on the owner's phone (`tools/perf`). The next release takes versionCode 8 or higher.
-- README and FEATURES still say Android 14+: update them with the next release's docs.
+  difference on the owner's phone (`tools/perf`). v0.3.0 is versionCode 8.
 
 ## M4 — Motion polish (≈ 1–2 weeks, iterate with owner)
 - Hero open/close morph per `UI_SPEC.md` (springs, thumbnail → live swap, pre-scroll on close).

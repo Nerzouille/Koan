@@ -23,10 +23,17 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
   releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you.
   Otherwise Settings › About checks once when you open it.
 - Installing over a previous Koan version keeps your tabs, spaces, logins and settings.
-- The APK is about 212 MB. See [Known limitations](#13-known-limitations).
+- The APK is about 228 MB. See [Known limitations](#13-known-limitations).
 
 ### First run
 
+- **The tour:** the first time Koan opens, a short tour slides up: a welcome card, then six
+  cards with a looping clip each (your Zen Spaces, swiping up for your tabs, swiping sideways to
+  switch tabs, holding the bar to change space, `@` search shortcuts, long presses). Swipe or tap
+  **Next**; **Skip** or a swipe down on the sheet closes it, Back goes to the previous card. It
+  shows once (also after updating from 0.2.x), and not when a link from another app opens Koan.
+  Replay it from **Settings › About Koan › Take the tour**. Later versions show a short **What's
+  new** the same way, once.
 - Without an account, Koan is a plain browser with one space called **Phone** (📱). The overview
   opens on a **Connect your Zen Spaces** card; you can ignore it and just browse.
 - Tap the address pill, type an address or a search, and go.
@@ -472,7 +479,7 @@ closes it).
 | uBlock Origin | On/off, blocked this week, or Install |
 | Downloads | The Downloads page |
 | Save downloads to | The phone's Download folder, or a folder you pick |
-| About Koan | Version, update check, links to the changelog, the privacy notice and the open-source licences |
+| About Koan | Version, update check, **Take the tour**, links to the changelog, the privacy notice and the open-source licences |
 
 **As the default browser:** links you open in other apps, web searches, and text or links shared to
 Koan open as a new tab in your current space.
@@ -506,7 +513,7 @@ the background. If the check fails (no network), tap the chip to try again.
   update after 10 November should help).
 - **Old WebView warning on sign-in:** shown when Android System WebView is older than 92 (it can't
   load Mozilla's sign-in page), with a Play Store button; not yet tested on such a phone.
-- **APK size (~212 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
+- **APK size (~228 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
