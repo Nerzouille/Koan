@@ -424,41 +424,87 @@ object OverviewTokens {
 
 /** The bottom bar: a plain strip with the address row; + workspace switcher in the overview. */
 /** First-run card, placeholders and the quiet sync status. */
-/** The first-run tour and "What's new" (ui/tour): a full-screen page. */
+/** The first-run tour and "What's new" (ui/tour): a tall sheet over Koan's dimmed UI. */
 object TourTokens {
+    /** The sheet's share of the screen height (corners and scrim as the other sheets). */
+    const val SHEET_FRACTION = 0.92f
     val Padding = 24.dp
-    val SkipHeight = 52.dp
+    val SkipHeight = 44.dp
+    val SkipTop = 6.dp
     val TitleSize = 22.sp
     val LineSize = 15.sp
-    val TitleGap = 8.dp
-    val Gap = 20.dp
+    val TitleGap = 6.dp
+    val Gap = 16.dp
 
-    /** Room for a two-line line, so every card is as tall as the others. */
-    val LineHeight = 44.dp
+    /** The clip's phone frame: this share of the sheet's width, all the height left. */
+    const val FRAME_WIDTH = 0.9f
 
-    /** Recordings are cropped to this width / height and shown in a phone frame. */
-    const val ANIMATION_ASPECT = 0.84f
-    const val FRAME_MAX_WIDTH = 0.92f
-    val FrameRadius = 34.dp
-    val FrameBezel = 6.dp
+    /**
+     * Whole-screen clips (the screen below the status bar), width / height. Other clips are cropped
+     * to fill the slot (1208 x 1763 px on the phone).
+     */
+    const val SCREEN_CLIP_ASPECT = 720f / 1478f
+    val FrameRadius = 30.dp
+    val FrameBezel = 5.dp
     val FrameBorder = 1.dp
-    val FrameShadow = 24.dp
+    val FrameShadow = 20.dp
 
-    /** Card 1: the app icon, with a faint brand glow behind it. */
-    val Icon = 96.dp
-    val IconRadius = 24.dp
-    val IconGlow = 120.dp
-    const val ICON_GLOW_ALPHA = 0.45f
-
-    /** The soft brand glow at the top of the page. */
-    val GlowHeight = 360.dp
-    const val GLOW_ALPHA_LIGHT = 0.22f
-    const val GLOW_ALPHA_DARK = 0.16f
+    /** The soft brand glow behind the title. */
+    val GlowHeight = 240.dp
+    const val GLOW_ALPHA_LIGHT = 0.16f
+    const val GLOW_ALPHA_DARK = 0.12f
 
     /** Page dots: the current one stretches into a pill. */
     val Dot = 7.dp
     val DotActiveWidth = 20.dp
     val DotGap = 7.dp
+
+    // ---- the welcome card (Welcome.kt) ----
+
+    /** The 3D K, and the room around it for its sparkles. */
+    val K = 210.dp
+    val WelcomeTitleSize = 30.sp
+    val WelcomeLineSize = 17.sp
+    val WelcomeTextGap = 28.dp
+
+    /** In dark mode the gradient is a touch deeper. */
+    const val WELCOME_DIM_DARK = 0.14f
+
+    /** The vortex: soft rings around the K, each turning a little faster than the one inside it. */
+    const val VORTEX_RINGS = 8
+    const val VORTEX_RINGS_SIMPLE = 5
+    val VortexInner = 120.dp
+    val VortexStep = 46.dp
+    val VortexStroke = 26.dp
+    const val VORTEX_ALPHA = 0.20f
+    const val VORTEX_TURN_MS = 24_000
+    const val VORTEX_GLOW_ALPHA = 0.35f
+
+    /** Entrance: the K springs up from below, turning into its tilt; a light sweep; then the text. */
+    const val K_START_TURN = -38f
+    const val K_START_SCALE = 0.72f
+    const val K_RISE_DELAY_MS = 180
+    const val K_RISE_DAMPING = 0.6f
+    const val K_RISE_STIFFNESS = 120f
+    const val SWEEP_AT_MS = 750
+    const val SWEEP_MS = 650
+    const val TEXT_AT_MS = 850
+    const val TEXT_STAGGER_MS = 120
+    const val TEXT_MS = 380
+    val TextRise = 14.dp
+    const val INTRO_MS = TEXT_AT_MS + TEXT_STAGGER_MS + TEXT_MS
+
+    /** While shown: the K floats; sparkles twinkle around it. */
+    val FloatAmplitude = 7.dp
+    const val FLOAT_MS = 3_400
+    const val FLOAT_TURN = 2.5f
+    const val FLOAT_TURN_MS = 5_300
+    const val SPARKLES_SIMPLE = 3
+
+    /** Swiping on: the K flies off to the left ahead of the page, the vortex trails behind. */
+    const val K_LEAVE_EXTRA = 0.6f
+    const val K_LEAVE_TURN = -24f
+    const val VORTEX_LEAVE_TRAIL = 0.5f
 }
 
 object FirstRunTokens {

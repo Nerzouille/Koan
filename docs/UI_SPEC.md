@@ -343,7 +343,9 @@ your focus**, used only for:
 - toggles ON; the "@" search mode (ring + cursor);
 - Settings' aurora glow, the account card outline, About, and the first-run "Connect your Zen
   Spaces" card (gradient outline);
-- the soft glow behind the titles of the first-run tour / "What's new" sheet (`ui/tour`).
+- the first-run tour / "What's new" (`ui/tour`, a 92% sheet): a faint glow behind each card's
+  title, and the welcome card, where the whole sheet is the vivid gradient with a slowly turning
+  vortex behind the 3D K, blending into the sheet's own colour as you swipe on.
 
 **Never** as a passive "this is the current one" marker (the current tab is a state, not a moment), on login or password UI, permission prompts, destructive actions, body text, or behind
 web content. Primary buttons are never gradient.

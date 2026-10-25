@@ -2,19 +2,31 @@ package dev.nerzouille.koan.ui.tour
 
 import androidx.annotation.RawRes
 import dev.nerzouille.koan.R
+import dev.nerzouille.koan.ui.theme.TourTokens
 
 /**
- * One card of the tour or of a "What's new": a title, one line, and a looping animated WebP
- * recorded in Koan ([dark] / [light] so it matches the theme; null = text only). [appIcon]: the
- * app icon above the title (the first card).
+ * One card of the tour or of a "What's new": a title, one line, and a looping clip recorded in
+ * Koan ([dark] / [light] so it matches the theme; null = text only), framed per [framing].
+ * [welcome]: the tour's first card instead (the K on the brand gradient, Welcome.kt).
  */
 class TourCard(
     val title: String,
     val line: String,
     @param:RawRes val dark: Int? = null,
     @param:RawRes val light: Int? = null,
-    val appIcon: Boolean = false,
+    val framing: Framing = Framing.Focus,
+    val welcome: Boolean = false,
 )
+
+/**
+ * How a clip is framed, and its shape (width / height; null = the frame's whole slot): the whole
+ * screen (a gesture that changes all of it), or a crop on where the gesture happens, shaped to fill
+ * the slot.
+ */
+enum class Framing(val aspect: Float?) {
+    Screen(TourTokens.SCREEN_CLIP_ASPECT),
+    Focus(null),
+}
 
 /** What opens on a normal launch: the whole tour (first launch), or a version's highlights. */
 sealed interface TourSheet {
@@ -31,16 +43,17 @@ sealed interface TourSheet {
 
 /** The first-run tour (also replayed from About). */
 val TourCards: List<TourCard> = listOf(
+    TourCard("Welcome to Koan", "Your Zen Spaces, in your pocket.", welcome = true),
     TourCard(
         "Your Zen Spaces, on your phone",
         "Synced from your Mozilla account, read-only: Zen on your computer stays as it is.",
         R.raw.tour_spaces_dark, R.raw.tour_spaces_light,
-        appIcon = true,
     ),
     TourCard(
         "Swipe up for your tabs",
         "Swipe up on the bar: every tab of the space, in one stack.",
         R.raw.tour_stack_dark, R.raw.tour_stack_light,
+        Framing.Screen,
     ),
     TourCard(
         "Swipe sideways to switch tabs",
@@ -56,6 +69,7 @@ val TourCards: List<TourCard> = listOf(
         "Search shortcuts",
         "Start with @yt, @wiki and more to search one site straight away.",
         R.raw.tour_search_dark, R.raw.tour_search_light,
+        Framing.Screen,
     ),
     TourCard(
         "Long presses",
