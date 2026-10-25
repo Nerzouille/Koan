@@ -122,14 +122,12 @@ fun <T : Any> KoanSheet(
     state: SheetState,
     nav: SheetNav<T>,
     modifier: Modifier = Modifier,
-    /** The compact detent's cap, as a share of the screen. */
-    compactMaxFraction: Float = SheetTokens.COMPACT_MAX_FRACTION,
     page: @Composable ColumnScope.(T, SheetPageScope) -> Unit,
 ) {
     val density = LocalDensity.current
     val windowPx = LocalWindowInfo.current.containerSize.height.toFloat()
     with(density) {
-        state.compactCapPx = windowPx * compactMaxFraction
+        state.compactCapPx = windowPx * SheetTokens.COMPACT_MAX_FRACTION
         state.fullCapPx = windowPx - WindowInsets.statusBars.getTop(density) - SheetTokens.FullTopGap.toPx()
         state.minStepPx = SheetTokens.MinDetentStep.toPx()
     }

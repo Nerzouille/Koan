@@ -147,13 +147,13 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val promptCard = SheetState(scope, splineBasedDecay(density))
     val settingsNav = SheetNav<SettingsPage>(scope, SettingsPage.Root)
 
-    /** The tour or a "What's new", over everything (Settings too: About replays the tour). */
-    val tour = SheetState(scope, splineBasedDecay(density))
+    /** The tour or a "What's new", full screen over everything (Settings too: About replays it). */
     var tourSheet by mutableStateOf<TourSheet?>(null)
+    var tourOpen by mutableStateOf(false)
 
     fun showTour(sheet: TourSheet) {
         tourSheet = sheet
-        tour.animateTo(Detent.Compact)
+        tourOpen = true
     }
 
     /** Find in page is open, and what was typed in it. */
@@ -164,7 +164,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
             historyOpen || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
-            saveLoginCard.open || permissionCard.open || promptCard.open || tour.open
+            saveLoginCard.open || permissionCard.open || promptCard.open || tourOpen
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
     fun dismissAll() {
@@ -751,8 +751,9 @@ fun KoanOverlays(
         )
     }
 
-    // ---- the tour / "What's new": on top of everything; closing it in any way counts as seen ----
-    TourOverlay(overlays.tour, overlays.tourSheet) {
+    // ---- the tour / "What's new": full screen, on top of everything; leaving it counts as seen ----
+    TourOverlay(overlays.tourOpen, overlays.tourSheet) {
+        overlays.tourOpen = false
         scope.launch { components.settings.setTourSeen(featureVersion(BuildConfig.VERSION_NAME)) }
     }
 }

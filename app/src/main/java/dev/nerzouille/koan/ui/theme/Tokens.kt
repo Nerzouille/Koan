@@ -424,28 +424,36 @@ object OverviewTokens {
 
 /** The bottom bar: a plain strip with the address row; + workspace switcher in the overview. */
 /** First-run card, placeholders and the quiet sync status. */
-/** The first-run tour and "What's new" sheet (ui/tour). */
+/** The first-run tour and "What's new" (ui/tour): a full-screen page. */
 object TourTokens {
-    /** The sheet may grow this tall before it would need a full detent. */
-    const val MAX_FRACTION = 0.92f
-    val Padding = 20.dp
-    val SkipHeight = 40.dp
+    val Padding = 24.dp
+    val SkipHeight = 52.dp
     val TitleSize = 22.sp
     val LineSize = 15.sp
-    val TitleGap = 6.dp
-    val Gap = 18.dp
+    val TitleGap = 8.dp
+    val Gap = 20.dp
 
     /** Room for a two-line line, so every card is as tall as the others. */
     val LineHeight = 44.dp
 
-    /** The animation box: width / height, corners. Recordings are cropped to the same shape. */
+    /** Recordings are cropped to this width / height and shown in a phone frame. */
     const val ANIMATION_ASPECT = 0.84f
-    val AnimationRadius = 22.dp
+    const val FRAME_MAX_WIDTH = 0.92f
+    val FrameRadius = 34.dp
+    val FrameBezel = 6.dp
+    val FrameBorder = 1.dp
+    val FrameShadow = 24.dp
 
-    /** The soft brand glow behind the title. */
-    val GlowRadius = 150.dp
+    /** Card 1: the app icon, with a faint brand glow behind it. */
+    val Icon = 96.dp
+    val IconRadius = 24.dp
+    val IconGlow = 120.dp
+    const val ICON_GLOW_ALPHA = 0.45f
+
+    /** The soft brand glow at the top of the page. */
+    val GlowHeight = 360.dp
     const val GLOW_ALPHA_LIGHT = 0.22f
-    const val GLOW_ALPHA_DARK = 0.18f
+    const val GLOW_ALPHA_DARK = 0.16f
 
     /** Page dots: the current one stretches into a pill. */
     val Dot = 7.dp

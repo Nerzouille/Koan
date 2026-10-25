@@ -4,14 +4,16 @@ import androidx.annotation.RawRes
 import dev.nerzouille.koan.R
 
 /**
- * One card of the tour or of a "What's new" sheet: a title, one line, and a looping animated WebP
- * recorded in Koan ([dark] / [light] so it matches the theme; null = text only).
+ * One card of the tour or of a "What's new": a title, one line, and a looping animated WebP
+ * recorded in Koan ([dark] / [light] so it matches the theme; null = text only). [appIcon]: the
+ * app icon above the title (the first card).
  */
 class TourCard(
     val title: String,
     val line: String,
     @param:RawRes val dark: Int? = null,
     @param:RawRes val light: Int? = null,
+    val appIcon: Boolean = false,
 )
 
 /** What opens on a normal launch: the whole tour (first launch), or a version's highlights. */
@@ -33,6 +35,7 @@ val TourCards: List<TourCard> = listOf(
         "Your Zen Spaces, on your phone",
         "Synced from your Mozilla account, read-only: Zen on your computer stays as it is.",
         R.raw.tour_spaces_dark, R.raw.tour_spaces_light,
+        appIcon = true,
     ),
     TourCard(
         "Swipe up for your tabs",
