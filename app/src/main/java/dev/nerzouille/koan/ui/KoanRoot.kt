@@ -1,5 +1,9 @@
 package dev.nerzouille.koan.ui
 
+import dev.nerzouille.koan.ui.overview.LocalCardHero
+import dev.nerzouille.koan.ui.overview.CardHeroLayer
+import dev.nerzouille.koan.ui.overview.CardHero
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -104,9 +108,16 @@ import dev.nerzouille.koan.ui.theme.PagerTokens
  * Page view and Space overview, with the one bottom bar on top of both: it morphs into the
  * workspace bar as the overview opens, and into the essentials/pinned drawer from there. Every card
  * is a real engine tab, managed by [dev.nerzouille.koan.engine.TabManager].
+ * [hideStatus]: the "Hide status bar" setting (see SystemBars.kt).
  */
 @Composable
-fun KoanRoot(components: Components) {
+fun KoanRoot(components: Components, hideStatus: Boolean) {
+    val hero = remember { CardHero() }
+    CompositionLocalProvider(LocalCardHero provides hero) { KoanRootContent(components, hideStatus, hero) }
+}
+
+@Composable
+private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: CardHero) {
     val spaces by components.spaces.spaces.collectAsStateWithLifecycle()
     val account by components.accounts.state.collectAsStateWithLifecycle()
     val syncStatus by components.sync.status.collectAsStateWithLifecycle()
@@ -132,8 +143,8 @@ fun KoanRoot(components: Components) {
     val searchEngine by components.settings.searchEngine.collectAsStateWithLifecycle(SearchEngine.DuckDuckGo)
     val models = remember(spaces, activeTabId, palette) { spaces.map { it.toModel(activeTabId, palette) } }
 
-    // Simple fade/scale for now; the hero morph is M4. Also drives the bar morph. A swipe on the
-    // dock drives it 1:1; otherwise it springs.
+    // The tab's card flies between the page and the opaque overview (CardHero). Also drives the
+    // bar morph. A swipe on the dock drives it 1:1; otherwise it springs.
     val motion = remember { OverviewMotion(overviewOpen) }
     // The open motion has finished: the overview may now do the work it put off (thumbs/BakedBlur,
     // composing the neighbouring spaces).
@@ -147,6 +158,8 @@ fun KoanRoot(components: Components) {
         overviewSettled = overviewOpen
     }
     val overviewVisible by remember { derivedStateOf { overviewOpen || motion.progress > 0f } }
+    hero.progress = { motion.progress }
+    hero.overviewShown = { overviewOpen || motion.progress > 0f }
 
     val scope = rememberCoroutineScope()
     val pager = remember { SpacePager(currentSpace, scope) }
@@ -209,8 +222,10 @@ fun KoanRoot(components: Components) {
         List(levels) { i -> max * (i + 1) / levels }
     }
 
-    // The page cover zooms the tapped card's screenshot in (read when the cover starts).
-    val zoomIn = remember { mutableStateOf(false) }
+    // The card the overview flies to or from: the current tab's, unless a tap just picked another
+    // (until the current tab follows) or a tab with no card (NO_CARD).
+    var heroPick by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(activeTabId) { heroPick = null }
     val dock = remember { DockState(scope) }
     val tabSwipe = remember { TabSwipe(scope, tabs.current) }
     tabSwipe.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { BarTokens.TabSwipeGap.toPx() }
@@ -220,6 +235,7 @@ fun KoanRoot(components: Components) {
     fun openOverview() {
         // A chain of tab swipes still resting: the overview shows the live tab, nothing opens later.
         tabSwipe.cancel()
+        heroPick = null
         editing = false
         tabs.cancelBlank()
         tabs.captureCurrent("overview opening")
@@ -240,8 +256,8 @@ fun KoanRoot(components: Components) {
             // A split view's card has its own id.
             val card = s.stack.firstOrNull { item -> item.tabs.any { it.koanTabId == tab.koanTabId } }?.id
             currentTabs[s.space.uuid] = card ?: tab.koanTabId
+            if (overviewOpen) heroPick = card ?: tab.koanTabId
         }
-        zoomIn.value = overviewOpen
         // From the overview the page was captured when it opened; from the page view, now.
         tabs.open(tab, captureLeaving = captureLeaving)
         overviewOpen = false
@@ -250,7 +266,7 @@ fun KoanRoot(components: Components) {
         val space = spaces.getOrNull(index) ?: return
         currentSpace = index
         currentTabs[space.space.uuid] = tabs.newTab(space.space.uuid)
-        zoomIn.value = false
+        heroPick = NO_CARD
         overviewOpen = false
         editing = true
     }
@@ -277,7 +293,7 @@ fun KoanRoot(components: Components) {
         }
         currentTabs[space.space.uuid] = id
         editing = false
-        zoomIn.value = false
+        heroPick = id
         overviewOpen = false
     }
     // Links and text other apps send (default browser, share): a new tab in the current space.
@@ -341,7 +357,7 @@ fun KoanRoot(components: Components) {
     /** Leaving the overview without picking a card: back to the current tab, or the space's newest. */
     fun dismissOverview() {
         if (activeTabId != null && tabById(activeTabId!!) != null) {
-            zoomIn.value = false
+            heroPick = null
             overviewOpen = false
             return
         }
@@ -399,7 +415,7 @@ fun KoanRoot(components: Components) {
         overlays.settingsOpen = false
         overlays.historyOpen = false
         overlays.downloadsOpen = false
-        zoomIn.value = false
+        heroPick = NO_CARD
         overviewOpen = false
         searchField.start("")
         startPage = true
@@ -583,23 +599,33 @@ fun KoanRoot(components: Components) {
         }
     }
     // A fullscreen video: no bars, the video's orientation; Back leaves fullscreen first.
-    val fullScreen = rememberFullscreen(components, activeTabId)
+    // "Hide status bar" holds in the page view only: anything over it (the overview, a sheet,
+    // Settings, the tour…) brings the status bar back.
+    val pageOnly = !overviewVisible && !covered && !editing
+    val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly)
+    val heroCard = when (val pick = heroPick) {
+        NO_CARD -> null
+        null -> currentCard()?.let { (si, i) -> spaces[si].stack[i].id }
+        else -> pick
+    }
+    SideEffect { hero.cardId = heroCard }
 
     Box(Modifier.fillMaxSize()) {
         val activeTab = activeTabId?.let(::tabById)
+        val cover = activeTabId?.let { id ->
+            when {
+                id == blankId -> CoverTarget(id, "", null, false, null, blank = true)
+                activeTab != null -> CoverTarget.of(activeTab, blank = false)
+                else -> CoverTarget(id, "", null, false, null, blank = false)
+            }
+        }
         BrowserScreen(
             components = components,
             dock = dock,
             fullScreen = fullScreen,
             findOpen = overlays.finding,
-            cover = activeTabId?.let { id ->
-                when {
-                    id == blankId -> CoverTarget(id, "", null, false, null, blank = true)
-                    activeTab != null -> CoverTarget.of(activeTab, blank = false)
-                    else -> CoverTarget(id, "", null, false, null, blank = false)
-                }
-            },
-            zoomIn = { zoomIn.value },
+            cover = cover,
+            toTop = hideStatus,
             swipe = tabSwipe,
         )
         if (overviewVisible) {
@@ -622,8 +648,9 @@ fun KoanRoot(components: Components) {
                 onConnect = { signingIn = true },
                 modifier = Modifier
                     .graphicsLayer {
+                        // Opaque: the card flying over it (CardHero) is all that changes between
+                        // page and overview, never two layers at partial alpha.
                         val p = motion.progress
-                        alpha = p
                         val s = 1f + Motion.OVERVIEW_ZOOM * (1f - p)
                         scaleX = s
                         scaleY = s
@@ -639,6 +666,15 @@ fun KoanRoot(components: Components) {
                     .then(if (DeviceProfile.liveBlur) Modifier.drawerBackdrop({ drawer.progress }, drawerBlurs) else Modifier),
             )
         }
+        // Between page and overview: the tab's card in flight over the opaque overview. Composed
+        // ahead (hidden at rest), so the first frame of a transition only moves a layer.
+        CardHeroLayer(
+            hero = hero,
+            card = heroCard?.let { id -> models.firstNotNullOfOrNull { m -> m.stack.firstOrNull { it.id == id } } },
+            fallback = cover,
+            progress = { motion.progress },
+            zoom = { 1f + Motion.OVERVIEW_ZOOM * (1f - motion.progress) },
+        )
         if (drawer.open) {
             // Tap outside the drawer closes it; nothing behind it takes input meanwhile.
             BackHandler { drawer.animateTo(Detent.Closed) }
@@ -873,3 +909,6 @@ fun KoanRoot(components: Components) {
         }
     }
 }
+
+/** [heroPick]: the tab shown next has no card to fly from (a new tab, a link from another app). */
+private const val NO_CARD = ""

@@ -32,12 +32,10 @@ import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PageTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import mozilla.components.lib.state.ext.flow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.store.BrowserStore
@@ -64,25 +62,18 @@ data class CoverTarget(
 /**
  * Drawn over the engine view: never a white flash. When the page view switches to a tab, the cover
  * shows that tab's screenshot at once (or its placeholder), and fades out once the live page has
- * painted. [zoomIn]: the switch came from tapping a card, so the screenshot grows into place.
+ * painted. (From the overview, the card flying in lands on it: CardHero.)
  * [target] null = no tab at all: plain surface.
  */
 @Composable
-fun PageCover(target: CoverTarget?, store: BrowserStore, zoomIn: () -> Boolean, modifier: Modifier = Modifier) {
+fun PageCover(target: CoverTarget?, store: BrowserStore, modifier: Modifier = Modifier) {
     val alpha = remember { Animatable(1f) }
-    val scale = remember { Animatable(1f) }
     val id = target?.id
     val blank = target?.blank == true
     val stays = blank || target?.desktopOnly == true
     LaunchedEffect(id, stays) {
         alpha.snapTo(1f)
         if (target == null || stays) return@LaunchedEffect
-        if (zoomIn()) {
-            launch {
-                scale.snapTo(PageTokens.OPEN_ZOOM_FROM)
-                scale.animateTo(1f, Motion.Overview)
-            }
-        }
         withTimeoutOrNull(PageTokens.COVER_MAX_MS) { awaitPainted(store, target.id) }
         alpha.animateTo(0f, tween(PageTokens.COVER_FADE_MS))
     }
@@ -95,13 +86,7 @@ fun PageCover(target: CoverTarget?, store: BrowserStore, zoomIn: () -> Boolean, 
             .background(palette.Base),
     ) {
         if (current == null || current.blank) return@Box
-        PagePreview(
-            current,
-            Modifier.graphicsLayer {
-                scaleX = scale.value
-                scaleY = scale.value
-            },
-        )
+        PagePreview(current)
     }
 }
 

@@ -1031,9 +1031,6 @@ object PageTokens {
     /** Never cover a page longer than this, even if it never reports a paint. */
     const val COVER_MAX_MS = 2500L
 
-    /** Opening a card: its screenshot grows from this scale to full screen. */
-    const val OPEN_ZOOM_FROM = 0.92f
-
     /** The dock always shows when the page is scrolled less than this from the top. */
     val DockNearTop = 48.dp
 }
@@ -1077,6 +1074,9 @@ object Motion {
     /** Overview open/close; also drives the bar morph. */
     val Overview: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)
     const val OVERVIEW_ZOOM = 0.04f
+
+    /** Page ↔ overview with no card to fly to (a new tab…): the page shrinks to this scale. */
+    const val HERO_FALLBACK_SCALE = 0.85f
 
     /** The dock settling shown/hidden after a page scroll lets go. */
     val DockSettle: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 800f)

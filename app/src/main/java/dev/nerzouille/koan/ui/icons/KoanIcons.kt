@@ -109,6 +109,13 @@ object KoanIcons {
             moveTo(9f, 20f); lineTo(15f, 20f); moveTo(12f, 16f); lineTo(12f, 20f)
         }
     }
+    val StatusBar: ImageVector by lazy {
+        stroked("status_bar") {
+            // A phone, its status bar row on top.
+            moveTo(7f, 3f); lineTo(17f, 3f); lineTo(17f, 21f); lineTo(7f, 21f); close()
+            moveTo(7f, 7f); lineTo(17f, 7f)
+        }
+    }
     val Reader: ImageVector by lazy {
         stroked("reader") {
             moveTo(5f, 6f); lineTo(19f, 6f); moveTo(5f, 10f); lineTo(19f, 10f)

@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +41,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import dev.nerzouille.koan.ui.topSafePadding
 
 /**
  * A full-screen list page opened from the ⋯ menu (Downloads, History): ‹ and the title on top,
@@ -68,7 +68,7 @@ fun ListPage(
             .fillMaxSize()
             .background(palette.Base)
             .settingsWash(palette.isDark)
-            .statusBarsPadding()
+            .topSafePadding()
             .navigationBarsPadding()
             .imePadding(),
     ) {

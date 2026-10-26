@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased (0.3.1)
+
+### New
+
+- **Hide status bar** (Settings › Display, off by default): pages use the whole screen, right up
+  to the camera. Swipe down from the top edge to see the status bar for a moment. The overview,
+  menus, Settings and the other pages keep it. Theme moved into the new Display section.
+
+### Changed
+
+- **Page ↔ overview, no more double image:** the overview no longer fades over the page. The tab's
+  card flies between the page and its place in the stack, fully opaque, both ways (also when you
+  drag it on the dock).
+- **Issue templates:** bug reports and feature requests on GitHub ask for what's needed (phone,
+  Android and Koan versions, steps). See Feedback in the README.
+
 ## 0.3.0 — 2026-10-25 (beta)
 
 Installs over 0.2.x (and the Android 11 preview) and keeps your data. Full guide:

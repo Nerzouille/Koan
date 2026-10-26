@@ -200,7 +200,7 @@ fun TabCard(
 private val CardShape = RoundedCornerShape(CardTokens.Radius)
 
 @Composable
-private fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
+internal fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
     val palette = KoanTheme.colors
     Row(
         Modifier

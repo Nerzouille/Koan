@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +51,7 @@ import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SignInTokens
 import kotlinx.coroutines.launch
 import java.io.IOException
+import dev.nerzouille.koan.ui.topSafePadding
 
 /**
  * Mozilla sign-in, dressed as part of Koan: dark header, the accounts page fading in only once it
@@ -95,7 +95,7 @@ fun SignInScreen(onLogin: suspend (FxAWebLogin) -> Unit, onClose: () -> Unit, mo
         modifier
             .fillMaxSize()
             .background(KoanTheme.colors.Base)
-            .statusBarsPadding(),
+            .topSafePadding(),
     ) {
         Row(
             Modifier

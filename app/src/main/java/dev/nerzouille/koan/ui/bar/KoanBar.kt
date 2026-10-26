@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
@@ -58,6 +57,7 @@ import dev.nerzouille.koan.ui.theme.BrandTokens
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.max
+import dev.nerzouille.koan.ui.topSafe
 
 private const val OFFSCREEN_PX = 100_000
 
@@ -105,7 +105,7 @@ fun KoanBar(
     with(density) {
         val rows = (BarTokens.SwitcherRowHeight + BarTokens.AddressRowHeight).toPx()
         val below = WindowInsets.navigationBars.getBottom(density) + BarTokens.BottomMargin.toPx()
-        val top = WindowInsets.statusBars.getTop(density) + SheetTokens.FullTopGap.toPx()
+        val top = WindowInsets.topSafe.getTop(density) + SheetTokens.FullTopGap.toPx()
         drawer.compactCapPx = windowPx * SheetTokens.COMPACT_MAX_FRACTION - rows - below
         drawer.fullCapPx = windowPx - top - rows - below
         drawer.minStepPx = SheetTokens.MinDetentStep.toPx()

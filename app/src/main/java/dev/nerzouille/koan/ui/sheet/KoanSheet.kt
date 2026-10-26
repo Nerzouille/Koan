@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,6 +55,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import dev.nerzouille.koan.ui.topSafe
 
 /**
  * The pages of a sheet: a root and the pages pushed on it. A pushed page slides in from the right
@@ -128,7 +128,7 @@ fun <T : Any> KoanSheet(
     val windowPx = LocalWindowInfo.current.containerSize.height.toFloat()
     with(density) {
         state.compactCapPx = windowPx * SheetTokens.COMPACT_MAX_FRACTION
-        state.fullCapPx = windowPx - WindowInsets.statusBars.getTop(density) - SheetTokens.FullTopGap.toPx()
+        state.fullCapPx = windowPx - WindowInsets.topSafe.getTop(density) - SheetTokens.FullTopGap.toPx()
         state.minStepPx = SheetTokens.MinDetentStep.toPx()
     }
     val shown by remember(state) { derivedStateOf { state.open || state.height > 0f } }

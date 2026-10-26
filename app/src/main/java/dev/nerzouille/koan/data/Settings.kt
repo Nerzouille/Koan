@@ -41,6 +41,15 @@ class Settings(context: Context) {
         store.edit { it[theme] = mode.name }
     }
 
+    private val hideStatus = booleanPreferencesKey("hide_status_bar")
+
+    /** The status bar stays hidden (a swipe from the top edge shows it for a moment); off by default. */
+    val hideStatusBar: Flow<Boolean> = store.data.map { it[hideStatus] ?: false }
+
+    suspend fun setHideStatusBar(on: Boolean) {
+        store.edit { it[hideStatus] = on }
+    }
+
     private val downloads = stringPreferencesKey("download_location")
 
     /** Where downloads go: a folder the owner picked (a content:// tree), or null = the phone's Download folder. */

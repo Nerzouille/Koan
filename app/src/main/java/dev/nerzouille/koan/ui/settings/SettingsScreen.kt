@@ -68,6 +68,9 @@ class SettingsUi(
     /** Suggestions from the search engine while typing. */
     val suggestions: Boolean,
     val onSuggestions: (Boolean) -> Unit,
+    /** The status bar stays hidden in the page and the overview. */
+    val hideStatusBar: Boolean,
+    val onHideStatusBar: (Boolean) -> Unit,
     val email: String?,
     val status: DrawerStatus,
     val onSyncNow: () -> Unit,
@@ -159,13 +162,6 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
             onClick = { ui.onSuggestions(!ui.suggestions) },
         ) { KoanToggle(checked = ui.suggestions, onCheckedChange = if (on) ui.onSuggestions else null) }
         SettingsDivider()
-        SettingsRow(KoanIcons.Contrast, "Theme", on)
-        Segmented(
-            listOf(ThemeMode.Light to "Light", ThemeMode.Dark to "Dark", ThemeMode.System to "Follow system"),
-            ui.theme, on, ui.onTheme,
-        )
-        Spacer(Modifier.height(SettingsTokens.Divider * 10))
-        SettingsDivider()
         SettingsRow(KoanIcons.Essentials, "Start page", on, subtitle = "When Koan comes back after this long unused")
         Segmented(StartPageAfter.entries.map { it to it.label }, ui.startPageAfter, on, ui.onStartPageAfter)
         Spacer(Modifier.height(SettingsTokens.Divider * 10))
@@ -177,6 +173,20 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
             chevron = !ui.isDefault,
             onClick = if (ui.isDefault) null else ui.onMakeDefault,
         )
+
+        SettingsSection("Display")
+        SettingsRow(KoanIcons.Contrast, "Theme", on)
+        Segmented(
+            listOf(ThemeMode.Light to "Light", ThemeMode.Dark to "Dark", ThemeMode.System to "Follow system"),
+            ui.theme, on, ui.onTheme,
+        )
+        Spacer(Modifier.height(SettingsTokens.Divider * 10))
+        SettingsDivider()
+        SettingsRow(
+            KoanIcons.StatusBar, "Hide status bar", on,
+            subtitle = "Swipe down from the top edge to see it",
+            onClick = { ui.onHideStatusBar(!ui.hideStatusBar) },
+        ) { KoanToggle(checked = ui.hideStatusBar, onCheckedChange = if (on) ui.onHideStatusBar else null) }
 
         SettingsSection("Privacy")
         SettingsRow(

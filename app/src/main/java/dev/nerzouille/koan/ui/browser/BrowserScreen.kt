@@ -1,5 +1,8 @@
 package dev.nerzouille.koan.ui.browser
 
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import dev.nerzouille.koan.ui.overview.LocalCardHero
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -72,9 +75,11 @@ fun BrowserScreen(
     /** Find in page holds the dock in place: the page ends above it (its last lines reachable). */
     findOpen: Boolean,
     cover: CoverTarget?,
-    zoomIn: () -> Boolean,
+    /** "Hide status bar": the page runs up to the top edge (the status bar shows over it, if at all). */
+    toTop: Boolean,
     swipe: TabSwipe,
 ) {
+    val hero = LocalCardHero.current
     val context = LocalContext.current
     val store = components.store
     val session = components.sessionUseCases
@@ -200,8 +205,11 @@ fun BrowserScreen(
         Modifier
             .fillMaxSize()
             .background(KoanTheme.colors.Base)
-            .then(if (fullScreen) Modifier else Modifier.statusBarsPadding().padding(bottom = with(density) { maxOf(navPx, keyboardPx).toDp() }))
+            .then(if (fullScreen || toTop) Modifier else Modifier.statusBarsPadding())
+            .then(if (fullScreen) Modifier else Modifier.padding(bottom = with(density) { maxOf(navPx, keyboardPx).toDp() }))
             .then(if (findOpen && !fullScreen) Modifier.padding(bottom = barZone(overview = false)) else Modifier)
+            // Where the card flying to and from the overview starts and ends.
+            .onGloballyPositioned { hero.pageRect = it.boundsInRoot() }
             .nestedScroll(dock.nestedScroll)
             .pullToRefresh(
                 pull,
@@ -236,7 +244,7 @@ fun BrowserScreen(
             },
         ) {
             AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())
-            PageCover(cover, store, zoomIn)
+            PageCover(cover, store)
             PullIndicator(pull, Modifier.align(Alignment.TopCenter))
         }
         if (swipe.active) {

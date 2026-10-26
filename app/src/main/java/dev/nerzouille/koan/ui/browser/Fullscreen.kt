@@ -17,11 +17,12 @@ import mozilla.components.browser.state.selector.findTab
 /**
  * A page went fullscreen (a video's ⛶): the system bars hide (a swipe from the edge shows them for
  * a moment), the screen turns to the video's orientation, and Back leaves fullscreen first.
- * Returns whether the page is fullscreen, for the page view (no dock, no status bar inset) and the
- * bar (hidden).
+ * Outside fullscreen, the status bar follows [hideStatus] ("Hide status bar", the same swipe
+ * shows it for a moment). Returns whether the page is fullscreen, for the page view (no dock, no
+ * status bar inset) and the bar (hidden).
  */
 @Composable
-fun rememberFullscreen(components: Components, tabId: String?): Boolean {
+fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boolean): Boolean {
     val fullScreen by components.store.observeSlice(tabId) { s -> tabId?.let { s.findTab(it) }?.content?.fullScreen == true }
     // The video's shape, when the page told it (a landscape video unless it says otherwise).
     val portrait by components.store.observeSlice(tabId) { s ->
@@ -31,16 +32,21 @@ fun rememberFullscreen(components: Components, tabId: String?): Boolean {
     }
     val activity = LocalContext.current as? Activity
     LaunchedEffect(fullScreen, portrait) {
+        activity?.requestedOrientation = when {
+            !fullScreen -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            portrait -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
+    }
+    LaunchedEffect(fullScreen, hideStatus) {
         val window = activity?.window ?: return@LaunchedEffect
         val bars = WindowCompat.getInsetsController(window, window.decorView)
+        bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (fullScreen) {
-            bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             bars.hide(WindowInsetsCompat.Type.systemBars())
-            activity.requestedOrientation =
-                if (portrait) ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         } else {
-            bars.show(WindowInsetsCompat.Type.systemBars())
-            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            bars.show(WindowInsetsCompat.Type.navigationBars())
+            if (hideStatus) bars.hide(WindowInsetsCompat.Type.statusBars()) else bars.show(WindowInsetsCompat.Type.statusBars())
         }
     }
     // Koan never stays turned or without its bars when this goes away.

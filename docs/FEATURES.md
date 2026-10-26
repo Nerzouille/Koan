@@ -472,9 +472,10 @@ closes it).
 | Account card | Connect (signed out), or open the account page: **Sync now**, **Sign out** |
 | Search engine | DuckDuckGo, Google, Brave Search, Startpage |
 | Search suggestions | On by default; off = no suggestions at all |
-| Theme | Light, Dark, Follow system (pages follow it too) |
 | Start page | After how long unused Koan opens on the [start page](#the-start-page): 30 min, 1 h (default), 4 h, Never |
 | Default browser | Opens Android's choice to make Koan the default browser |
+| Theme (Display) | Light, Dark, Follow system (pages follow it too) |
+| Hide status bar (Display) | Off by default. On: pages use the whole screen up to the camera; swipe down from the top edge to see the status bar for a moment. The overview, menus, Settings and the other pages still show it |
 | Passwords | See [Passwords and autofill](#8-passwords-and-autofill) |
 | uBlock Origin | On/off, blocked this week, or Install |
 | Downloads | The Downloads page |

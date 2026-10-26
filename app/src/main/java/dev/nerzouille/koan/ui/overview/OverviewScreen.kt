@@ -12,7 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.layout.onGloballyPositioned
+import dev.nerzouille.koan.ui.topSafePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -162,9 +163,12 @@ fun OverviewScreen(
     }
 
     val palette = KoanTheme.colors
+    val hero = LocalCardHero.current
     Box(
         modifier
             .fillMaxSize()
+            // Inside the open zoom: the stacks measure their cards from here (CardHero).
+            .onGloballyPositioned { hero.overview = it }
             .drawBehind { drawRect(palette.Base) },
     ) {
         Column(Modifier.fillMaxSize()) {
@@ -172,7 +176,7 @@ fun OverviewScreen(
                 Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .statusBarsPadding(),
+                    .topSafePadding(),
             ) {
                 val current = pager.settled
                 for (i in models.indices) {
@@ -241,7 +245,7 @@ fun OverviewScreen(
         // The placeholders fade out while the real spaces fade in (one-off, after the first sync).
         val revealing by remember { derivedStateOf { reveal.value < 1f } }
         if (revealing) {
-            Column(Modifier.fillMaxSize().statusBarsPadding().graphicsLayer { alpha = 1f - reveal.value }) {
+            Column(Modifier.fillMaxSize().topSafePadding().graphicsLayer { alpha = 1f - reveal.value }) {
                 Spacer(Modifier.height(OverviewTokens.HeaderHeight))
                 SkeletonStack(Modifier.weight(1f))
                 Spacer(Modifier.navigationBarsPadding().height(dock - StackTokens.UnderDock))

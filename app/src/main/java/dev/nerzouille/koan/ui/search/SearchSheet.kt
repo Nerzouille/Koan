@@ -34,7 +34,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,6 +55,7 @@ import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.SearchTokens
+import dev.nerzouille.koan.ui.topSafe
 
 /** An open tab a result switches to: where it lives. */
 @Immutable
@@ -123,7 +123,7 @@ private fun BoxScope.Results(
     val shortcut = parsed.shortcut
     val density = LocalDensity.current
     val screen = LocalWindowInfo.current.containerSize.height
-    val statusTop = WindowInsets.statusBars.getTop(density)
+    val statusTop = WindowInsets.topSafe.getTop(density)
     val cap = with(density) { (screen - statusTop - SearchTokens.StatusGap.toPx() - bottom.toPx() - SearchTokens.GroupGap.toPx()).toDp() }
     val pickable = parsed.picking && (
         Shortcut.entries.any { pickMatch(parsed.rest, it.key, it.label) } || Scope.entries.any { pickMatch(parsed.rest, it.key, it.label) }

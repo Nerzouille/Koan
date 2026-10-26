@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -39,6 +38,7 @@ import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.BrandTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
+import dev.nerzouille.koan.ui.topSafePadding
 
 /*
  * Settings' building blocks (design 7n / 7o): rows straight on the base with hairlines, small
@@ -69,7 +69,7 @@ fun SettingsPageFrame(title: String?, interactive: Boolean, onBack: () -> Unit, 
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .statusBarsPadding()
+            .topSafePadding()
             .navigationBarsPadding()
             .padding(horizontal = SettingsTokens.Padding),
     ) {

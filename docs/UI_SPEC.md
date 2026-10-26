@@ -316,6 +316,11 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   frame is ready (never show a blank white page during the morph).
 - **New tab:** a new card grows from the address field into the stack bottom, then immediately
   morphs open with the address sheet focused.
+- **Never a double image (0.3.1):** the overview is opaque throughout; only the flying card
+  (`ui/overview/CardHero.kt`, the card's own header + the tab's screenshot) moves over it, and the
+  real card hides while it flies. The header slides in from above the screen edge as the corners
+  round. No card to fly to (a new tab, a link from another app): the page shrinks towards the
+  middle instead. Same morph when a finger drives it on the dock.
 
 ## Themes
 

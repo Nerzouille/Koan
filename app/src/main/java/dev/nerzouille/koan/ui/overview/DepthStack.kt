@@ -1,5 +1,11 @@
 package dev.nerzouille.koan.ui.overview
 
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.LayoutCoordinates
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.animate
@@ -211,7 +217,9 @@ fun DepthStack(
     // Light: back cards fade into the background (a haze); dark: they darken.
     val dimColor = if (palette.DimToBase) palette.Base else Color.Black
 
-    BoxWithConstraints(modifier.clipToBounds()) {
+    val hero = LocalCardHero.current
+    val coordinates = remember { arrayOfNulls<LayoutCoordinates>(1) }
+    BoxWithConstraints(modifier.clipToBounds().onGloballyPositioned { coordinates[0] = it }) {
         val width = constraints.maxWidth.toFloat()
         val height = constraints.maxHeight.toFloat()
         val geo = remember(width, height, density, palette) { StackGeometry(state, width, height, density.density, palette) }
@@ -219,6 +227,25 @@ fun DepthStack(
         val cardHeightDp = with(density) { geo.cardHeight.toDp() }
 
         val currentIds by rememberUpdatedState(ids)
+        // The card flying to or from the page (CardHero) lands where this stack shows it, while
+        // this stack's page is the one settled on screen.
+        SideEffect { hero.cardSize = Size(geo.cardWidth, geo.cardHeight) }
+        DisposableEffect(hero, state, geo) {
+            hero.register(state) { id ->
+                val i = currentIds.indexOf(id)
+                val stack = coordinates[0]
+                val root = hero.overview
+                if (i < 0 || stack == null || root == null || !stack.isAttached || !root.isAttached) return@register null
+                if (!currentOnScreen() || currentPageFade() < 1f) return@register null
+                val d = geo.depthOf(state.anim(id, i))
+                val scale = DepthCurve.scale(d)
+                val origin = root.localPositionOf(stack, Offset.Zero)
+                val left = origin.x + (width - geo.cardWidth * scale) / 2f
+                val top = origin.y + geo.topOf(d)
+                Rect(left, top, left + geo.cardWidth * scale, top + geo.cardHeight * scale)
+            }
+            onDispose { hero.unregister(state) }
+        }
         val currentById by rememberUpdatedState(byId)
         val currentOnOpen by rememberUpdatedState(onOpen)
         val currentOnClose by rememberUpdatedState(onClose)
@@ -363,7 +390,7 @@ fun DepthStack(
                             length = { if (near.value) geo.shadowLength(a, behind) else 0f },
                             modifier = layout.graphicsLayer {
                                 geo.applyTo(this, a)
-                                alpha *= currentPageFade()
+                                alpha *= if (hero.hides(id)) 0f else currentPageFade()
                                 clip = false
                                 shadowElevation = 0f
                             },
@@ -376,7 +403,8 @@ fun DepthStack(
                         dimColor = dimColor,
                         modifier = layout.graphicsLayer {
                             geo.applyTo(this, a)
-                            alpha *= currentPageFade()
+                            // In flight over the overview (CardHero): the real card waits hidden.
+                            alpha *= if (hero.hides(id)) 0f else currentPageFade()
                         },
                     )
                 }

@@ -74,8 +74,11 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             // Nothing is drawn until the setting is read (a few ms), so the wrong theme never flashes.
+            // Likewise "Hide status bar": the page never jumps up a few ms after the first frame.
             val mode by components.settings.themeMode.collectAsState(initial = null)
+            val hideStatus by components.settings.hideStatusBar.collectAsState(initial = null)
             val resolved = mode ?: return@setContent
+            val hide = hideStatus ?: return@setContent
             val dark = when (resolved) {
                 ThemeMode.System -> isSystemInDarkTheme()
                 ThemeMode.Light -> false
@@ -97,7 +100,7 @@ class MainActivity : FragmentActivity() {
                 }
             }
             KoanTheme(dark) {
-                KoanRoot(components)
+                KoanRoot(components, hideStatus = hide)
             }
         }
     }
