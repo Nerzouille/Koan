@@ -37,11 +37,12 @@ class DepthCurveTest {
     }
 
     @Test
-    fun `card in front is slightly bigger and cards past it fade out`() {
+    fun `card in front is slightly bigger and cards past it slide away opaque`() {
         assertEquals(StackTokens.PEEK_SCALE, DepthCurve.scale(-1f), 1e-5f)
         assertEquals(StackTokens.PEEK_SCALE, DepthCurve.scale(-1.5f), 1e-5f)
         assertEquals(1f, DepthCurve.alpha(-1f), 1e-5f)
-        assertEquals(0f, DepthCurve.alpha(DepthCurve.MIN_VISIBLE_D), 1e-5f)
+        assertEquals(1f, DepthCurve.alpha(-1.5f), 1e-5f)
+        assertEquals(1f, DepthCurve.alpha(DepthCurve.MIN_VISIBLE_D), 1e-5f)
     }
 
     @Test

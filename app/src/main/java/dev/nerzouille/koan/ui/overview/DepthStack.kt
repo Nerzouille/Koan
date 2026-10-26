@@ -1,7 +1,7 @@
 package dev.nerzouille.koan.ui.overview
 
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -31,7 +31,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
@@ -80,7 +79,8 @@ fun DepthStack(
     state: StackState,
     enabled: Boolean,
     onOpen: (String) -> Unit,
-    onClose: (String) -> Unit,
+    /** A card closed, and the card now at the focus line (null = the stack is empty). */
+    onClose: (String, String?) -> Unit,
     onReorder: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
     /**
@@ -219,7 +219,14 @@ fun DepthStack(
 
     val hero = LocalCardHero.current
     val coordinates = remember { arrayOfNulls<LayoutCoordinates>(1) }
-    BoxWithConstraints(modifier.clipToBounds().onGloballyPositioned { coordinates[0] = it }) {
+    val screen = LocalWindowInfo.current.containerSize
+    val windowCentre = Offset(screen.width / 2f, screen.height / 2f)
+    BoxWithConstraints(
+        modifier
+            // Clipped, except while the tab's card flies out of it to the page (CardHero).
+            .graphicsLayer { clip = !hero.flying }
+            .onGloballyPositioned { coordinates[0] = it },
+    ) {
         val width = constraints.maxWidth.toFloat()
         val height = constraints.maxHeight.toFloat()
         val geo = remember(width, height, density, palette) { StackGeometry(state, width, height, density.density, palette) }
@@ -227,24 +234,23 @@ fun DepthStack(
         val cardHeightDp = with(density) { geo.cardHeight.toDp() }
 
         val currentIds by rememberUpdatedState(ids)
-        // The card flying to or from the page (CardHero) lands where this stack shows it, while
-        // this stack's page is the one settled on screen.
-        SideEffect { hero.cardSize = Size(geo.cardWidth, geo.cardHeight) }
-        DisposableEffect(hero, state, geo) {
-            hero.register(state) { id ->
-                val i = currentIds.indexOf(id)
-                val stack = coordinates[0]
-                val root = hero.overview
-                if (i < 0 || stack == null || root == null || !stack.isAttached || !root.isAttached) return@register null
-                if (!currentOnScreen() || currentPageFade() < 1f) return@register null
-                val d = geo.depthOf(state.anim(id, i))
-                val scale = DepthCurve.scale(d)
-                val origin = root.localPositionOf(stack, Offset.Zero)
-                val left = origin.x + (width - geo.cardWidth * scale) / 2f
-                val top = origin.y + geo.topOf(d)
-                Rect(left, top, left + geo.cardWidth * scale, top + geo.cardHeight * scale)
-            }
+        // The card flying to or from the page (CardHero) flies in this stack while its page is
+        // the one settled on screen.
+        val flies = { id: String ->
+            id in currentIds && currentOnScreen() && currentPageFade() >= 1f && coordinates[0]?.isAttached == true
+        }
+        DisposableEffect(hero, state) {
+            hero.register(state, flies)
             onDispose { hero.unregister(state) }
+        }
+        /** Where card [id] at [index] sits now, in this stack. */
+        fun slotOf(id: String, index: Int): Rect {
+            val a = state.anim(id, index)
+            val d = geo.depthOf(a)
+            val scale = DepthCurve.scale(d)
+            val left = (width - geo.cardWidth * scale) / 2f + a.swipeX
+            val top = geo.topOf(d)
+            return Rect(left, top, left + geo.cardWidth * scale, top + geo.cardHeight * scale)
         }
         val currentById by rememberUpdatedState(byId)
         val currentOnOpen by rememberUpdatedState(onOpen)
@@ -270,10 +276,16 @@ fun DepthStack(
             a.flyDir = dir
             flying[id] = Flying(card, a, inFrontOf = ids.getOrNull(i + 1))
             removed = removed + id
-            val behindForward = closeBringsBehind(i, state.pos.roundToInt(), ids.lastIndex, state.lastDirection)
+            val focus = state.pos.roundToInt()
+            val behindForward = closeBringsBehind(i, focus, ids.lastIndex, state.lastDirection)
+            val next = when {
+                i != focus -> ids.getOrNull(focus)
+                behindForward -> ids.getOrNull(i - 1)
+                else -> ids.getOrNull(i + 1)
+            } ?: ids.getOrNull(i - 1) ?: ids.getOrNull(i + 1)
             // The cards behind move one slot down the pile with the focus; the ones in front stay.
             if (behindForward) state.shiftBy(-1)
-            currentOnClose(id)
+            currentOnClose(id, next)
             state.launch {
                 try {
                     state.animateFlyOff(a)
@@ -390,6 +402,7 @@ fun DepthStack(
                             length = { if (near.value) geo.shadowLength(a, behind) else 0f },
                             modifier = layout.graphicsLayer {
                                 geo.applyTo(this, a)
+                                geo.enter(this, a, hero.entrance()) { hero.screenBottomIn(coordinates[0], windowCentre) }
                                 alpha *= if (hero.hides(id)) 0f else currentPageFade()
                                 clip = false
                                 shadowElevation = 0f
@@ -403,10 +416,25 @@ fun DepthStack(
                         dimColor = dimColor,
                         modifier = layout.graphicsLayer {
                             geo.applyTo(this, a)
-                            // In flight over the overview (CardHero): the real card waits hidden.
+                            // In flight (CardHero): the real card waits hidden, the others come in
+                            // around it.
+                            geo.enter(this, a, hero.entrance()) { hero.screenBottomIn(coordinates[0], windowCentre) }
                             alpha *= if (hero.hides(id)) 0f else currentPageFade()
                         },
                     )
+                    // The tab's card in flight, in this card's place: over the cards behind,
+                    // under the ones in front.
+                    if (id == hero.cardId) {
+                        FlyingHero(
+                            card = card,
+                            cardSize = Size(geo.cardWidth, geo.cardHeight),
+                            progress = hero.progress,
+                            visible = { hero.flying && flies(id) },
+                            start = { hero.pageIn(coordinates[0], windowCentre) },
+                            end = { slotOf(id, currentIds.indexOf(id).coerceAtLeast(0)) },
+                            modifier = Modifier.align(Alignment.TopStart),
+                        )
+                    }
                 }
             }
             flyingByAnchor[null]?.forEach { FlyingCard(it, geo, blurFor, dimColor, cardWidthDp, cardHeightDp, currentPageFade) }
@@ -575,6 +603,20 @@ private class StackGeometry(
         shadowElevation = (palette.CardElevation.value + a.lift * StackTokens.LiftShadow.value) * density
         ambientShadowColor = palette.CardShadowColor
         spotShadowColor = palette.CardShadowColor
+    }
+
+    /**
+     * Page ↔ overview, [e] = how far in (1 = in place): the cards behind rise out from under the
+     * focused card, fading in; the ones in front slide up from below the screen's bottom edge
+     * ([screenBottom], in this stack's coordinates: the page's dock is lower than the overview's),
+     * opaque.
+     */
+    fun enter(layer: GraphicsLayerScope, a: CardAnim, e: Float, screenBottom: () -> Float?) = with(layer) {
+        if (e >= 1f) return@with
+        val behind = depthOf(a) >= 0f
+        val from = if (behind) topOf(0f) else maxOf(viewportHeight, screenBottom() ?: viewportHeight)
+        translationY = from + (translationY - from) * e
+        if (behind) alpha *= e
     }
 
     private fun tiltFor(xPx: Float) = xPx / density * StackTokens.SWIPE_TILT_PER_DP

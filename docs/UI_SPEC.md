@@ -154,8 +154,8 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
   towards the neutral background (`#F5F5F7`) instead (1.25× the dim, at most 85%).
 - **Card in front (d = −1):** closer to the viewer, so slightly **bigger** (scale 1.05) and drawn
   over the focused card: it overlaps the focused card's bottom by 40dp, no gap between them. Only
-  its header strip and a hint of thumbnail show (60dp); the bottom fade is 16dp so it stays crisp. Cards past it fade out
-  within a third of a slot.
+  its header strip and a hint of thumbnail show (60dp); the bottom fade is 16dp so it stays crisp. Cards past it
+  slide straight down out of view, opaque (no fade), and rise the same way.
 - **Scrolling is continuous along that curve:** a drag moves the stack 1:1 with the finger (170dp
   per card); the next card rises from the front and settles into focus, the current one shrinks and
   slides up into the pile.

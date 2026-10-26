@@ -43,10 +43,11 @@ import kotlin.math.max
 
 /**
  * Page ↔ overview without a double image: the overview is opaque, and the tab's card flies
- * between the page and its slot in the stack over it. At the page end it is the page's screenshot
- * full size (its header just above the screen); at the stack end it is exactly the card. The real
- * card hides meanwhile. Without a card to land on (a new tab, a stack not on screen) the page
- * shrinks towards the middle instead.
+ * between the page and its slot. It flies inside its stack, in the card's own place (the cards
+ * behind stay behind it, the ones in front come in over it), and lands with the stack's own
+ * geometry. At the page end it is the page's screenshot full size (its header just above the
+ * screen). The real card hides meanwhile. Without a stack showing the card (a new tab…), the page
+ * shrinks towards the middle over the whole overview instead.
  */
 @Stable
 class CardHero {
@@ -56,14 +57,14 @@ class CardHero {
     /** The page view's bounds in the window (px). */
     var pageRect by mutableStateOf(Rect.Zero)
 
-    /** Card size at the focus (px), from the stack. */
-    var cardSize by mutableStateOf(Size.Zero)
-
-    /** The overview's content, inside its zoom: card bounds are measured from it. */
+    /** The overview's content, inside its zoom: stacks place themselves from it. */
     var overview: LayoutCoordinates? = null
 
     /** Page ↔ overview, 0 = page … 1 = overview (read in layers and draw only). */
     var progress: () -> Float = { 0f }
+
+    /** The overview's zoom around the window centre (read in layers and draw only). */
+    var zoom: () -> Float = { 1f }
 
     /** The overview is drawn (open, or still moving); read in layers and draw only. */
     var overviewShown: () -> Boolean = { false }
@@ -75,94 +76,178 @@ class CardHero {
     val flying: Boolean
         get() = overviewShown() && progress() < 1f
 
-    private val stacks = mutableStateMapOf<Any, (String) -> Rect?>()
+    private val stacks = mutableStateMapOf<Any, (String) -> Boolean>()
 
-    /** A stack on screen tells where its cards are (in the overview's unzoomed coordinates). */
-    fun register(key: Any, rectOf: (String) -> Rect?) {
-        stacks[key] = rectOf
+    /** A stack on screen says whether it shows a card (it then flies the card itself). */
+    fun register(key: Any, shows: (String) -> Boolean) {
+        stacks[key] = shows
     }
 
     fun unregister(key: Any) {
         stacks.remove(key)
     }
 
+    /** A stack on screen flies [cardId]; else the page shrinks over the overview (draw only). */
+    fun inStack(): Boolean {
+        val id = cardId ?: return false
+        return stacks.values.any { it(id) }
+    }
+
     fun hides(id: String) = flying && id == cardId
 
-    /** Where [cardId] sits in the stack now, unzoomed; null if no stack on screen shows it. */
-    fun cardRect(): Rect? {
-        val id = cardId ?: return null
-        return stacks.values.firstNotNullOfOrNull { it(id) }
+    /**
+     * How far the other cards have come in (1 = in place): they slide and fade in with the flying
+     * card, and back out with it.
+     */
+    fun entrance(): Float = if (flying) progress() else 1f
+
+    /** The bottom edge of the screen in the coordinates of [inside] (a stack inside the overview's zoom). */
+    fun screenBottomIn(inside: LayoutCoordinates?, windowCentre: Offset): Float? {
+        val root = overview ?: return null
+        if (inside == null || !inside.isAttached || !root.isAttached) return null
+        val origin = root.localPositionOf(inside, Offset.Zero)
+        return windowCentre.y + (2f * windowCentre.y - windowCentre.y) / zoom() - origin.y
+    }
+
+    /** [pageRect] in the coordinates of [inside] (a stack inside the overview's zoom), or null. */
+    fun pageIn(inside: LayoutCoordinates?, windowCentre: Offset): Rect? {
+        val root = overview ?: return null
+        if (inside == null || !inside.isAttached || !root.isAttached) return null
+        val origin = root.localPositionOf(inside, Offset.Zero)
+        val z = zoom()
+        fun local(p: Offset) = windowCentre + (p - windowCentre) / z - origin
+        return Rect(local(pageRect.topLeft), local(pageRect.bottomRight))
     }
 }
 
 val LocalCardHero = staticCompositionLocalOf { CardHero() }
 
 /**
- * The flying card, drawn over the overview while [progress] (0 = page … 1 = overview) is between
- * the two. [zoom]: the overview's scale around the screen centre. [card]: the card [hero] flies
- * to, if any; [fallback]: what the page shows otherwise. Every frame only touches the layer.
+ * The card in flight inside its stack, between [start] (the page, in the stack's coordinates) and
+ * [end] (its slot), at [progress]. [cardSize]: the card at the focus. Drawn only while [visible].
  */
 @Composable
-fun CardHeroLayer(
-    hero: CardHero,
-    card: CardModel?,
-    fallback: CoverTarget?,
+internal fun FlyingHero(
+    card: CardModel,
+    cardSize: Size,
     progress: () -> Float,
-    zoom: () -> Float,
+    visible: () -> Boolean,
+    start: () -> Rect?,
+    end: () -> Rect,
+    modifier: Modifier = Modifier,
 ) {
+    val density = LocalDensity.current
+    val headerPx = with(density) { CardTokens.HeaderHeight.toPx() }
+    // Tall enough for the page at the card's width (a phone screen is taller than a card).
+    val window = LocalWindowInfo.current.containerSize
+    val h = max(headerPx + window.height * cardSize.width / max(window.width, 1).toFloat(), cardSize.height)
+    HeroBody(
+        target = CoverTarget(card.id, card.url, card.icon, card.staticIcon, card.thumb, blank = false),
+        header = card,
+        layoutSize = Size(cardSize.width, h),
+        headerPx = headerPx,
+        progress = progress,
+        geometry = geometry@{ p ->
+            if (!visible()) return@geometry null
+            val from = start() ?: return@geometry null
+            HeroGeometry.between(from, end(), cardSize.width, headerPx, landsOnCard = true, p)
+        },
+        // Taller than the stack: pinned to its top-left, never centred on the overflow.
+        modifier = modifier.wrapContentSize(Alignment.TopStart, unbounded = true),
+    )
+}
+
+/**
+ * The fallback, over the whole overview: no stack shows the card (a new tab, a link from another
+ * app…), so the page shrinks towards the middle, opaque. [card]: shown if known, else [fallback].
+ */
+@Composable
+fun PageHeroLayer(hero: CardHero, card: CardModel?, fallback: CoverTarget?) {
     val page = hero.pageRect
     if (page.isEmpty) return
-    val density = LocalDensity.current
-    val palette = KoanTheme.colors
-    // The overview zooms around the window's centre.
     val window = LocalWindowInfo.current.containerSize
     val centre = Offset(window.width / 2f, window.height / 2f)
-    val headerPx = with(density) { CardTokens.HeaderHeight.toPx() }
+    val target = card?.let { CoverTarget(it.id, it.url, it.icon, it.staticIcon, it.thumb, blank = false) } ?: fallback
+    HeroBody(
+        target = target,
+        header = null,
+        layoutSize = page.size,
+        headerPx = 0f,
+        progress = hero.progress,
+        geometry = geometry@{ p ->
+            if (!hero.flying || hero.inStack()) return@geometry null
+            val z = hero.zoom()
+            val shrunk = scaled(page, Motion.HERO_FALLBACK_SCALE)
+            val end = Rect(centre + (shrunk.topLeft - centre) * z, centre + (shrunk.bottomRight - centre) * z)
+            HeroGeometry.between(page, end, page.width, 0f, landsOnCard = false, p)
+        },
+        modifier = Modifier.wrapContentSize(Alignment.TopStart, unbounded = true),
+    )
+}
+
+/** Where the flying body is this frame: its layer transform and its visible band. */
+private class HeroGeometry(val scale: Float, val translation: Offset, val clip: HeroClip) {
+    companion object {
+        /**
+         * From [from] (the page: the body's content below its header, full size) to [to] (the card
+         * slot: the whole body, header included, if [landsOnCard]), for a body [w] wide.
+         */
+        fun between(from: Rect, to: Rect, w: Float, headerPx: Float, landsOnCard: Boolean, p: Float): HeroGeometry {
+            val startScale = from.width / w
+            val endScale = to.width / w
+            val s = lerp(startScale, endScale, p)
+            val endTop = if (landsOnCard) 0f else headerPx
+            val clipTop = lerp(headerPx, endTop, p)
+            val clipBottom = lerp(headerPx + from.height / startScale, endTop + to.height / endScale, p)
+            val at = Offset(lerp(from.left, to.left, p), lerp(from.top, to.top, p))
+            return HeroGeometry(s, Offset(at.x, at.y - s * clipTop), HeroClip(clipTop, clipBottom, 0f))
+        }
+    }
+}
+
+@Composable
+private fun HeroBody(
+    target: CoverTarget?,
+    header: CardModel?,
+    layoutSize: Size,
+    headerPx: Float,
+    progress: () -> Float,
+    geometry: (Float) -> HeroGeometry?,
+    modifier: Modifier,
+) {
+    val density = LocalDensity.current
+    val palette = KoanTheme.colors
     val radiusPx = with(density) { CardTokens.Radius.toPx() }
     val hairlinePx = with(density) { CardTokens.Hairline.toPx() }
+    // As high as the cards (they all share one elevation): the stack then draws it in its card's
+    // place, the cards in front over it.
     val elevationPx = with(density) { palette.CardElevation.toPx() }
-    // Laid out at the card's own width (the header then lands exactly), tall enough for the page.
-    val withCard = card != null && hero.cardSize.width > 0f
-    val w = if (withCard) hero.cardSize.width else page.width
-    val pageH = page.height * w / page.width
-    val top0 = if (withCard) headerPx else 0f
-    val h = if (withCard) max(top0 + pageH, hero.cardSize.height) else pageH
-    // The visible part and the scale this frame, set by the layer, read by the border.
-    var visible = HeroClip(top0, top0 + pageH, 0f)
+    // This frame's band and scale, set by the layer, read by the border.
+    var band = HeroClip(0f, 0f, 0f)
     var layerScale = 1f
     Box(
-        Modifier
-            .wrapContentSize(Alignment.TopStart, unbounded = true)
-            .requiredSize(with(density) { w.toDp() }, with(density) { h.toDp() })
+        modifier
+            .requiredSize(with(density) { layoutSize.width.toDp() }, with(density) { layoutSize.height.toDp() })
             .graphicsLayer {
-                // At rest (page or overview) it waits unseen.
-                alpha = if (hero.flying) 1f else 0f
                 val p = progress()
-                val slot = if (withCard && hero.flying) hero.cardRect() else null
-                val z = zoom()
-                fun zoomed(r: Rect) = Rect(
-                    centre + (r.topLeft - centre) * z,
-                    centre + (r.bottomRight - centre) * z,
-                )
-                // Where it lands: the card, else the page shrunk towards the middle.
-                val end = if (slot != null) zoomed(slot) else zoomed(scaled(page, Motion.HERO_FALLBACK_SCALE))
-                val startScale = page.width / w
-                val endScale = end.width / w
-                val s = lerp(startScale, endScale, p)
-                val endTop = if (slot != null) 0f else top0
-                val clipTop = lerp(top0, endTop, p)
-                visible = HeroClip(clipTop, lerp(top0 + page.height / startScale, endTop + end.height / endScale, p), lerp(0f, radiusPx, p) / s)
-                layerScale = s
-                val at = Offset(lerp(page.left, end.left, p), lerp(page.top, end.top, p))
+                val g = geometry(p)
+                if (g == null) {
+                    alpha = 0f
+                    return@graphicsLayer
+                }
+                alpha = 1f
+                layerScale = g.scale
+                // Rounded on screen like the card as it lands.
+                band = g.clip.copy(corner = lerp(0f, radiusPx, p) / g.scale)
                 transformOrigin = TransformOrigin(0f, 0f)
-                scaleX = s
-                scaleY = s
-                translationX = at.x
-                translationY = at.y - s * clipTop
+                scaleX = g.scale
+                scaleY = g.scale
+                translationX = g.translation.x
+                translationY = g.translation.y
                 // A new shape value each frame: the layer rebuilds its outline only when it changes.
-                shape = visible
+                shape = band
                 clip = true
-                shadowElevation = elevationPx * p
+                shadowElevation = elevationPx
                 ambientShadowColor = palette.CardShadowColor
                 spotShadowColor = palette.CardShadowColor
             }
@@ -171,8 +256,8 @@ fun CardHeroLayer(
                 drawContent()
                 // The card's hairline, as it lands.
                 val p = progress()
-                if (withCard && p > 0f) {
-                    val v = visible
+                if (header != null && p > 0f) {
+                    val v = band
                     drawRoundRect(
                         palette.CardBorder,
                         topLeft = Offset(0f, v.top),
@@ -185,12 +270,7 @@ fun CardHeroLayer(
             },
     ) {
         Column(Modifier.fillMaxSize()) {
-            if (withCard && card != null) CardHeader(card, depth = { 0f }, dimColor = Color.Transparent)
-            val target = if (card != null) {
-                CoverTarget(card.id, card.url, card.icon, card.staticIcon, card.thumb, blank = false)
-            } else {
-                fallback
-            }
+            if (header != null) CardHeader(header, depth = { 0f }, dimColor = Color.Transparent)
             Box(Modifier.fillMaxWidth().weight(1f).background(palette.Base)) {
                 if (target != null && !target.blank) PagePreview(target)
             }

@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.overview
 
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,7 +42,11 @@ internal fun GhostSpace(
     Column(modifier.fillMaxSize()) {
         SpaceHeader(space, badge, onBack = {}, onBadge = {})
         Box(Modifier.weight(1f).fillMaxWidth().stackParallax(pageOffset)) {
-            GhostStack(space.stack, focus)
+            // Hidden while page ↔ overview moves: the real cards come in over it (CardHero).
+            val hero = LocalCardHero.current
+            Box(Modifier.fillMaxSize().graphicsLayer { alpha = if (hero.flying) 0f else 1f }) {
+                GhostStack(space.stack, focus)
+            }
         }
     }
 }

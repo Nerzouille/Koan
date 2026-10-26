@@ -289,9 +289,6 @@ object StackTokens {
     const val PEEK_SCALE = 1.05f
     const val PEEK_DIM = 0.12f
 
-    /** Cards further in front than the peek fade out over this fraction of a slot. */
-    const val FRONT_FADE_SLOTS = 0.33f
-
     /** Breathing room between the header and the top of the pile. */
     val PileTopGap = 22.dp
 

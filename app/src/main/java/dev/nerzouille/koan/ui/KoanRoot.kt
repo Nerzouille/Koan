@@ -1,7 +1,8 @@
 package dev.nerzouille.koan.ui
 
+import androidx.compose.runtime.mutableStateSetOf
 import dev.nerzouille.koan.ui.overview.LocalCardHero
-import dev.nerzouille.koan.ui.overview.CardHeroLayer
+import dev.nerzouille.koan.ui.overview.PageHeroLayer
 import dev.nerzouille.koan.ui.overview.CardHero
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.compose.BackHandler
@@ -159,6 +160,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     }
     val overviewVisible by remember { derivedStateOf { overviewOpen || motion.progress > 0f } }
     hero.progress = { motion.progress }
+    hero.zoom = { 1f + Motion.OVERVIEW_ZOOM * (1f - motion.progress) }
     hero.overviewShown = { overviewOpen || motion.progress > 0f }
 
     val scope = rememberCoroutineScope()
@@ -226,6 +228,13 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // (until the current tab follows) or a tab with no card (NO_CARD).
     var heroPick by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(activeTabId) { heroPick = null }
+    // Tabs closed in the overview that the spaces may still list for a moment (Room is async):
+    // never opened again unless Undo brings them back.
+    val gone = remember { mutableStateSetOf<String>() }
+    // The current tab was closed in the overview: the space it was in, where back to the page
+    // opens the card that came forward (its current card, currentTabs), or the start page.
+    var closedFrom by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(activeTabId) { if (activeTabId != null) closedFrom = null }
     val dock = remember { DockState(scope) }
     val tabSwipe = remember { TabSwipe(scope, tabs.current) }
     tabSwipe.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { BarTokens.TabSwipeGap.toPx() }
@@ -339,7 +348,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     /** The tab a space shows when switched to from the page view: its current card, else its newest. */
     fun lastTabOf(index: Int): TabEntity? {
         val s = spaces.getOrNull(index) ?: return null
-        val item = currentTabs[s.space.uuid]?.let { id -> s.stack.firstOrNull { it.id == id } } ?: s.stack.lastOrNull()
+        val live = s.stack.filter { item -> item.tabs.none { it.koanTabId in gone } }
+        val item = currentTabs[s.space.uuid]?.let { id -> live.firstOrNull { it.id == id } } ?: live.lastOrNull()
         return item?.first
     }
     /**
@@ -354,15 +364,32 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
         return null
     }
-    /** Leaving the overview without picking a card: back to the current tab, or the space's newest. */
+    /** The start page in space [index], its search field focused (a space with no tab left…). */
+    fun openStartPage(index: Int) {
+        if (index != pager.settled) pager.snapTo(index)
+        currentSpace = index
+        heroPick = NO_CARD
+        overviewOpen = false
+        searchField.start("")
+        startPage = true
+        editing = true
+    }
+    /**
+     * Leaving the overview without picking a card (tab counter, Back, swipe down): back to the
+     * current tab; if it was closed, to the card that came forward in its place.
+     */
     fun dismissOverview() {
-        if (activeTabId != null && tabById(activeTabId!!) != null) {
+        val id = activeTabId
+        if (id != null && id !in gone && tabById(id) != null) {
             heroPick = null
             overviewOpen = false
             return
         }
-        val index = pager.settled
-        lastTabOf(index)?.let { openTab(index, it) }
+        // The current tab is gone: the card that came forward in its space, else the start page
+        // there. Never a page for a tab that no longer exists.
+        val index = closedFrom?.let { uuid -> spaces.indexOfFirst { it.space.uuid == uuid } }?.takeIf { it >= 0 } ?: pager.settled
+        val tab = lastTabOf(index)
+        if (tab != null) openTab(index, tab) else openStartPage(index)
     }
     // Back on a page: its space is the current one again (the overview may have been left on
     // another), so the tab count and the next scrub match the page. Once the overview is gone,
@@ -415,11 +442,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         overlays.settingsOpen = false
         overlays.historyOpen = false
         overlays.downloadsOpen = false
-        heroPick = NO_CARD
-        overviewOpen = false
-        searchField.start("")
-        startPage = true
-        editing = true
+        openStartPage(currentSpace)
     }
 
     // The tour or a "What's new" (MainActivity: normal launches only), once the place is back and
@@ -484,6 +507,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     fun undoClose(closed: ClosedTab) {
         scope.launch {
             tabs.reopen(closed)
+            gone -= closed.row.koanTabId
             val index = spaces.indexOfFirst { it.space.uuid == closed.row.spaceUuid }
             openTab(if (index >= 0) index else currentSpace, closed.row)
         }
@@ -493,6 +517,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         val fallback = spaces.getOrNull(currentSpace)?.space?.uuid ?: return
         scope.launch {
             val closed = tabs.restoreClosed(id, fallback) ?: return@launch
+            gone -= closed.row.koanTabId
             val index = spaces.indexOfFirst { it.space.uuid == closed.row.spaceUuid }.let { if (it >= 0) it else currentSpace }
             openTab(index, closed.row)
         }
@@ -501,14 +526,26 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
      * A card closed in the overview: Undo puts it back in its place, in focus. Once the overview
      * is gone, Undo opens it like after Back.
      */
-    fun closeCard(id: String) {
+    fun closeCard(id: String, next: String?) {
         val rows = stackItem(id)?.tabs.orEmpty()
         val tab = rows.singleOrNull()
+        val space = spaces.firstOrNull { s -> s.stack.any { it.id == id } }?.space?.uuid
+        // The current tab (or, after closing it, the card that took its place): the card that
+        // comes forward becomes the current one.
+        val wasCurrent = rows.any { it.koanTabId == activeTabId } || (activeTabId == null && space != null && currentTabs[space] == id)
+        if (space != null && currentTabs[space] == id) {
+            if (next != null) currentTabs[space] = next else currentTabs.remove(space)
+        }
+        if (wasCurrent && space != null) {
+            closedFrom = space
+            if (next != null) currentTabs[space] = next else currentTabs.remove(space)
+        }
         // A live pinned/essential card is only unloaded back to its row (TabManager); a split view closes whole.
         if (tab == null || tab.pinned || tab.essential) {
             tabs.close(rows.map { it.koanTabId }.ifEmpty { listOf(id) }, rows)
             return
         }
+        gone += id
         scope.launch {
             val closed = tabs.closeForUndo(id) ?: return@launch
             toasts.show(
@@ -516,6 +553,12 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     if (!overviewOpen) return@Toast undoClose(closed)
                     scope.launch {
                         tabs.reopen(closed)
+                        gone -= id
+                        // It was the current tab: it is again.
+                        if (wasCurrent && activeTabId == null) {
+                            closedFrom = closed.row.spaceUuid
+                            currentTabs[closed.row.spaceUuid] = id
+                        }
                         overviewFocus.value = closed.row.spaceUuid to closed.row.koanTabId
                     }
                 },
@@ -599,9 +642,9 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
     }
     // A fullscreen video: no bars, the video's orientation; Back leaves fullscreen first.
-    // "Hide status bar" holds in the page view only: anything over it (the overview, a sheet,
-    // Settings, the tour…) brings the status bar back.
-    val pageOnly = !overviewVisible && !covered && !editing
+    // "Hide status bar" holds in the page view (its search sheet included): anything else over it
+    // (the overview, the menu and other sheets, Settings, the tour…) brings the status bar back.
+    val pageOnly = !overviewVisible && !covered
     val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly)
     val heroCard = when (val pick = heroPick) {
         NO_CARD -> null
@@ -668,12 +711,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
         // Between page and overview: the tab's card in flight over the opaque overview. Composed
         // ahead (hidden at rest), so the first frame of a transition only moves a layer.
-        CardHeroLayer(
+        PageHeroLayer(
             hero = hero,
             card = heroCard?.let { id -> models.firstNotNullOfOrNull { m -> m.stack.firstOrNull { it.id == id } } },
             fallback = cover,
-            progress = { motion.progress },
-            zoom = { 1f + Motion.OVERVIEW_ZOOM * (1f - motion.progress) },
         )
         if (drawer.open) {
             // Tap outside the drawer closes it; nothing behind it takes input meanwhile.
@@ -830,7 +871,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     onSubmit = ::submitSearch,
                     onSearchFromOverview = { newTab(pager.settled) },
                     onBack = { session.goBack(activeTabId) },
-                    onTabs = { if (overviewOpen) overviewOpen = false else openOverview() },
+                    onTabs = { if (overviewOpen) dismissOverview() else openOverview() },
                     onMenu = { overlays.menu.animateTo(Detent.Compact) },
                     onHistory = {
                         overlays.historyShowsClosed = false

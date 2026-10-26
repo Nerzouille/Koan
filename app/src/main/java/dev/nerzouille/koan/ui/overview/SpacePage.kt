@@ -91,7 +91,7 @@ fun SpacePage(
     onDismiss: () -> Unit,
     onNewTab: () -> Unit,
     onOpenTab: (String) -> Unit,
-    onCloseTab: (String) -> Unit,
+    onCloseTab: (String, String?) -> Unit,
     onReorder: (List<String>) -> Unit,
     onBadge: () -> Unit,
     onConnect: () -> Unit,
@@ -180,7 +180,7 @@ internal fun SkeletonStack(modifier: Modifier = Modifier) {
         state = state,
         enabled = false,
         onOpen = {},
-        onClose = {},
+        onClose = { _, _ -> },
         onReorder = {},
         modifier = modifier.fillMaxSize().graphicsLayer { this.alpha = alpha.value },
     )
@@ -189,8 +189,16 @@ internal fun SkeletonStack(modifier: Modifier = Modifier) {
 /** Compact header: back, space icon + name, sync badge. Swipe down on it = back to the current tab. */
 @Composable
 internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit, onBadge: () -> Unit) {
+    // Page ↔ overview: slides in from above and fades in with the cards (CardHero), the stand-in
+    // space's header (GhostSpace) too. Gone a third of the way out, before it reaches the status bar.
+    val hero = LocalCardHero.current
     Row(
         Modifier
+            .graphicsLayer {
+                val e = hero.entrance()
+                alpha = (1.5f * e - 0.5f).coerceIn(0f, 1f)
+                translationY = -(1f - e) * size.height
+            }
             .fillMaxWidth()
             .height(OverviewTokens.HeaderHeight)
             .pointerInput(Unit) {

@@ -61,7 +61,8 @@ fun OverviewScreen(
     dock: Dp,
     onOpenTab: (spaceIndex: Int, tab: TabEntity) -> Unit,
     onNewTab: (spaceIndex: Int) -> Unit,
-    onCloseTab: (String) -> Unit,
+    /** A card closed, and the card that came forward to the focus line (null = none left). */
+    onCloseTab: (String, String?) -> Unit,
     onReorder: (List<String>) -> Unit,
     onDismiss: () -> Unit,
     sync: SyncUi,

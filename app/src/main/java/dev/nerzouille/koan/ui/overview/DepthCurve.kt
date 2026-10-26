@@ -38,7 +38,7 @@ object DepthCurve {
 
     /** Whole-card alpha: the pile fades out far back, cards past the peek fade out quickly. */
     fun alpha(d: Float): Float =
-        if (d >= 0f) lerp(StackTokens.Alpha, d) else (1f - (-1f - d) / StackTokens.FRONT_FADE_SLOTS).coerceIn(0f, 1f)
+        if (d >= 0f) lerp(StackTokens.Alpha, d) else 1f
 
     /** Header strip overlay alpha: half the thumbnail dim, capped, so titles stay legible. */
     fun headerDim(d: Float): Float = (dim(d) * 0.5f).coerceAtMost(StackTokens.HEADER_DIM_MAX)
@@ -46,8 +46,11 @@ object DepthCurve {
     /** Cards further back than this are invisible: skip drawing and hit-testing them. */
     val MAX_VISIBLE_D = (StackTokens.Alpha.size - 1).toFloat()
 
-    /** Cards further in front than this are invisible. */
-    val MIN_VISIBLE_D = -1f - StackTokens.FRONT_FADE_SLOTS
+    /**
+     * Cards further in front than this are invisible: past the peek a card slides straight down,
+     * opaque, and is below the viewport (under the dock) by d = −2.
+     */
+    const val MIN_VISIBLE_D = -2f
 
     /** Linear interpolation through keyframes at d = 0, 1, 2 …, held at the last one. */
     private fun lerp(keys: FloatArray, d: Float): Float {

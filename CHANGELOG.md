@@ -6,13 +6,23 @@
 
 - **Hide status bar** (Settings › Display, off by default): pages use the whole screen, right up
   to the camera. Swipe down from the top edge to see the status bar for a moment. The overview,
-  menus, Settings and the other pages keep it. Theme moved into the new Display section.
+  menus, Settings and the other pages keep it (the search sheet too: it belongs to the page).
+  Theme moved into the new Display section.
 
 ### Changed
 
 - **Page ↔ overview, no more double image:** the overview no longer fades over the page. The tab's
   card flies between the page and its place in the stack, fully opaque, both ways (also when you
-  drag it on the dock).
+  drag it on the dock). It lands exactly on its card; the cards behind rise in, the card in front
+  slides up from the bottom and the space name slides down from the top, nothing pops in at the
+  end.
+- **Stack:** cards in front of the peek now slide down out of view, opaque, instead of fading.
+
+### Fixed
+
+- Closing the current tab in the overview, then going back to the page (tab counter, Back, swipe
+  down) opened a blank page. It now opens the card that came forward in its place (the start page
+  if the space is empty), and Undo makes the closed tab current again.
 - **Issue templates:** bug reports and feature requests on GitHub ask for what's needed (phone,
   Android and Koan versions, steps). See Feedback in the README.
 
