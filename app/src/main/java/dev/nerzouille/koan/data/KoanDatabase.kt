@@ -344,10 +344,11 @@ interface KoanDao {
     @Upsert
     suspend fun upsertSyncMeta(meta: SyncMetaEntity)
 
-    /** [ordered] = (koanTabId, order) pairs written in one transaction. */
+    /** A stack reorder in one transaction: (koanTabId, order) for normal tabs, (koanTabId, cardOrder) for pinned tabs' cards. */
     @Transaction
-    suspend fun setTabOrders(ordered: List<Pair<String, Int>>) {
-        ordered.forEach { (id, order) -> setTabOrder(id, order) }
+    suspend fun setStackOrders(orders: List<Pair<String, Int>>, cardOrders: List<Pair<String, Int>>) {
+        orders.forEach { (id, order) -> setTabOrder(id, order) }
+        cardOrders.forEach { (id, card) -> setCardOrder(id, card) }
     }
 
     /** Applies one Zen pull, already diffed against Room (see SpacesSync), atomically. */
@@ -355,6 +356,8 @@ interface KoanDao {
     suspend fun applyZenDiff(diff: ZenDiff) {
         if (diff.spacesToUpsert.isNotEmpty()) upsertSpaces(diff.spacesToUpsert)
         if (diff.tabsToUpsert.isNotEmpty()) upsertTabs(diff.tabsToUpsert)
+        diff.tabOrders.forEach { (id, order) -> setTabOrder(id, order) }
+        diff.cardOrders.forEach { (id, card) -> setCardOrder(id, card) }
         if (diff.foldersToUpsert.isNotEmpty()) upsertFolders(diff.foldersToUpsert)
         if (diff.splitsToUpsert.isNotEmpty()) upsertSplits(diff.splitsToUpsert)
         if (diff.tabsToDelete.isNotEmpty()) deleteTabs(diff.tabsToDelete)

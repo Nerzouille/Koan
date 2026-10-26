@@ -61,25 +61,80 @@ class ZenDiffTest {
         assertTrue(diff.tabsToUpsert.isEmpty())
     }
 
+    /** Space [space]'s stack, in order, once [diff] is applied to [room]. */
+    private fun stackAfter(room: List<TabEntity>, diff: ZenDiff, space: String = "a"): List<String> {
+        val rows = room.associateBy { it.koanTabId }.toMutableMap()
+        diff.tabsToDelete.forEach { rows.remove(it.koanTabId) }
+        diff.tabsToUpsert.forEach { rows[it.koanTabId] = it }
+        diff.tabOrders.forEach { (id, order) -> rows[id] = rows.getValue(id).copy(order = order) }
+        diff.cardOrders.forEach { (id, card) -> rows[id] = rows.getValue(id).copy(cardOrder = card) }
+        return rows.values.filter { it.spaceUuid == space && it.inStack }
+            .sortedWith(compareBy({ it.stackOrder }, { it.koanTabId })).map { it.koanTabId }
+    }
+
     @Test
     fun phoneTabsOfAVanishedSpaceMoveToTheFirstSpace() {
         val b = space("b", order = 1)
         val local = pulledTabs + listOf(localTab("p1", "b", 3), localTab("p2", "b", 1))
         val diff = ZenDiff.between(rows(listOf(a), pulledTabs), listOf(a, b), local, emptyList(), emptyList())
         assertEquals(listOf(b), diff.spacesToDelete)
-        // Appended after a's last tab (order 16), keeping their relative order.
-        assertEquals(listOf("p2" to 17, "p1" to 18), diff.tabsToUpsert.map { it.koanTabId to it.order })
+        // At the front of a's stack, after its last tab, keeping their relative order.
+        assertEquals(listOf("zen:t1", "zen:t2", "zen:t3", "p2", "p1"), stackAfter(local, diff))
         assertTrue(diff.tabsToUpsert.all { it.spaceUuid == "a" })
     }
 
     @Test
     fun thePhoneOnlySpaceFoldsIntoZenOnFirstSync() {
         val phone = LocalSpace.entity()
-        val local = listOf(localTab("before-sign-in", phone.uuid, 0))
+        val local = listOf(localTab("before-sign-in", phone.uuid, 0), localTab("newest", phone.uuid, 8))
         val diff = ZenDiff.between(rows(listOf(a), pulledTabs), listOf(phone), local, emptyList(), emptyList())
         assertEquals(listOf(phone), diff.spacesToDelete)
         assertEquals(listOf(a), diff.spacesToUpsert)
         assertEquals("a", diff.tabsToUpsert.single { it.koanTabId == "before-sign-in" }.spaceUuid)
+        // The phone's tabs stay at the front, Zen's merge in behind them.
+        assertEquals(listOf("zen:t1", "zen:t2", "zen:t3", "before-sign-in", "newest"), stackAfter(local, diff))
+    }
+
+    @Test
+    fun aPhoneTabStaysAtTheFrontWhenZenAddsATab() {
+        val room = pulledTabs + localTab("phone", "a", 17)
+        // Zen's new tab at the bottom of its sidebar: order 0, every other Zen tab shifts.
+        val shifted = listOf(zenTab("new", "a", 0)) + pulledTabs.map { it.copy(order = it.order + 8, zenOrder = it.zenOrder + 8) }
+        val diff = ZenDiff.between(rows(listOf(a), shifted), listOf(a), room, emptyList(), emptyList())
+        assertEquals(listOf("zen:new", "zen:t1", "zen:t2", "zen:t3", "phone"), stackAfter(room, diff))
+        assertTrue("phone rows are never rewritten whole", diff.tabsToUpsert.none { it.koanTabId == "phone" })
+
+        // At the top of Zen's sidebar: the highest order, still behind the phone's tab.
+        val top = pulledTabs + zenTab("new", "a", 24)
+        val diff2 = ZenDiff.between(rows(listOf(a), top), listOf(a), room, emptyList(), emptyList())
+        assertEquals(listOf("zen:t1", "zen:t2", "zen:t3", "zen:new", "phone"), stackAfter(room, diff2))
+    }
+
+    @Test
+    fun aPhoneTabKeepsItsNeighbourWhenZenReorders() {
+        // Opened from t1 on the phone, so it sits right after it.
+        val room = pulledTabs + localTab("from-t1", "a", 1)
+        val zenMoved = listOf(zenTab("t2", "a", 0), zenTab("t3", "a", 8), zenTab("t1", "a", 16))
+        val diff = ZenDiff.between(rows(listOf(a), zenMoved), listOf(a), room, emptyList(), emptyList())
+        assertEquals(listOf("zen:t2", "zen:t3", "zen:t1", "from-t1"), stackAfter(room, diff))
+    }
+
+    @Test
+    fun aZenTabClosedInZenMovesNothingElse() {
+        val room = pulledTabs + localTab("phone", "a", 17)
+        val diff = ZenDiff.between(rows(listOf(a), pulledTabs.take(2)), listOf(a), room, emptyList(), emptyList())
+        assertEquals(listOf("zen:t3"), diff.tabsToDelete.map { it.koanTabId })
+        assertTrue(diff.tabOrders.isEmpty() && diff.tabsToUpsert.isEmpty())
+    }
+
+    @Test
+    fun aSplitStaysTogetherAroundPhoneTabs() {
+        val split = listOf(zenTab("s1", "a", 8).copy(splitId = "s"), zenTab("s2", "a", 9).copy(splitId = "s"))
+        val room = listOf(zenTab("t1", "a", 0)) + split + localTab("phone", "a", 10)
+        val pulled = listOf(zenTab("new", "a", 0), zenTab("t1", "a", 8)) +
+            split.map { it.copy(order = it.order + 8, zenOrder = it.zenOrder + 8) }
+        val diff = ZenDiff.between(rows(listOf(a), pulled), listOf(a), room, emptyList(), emptyList())
+        assertEquals(listOf("zen:new", "zen:t1", "zen:s1", "zen:s2", "phone"), stackAfter(room, diff))
     }
 
     @Test

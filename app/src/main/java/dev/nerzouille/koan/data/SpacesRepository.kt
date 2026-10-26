@@ -72,12 +72,15 @@ class SpacesRepository(private val dao: KoanDao, private val scope: CoroutineSco
     /** Closing a split card closes every member. Zen tabs are hidden, not deleted (TabEntity.closed). */
     fun closeTabs(ids: List<String>) = scope.launch { dao.closeTabs(ids) }
 
-    /** [ordered] = the space's stack cards in their new order; split members stay together. */
+    /**
+     * [ordered] = the space's stack cards in their new order; split members stay together. A pinned
+     * tab's card moves by its cardOrder: its order is its place in the drawer.
+     */
     fun reorderStack(ordered: List<StackItem>) = scope.launch {
-        dao.setTabOrders(
-            ordered.flatMapIndexed { i, item ->
-                item.tabs.mapIndexed { m, tab -> tab.koanTabId to i * STRIDE + m }
-            },
+        val positions = ordered.flatMapIndexed { i, item -> item.tabs.mapIndexed { m, tab -> tab to i * STRIDE + m } }
+        dao.setStackOrders(
+            positions.filter { (tab, _) -> !tab.pinned && !tab.essential }.map { (tab, p) -> tab.koanTabId to p },
+            positions.filter { (tab, _) -> tab.pinned || tab.essential }.map { (tab, p) -> tab.koanTabId to p },
         )
     }
 
