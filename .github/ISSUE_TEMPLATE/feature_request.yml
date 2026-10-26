@@ -1,0 +1,25 @@
+name: Feature request
+description: An idea for Koan.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Koan is built for one person's daily use, so not every idea will make it in, but they're all read.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What you'd like Koan to do.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What you're trying to do, and how you do it today (in Koan, Zen or another browser).
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Sketches or screenshots
+      description: Optional. Drag files here.

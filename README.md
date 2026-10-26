@@ -54,6 +54,16 @@ A one-person hobby project, built for my own phone and shared as-is.
   ARM (arm64-v8a) only.
 - See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what is done and what is planned.
 
+## Feedback
+
+Found a bug or have an idea? Open an issue:
+
+- [Bug report](https://github.com/Nerzouille/Koan/issues/new?template=bug_report.yml): your phone model,
+  Android version, Koan version (Settings > About Koan), what happened and how to make it happen again.
+- [Feature request](https://github.com/Nerzouille/Koan/issues/new?template=feature_request.yml)
+
+Please leave private things out of issues (account emails, real tabs, passwords).
+
 ## Sign-in and sync
 
 - You sign in on **Mozilla's own accounts page**, shown in a WebView. Koan has no login form of

@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in Koan doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Koan is a one-person hobby project, so replies may take a while.
+        Please leave out anything private: account emails, real tab titles or URLs, passwords.
+  - type: input
+    id: phone
+    attributes:
+      label: Phone model
+      placeholder: e.g. Pixel 8, POCO X4 GT
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version
+      description: Settings > About phone. Add the skin if there is one (HyperOS, One UI…).
+      placeholder: e.g. Android 14, HyperOS 1.0
+    validations:
+      required: true
+  - type: input
+    id: koan
+    attributes:
+      label: Koan version
+      description: Koan > Settings > About Koan.
+      placeholder: e.g. 0.3.0
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the overview
+        2. Swipe to the next space
+        3. …
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or screen recording
+      description: Drag files here. Crop or blur anything private.
