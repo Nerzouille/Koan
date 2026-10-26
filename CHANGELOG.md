@@ -25,6 +25,8 @@
 
 ### Fixed
 
+- After sign-in, once the first sync is done, the overview opens on Zen's top tab (the front-most
+  Zen card; tabs opened on the phone sit just in front of it).
 - **Tab order on sync:** tabs opened on the phone keep their place in the stack when Zen's tabs
   sync in, at first sign-in and on every later sync.
 - Settings selectors (Start page, Theme) in dark mode: the chosen option now sits on a clearly

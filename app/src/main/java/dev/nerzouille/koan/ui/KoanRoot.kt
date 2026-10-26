@@ -36,6 +36,7 @@ import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
+import dev.nerzouille.koan.data.TabOrigin
 import android.app.Activity
 import dev.nerzouille.koan.engine.ClosedTab
 import dev.nerzouille.koan.engine.Opener
@@ -102,6 +103,7 @@ import dev.nerzouille.koan.ui.start.StartPage
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PagerTokens
 
@@ -211,6 +213,23 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val toasts = remember { ToastState() }
     // (space uuid, card id) the overview brings into focus (a card put back by Undo).
     val overviewFocus = remember { mutableStateOf<Pair<String, String>?>(null) }
+    // Just signed in: once the first sync has brought Zen's tabs, the overview shows Zen's top tab
+    // (the front-most Zen card; tabs opened on the phone sit in front of it).
+    var focusZenTop by remember { mutableStateOf(false) }
+    LaunchedEffect(focusZenTop) {
+        if (!focusZenTop) return@LaunchedEffect
+        val synced = withTimeoutOrNull(ZEN_TOP_WAIT_MS) {
+            snapshotFlow { syncStatus to spaces }.first { (status, all) ->
+                status is SyncStatus.NeedsSignIn || status is SyncStatus.Failed ||
+                    status is SyncStatus.Idle && all.any { it.space.zenOrigin }
+            }
+        }
+        focusZenTop = false
+        val all = synced?.second?.takeIf { synced.first is SyncStatus.Idle } ?: return@LaunchedEffect
+        val space = all.getOrNull(currentSpace.coerceIn(0, (all.size - 1).coerceAtLeast(0))) ?: return@LaunchedEffect
+        val top = space.stack.lastOrNull { item -> item.tabs.any { it.origin == TabOrigin.ZEN && !it.pinned && !it.essential } }
+        if (top != null) overviewFocus.value = space.space.uuid to top.id
+    }
     LaunchedEffect(overviewOpen, activeTabId) { overlays.dismissAll() }
     // A sheet, the drawer or a full page opening sends the toast away: nothing pops above them.
     // Toasts shown while one is open (History's Undo) still show.
@@ -942,6 +961,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 onLogin = { login ->
                     components.accounts.completeWebLogin(login.email, login.uid, login.sessionToken, login.keyFetchToken, login.unwrapBKey)
                     signingIn = false
+                    focusZenTop = true
                     components.sync.syncNow()
                     openOverview()
                 },
@@ -951,6 +971,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     if (sameKey != null) android.util.Log.i("KoanSync", "QR sign-in key matches the password sign-in: $sameKey")
                     components.pairLink.value = null
                     signingIn = false
+                    focusZenTop = true
                     components.sync.syncNow()
                     openOverview()
                 },
@@ -969,3 +990,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
 
 /** [heroPick]: the tab shown next has no card to fly from (a new tab, a link from another app). */
 private const val NO_CARD = ""
+
+/** After sign-in, how long the overview waits for the first sync before giving up on showing Zen's top tab. */
+private const val ZEN_TOP_WAIT_MS = 120_000L
