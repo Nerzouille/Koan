@@ -78,6 +78,17 @@ The canonical Zen sync wire format lives in Z-Sync's repo: `reference/Z-Sync/sha
 11. UI strings in English. Code comments in English.
 12. Prefer simple, readable code over clever abstractions. This is a one-person app.
 
+## Git branches (since 2026-10-27)
+
+- `main` = what is released; it stays GitHub's default branch. **Never commit or push to `main`
+  directly.**
+- `dev` = where work happens. Every change goes to `dev`, or to a feature branch made from `dev`
+  (e.g. `sync-back`) that is merged back into `dev` when done.
+- **Release:** merge `dev` into `main`, tag on `main` (`vX.Y.Z`), build the release from `main`.
+- **Urgent fix on a published version:** branch from `main` (e.g. `fix/…`), merge it into `main`
+  (patch release, tagged) and into `dev`.
+- Start every report to the owner with the branch you're on (`git branch --show-current`).
+
 ## Dev environment
 
 - Owner's machine: Linux (EndeavourOS, Hyprland). Android Studio / Gradle CLI.
