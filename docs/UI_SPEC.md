@@ -352,7 +352,7 @@ your focus**, used only for:
   title, and the welcome card, where the whole sheet is the vivid gradient with a slowly turning
   vortex behind the 3D K, blending into the sheet's own colour as you swipe on.
 
-**Never** as a passive "this is the current one" marker (the current tab is a state, not a moment), on login or password UI, permission prompts, destructive actions, body text, or behind
+**Never** as a passive "this is the current one" marker (the current tab is a state, not a moment), on login or password UI (one exception, the owner's choice: the faint glow behind the K on the sign-in choice page), permission prompts, destructive actions, body text, or behind
 web content. Primary buttons are never gradient.
 
 ### Controls

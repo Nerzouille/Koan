@@ -82,6 +82,10 @@ Pulled in by Gradle, not copied into this repository:
 - **AndroidX**, **Jetpack Compose**, **Room**, **DataStore**, **Kotlin** standard library and
   **kotlinx.coroutines**: Apache License 2.0, https://www.apache.org/licenses/LICENSE-2.0.
 - **AndroidSVG** (`com.caverock:androidsvg-aar`): Apache License 2.0.
+- **ZXing core** (`com.google.zxing:core`, QR codes for sign-in from a computer): Apache License
+  2.0. Source: https://github.com/zxing/zxing.
+- Test vectors only (in unit tests, not shipped): Mozilla's scoped-key test vectors from
+  application-services and Firefox, Mozilla Public License 2.0.
 - Tests only: **JUnit 4** (Eclipse Public License 1.0) and **org.json** (public domain).
 
 ## Trademarks

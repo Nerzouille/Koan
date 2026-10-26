@@ -76,8 +76,9 @@ android {
             isDebuggable = false
             matchingFallbacks += "release"
         }
-        // The release build under its own id, debug-signed: a clean side install for first-run
-        // checks that never touches the real app's data.
+        // The release build under its own id ("Koan Test"), debug-signed: a side install with its
+        // own data and account, for first-run checks and the two-way sync tests on the test
+        // Mozilla account (docs/SYNC_WRITE.md "Test plan"). Never touches the real app's data.
         create("staging") {
             initWith(getByName("release"))
             applicationIdSuffix = ".staging"
@@ -147,6 +148,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidsvg)
+    // QR sign-in: decodes the camera frames (no UI, no Play Services).
+    implementation(libs.zxing.core)
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

@@ -16,6 +16,7 @@ geckoview = "157.0.20261005135250"
 junit = "4.13.2"
 datastore = "1.2.1"
 androidsvg = "1.4"
+zxing = "3.5.4"
 orgJson = "20260814"
 
 [libraries]
@@ -40,6 +41,7 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 androidsvg = { module = "com.caverock:androidsvg-aar", version.ref = "androidsvg" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
 geckoview = { module = "org.mozilla.geckoview:geckoview-omni", version.ref = "geckoview" }
 mozilla-browser-engine-gecko = { module = "org.mozilla.components:browser-engine-gecko", version.ref = "mozillaComponents" }

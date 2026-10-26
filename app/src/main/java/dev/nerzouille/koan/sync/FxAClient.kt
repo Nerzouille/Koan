@@ -57,6 +57,68 @@ class FxAClient(
         }
     }
 
+    // MARK: - Koan: OAuth sign-in (QR pairing). The account holds a refresh token, never a session.
+
+    /** What a pairing's authorization code is worth. [toString] never prints the tokens. */
+    class OAuthTokens(val accessToken: String, val refreshToken: String, val keysJwe: String) {
+        override fun toString() = "OAuthTokens(<redacted>)"
+    }
+
+    /** Swaps the authorization code a pairing produced for tokens (+ the encrypted Sync key). */
+    suspend fun exchangeCode(code: String, codeVerifier: String, clientId: String): OAuthTokens {
+        val body = JSONObject()
+            .put("client_id", clientId)
+            .put("grant_type", "authorization_code")
+            .put("code", code)
+            .put("code_verifier", codeVerifier)
+        val obj = postJSON("/oauth/token", body)
+        val access = obj.optString("access_token")
+        val refresh = obj.optString("refresh_token")
+        val keys = obj.optString("keys_jwe")
+        if (access.isEmpty() || refresh.isEmpty() || keys.isEmpty()) throw SyncError.Auth("Incomplete token response.")
+        return OAuthTokens(access, refresh, keys)
+    }
+
+    /** A short-lived oldsync access token from the refresh token. A revoked one = sign in again. */
+    suspend fun refreshAccessToken(refreshToken: String, clientId: String): Pair<String, Long> {
+        val body = JSONObject()
+            .put("client_id", clientId)
+            .put("grant_type", "refresh_token")
+            .put("refresh_token", refreshToken)
+            .put("scope", OLD_SYNC_SCOPE)
+        val obj = try {
+            postJSON("/oauth/token", body)
+        } catch (e: SyncError.Auth) {
+            throw SyncError.SessionExpired
+        }
+        val access = obj.optString("access_token").ifEmpty { throw SyncError.Auth("OAuth response without access_token") }
+        val expiresIn = obj.optLong("expires_in", 0L)
+        return access to System.currentTimeMillis() + expiresIn * 1000L
+    }
+
+    /** The account's email and uid (profile scope). Read-only. */
+    suspend fun profile(accessToken: String): Pair<String, String> {
+        val response = sendRequest(URL(PROFILE_URL), "GET", ByteArray(0), mapOf("Authorization" to "Bearer $accessToken"))
+        val obj = parseBodyOrThrow(response) as? JSONObject ?: throw SyncError.Auth("Incomplete profile.")
+        val email = obj.optString("email").ifEmpty { throw SyncError.Auth("Profile without email.") }
+        val uid = obj.optString("uid").ifEmpty { throw SyncError.Auth("Profile without uid.") }
+        return email to uid
+    }
+
+    /** Revokes a token (sign-out). */
+    suspend fun destroyToken(token: String, clientId: String) {
+        postJSON("/oauth/destroy", JSONObject().put("client_id", clientId).put("token", token))
+    }
+
+    /** Token-server credentials for an OAuth access token and the Sync key's id. */
+    suspend fun syncCredentials(accessToken: String, kid: String): TokenServerCreds =
+        tokenServerCreds("Bearer $accessToken", kid)
+
+    private suspend fun postJSON(path: String, json: JSONObject): JSONObject {
+        val response = sendRequest(URL(authBase + path), "POST", json.toString().toByteArray(Charsets.UTF_8), emptyMap())
+        return parseBodyOrThrow(response) as? JSONObject ?: JSONObject()
+    }
+
     /** oldsync scoped-key metadata; raw millisecond keyRotationTimestamp. */
     private suspend fun scopedKeyData(sessionToken: String): Long {
         val token = FxACrypto.unhex(sessionToken)
@@ -149,8 +211,9 @@ class FxAClient(
         authorization: String,
         kB: ByteArray,
         keysChangedAt: Long,
-    ): TokenServerCreds {
-        val kid = "$keysChangedAt-" + base64url(FxACrypto.clientStateBytes(kB))
+    ): TokenServerCreds = tokenServerCreds(authorization, ScopedKeys.legacySyncKey(kB, keysChangedAt).kid)
+
+    private suspend fun tokenServerCreds(authorization: String, kid: String): TokenServerCreds {
         val response = sendRequest(
             tokenServerURL,
             "GET",
@@ -283,6 +346,7 @@ class FxAClient(
         const val authBase = "https://api.accounts.firefox.com/v1"
         val tokenServerURL = URL("https://token.services.mozilla.com/1.0/sync/1.5")
         const val TOKEN_SERVER_AUDIENCE = "https://token.services.mozilla.com"
+        const val PROFILE_URL = "https://profile.accounts.firefox.com/v1/profile"
 
         /** Firefox desktop client_id, fxa-credentials grant, oldsync scope. */
         const val OAUTH_CLIENT_ID = "5882386c6d801776"

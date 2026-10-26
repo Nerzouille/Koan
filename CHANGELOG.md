@@ -8,6 +8,11 @@
   to the camera. Swipe down from the top edge to see the status bar for a moment. The overview,
   menus, Settings and the other pages keep it (the search sheet too: it belongs to the page).
   Theme moved into the new Display section.
+- **Sign in from your computer:** on the sign-in screen, scan the code Zen shows under Settings ›
+  Sync › Connect another device (or paste its link). No password to type on the phone. Signing out
+  revokes that sign-in. Email and password still work as before. A first page asks which of the
+  two ways, with the K floating gently among a few sparkles; Mozilla's pages now follow Koan's
+  light or dark theme.
 
 ### Changed
 
@@ -20,6 +25,12 @@
 
 ### Fixed
 
+- **Tab order on sync:** tabs opened on the phone keep their place in the stack when Zen's tabs
+  sync in, at first sign-in and on every later sync.
+- Settings selectors (Start page, Theme) in dark mode: the chosen option now sits on a clearly
+  lighter pill, in bold.
+- Dragging the card of an open pinned tab in the stack now moves the card (it used to snap back
+  and move the tab in the drawer instead).
 - Closing the current tab in the overview, then going back to the page (tab counter, Back, swipe
   down) opened a blank page. It now opens the card that came forward in its place (the start page
   if the space is empty), and Undo makes the closed tab current again.

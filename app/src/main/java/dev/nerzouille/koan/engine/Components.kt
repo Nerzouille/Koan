@@ -158,6 +158,12 @@ class Components(context: Context) {
     /** A link or text another app sent to Koan (default browser, share): opened as a new tab. */
     val incoming = MutableStateFlow<Incoming?>(null)
 
+    /**
+     * A "Connect another device" pairing link Koan was opened with (the system camera, when Koan
+     * is the default browser): it goes to the sign-in, never to a tab or the history.
+     */
+    val pairLink = MutableStateFlow<String?>(null)
+
     /** Koan came back after being unused a while: the UI shows the start page (then clears it). */
     val startPage = MutableStateFlow(false)
 

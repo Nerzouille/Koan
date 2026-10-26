@@ -42,12 +42,23 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 
 - Where: the **Connect your Zen Spaces** card in the overview, the status row at the bottom of the
   drawer, or **⋯ › Settings › Connect your Zen Spaces** (the card at the top of Settings).
-- You sign in on Mozilla's own accounts page, shown inside Koan. Two-step verification codes are
-  asked there if your account uses them.
-- The session and the sync key are stored on the phone, encrypted with an Android Keystore key.
+- Two ways in, chosen on the first page (each page has a small link at the bottom to switch to the
+  other).
+  Mozilla's pages follow Koan's theme (Android 13+):
+  - **Email and password** on Mozilla's own accounts page, shown inside Koan. Two-step
+    verification codes are asked there if your account uses them.
+  - **Sign in from your computer:** on the computer, open Zen › Settings › Sync › **Connect
+    another device**; on the phone, tap **From your computer** (Koan asks for the camera only
+    then; if it was refused for good, "Allow the camera" opens Koan's app settings) and point it
+    at the code, then confirm on the computer. **Paste the link instead**
+    works too if you copied the code's link (Google Lens…), and when Koan is the default
+    browser, scanning the code with the phone's own camera opens it in Koan directly.
+- The session (email and password) or the long-lived token (from a computer) and the sync key are
+  stored on the phone, encrypted with an Android Keystore key. Signing out revokes the token.
   There is no Koan server, no analytics, no telemetry.
-- The sign-in identifies as Firefox desktop to be let into Firefox Sync. This is unofficial: it can
-  break when Mozilla changes something and may go against Mozilla's terms. Use it at your own risk.
+- The sign-in identifies as Firefox desktop (email and password) or Firefox for Android (from a
+  computer) to be let into Firefox Sync. This is unofficial: it can break when Mozilla changes
+  something and may go against Mozilla's terms. Use it at your own risk.
 
 ### What is synced (read-only)
 

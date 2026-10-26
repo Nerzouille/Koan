@@ -50,6 +50,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.R
@@ -292,7 +293,7 @@ private class Vortex(density: Density, simple: Boolean) {
 }
 
 /** Where the sparkles sit around the K (fractions of its box), their size and twinkle. */
-private class Sparkle(val x: Float, val y: Float, val size: Float, val periodMs: Float, val phase: Float)
+internal class Sparkle(val x: Float, val y: Float, val size: Float, val periodMs: Float, val phase: Float)
 
 private val Sparkles = listOf(
     Sparkle(-0.12f, 0.12f, 1.0f, 2_300f, 0.0f),
@@ -304,8 +305,12 @@ private val Sparkles = listOf(
 )
 
 /** Four-point stars (a soft dot behind each) that grow and fade in turn. */
-private fun Modifier.sparkles(simple: Boolean, clock: () -> Float): Modifier = drawWithCache {
-    val unit = 9.dp.toPx()
+private fun Modifier.sparkles(simple: Boolean, clock: () -> Float): Modifier =
+    sparkles(if (simple) Sparkles.take(TourTokens.SPARKLES_SIMPLE) else Sparkles, Color.White, 9.dp, clock)
+
+/** [shown] four-point stars in [color], [unit] = a size-1 star's radius; also on the sign-in page. */
+internal fun Modifier.sparkles(shown: List<Sparkle>, color: Color, unit: Dp, clock: () -> Float): Modifier = drawWithCache {
+    val unit = unit.toPx()
     // A four-point star of radius 1, its sides curved in.
     val star = Path().apply {
         moveTo(0f, -1f)
@@ -315,8 +320,7 @@ private fun Modifier.sparkles(simple: Boolean, clock: () -> Float): Modifier = d
         quadraticTo(-0.12f, -0.12f, 0f, -1f)
         close()
     }
-    val halo = Brush.radialGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0f)), Offset.Zero, 1f)
-    val shown = if (simple) Sparkles.take(TourTokens.SPARKLES_SIMPLE) else Sparkles
+    val halo = Brush.radialGradient(listOf(color.copy(alpha = 0.45f), color.copy(alpha = 0f)), Offset.Zero, 1f)
     onDrawBehind {
         val t = clock()
         for (sp in shown) {
@@ -326,7 +330,7 @@ private fun Modifier.sparkles(simple: Boolean, clock: () -> Float): Modifier = d
             val r = unit * sp.size * (0.45f + 0.55f * level)
             translate(size.width * sp.x, size.height * sp.y) {
                 scale(r * 1.8f, r * 1.8f, Offset.Zero) { drawCircle(halo, 1f, Offset.Zero, alpha = level) }
-                scale(r, r, Offset.Zero) { drawPath(star, Color.White, alpha = level) }
+                scale(r, r, Offset.Zero) { drawPath(star, color, alpha = level) }
             }
         }
     }

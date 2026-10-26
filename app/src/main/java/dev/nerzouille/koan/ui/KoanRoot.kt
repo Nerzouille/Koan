@@ -934,6 +934,9 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         val signIn = remember { Animatable(0f) }
         LaunchedEffect(signingIn) { signIn.animateTo(if (signingIn) 1f else 0f, Motion.Sheet) }
         val signInVisible by remember { derivedStateOf { signingIn || signIn.value > 0f } }
+        // A pairing link from the system camera: the sign-in, straight on the pairing page.
+        val pairLink by components.pairLink.collectAsStateWithLifecycle()
+        LaunchedEffect(pairLink) { if (pairLink != null) signingIn = true }
         if (signInVisible) {
             SignInScreen(
                 onLogin = { login ->
@@ -942,7 +945,20 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     components.sync.syncNow()
                     openOverview()
                 },
-                onClose = { signingIn = false },
+                onPairing = { flow, code ->
+                    val sameKey = components.accounts.completePairing(flow, code)
+                    // Both ways in must open the same Sync data (true/false only, never the keys).
+                    if (sameKey != null) android.util.Log.i("KoanSync", "QR sign-in key matches the password sign-in: $sameKey")
+                    components.pairLink.value = null
+                    signingIn = false
+                    components.sync.syncNow()
+                    openOverview()
+                },
+                pairLink = pairLink,
+                onClose = {
+                    components.pairLink.value = null
+                    signingIn = false
+                },
                 modifier = Modifier.graphicsLayer {
                     translationY = (1f - signIn.value) * size.height
                 },

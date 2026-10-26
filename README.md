@@ -66,10 +66,10 @@ Please leave private things out of issues (account emails, real tabs, passwords)
 
 ## Sign-in and sync
 
-- You sign in on **Mozilla's own accounts page**, shown in a WebView. Koan has no login form of
-  its own.
-- The resulting session and sync key are stored on the device, encrypted with a key held in the
-  **Android Keystore**. They are never logged or sent anywhere else.
+- You sign in on **Mozilla's own accounts page**, shown in a WebView, or **from your computer** by
+  scanning Zen's "Connect another device" code. Koan has no login form of its own.
+- The resulting session (or token) and sync key are stored on the device, encrypted with a key held
+  in the **Android Keystore**. They are never logged or sent anywhere else.
 - Sign-in and sync only talk to **Mozilla's servers** (Mozilla accounts, the Sync token server and
   the Sync storage server it points to). There is no Koan server, no analytics and no telemetry.
   Pages and their favicons load from the websites themselves, as in any browser.
@@ -78,7 +78,8 @@ Please leave private things out of issues (account emails, real tabs, passwords)
 
 ### Caveat
 
-To be allowed into Firefox Sync, the sign-in **identifies as Firefox desktop**. This is unofficial:
+To be allowed into Firefox Sync, the sign-in **identifies as Firefox desktop** (or as Firefox for
+Android when you sign in from your computer). This is unofficial:
 it can break whenever Mozilla changes something, and it may go against Mozilla's terms of service.
 **Use it at your own risk**, ideally not with an account you can't afford to have trouble with.
 

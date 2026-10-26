@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.view.ContextThemeWrapper
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
@@ -304,5 +305,12 @@ internal fun signInWebView(
         loadUrl(FxAWeb.LOGIN_URL)
     }
 }
+
+/**
+ * [context] with a light or dark theme to match Koan's: the WebView reads `isLightTheme` from its
+ * context to answer `prefers-color-scheme` and to decide on algorithmic darkening (Android 13+).
+ */
+internal fun themedForWeb(context: android.content.Context, dark: Boolean): android.content.Context =
+    ContextThemeWrapper(context, if (dark) android.R.style.Theme_Material_NoActionBar else android.R.style.Theme_Material_Light_NoActionBar)
 
 private fun isAuthHost(url: String?) = url != null && runCatching { Uri.parse(url).host }.getOrNull() == FxAWeb.HOST

@@ -55,6 +55,8 @@ class KoanPalette(
     val DockShadow: Color,
     val DrawerHandle: Color,
     val BarField: Color,
+    /** The chosen option's pill in a segmented selector (on a [Glass] track). */
+    val SegmentPill: Color,
     val FieldHint: Color,
     val Skeleton: Color,
     /** Behind favicons too dark to read on dark surfaces; Unspecified = never needed. */
@@ -112,6 +114,7 @@ class KoanPalette(
             DockShadow = Color(0xFF3C281E).copy(alpha = 0.07f),
             DrawerHandle = Color.Black.copy(alpha = 0.16f),
             BarField = Color(0xFFF1F1F4),
+            SegmentPill = Color(0xFFFFFFFF),
             FieldHint = Color(0xFF8E8E93),
             Skeleton = Color.Black.copy(alpha = 0.06f),
             IconBacking = Color.Unspecified,
@@ -157,6 +160,7 @@ class KoanPalette(
             DockShadow = Color.Black.copy(alpha = 0.35f),
             DrawerHandle = Color.White.copy(alpha = 0.20f),
             BarField = Color.White.copy(alpha = 0.08f),
+            SegmentPill = Color(0xFF4A4A4D),
             FieldHint = Color.White.copy(alpha = 0.60f),
             Skeleton = Color.White.copy(alpha = 0.07f),
             IconBacking = Color(0xFFE9E9EE),
@@ -191,7 +195,8 @@ object SpaceColorTokens {
 
 /**
  * The brand gradient (pink → violet → blue): ONLY for "Koan is working / active / your focus"
- * (docs/UI_SPEC.md "Brand gradient"). Never on login or password UI, permission prompts,
+ * (docs/UI_SPEC.md "Brand gradient"), and the faint glow behind the K on the sign-in choice page
+ * (owner's choice, 2026-10-27). Never on Mozilla's pages, password fields or buttons, permission prompts,
  * destructive actions, body text, or behind web content. Helpers: ui/theme/Brand.kt.
  */
 object BrandTokens {
@@ -552,6 +557,70 @@ object SignInTokens {
     val OutdatedPadding = 32.dp
     val OutdatedSize = 16.sp
     val OutdatedGap = 20.dp
+
+    /** The row switching between email/password and sign-in from a computer. */
+    val ModeSize = 16.sp
+    val ModeGlyph = 18.dp
+
+    /** Choice and scan pages. */
+    val PagePadding = 20.dp
+    val BottomGap = 20.dp
+    val KSize = 96.dp
+    val KGap = 24.dp
+    val HeroSize = 26.sp
+    val HeroLineGap = 8.dp
+    val BodySize = 15.sp
+
+    /** The K's halo: radius as a fraction of the K's size, and its strength. */
+    const val GLOW_RADIUS = 0.95f
+    const val GLOW_ALPHA_LIGHT = 0.30f
+    const val GLOW_ALPHA_DARK = 0.38f
+
+    /** The K's idle motion: the tour's, toned down (smaller, slower). */
+    val KFloat = 4.dp
+    const val K_FLOAT_MS = 4_200
+    const val K_TURN = 1.8f
+    const val K_TURN_MS = 6_400
+    /** The glow breathes ± this fraction of its strength (half of it in size). */
+    const val GLOW_BREATH = 0.12f
+    const val GLOW_BREATH_MS = 5_600
+    val SparkleUnit = 5.dp
+    const val SPARKLES_SIMPLE = 2
+    /** "Remove animations": the sparkles frozen mid-twinkle. */
+    const val STILL_CLOCK = 1_300f
+
+    /** The two cards: same height whatever their text. */
+    val ChoiceHeight = 84.dp
+    val ChoiceInset = 16.dp
+    val ChoiceGap = 16.dp
+    val ChoiceRadius = 22.dp
+    val CardBorder = 1.dp
+    val ChoiceIconBox = 44.dp
+    val ChoiceGlyph = 24.dp
+    val ChoiceLineGap = 2.dp
+    val BadgeSize = 11.sp
+    val BadgeLift = 9.dp
+    val BadgePaddingH = 9.dp
+    val BadgePaddingV = 3.dp
+
+    /** The scan page: viewfinder (fraction of the width) with aim brackets, then the steps. */
+    const val VIEWFINDER_WIDTH = 0.75f
+    val ScanRadius = 28.dp
+    val BracketInset = 18.dp
+    val BracketLength = 30.dp
+    val BracketRadius = 10.dp
+    val BracketStroke = 3.dp
+    val StepsGap = 28.dp
+    val StepGap = 12.dp
+    val StepDot = 26.dp
+    val StepNumberSize = 13.sp
+    val StepTextGap = 12.dp
+
+    /** "… instead": a small text button at the bottom. */
+    val LinkSize = 14.sp
+    val LinkPaddingH = 16.dp
+    val LinkPaddingV = 12.dp
+    val LinkBottom = 4.dp
 }
 
 object BarTokens {
@@ -805,6 +874,7 @@ object SettingsTokens {
     val SegmentRadius = 12.dp
     val SegmentInset = 3.dp
     val SegmentTextSize = 14.sp
+    val SegmentShadow = 2.dp
 
     /** The soft brand wash behind the top of the screen. */
     val WashHeight = 320.dp

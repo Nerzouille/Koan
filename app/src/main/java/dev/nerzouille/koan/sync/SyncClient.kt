@@ -44,7 +44,7 @@ sealed class PostOutcome {
  */
 class SyncClient internal constructor(
     private val creds: TokenServerCreds,
-    kB: ByteArray?,
+    syncKeys: SyncCrypto.KeyBundle?,
     preloadedDefaultKeys: SyncCrypto.KeyBundle?,
     preloadedCollectionKeys: Map<String, SyncCrypto.KeyBundle>?,
     private val transport: SyncHttpTransport,
@@ -57,8 +57,7 @@ class SyncClient internal constructor(
             defaultKeys = preloadedDefaultKeys
             collectionKeys = preloadedCollectionKeys
         } else {
-            val syncKeys = SyncCrypto.syncKeyBundle(requireNotNull(kB) { "kB required when keys are not preloaded" })
-            val loaded = fetchCollectionKeys(creds, syncKeys)
+            val loaded = fetchCollectionKeys(creds, requireNotNull(syncKeys) { "Sync key required when keys are not preloaded" })
             defaultKeys = loaded.first
             collectionKeys = loaded.second
         }
@@ -68,7 +67,14 @@ class SyncClient internal constructor(
         creds: TokenServerCreds,
         kB: ByteArray,
         transport: SyncHttpTransport = UrlConnectionTransport(),
-    ) : this(creds, kB, null, null, transport)
+    ) : this(creds, SyncCrypto.syncKeyBundle(kB), null, null, transport)
+
+    /** Koan: with the oldsync scoped key an OAuth sign-in (QR pairing) delivers instead of kB. */
+    constructor(
+        creds: TokenServerCreds,
+        syncKey: ScopedKeys.SyncKey,
+        transport: SyncHttpTransport = UrlConnectionTransport(),
+    ) : this(creds, syncKey.bundle(), null, null, transport)
 
     /** Hermetic-test constructor: preloaded key bundles skip the `crypto/keys` fetch. */
     internal constructor(

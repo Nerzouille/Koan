@@ -1,0 +1,4 @@
+<resources>
+    <!-- The two-way sync test install (test account only): never confused with the real Koan. -->
+    <string name="app_name">Koan Test</string>
+</resources>

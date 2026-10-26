@@ -12,6 +12,7 @@ import mozilla.components.support.base.android.NotificationsDelegate
 import android.content.Intent
 import android.graphics.Color
 import dev.nerzouille.koan.engine.Incoming
+import dev.nerzouille.koan.sync.PairingFlow
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -154,6 +155,12 @@ class MainActivity : FragmentActivity() {
 
     /** Links and text other apps send: they open as a new tab in the current space (KoanRoot). */
     private fun handleIntent(intent: Intent?) {
+        val link = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString
+        if (PairingFlow.isPairingLink(link)) {
+            openedFromLink = true
+            (application as KoanApp).components.pairLink.value = link
+            return
+        }
         val incoming = when (intent?.action) {
             Intent.ACTION_VIEW -> intent.dataString?.let { Incoming(it, isUrl = true) }
             Intent.ACTION_WEB_SEARCH -> intent.getStringExtra(SearchManager.QUERY)?.let { Incoming(it, isUrl = false) }

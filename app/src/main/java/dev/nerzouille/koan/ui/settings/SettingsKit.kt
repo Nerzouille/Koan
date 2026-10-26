@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -190,7 +191,7 @@ private fun Modifier.rowArea(onClick: (() -> Unit)?): Modifier =
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
         .padding(horizontal = SettingsTokens.RowInset)
 
-/** A few mutually exclusive options side by side; the chosen one sits on a white pill. */
+/** A few mutually exclusive options side by side; the chosen one sits on a lighter pill, in bold. */
 @Composable
 fun <T> Segmented(options: List<Pair<T, String>>, selected: T, interactive: Boolean, onSelect: (T) -> Unit) {
     val palette = KoanTheme.colors
@@ -205,20 +206,29 @@ fun <T> Segmented(options: List<Pair<T, String>>, selected: T, interactive: Bool
     ) {
         options.forEach { (value, label) ->
             val on = value == selected
+            val pill = RoundedCornerShape(SettingsTokens.SegmentRadius - SettingsTokens.SegmentInset)
             Box(
                 Modifier
                     .weight(1f)
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(SettingsTokens.SegmentRadius - SettingsTokens.SegmentInset))
-                    .then(if (on) Modifier.background(palette.Card) else Modifier)
+                    .then(
+                        if (on) {
+                            Modifier
+                                .shadow(SettingsTokens.SegmentShadow, pill)
+                                .background(palette.SegmentPill, pill)
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .clip(pill)
                     .then(if (interactive) Modifier.clickable { onSelect(value) } else Modifier),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label,
-                    color = palette.TextPrimary,
+                    color = if (on) palette.TextPrimary else palette.TextSecondary,
                     fontSize = SettingsTokens.SegmentTextSize,
-                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                    fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,
                 )
             }

@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import dev.nerzouille.koan.ui.theme.ButtonTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -48,6 +49,23 @@ fun QuietButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
         horizontalArrangement = Arrangement.Center,
     ) {
         Text(text, color = KoanTheme.colors.TextPrimary, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.Medium)
+    }
+}
+
+/** A clear secondary action: a neutral filled pill, [surface] behind it. */
+@Composable
+fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, surface: Color = KoanTheme.colors.GroupedRow) {
+    Row(
+        modifier
+            .height(ButtonTokens.Height)
+            .clip(CircleShape)
+            .background(surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = ButtonTokens.PaddingH),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Text(text, color = KoanTheme.colors.TextPrimary, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.SemiBold)
     }
 }
 
