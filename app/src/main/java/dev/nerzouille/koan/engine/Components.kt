@@ -4,6 +4,9 @@ import android.content.Context
 import dev.nerzouille.koan.data.AccountStore
 import dev.nerzouille.koan.data.Bookmarks
 import dev.nerzouille.koan.data.LibrarySync
+import dev.nerzouille.koan.data.SyncBack
+import dev.nerzouille.koan.data.RoomPhoneData
+import kotlinx.coroutines.flow.first
 import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.data.DataStoreBlob
 import dev.nerzouille.koan.data.KeystoreBox
@@ -182,7 +185,8 @@ class Components(context: Context) {
     /** Saved logins, sealed with their own Keystore key. */
     val logins by lazy { LoginStore(database.dao(), KeystoreBox("koan_logins")) }
     val sync by lazy {
-        SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }, library = LibrarySync(database.dao(), logins))
+        SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }, library = LibrarySync(database.dao(), logins),
+            syncBack = SyncBack({ settings.syncBack.first() }, RoomPhoneData(database.dao(), logins)))
     }
     val lastPlace by lazy { LastPlace(appContext) }
     val settings by lazy { Settings(appContext) }

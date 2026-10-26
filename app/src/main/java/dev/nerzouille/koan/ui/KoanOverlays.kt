@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui
 
+import dev.nerzouille.koan.data.SyncBackChoice
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
@@ -221,6 +222,7 @@ fun KoanOverlays(
     val startPageAfter by components.settings.startPageAfter.collectAsStateWithLifecycle(StartPageAfter.Hour)
     val suggestionsOn by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val hideStatusBar by components.settings.hideStatusBar.collectAsStateWithLifecycle(false)
+    val syncBack by components.settings.syncBack.collectAsStateWithLifecycle(SyncBackChoice())
     val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
     // uBlock Origin on this page: on or off, and its badge (the tab's own, else the default).
     val ublockUi by components.store.observeSlice(activeTabId) { s ->
@@ -609,6 +611,8 @@ fun KoanOverlays(
                 onStartPageAfter = { v -> scope.launch { components.settings.setStartPageAfter(v) } },
                 suggestions = suggestionsOn,
                 onSuggestions = { on -> scope.launch { components.settings.setSearchSuggestions(on) } },
+                syncBack = syncBack,
+                onSyncBack = { c -> scope.launch { components.settings.setSyncBack(c) } },
                 hideStatusBar = hideStatusBar,
                 onHideStatusBar = { on -> scope.launch { components.settings.setHideStatusBar(on) } },
                 email = signedIn?.email,

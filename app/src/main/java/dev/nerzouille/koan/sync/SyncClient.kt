@@ -100,6 +100,16 @@ class SyncClient internal constructor(
         return out
     }
 
+    /**
+     * Koan: the account's `meta/global` (storage and engine versions, sync ids), unencrypted. Read
+     * only: Koan never writes it (docs/SYNC_WRITE.md rule 3). Null when missing or unreadable.
+     */
+    fun metaGlobal(): JSONObject? {
+        val record = requestJSONObject(method = "GET", path = "/storage/meta/global", allowMissing = true)
+        val payload = record.optString("payload").ifEmpty { return null }
+        return runCatching { JSONObject(payload) }.getOrNull()
+    }
+
     /** Follows `X-Weave-Next-Offset` pagination like the Swift version. */
     fun getRecords(collection: String): List<JSONObject> {
         val records = mutableListOf<JSONObject>()

@@ -8,6 +8,10 @@
   to the camera. Swipe down from the top edge to see the status bar for a moment. The overview,
   menus, Settings and the other pages keep it (the search sheet too: it belongs to the page).
   Theme moved into the new Display section.
+- **Two-way sync, dry run (test only):** Settings › Mozilla account › Send to your Mozilla account:
+  passwords saved on this phone, its history, bookmarks added on it. All off by default; when on,
+  Koan only notes after each sync what it would send (counts, no content). Nothing is sent yet.
+  Design: [`docs/SYNC_WRITE.md`](docs/SYNC_WRITE.md).
 - **Sign in from your computer:** on the sign-in screen, scan the code Zen shows under Settings ›
   Sync › Connect another device (or paste its link). No password to type on the phone. Signing out
   revokes that sign-in. Email and password still work as before. A first page asks which of the

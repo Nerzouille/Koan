@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.data.StartPageAfter
 import dev.nerzouille.koan.data.ThemeMode
+import dev.nerzouille.koan.data.SyncBackChoice
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.bar.label
@@ -68,6 +69,9 @@ class SettingsUi(
     /** Suggestions from the search engine while typing. */
     val suggestions: Boolean,
     val onSuggestions: (Boolean) -> Unit,
+    /** Two-way sync, dry run only: which collections Koan would send. */
+    val syncBack: SyncBackChoice,
+    val onSyncBack: (SyncBackChoice) -> Unit,
     /** The status bar stays hidden in the page and the overview. */
     val hideStatusBar: Boolean,
     val onHideStatusBar: (Boolean) -> Unit,
@@ -315,6 +319,13 @@ private fun FolderPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
 }
 
 @Composable
+private fun SyncBackRow(title: String, checked: Boolean, on: Boolean, onChange: (Boolean) -> Unit) {
+    SettingsRow(null, title, on, subtitle = "Off by default", onClick = { onChange(!checked) }) {
+        KoanToggle(checked = checked, onCheckedChange = if (on) onChange else null)
+    }
+}
+
+@Composable
 private fun AccountPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
     SettingsPageFrame("Mozilla account", on, onBack) {
         SettingsRow(null, ui.email.orEmpty(), on, subtitle = ui.status.label()?.first?.substringBefore(" · Sync now"))
@@ -322,5 +333,15 @@ private fun AccountPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
         SettingsRow(null, "Sync now", on, onClick = ui.onSyncNow)
         SettingsDivider()
         SettingsRow(null, "Sign out", on, titleColor = KoanTheme.colors.Destructive, onClick = ui.onSignOut)
+
+        // Two-way sync (docs/SYNC_WRITE.md): off by default, and a dry run for now.
+        SettingsSection("Send to your Mozilla account (dry run)")
+        val choice = ui.syncBack
+        SyncBackRow("Passwords saved on this phone", choice.passwords, on) { ui.onSyncBack(choice.copy(passwords = it)) }
+        SettingsDivider()
+        SyncBackRow("History of this phone", choice.history, on) { ui.onSyncBack(choice.copy(history = it)) }
+        SettingsDivider()
+        SyncBackRow("Bookmarks added on this phone", choice.bookmarks, on) { ui.onSyncBack(choice.copy(bookmarks = it)) }
+        SettingsRow(null, "Test only: Koan notes what it would send after each sync. Nothing is sent yet.", false)
     }
 }
