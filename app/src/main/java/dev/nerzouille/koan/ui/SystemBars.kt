@@ -16,9 +16,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 /*
- * "Hide status bar while scrolling" (Settings > Display): in the page view the status bar hides
- * with the dock, and the page takes its row (see BrowserScreen). Everything else (sheets, settings,
- * sign-in) keeps clear of the camera cutout instead, so it looks the same with or without it.
+ * "Hide status bar" (Settings > Display): the page and the overview take the status bar's row,
+ * right up to the camera. Everything else (sheets, settings, sign-in) keeps clear of the camera
+ * cutout instead, so it looks the same with or without the status bar.
  */
 
 /** The top of the screen nothing may cover: the status bar when shown, else the camera cutout. */

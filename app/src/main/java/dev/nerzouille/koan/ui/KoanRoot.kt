@@ -38,10 +38,6 @@ import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.data.TabOrigin
 import android.app.Activity
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
-import androidx.core.view.WindowCompat
 import dev.nerzouille.koan.engine.ClosedTab
 import dev.nerzouille.koan.engine.Opener
 import dev.nerzouille.koan.engine.Components
@@ -116,7 +112,7 @@ import dev.nerzouille.koan.ui.theme.PagerTokens
  * Page view and Space overview, with the one bottom bar on top of both: it morphs into the
  * workspace bar as the overview opens, and into the essentials/pinned drawer from there. Every card
  * is a real engine tab, managed by [dev.nerzouille.koan.engine.TabManager].
- * [hideStatus]: the "Hide status bar while scrolling" setting (see SystemBars.kt).
+ * [hideStatus]: the "Hide status bar" setting (see SystemBars.kt).
  */
 @Composable
 fun KoanRoot(components: Components, hideStatus: Boolean) {
@@ -264,11 +260,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val dock = remember { DockState(scope) }
     val tabSwipe = remember { TabSwipe(scope, tabs.current) }
     tabSwipe.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { BarTokens.TabSwipeGap.toPx() }
-    SideEffect {
-        // The search sheet keeps the status bar as the page had it (hidden while scrolled down).
-        dock.freezeStatus(editing)
-        dock.locked = overviewOpen || editing || overlays.finding
-    }
+    SideEffect { dock.locked = overviewOpen || editing || overlays.finding }
     LaunchedEffect(activeTabId) { dock.snapShown() }
 
     fun openOverview() {
@@ -672,21 +664,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
     }
     // A fullscreen video: no bars, the video's orientation; Back leaves fullscreen first.
-    // "Hide status bar while scrolling" works in the page view: the status bar hides and shows with
-    // the dock (the search sheet keeps it as it was). Anything else over the page (the overview, the
-    // menu and other sheets, Settings, the tour…) shows it.
+    // "Hide status bar" holds in the page view (its search sheet included): anything else over it
+    // (the overview, the menu and other sheets, Settings, the tour…) brings the status bar back.
     val pageOnly = !overviewVisible && !covered
-    val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly && dock.statusHidden)
-    // The strip behind the status bar takes the page's colour at its top (Koan's own until the
-    // page's first screenshot); the status bar's icons stay readable on it.
-    val topColors by components.tabs.topColors.collectAsState()
-    val statusStrip = activeTabId?.let { topColors[it] }?.let(::Color) ?: palette.Base
-    val stripLight = statusStrip.luminance() > 0.5f
-    LaunchedEffect(hideStatus && pageOnly && !fullScreen, stripLight, palette.isDark) {
-        val window = activity?.window ?: return@LaunchedEffect
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars =
-            if (hideStatus && pageOnly && !fullScreen) stripLight else !palette.isDark
-    }
+    val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly)
     val heroCard = when (val pick = heroPick) {
         NO_CARD -> null
         null -> currentCard()?.let { (si, i) -> spaces[si].stack[i].id }
@@ -710,7 +691,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             findOpen = overlays.finding,
             cover = cover,
             toTop = hideStatus,
-            statusStrip = statusStrip,
             swipe = tabSwipe,
         )
         if (overviewVisible) {

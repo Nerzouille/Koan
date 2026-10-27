@@ -76,7 +76,7 @@ class SettingsUi(
     /** Suggestions from the search engine while typing. */
     val suggestions: Boolean,
     val onSuggestions: (Boolean) -> Unit,
-    /** In the page, the status bar hides and shows with the dock as the page scrolls. */
+    /** The status bar stays hidden in the page and the overview. */
     val hideStatusBar: Boolean,
     val onHideStatusBar: (Boolean) -> Unit,
     val email: String?,
@@ -192,8 +192,8 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
         Spacer(Modifier.height(SettingsTokens.Divider * 10))
         SettingsDivider()
         SettingsRow(
-            KoanIcons.StatusBar, "Hide status bar while scrolling", on,
-            subtitle = "It hides with the dock and comes back when you scroll up",
+            KoanIcons.StatusBar, "Hide status bar", on,
+            subtitle = "Swipe down from the top edge to see it",
             onClick = { ui.onHideStatusBar(!ui.hideStatusBar) },
         ) { KoanToggle(checked = ui.hideStatusBar, onCheckedChange = if (on) ui.onHideStatusBar else null) }
 

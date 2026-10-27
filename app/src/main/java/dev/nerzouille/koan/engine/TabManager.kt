@@ -78,14 +78,6 @@ class TabManager(
     /** The tab the page view shows (or will show once opened). Null = none, e.g. it was closed. */
     val current: StateFlow<String?> = _current
 
-    private val _topColors = MutableStateFlow<Map<String, Int>>(emptyMap())
-
-    /**
-     * Each tab's colour along the top of its page view, from its latest screenshot (ARGB): the
-     * strip behind the status bar ("Hide status bar while scrolling") takes it.
-     */
-    val topColors: StateFlow<Map<String, Int>> = _topColors
-
     /** A new tab waiting for its first url (search sheet open); it has no engine tab yet. */
     private val _blank = MutableStateFlow<String?>(null)
     val blank: StateFlow<String?> = _blank
@@ -649,7 +641,6 @@ class TabManager(
             bitmap.recycle()
             return capLog(id, "discarded: $why while capturing")
         }
-        topColor(bitmap)?.let { color -> _topColors.value += id to color }
         appScope.launch {
             val previous = dao.tab(id)?.thumbnailKey
             val (key, dropped) = ThumbnailStore.save(id, bitmap, previous)
@@ -687,26 +678,6 @@ class TabManager(
         private const val STATE_FLUSH_TIMEOUT_MS = 500L
     }
 }
-
-/**
- * The colour along a screenshot's top row, opaque; null if unreadable. The most common one among
- * samples across it (nearly equal shades count as one): a line of text crossing the row doesn't
- * tint it.
- */
-private fun topColor(bitmap: Bitmap): Int? = runCatching {
-    if (bitmap.width <= 0 || bitmap.height <= 1) return null
-    val samples = 32
-    val counts = HashMap<Int, Int>()
-    val first = HashMap<Int, Int>()
-    for (i in 0 until samples) {
-        val c = bitmap.getPixel((bitmap.width - 1) * i / (samples - 1), 1)
-        val shade = c and 0xF0F0F0
-        counts[shade] = (counts[shade] ?: 0) + 1
-        first.putIfAbsent(shade, c)
-    }
-    val top = counts.maxByOrNull { it.value }?.key ?: return null
-    (0xFF shl 24) or (first.getValue(top) and 0xFFFFFF)
-}.getOrNull()
 
 private fun List<SpaceWithTabs>.allTabs(): List<TabEntity> =
     flatMap { s -> s.essentials + s.pinnedTabs + s.stack.flatMap { it.tabs } }.distinctBy { it.koanTabId }

@@ -4,12 +4,10 @@
 
 ### New
 
-- **Hide status bar while scrolling** (Settings › Display, off by default): in a page, the status
-  bar hides with the dock as you scroll down and comes back with it as you scroll up, with the same
-  feel. At the top of a page (and on pages that can't scroll) it always shows, so nothing is ever
-  under it. The page never jumps or resizes: it slides under the status bar, with a strip in the
-  page's own top colour behind it. The search sheet keeps it as it was; the overview, menus,
-  Settings and the other pages always show it. Theme moved into the new Display section.
+- **Hide status bar** (Settings › Display, off by default): pages use the whole screen, right up
+  to the camera. Swipe down from the top edge to see the status bar for a moment. The overview,
+  menus, Settings and the other pages keep it (the search sheet too: it belongs to the page).
+  Theme moved into the new Display section.
 - **Sign in from your computer:** on the sign-in screen, scan the code Zen shows under Settings ›
   Sync › Connect another device (or paste its link). No password to type on the phone. Signing out
   revokes that sign-in. Email and password still work as before. A first page asks which of the

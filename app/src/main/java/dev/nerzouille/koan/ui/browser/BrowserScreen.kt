@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imeAnimationTarget
-import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -29,9 +28,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -79,13 +75,8 @@ fun BrowserScreen(
     /** Find in page holds the dock in place: the page ends above it (its last lines reachable). */
     findOpen: Boolean,
     cover: CoverTarget?,
-    /**
-     * "Hide status bar while scrolling": the page keeps the full screen's height; while the status
-     * bar shows ([DockState.statusShown]) the page slides down by its height, with a strip of
-     * [statusStrip] behind it. Moves only layers: showing or hiding never resizes the page.
-     */
+    /** "Hide status bar": the page runs up to the top edge (the status bar shows over it, if at all). */
     toTop: Boolean,
-    statusStrip: Color,
     swipe: TabSwipe,
 ) {
     val hero = LocalCardHero.current
@@ -156,8 +147,6 @@ fun BrowserScreen(
         }
     }
     val dockZonePx = with(density) { barZone(overview = false).roundToPx() }
-    // The status bar's row, shown or not: what the page slides down by while it shows.
-    val statusPx = if (toTop && !fullScreen) WindowInsets.statusBarsIgnoringVisibility.getTop(density) else 0
     // The dock slides off the screen entirely, the strip under the page included.
     dock.heightPx = if (fullScreen) 0f else (dockZonePx + navPx).toFloat()
     // A field in the page has the keyboard (not the address field, find, the overview): the dock
@@ -171,14 +160,11 @@ fun BrowserScreen(
     // same frame as the page's resize), and while find
     // is open (a plain bar the page ends above; as a dynamic toolbar, the page's last lines would
     // only show once it hides).
-    // While the page is slid down under the status bar, its bottom that much more is hidden: the
-    // engine counts it as toolbar too, so a fixed bottom bar stays right above the dock.
-    val toolbarPx = if (fullScreen || findOpen || (typingInPage && keyboardPx > navPx)) 0 else dockZonePx + statusPx
+    val toolbarPx = if (fullScreen || findOpen || (typingInPage && keyboardPx > navPx)) 0 else dockZonePx
     LaunchedEffect(toolbarPx) {
         engineView.setDynamicToolbarMaxHeight(toolbarPx)
         if (toolbarPx == 0) return@LaunchedEffect
-        snapshotFlow { dock.offset.coerceAtMost(dockZonePx.toFloat()) + statusPx * (1f - dock.statusShown) }
-            .map { it.roundToInt() }
+        snapshotFlow { dock.offset.coerceAtMost(toolbarPx.toFloat()).roundToInt() }
             .distinctUntilChanged()
             .collect { slid -> engineView.setVerticalClipping(-slid) }
     }
@@ -219,21 +205,11 @@ fun BrowserScreen(
         Modifier
             .fillMaxSize()
             .background(KoanTheme.colors.Base)
-            .then(
-                if (statusPx > 0) {
-                    Modifier.drawBehind { drawRect(statusStrip, size = Size(size.width, statusPx * dock.statusShown)) }
-                } else {
-                    Modifier
-                },
-            )
             .then(if (fullScreen || toTop) Modifier else Modifier.statusBarsPadding())
             .then(if (fullScreen) Modifier else Modifier.padding(bottom = with(density) { maxOf(navPx, keyboardPx).toDp() }))
-            // Find keeps the dock (and the status bar) shown: the page ends above it, its last lines
-            // reachable even slid down under the status bar.
-            .then(if (findOpen && !fullScreen) Modifier.padding(bottom = barZone(overview = false) + with(density) { statusPx.toDp() }) else Modifier)
-            // Where the card flying to and from the overview starts and ends (the status bar shows
-            // in the overview: the page is slid down under it).
-            .onGloballyPositioned { hero.pageRect = it.boundsInRoot().translate(0f, statusPx.toFloat()) }
+            .then(if (findOpen && !fullScreen) Modifier.padding(bottom = barZone(overview = false)) else Modifier)
+            // Where the card flying to and from the overview starts and ends.
+            .onGloballyPositioned { hero.pageRect = it.boundsInRoot() }
             .nestedScroll(dock.nestedScroll)
             .pullToRefresh(
                 pull,
@@ -265,7 +241,6 @@ fun BrowserScreen(
         Box(
             Modifier.fillMaxSize().graphicsLayer {
                 translationX = if (swipe.active) (swipe.live - swipe.pos) * swipe.pageWidthPx else 0f
-                translationY = statusPx * dock.statusShown
             },
         ) {
             AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())
@@ -280,10 +255,7 @@ fun BrowserScreen(
                 key(tab.koanTabId) {
                     PagePreview(
                         CoverTarget.of(tab, blank = false),
-                        Modifier.graphicsLayer {
-                            translationX = (i - swipe.pos) * swipe.pageWidthPx
-                            translationY = statusPx * dock.statusShown
-                        },
+                        Modifier.graphicsLayer { translationX = (i - swipe.pos) * swipe.pageWidthPx },
                     )
                 }
             }

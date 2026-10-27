@@ -44,10 +44,7 @@ class Settings(context: Context) {
 
     private val hideStatus = booleanPreferencesKey("hide_status_bar")
 
-    /**
-     * "Hide status bar while scrolling": in the page view the status bar hides and shows with the
-     * dock; off by default. (Saved under its old key: it was "Hide status bar" until 0.4.)
-     */
+    /** The status bar stays hidden (a swipe from the top edge shows it for a moment); off by default. */
     val hideStatusBar: Flow<Boolean> = store.data.map { it[hideStatus] ?: false }
 
     suspend fun setHideStatusBar(on: Boolean) {

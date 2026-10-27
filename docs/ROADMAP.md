@@ -123,6 +123,18 @@ conflict is handled without data loss.
 - **Glance a card** (maybe): long-press a card in the overview to preview it larger without switching. Same sheet as Glance. To evaluate.
 - **Auto-archive**: phone-only tabs untouched for N days (setting) move to an "Archived" list instead of piling up. Never touches tabs that come from Zen.
 
+**Display**
+- **Status bar hidden only while scrolling** (tried and reverted 2026-10-27, before v0.4.0): the
+  status bar would show at the top of a page and hide once it is scrolled down. Two attempts:
+  first with the dock (1:1), then on its own past a scroll distance, back only at the top. Both
+  slid the page down under the status bar (a layer translation) and counted that slide as extra
+  dynamic toolbar so fixed bottom bars stayed above the dock. In real use it broke the bottom of
+  the page: the page showed through the gesture-bar area again under fixed bottom bars, a black
+  band plus the dock made two bars at the bottom, and it needed too much scroll to hide. Back to
+  plain "Hide status bar" (hidden in the page view and its search sheet). A retry should leave the
+  dock / fixed-bottom / keyboard layout untouched, e.g. resize the page once at the threshold
+  instead of translating it, and be judged on chat sites and pages with fixed bottom bars first.
+
 **Media**
 - ~~**Background audio**: audio/video keeps playing with the screen off or Koan in the background, with media controls in the notification.~~ Done in v0.2.0.
 - **Picture-in-picture** for video when leaving Koan.
