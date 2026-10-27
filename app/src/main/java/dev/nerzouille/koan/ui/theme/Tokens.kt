@@ -1106,6 +1106,15 @@ object PageTokens {
 
     /** The dock always shows when the page is scrolled less than this from the top. */
     val DockNearTop = 48.dp
+
+    /**
+     * Display frames the page is held after the status bar toggles: the engine's first frame at the
+     * page view's new size takes this long to show (measured on the reference phone).
+     */
+    const val STATUS_SETTLE_FRAMES = 3
+
+    /** Longest the page is held after the status bar toggles, whatever happens. */
+    const val STATUS_SETTLE_MAX_MS = 250L
 }
 
 object Motion {

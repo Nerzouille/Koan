@@ -17,9 +17,9 @@ import mozilla.components.browser.state.selector.findTab
 /**
  * A page went fullscreen (a video's ⛶): the system bars hide (a swipe from the edge shows them for
  * a moment), the screen turns to the video's orientation, and Back leaves fullscreen first.
- * Outside fullscreen, the status bar follows [hideStatus] ("Hide status bar", the same swipe
- * shows it for a moment). Returns whether the page is fullscreen, for the page view (no dock, no
- * status bar inset) and the bar (hidden).
+ * Outside fullscreen, the status bar follows [hideStatus] ("Hide status bar while scrolling":
+ * hidden while the page is scrolled down; the same swipe shows it for a moment). Returns whether
+ * the page is fullscreen, for the page view (no dock, no status bar inset) and the bar (hidden).
  */
 @Composable
 fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boolean): Boolean {
@@ -38,16 +38,19 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
             else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         }
     }
-    LaunchedEffect(fullScreen, hideStatus) {
+    LaunchedEffect(fullScreen) {
         val window = activity?.window ?: return@LaunchedEffect
         val bars = WindowCompat.getInsetsController(window, window.decorView)
         bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        if (fullScreen) {
-            bars.hide(WindowInsetsCompat.Type.systemBars())
-        } else {
-            bars.show(WindowInsetsCompat.Type.navigationBars())
-            if (hideStatus) bars.hide(WindowInsetsCompat.Type.statusBars()) else bars.show(WindowInsetsCompat.Type.statusBars())
-        }
+        if (fullScreen) bars.hide(WindowInsetsCompat.Type.systemBars()) else bars.show(WindowInsetsCompat.Type.navigationBars())
+    }
+    // The status bar alone: it hides and shows as the page scrolls, the navigation bar (and the
+    // dock above it) never moves for it.
+    LaunchedEffect(fullScreen, hideStatus) {
+        val window = activity?.window ?: return@LaunchedEffect
+        if (fullScreen) return@LaunchedEffect
+        val bars = WindowCompat.getInsetsController(window, window.decorView)
+        if (hideStatus) bars.hide(WindowInsetsCompat.Type.statusBars()) else bars.show(WindowInsetsCompat.Type.statusBars())
     }
     // Koan never stays turned or without its bars when this goes away.
     DisposableEffect(activity) {

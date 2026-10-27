@@ -112,7 +112,7 @@ import dev.nerzouille.koan.ui.theme.PagerTokens
  * Page view and Space overview, with the one bottom bar on top of both: it morphs into the
  * workspace bar as the overview opens, and into the essentials/pinned drawer from there. Every card
  * is a real engine tab, managed by [dev.nerzouille.koan.engine.TabManager].
- * [hideStatus]: the "Hide status bar" setting (see SystemBars.kt).
+ * [hideStatus]: the "Hide status bar while scrolling" setting (see SystemBars.kt).
  */
 @Composable
 fun KoanRoot(components: Components, hideStatus: Boolean) {
@@ -664,10 +664,11 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
     }
     // A fullscreen video: no bars, the video's orientation; Back leaves fullscreen first.
-    // "Hide status bar" holds in the page view (its search sheet included): anything else over it
-    // (the overview, the menu and other sheets, Settings, the tour…) brings the status bar back.
-    val pageOnly = !overviewVisible && !covered
-    val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly)
+    // "Hide status bar while scrolling" works in the page view alone: anything over it (the
+    // overview, the search sheet and start page, the menu and other sheets, Settings, the tour…)
+    // shows the status bar, over the page as it is (no resize).
+    val pageOnly = !overviewVisible && !covered && !editing
+    val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly && dock.statusHidden)
     val heroCard = when (val pick = heroPick) {
         NO_CARD -> null
         null -> currentCard()?.let { (si, i) -> spaces[si].stack[i].id }
@@ -690,7 +691,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             fullScreen = fullScreen,
             findOpen = overlays.finding,
             cover = cover,
-            toTop = hideStatus,
+            hideStatus = hideStatus,
             swipe = tabSwipe,
         )
         if (overviewVisible) {

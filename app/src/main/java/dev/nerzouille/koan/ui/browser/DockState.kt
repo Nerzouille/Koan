@@ -44,6 +44,52 @@ class DockState(private val scope: CoroutineScope) {
     var keyboard by mutableStateOf(false)
         private set
 
+    /**
+     * "Hide status bar while scrolling": the page is scrolled down past twice the status bar's
+     * height ([statusPx]). It stays so until the page is back at its very top, so it never
+     * flickers near the top, and scrolling up mid-page brings back the dock only. It only changes
+     * with no finger on the page: the page view's top moves by the status bar's height, and under a
+     * finger the engine would take that for a drag. Readable in composition.
+     */
+    var statusHidden by mutableStateOf(false)
+        private set
+
+    /** The status bar's height (0 = the setting is off, or fullscreen). */
+    var statusPx = 0f
+
+    /**
+     * As [statusHidden] changes, the page view's top moves by the status bar's height at once, but
+     * the engine draws at the new size a frame or two later: until then ([statusSettled]) the page
+     * is held where it was, by this much (px). Read only in layer/draw lambdas.
+     */
+    var statusShift by mutableFloatStateOf(0f)
+        private set
+
+    private var pageY = 0f
+
+    /** The page is scrolled to [y] px. */
+    fun pageAt(y: Float) {
+        pageY = y
+        if (!touching) updateStatus()
+    }
+
+    private fun updateStatus() {
+        if (statusPx <= 0f) return
+        val hide = when {
+            pageY > 2f * statusPx -> true
+            pageY < 1f -> false
+            else -> return
+        }
+        if (hide == statusHidden) return
+        statusHidden = hide
+        statusShift += if (hide) statusPx else -statusPx
+    }
+
+    /** The engine drew the page at its new size: it takes its new place. */
+    fun statusSettled() {
+        statusShift = 0f
+    }
+
     /** Whether the page under the finger can scroll at all: a page that can't keeps its dock. */
     var pageCanScroll: () -> Boolean = { true }
 
@@ -74,6 +120,7 @@ class DockState(private val scope: CoroutineScope) {
     /** Finger up: finish in the direction the page was going, or the nearest end after a nudge. */
     fun settle(slopPx: Float) {
         touching = false
+        updateStatus()
         if (keyboard || offset <= 0f || offset >= heightPx) return
         val hide = if (abs(sinceDown) > slopPx) sinceDown > 0f else offset > heightPx / 2f
         animateTo(if (hide) heightPx else 0f)

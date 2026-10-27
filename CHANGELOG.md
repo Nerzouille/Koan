@@ -4,10 +4,12 @@
 
 ### New
 
-- **Hide status bar** (Settings › Display, off by default): pages use the whole screen, right up
-  to the camera. Swipe down from the top edge to see the status bar for a moment. The overview,
-  menus, Settings and the other pages keep it (the search sheet too: it belongs to the page).
-  Theme moved into the new Display section.
+- **Hide status bar while scrolling** (Settings › Display, off by default): at the top of a page
+  the status bar shows; once you scroll down a little it slides away and the page takes the whole
+  screen, right up to the camera. It comes back when you're back at the top (scrolling up
+  mid-page brings back the dock only), or for a moment with a swipe down from the top edge. Pages
+  that can't scroll, chat sites included, keep it. The overview, the search sheet, menus, Settings
+  and the other pages always show it. Theme moved into the new Display section.
 - **Sign in from your computer:** on the sign-in screen, scan the code Zen shows under Settings ›
   Sync › Connect another device (or paste its link). No password to type on the phone. Signing out
   revokes that sign-in. Email and password still work as before. A first page asks which of the

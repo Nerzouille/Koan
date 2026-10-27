@@ -499,7 +499,7 @@ closes it).
 | Start page | After how long unused Koan opens on the [start page](#the-start-page): 30 min, 1 h (default), 4 h, Never |
 | Default browser | Opens Android's choice to make Koan the default browser |
 | Theme (Display) | Light, Dark, Follow system (pages follow it too) |
-| Hide status bar (Display) | Off by default. On: pages use the whole screen up to the camera; swipe down from the top edge to see the status bar for a moment. The overview, menus, Settings and the other pages still show it |
+| Hide status bar while scrolling (Display) | Off by default. On: the status bar shows at the top of a page and slides away once the page is scrolled down (twice its height); the page then uses the whole screen up to the camera. It comes back only at the top of the page (scrolling up mid-page brings back the dock only), or for a moment with a swipe down from the top edge. Pages that can't scroll keep it (chat sites, whose conversation scrolls inside the page, too). The overview, search sheet, menus, Settings and the other pages always show it |
 | Passwords | See [Passwords and autofill](#8-passwords-and-autofill) |
 | uBlock Origin | On/off, blocked this week, or Install |
 | Downloads | The Downloads page |

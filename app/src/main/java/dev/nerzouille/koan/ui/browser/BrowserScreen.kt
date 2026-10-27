@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imeAnimationTarget
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +28,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -37,6 +40,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.viewinterop.AndroidView
 import android.view.HapticFeedbackConstants
+import android.view.Choreographer
 import android.view.View
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -75,8 +79,11 @@ fun BrowserScreen(
     /** Find in page holds the dock in place: the page ends above it (its last lines reachable). */
     findOpen: Boolean,
     cover: CoverTarget?,
-    /** "Hide status bar": the page runs up to the top edge (the status bar shows over it, if at all). */
-    toTop: Boolean,
+    /**
+     * "Hide status bar while scrolling": once the page is scrolled down ([DockState.statusHidden])
+     * it runs up to the top edge; at its top it ends below the status bar again.
+     */
+    hideStatus: Boolean,
     swipe: TabSwipe,
 ) {
     val hero = LocalCardHero.current
@@ -131,6 +138,32 @@ fun BrowserScreen(
         if (gecko?.isAttachedToWindow == true) dropKeyboard()
         onDispose { gecko?.removeOnAttachStateChangeListener(onAttach) }
     }
+    // The status bar hid or showed: the page view's top moved, and the page is held where it was
+    // ([DockState.statusShift]) while the engine draws it at the new size (it tells no one when:
+    // a few frames, [PageTokens.STATUS_SETTLE_FRAMES]), then takes its new place in one frame.
+    // Nothing else moves: not the dock, the toolbar height or the clipping.
+    DisposableEffect(engineView) {
+        val gecko = engineView.getChildAt(0)
+        val frames = Choreographer.getInstance()
+        var left = 0
+        val tick = object : Choreographer.FrameCallback {
+            override fun doFrame(frameTimeNanos: Long) {
+                if (--left > 0) return frames.postFrameCallback(this)
+                dock.statusSettled()
+            }
+        }
+        val resized = View.OnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top == oldBottom - oldTop || dock.statusShift == 0f) return@OnLayoutChangeListener
+            frames.removeFrameCallback(tick)
+            left = PageTokens.STATUS_SETTLE_FRAMES
+            frames.postFrameCallback(tick)
+        }
+        gecko?.addOnLayoutChangeListener(resized)
+        onDispose {
+            gecko?.removeOnLayoutChangeListener(resized)
+            frames.removeFrameCallback(tick)
+        }
+    }
     val density = LocalDensity.current
     val imeUp = WindowInsets.isImeVisible
     val navPx = WindowInsets.navigationBars.getBottom(density)
@@ -147,6 +180,17 @@ fun BrowserScreen(
         }
     }
     val dockZonePx = with(density) { barZone(overview = false).roundToPx() }
+    // The status bar's row, shown or not. The page starts below it while the status bar shows, at
+    // the top edge once it's hidden: one resize each way, at the top of the page or well past it,
+    // never along a scroll. Only the page's top moves; its bottom (dock, keyboard) never does.
+    val statusPx = WindowInsets.statusBarsIgnoringVisibility.getTop(density)
+    dock.statusPx = if (hideStatus && !fullScreen) statusPx.toFloat() else 0f
+    val topPx = if (fullScreen || (hideStatus && dock.statusHidden)) 0 else statusPx
+    // Never held for long, should the page view not change size after all.
+    LaunchedEffect(dock.statusHidden) {
+        delay(PageTokens.STATUS_SETTLE_MAX_MS)
+        dock.statusSettled()
+    }
     // The dock slides off the screen entirely, the strip under the page included.
     dock.heightPx = if (fullScreen) 0f else (dockZonePx + navPx).toFloat()
     // A field in the page has the keyboard (not the address field, find, the overview): the dock
@@ -175,6 +219,7 @@ fun BrowserScreen(
         val nearTop = with(density) { PageTokens.DockNearTop.toPx() }
         engineView.verticalScrollPosition.collect { y ->
             if (y < nearTop && !dock.touching) dock.show()
+            dock.pageAt(y)
             // Scrolling changes what the card should show: a screenshot follows once it stops.
             components.tabs.pageScrolled()
         }
@@ -200,14 +245,22 @@ fun BrowserScreen(
         pull.done()
     }
     val view = LocalView.current
+    val base = KoanTheme.colors.Base
 
     Box(
         Modifier
             .fillMaxSize()
-            .background(KoanTheme.colors.Base)
-            .then(if (fullScreen || toTop) Modifier else Modifier.statusBarsPadding())
+            .background(base)
+            .padding(top = with(density) { topPx.toDp() })
             .then(if (fullScreen) Modifier else Modifier.padding(bottom = with(density) { maxOf(navPx, keyboardPx).toDp() }))
             .then(if (findOpen && !fullScreen) Modifier.padding(bottom = barZone(overview = false)) else Modifier)
+            // While the page is held below its new place (the status bar just hid), its bottom hangs
+            // below the page view: covered, never seen in the navigation bar's strip.
+            .drawWithContent {
+                drawContent()
+                val below = dock.statusShift
+                if (below > 0f) drawRect(base, Offset(0f, size.height), Size(size.width, below))
+            }
             // Where the card flying to and from the overview starts and ends.
             .onGloballyPositioned { hero.pageRect = it.boundsInRoot() }
             .nestedScroll(dock.nestedScroll)
@@ -241,6 +294,7 @@ fun BrowserScreen(
         Box(
             Modifier.fillMaxSize().graphicsLayer {
                 translationX = if (swipe.active) (swipe.live - swipe.pos) * swipe.pageWidthPx else 0f
+                translationY = dock.statusShift
             },
         ) {
             AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())

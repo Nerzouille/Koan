@@ -9,7 +9,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -57,7 +60,6 @@ import dev.nerzouille.koan.ui.theme.BrandTokens
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.max
-import dev.nerzouille.koan.ui.topSafe
 
 private const val OFFSCREEN_PX = 100_000
 
@@ -77,6 +79,7 @@ fun barZone(overview: Boolean): Dp =
  *
  * Input: see [barGestures] (up = one level deeper, down = one level back, sideways = tabs or spaces).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun KoanBar(
     overviewOpen: Boolean,
@@ -105,7 +108,9 @@ fun KoanBar(
     with(density) {
         val rows = (BarTokens.SwitcherRowHeight + BarTokens.AddressRowHeight).toPx()
         val below = WindowInsets.navigationBars.getBottom(density) + BarTokens.BottomMargin.toPx()
-        val top = WindowInsets.topSafe.getTop(density) + SheetTokens.FullTopGap.toPx()
+        // The status bar's row whether it shows or not: the dock never recomposes as it hides or
+        // shows over a page (it always shows with the drawer).
+        val top = WindowInsets.statusBarsIgnoringVisibility.union(WindowInsets.displayCutout).getTop(density) + SheetTokens.FullTopGap.toPx()
         drawer.compactCapPx = windowPx * SheetTokens.COMPACT_MAX_FRACTION - rows - below
         drawer.fullCapPx = windowPx - top - rows - below
         drawer.minStepPx = SheetTokens.MinDetentStep.toPx()

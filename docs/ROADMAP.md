@@ -124,7 +124,10 @@ conflict is handled without data loss.
 - **Auto-archive**: phone-only tabs untouched for N days (setting) move to an "Archived" list instead of piling up. Never touches tabs that come from Zen.
 
 **Display**
-- **Status bar hidden only while scrolling** (tried and reverted 2026-10-27, before v0.4.0): the
+- **Status bar hidden only while scrolling**: prototype on branch `statusbar`, works but a fixed
+  bottom bar can still be off by one frame because Gecko's redraw timing varies; revisit if
+  GeckoView adds a draw callback or top toolbar support. History below.
+- (Tried and reverted 2026-10-27, before v0.4.0): the
   status bar would show at the top of a page and hide once it is scrolled down. Two attempts:
   first with the dock (1:1), then on its own past a scroll distance, back only at the top. Both
   slid the page down under the status bar (a layer translation) and counted that slide as extra
