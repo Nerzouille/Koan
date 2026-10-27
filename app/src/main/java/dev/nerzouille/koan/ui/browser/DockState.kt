@@ -2,6 +2,7 @@ package dev.nerzouille.koan.ui.browser
 
 import androidx.compose.animation.core.animate
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,24 @@ class DockState(private val scope: CoroutineScope) {
      */
     var keyboard by mutableStateOf(false)
         private set
+
+    /**
+     * "Hide status bar while scrolling": how much of the status bar's row is shown (1 = all, 0 =
+     * none). It follows the dock; the search sheet freezes it ([freezeStatus]). Layers only.
+     */
+    val statusShown: Float get() = frozenStatus ?: liveStatus()
+
+    /** The status bar itself hides past halfway (the system animates it). Readable in composition. */
+    val statusHidden: Boolean by derivedStateOf { statusShown < 0.5f }
+
+    private var frozenStatus by mutableStateOf<Float?>(null)
+
+    private fun liveStatus() = if (heightPx <= 0f) 1f else 1f - (offset / heightPx).coerceIn(0f, 1f)
+
+    /** The search sheet is open ([on]): the status bar stays as it was, whatever the dock does. */
+    fun freezeStatus(on: Boolean) {
+        frozenStatus = if (on) frozenStatus ?: liveStatus() else null
+    }
 
     /** Whether the page under the finger can scroll at all: a page that can't keeps its dock. */
     var pageCanScroll: () -> Boolean = { true }

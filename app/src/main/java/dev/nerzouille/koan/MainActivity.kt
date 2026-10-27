@@ -66,6 +66,7 @@ class MainActivity : FragmentActivity() {
         lifecycle.addObserver(WindowFeature(components.store, components.tabsUseCases))
         components.sync.start()
         components.pageTools.start()
+        components.pageEngines.start()
         components.startExtensions()
         components.startMedia()
         components.watchDownloadLocation()

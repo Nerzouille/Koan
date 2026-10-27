@@ -13,6 +13,11 @@ While a page plays audio or video, its title and icon show in Android's media no
 including on the lock screen. Links like `tel:` or `mailto:` are handed to the app you choose,
 only when you tap them.
 
+When you open the ⋯ menu, Koan asks the page on screen whether it offers a search engine (the
+"Add this search engine" row). Only then, and only if the page declares one, its description is
+downloaded from that same site, as the page itself would. Nothing is sent anywhere else, and
+nothing happens on pages you only browse.
+
 ## The servers Koan talks to
 
 Apart from the sites you open, Koan only connects to these:
@@ -20,7 +25,7 @@ Apart from the sites you open, Koan only connects to these:
 | Server | When | What it gets |
 |---|---|---|
 | Mozilla accounts and Firefox Sync (`accounts.firefox.com`, `token.services.mozilla.com`, Sync storage) | When you sign in, and when Koan syncs | Your sign-in, then requests for your Spaces, passwords, history and bookmarks. Sync data is end-to-end encrypted: Mozilla can't read it. Koan only reads it. |
-| Your search engine (DuckDuckGo, Google, Brave Search or Startpage) | When you search, and while you type if search suggestions are on | What you type in the search field, never a web address. Turn suggestions off in Settings. |
+| Your search engine (DuckDuckGo, Google, Brave Search, Startpage, or an engine you added yourself) | When you search, and while you type if search suggestions are on | What you type in the search field, never a web address. Turn suggestions off in Settings. An engine you add gets your searches (and, if you gave it a suggestions address, what you type) exactly like the built-in ones: only add engines you trust. |
 | DuckDuckGo's icon service (`icons.duckduckgo.com`) | When a site's own icon can't be found | The site's domain name only. Never for local network addresses. |
 | GitHub (`github.com`) | Each time you open Settings › About Koan | A request for Koan's public releases feed, to tell you whether an update exists. Never in the background. |
 | Mozilla Add-ons (`addons.mozilla.org`) | On first start, to install uBlock Origin, and for its updates | A normal download request. |

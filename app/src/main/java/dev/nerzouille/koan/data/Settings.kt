@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import dev.nerzouille.koan.search.CustomEngines
 import dev.nerzouille.koan.search.SearchEngine
 
 private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -43,7 +44,10 @@ class Settings(context: Context) {
 
     private val hideStatus = booleanPreferencesKey("hide_status_bar")
 
-    /** The status bar stays hidden (a swipe from the top edge shows it for a moment); off by default. */
+    /**
+     * "Hide status bar while scrolling": in the page view the status bar hides and shows with the
+     * dock; off by default. (Saved under its old key: it was "Hide status bar" until 0.4.)
+     */
     val hideStatusBar: Flow<Boolean> = store.data.map { it[hideStatus] ?: false }
 
     suspend fun setHideStatusBar(on: Boolean) {
@@ -104,13 +108,38 @@ class Settings(context: Context) {
     }
 
     private val engine = stringPreferencesKey("search_engine")
+    private val customEngines = stringPreferencesKey("custom_search_engines")
 
+    /** Koan's engines, then the owner's own (in the order they were added). */
+    val searchEngines: Flow<List<SearchEngine>> = store.data.map { prefs ->
+        SearchEngine.builtIns + CustomEngines.fromJson(prefs[customEngines])
+    }
+
+    /** The default engine; DuckDuckGo when none was picked or the picked one was deleted. */
     val searchEngine: Flow<SearchEngine> = store.data.map { prefs ->
-        SearchEngine.entries.firstOrNull { it.name == prefs[engine] } ?: SearchEngine.DuckDuckGo
+        val all = SearchEngine.builtIns + CustomEngines.fromJson(prefs[customEngines])
+        all.firstOrNull { it.id == prefs[engine] } ?: SearchEngine.DuckDuckGo
     }
 
     suspend fun setSearchEngine(value: SearchEngine) {
-        store.edit { it[engine] = value.name }
+        store.edit { it[engine] = value.id }
+    }
+
+    /** Adds [value], or replaces the custom engine with its id. */
+    suspend fun saveCustomEngine(value: SearchEngine) {
+        store.edit { prefs ->
+            val list = CustomEngines.fromJson(prefs[customEngines])
+            val updated = if (list.any { it.id == value.id }) list.map { if (it.id == value.id) value else it } else list + value
+            prefs[customEngines] = CustomEngines.toJson(updated)
+        }
+    }
+
+    /** Removes a custom engine; if it was the default, DuckDuckGo is again. */
+    suspend fun deleteCustomEngine(id: String) {
+        store.edit { prefs ->
+            prefs[customEngines] = CustomEngines.toJson(CustomEngines.fromJson(prefs[customEngines]).filterNot { it.id == id })
+            if (prefs[engine] == id) prefs.remove(engine)
+        }
     }
 
     private val startAfter = stringPreferencesKey("start_page_after")

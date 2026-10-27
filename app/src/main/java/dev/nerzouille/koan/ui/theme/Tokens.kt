@@ -876,6 +876,12 @@ object SettingsTokens {
     val SegmentTextSize = 14.sp
     val SegmentShadow = 2.dp
 
+    // Forms (Add a search engine).
+    val FieldHeight = 48.dp
+    val FieldRadius = 14.dp
+    val FieldGap = 16.dp
+    val FieldLabelGap = 6.dp
+
     /** The soft brand wash behind the top of the screen. */
     val WashHeight = 320.dp
     const val WASH_ALPHA_LIGHT = 0.20f

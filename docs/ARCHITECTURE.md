@@ -61,6 +61,10 @@
   and record the decision at the bottom of this file.
 - One `GeckoRuntime` per process (Application singleton).
 - uBlock Origin: install via `feature-addons` / `WebExtensionController` from AMO.
+- Koan's own built-in extension `assets/extensions/opensearch` (via `support-webextensions`'
+  `BuiltInWebExtensionController`, like reader view): answers "does this page declare an
+  OpenSearch engine?" only when the ⋯ menu asks (`engine/PageEngines.kt`). Bump its manifest
+  version when its script changes.
 
 ### Tab lifecycle and memory
 

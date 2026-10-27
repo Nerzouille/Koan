@@ -155,6 +155,9 @@ class Components(context: Context) {
     /** Reader view, find in page, the long-press result. */
     val pageTools by lazy { PageTools(appContext, engine, store) }
 
+    /** The search engine a page declares, for "Add this search engine". */
+    val pageEngines by lazy { PageEngines(engine, store, appScope) }
+
     /** A link or text another app sent to Koan (default browser, share): opened as a new tab. */
     val incoming = MutableStateFlow<Incoming?>(null)
 

@@ -87,6 +87,7 @@ fun SearchSheet(
     field: SearchField,
     search: SearchState,
     engine: SearchEngine,
+    shortcuts: List<Shortcut>,
     bottom: Dp,
     currentSpace: Int,
     actions: SearchActions,
@@ -102,7 +103,7 @@ fun SearchSheet(
             .drawBehind { drawRect(palette.SheetScrim, alpha = fade.value) }
             .then(if (open) Modifier.pointerInput(Unit) { detectTapGestures { actions.cancel() } } else Modifier),
     ) {
-        if (open) Results(field, search, engine, bottom, currentSpace, actions)
+        if (open) Results(field, search, engine, shortcuts, bottom, currentSpace, actions)
     }
 }
 
@@ -112,12 +113,13 @@ private fun BoxScope.Results(
     field: SearchField,
     search: SearchState,
     engine: SearchEngine,
+    shortcuts: List<Shortcut>,
     bottom: Dp,
     currentSpace: Int,
     actions: SearchActions,
 ) {
     val palette = KoanTheme.colors
-    val parsed = parseQuery(field.typed)
+    val parsed = parseQuery(field.typed, shortcuts)
     val results = search.results
     val suggestions = search.suggestions
     val shortcut = parsed.shortcut
@@ -126,10 +128,10 @@ private fun BoxScope.Results(
     val statusTop = WindowInsets.topSafe.getTop(density)
     val cap = with(density) { (screen - statusTop - SearchTokens.StatusGap.toPx() - bottom.toPx() - SearchTokens.GroupGap.toPx()).toDp() }
     val pickable = parsed.picking && (
-        Shortcut.entries.any { pickMatch(parsed.rest, it.key, it.label) } || Scope.entries.any { pickMatch(parsed.rest, it.key, it.label) }
+        shortcuts.any { pickMatch(parsed.rest, it.key, it.label) } || Scope.entries.any { pickMatch(parsed.rest, it.key, it.label) }
         )
     if (pickable) {
-        Picker(parsed.rest, engine, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom).heightIn(max = cap))
+        Picker(parsed.rest, engine, shortcuts, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom).heightIn(max = cap))
         return
     }
     val showing = !parsed.picking && (!results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty()))
@@ -289,9 +291,9 @@ private fun Chip(text: String, icon: ImageVector?, onClick: () -> Unit) {
 
 /** "@" typed (design 7d): the engines to search once, and where to search in Koan. */
 @Composable
-private fun Picker(typed: String, engine: SearchEngine, actions: SearchActions, modifier: Modifier) {
+private fun Picker(typed: String, engine: SearchEngine, shortcuts: List<Shortcut>, actions: SearchActions, modifier: Modifier) {
     val palette = KoanTheme.colors
-    val engines = Shortcut.entries.filter { pickMatch(typed, it.key, it.label) }
+    val engines = shortcuts.filter { pickMatch(typed, it.key, it.label) }
     val scopes = Scope.entries.filter { pickMatch(typed, it.key, it.label) }
     Column(
         modifier

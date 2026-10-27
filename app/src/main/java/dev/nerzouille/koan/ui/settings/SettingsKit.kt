@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -69,6 +70,8 @@ fun SettingsPageFrame(title: String?, interactive: Boolean, onBack: () -> Unit, 
     Column(
         Modifier
             .fillMaxSize()
+            // A form's fields stay above the keyboard.
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .topSafePadding()
             .navigationBarsPadding()

@@ -13,6 +13,7 @@ import dev.nerzouille.koan.data.SpaceWithTabs
 import dev.nerzouille.koan.search.Hit
 import dev.nerzouille.koan.search.Results
 import dev.nerzouille.koan.search.SearchEngine
+import dev.nerzouille.koan.search.Shortcut
 import dev.nerzouille.koan.search.Source
 import dev.nerzouille.koan.search.Suggestions
 import dev.nerzouille.koan.search.completion
@@ -53,14 +54,16 @@ fun rememberSearch(
     models: List<SpaceModel>,
     currentTabId: String?,
     engine: SearchEngine,
+    shortcuts: List<Shortcut>,
     suggest: Boolean,
 ): SearchState {
     val state = remember { SearchState() }
     val latestSpaces by rememberUpdatedState(spaces)
     val latestModels by rememberUpdatedState(models)
     val current by rememberUpdatedState(currentTabId)
+    val latestShortcuts by rememberUpdatedState(shortcuts)
     LaunchedEffect(field.typed, field.edited) {
-        val parsed = parseQuery(field.typed)
+        val parsed = parseQuery(field.typed, latestShortcuts)
         if (!field.edited || parsed.picking || parsed.shortcut != null) {
             state.results = Results()
             return@LaunchedEffect
@@ -90,8 +93,8 @@ fun rememberSearch(
         field.refresh(state::complete)
     }
     // Suggestions run on their own: local results never wait for them, a failure just shows none.
-    LaunchedEffect(field.typed, field.edited, engine, suggest) {
-        val parsed = parseQuery(field.typed)
+    LaunchedEffect(field.typed, field.edited, engine, shortcuts, suggest) {
+        val parsed = parseQuery(field.typed, shortcuts)
         val shortcut = parsed.shortcut
         // "@yt koan": YouTube's own; a plain search: the default engine's; a scope: none.
         val url = when {

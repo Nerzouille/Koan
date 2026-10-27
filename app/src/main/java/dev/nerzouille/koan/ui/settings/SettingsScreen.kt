@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.data.StartPageAfter
 import dev.nerzouille.koan.data.ThemeMode
+import dev.nerzouille.koan.search.EngineDraft
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.bar.label
@@ -48,6 +49,9 @@ import kotlin.math.abs
 sealed interface SettingsPage {
     data object Root : SettingsPage
     data object SearchEngines : SettingsPage
+
+    /** Add ([id] null, maybe prefilled from a page's [draft]) or edit a custom search engine. */
+    data class EditEngine(val id: String?, val draft: EngineDraft? = null) : SettingsPage
     data object Account : SettingsPage
     data object About : SettingsPage
     data object DownloadFolder : SettingsPage
@@ -62,13 +66,17 @@ class SettingsUi(
     val onTheme: (ThemeMode) -> Unit,
     val engine: SearchEngine,
     val onEngine: (SearchEngine) -> Unit,
+    /** Koan's engines, then the owner's own. */
+    val engines: List<SearchEngine>,
+    val onSaveEngine: (SearchEngine) -> Unit,
+    val onDeleteEngine: (SearchEngine) -> Unit,
     /** How long unused before Koan comes back on the start page. */
     val startPageAfter: StartPageAfter,
     val onStartPageAfter: (StartPageAfter) -> Unit,
     /** Suggestions from the search engine while typing. */
     val suggestions: Boolean,
     val onSuggestions: (Boolean) -> Unit,
-    /** The status bar stays hidden in the page and the overview. */
+    /** In the page, the status bar hides and shows with the dock as the page scrolls. */
     val hideStatusBar: Boolean,
     val onHideStatusBar: (Boolean) -> Unit,
     val email: String?,
@@ -132,7 +140,8 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                 ) {
                     when (page) {
                         SettingsPage.Root -> RootPage(ui, interactive, back) { nav.push(it) }
-                        SettingsPage.SearchEngines -> EnginesPage(ui, interactive, back)
+                        SettingsPage.SearchEngines -> EnginesPage(ui, interactive, back) { nav.push(it) }
+                        is SettingsPage.EditEngine -> EngineEditPage(ui, page, interactive, back)
                         SettingsPage.Account -> AccountPage(ui, interactive, back)
                         SettingsPage.About -> AboutPage(ui, interactive, back)
                         SettingsPage.DownloadFolder -> FolderPage(ui, interactive, back)
@@ -183,8 +192,8 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
         Spacer(Modifier.height(SettingsTokens.Divider * 10))
         SettingsDivider()
         SettingsRow(
-            KoanIcons.StatusBar, "Hide status bar", on,
-            subtitle = "Swipe down from the top edge to see it",
+            KoanIcons.StatusBar, "Hide status bar while scrolling", on,
+            subtitle = "It hides with the dock and comes back when you scroll up",
             onClick = { ui.onHideStatusBar(!ui.hideStatusBar) },
         ) { KoanToggle(checked = ui.hideStatusBar, onCheckedChange = if (on) ui.onHideStatusBar else null) }
 
@@ -282,20 +291,6 @@ private fun AccountCard(ui: SettingsUi, on: Boolean, onClick: () -> Unit) {
                 Spacer(Modifier.width(SettingsTokens.Divider * 8))
             }
             Text(text.substringBefore(" · Sync now"), color = palette.TextPrimary, fontSize = SettingsTokens.RowValueSize)
-        }
-    }
-}
-
-@Composable
-private fun EnginesPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
-    SettingsPageFrame("Search engine", on, onBack) {
-        SearchEngine.entries.forEachIndexed { i, engine ->
-            if (i > 0) SettingsDivider()
-            SettingsRow(null, engine.label, on, onClick = { ui.onEngine(engine) }) {
-                if (engine == ui.engine) {
-                    Icon(KoanIcons.Check, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))
-                }
-            }
         }
     }
 }

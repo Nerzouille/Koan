@@ -206,7 +206,7 @@ private fun Account(s: LoginSummary, login: Login?, on: Boolean, onCopied: (Stri
 
 /** A quiet word at a row's end ("Copy", "Reveal"); tappable on its own when [onClick] is given. */
 @Composable
-private fun RowAction(label: String, onClick: (() -> Unit)? = null) {
+internal fun RowAction(label: String, onClick: (() -> Unit)? = null) {
     Text(
         label,
         color = KoanTheme.colors.TextSecondary,

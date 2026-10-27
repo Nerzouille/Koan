@@ -75,6 +75,8 @@ import dev.nerzouille.koan.data.StartPageAfter
 import dev.nerzouille.koan.ui.menu.TabMenu
 import dev.nerzouille.koan.ui.menu.BackMenu
 import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.search.EngineDraft
+import dev.nerzouille.koan.search.origin
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.bar.FindUi
@@ -218,6 +220,15 @@ fun KoanOverlays(
     val account by components.accounts.state.collectAsStateWithLifecycle()
     val theme by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
     val engine by components.settings.searchEngine.collectAsStateWithLifecycle(SearchEngine.DuckDuckGo)
+    val engines by components.settings.searchEngines.collectAsStateWithLifecycle(SearchEngine.builtIns)
+    // A search engine the page declares (OpenSearch): asked each time the menu opens on a page (the
+    // page may have added it since); hidden when Koan already has an engine on that site.
+    val declared by produceState<Pair<String, EngineDraft?>?>(null, page.url, menu.open) {
+        val tab = activeTabId
+        if (menu.open && tab != null && page.url.isNotEmpty()) value = page.url to components.pageEngines.find(tab)
+    }
+    val newEngine = declared?.takeIf { it.first == page.url }?.second
+        ?.takeIf { d -> engines.none { it.home.equals(origin(d.url), ignoreCase = true) } }
     val startPageAfter by components.settings.startPageAfter.collectAsStateWithLifecycle(StartPageAfter.Hour)
     val suggestionsOn by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val hideStatusBar by components.settings.hideStatusBar.collectAsStateWithLifecycle(false)
@@ -277,6 +288,7 @@ fun KoanOverlays(
         activeDownloads = downloads.count { !it.private && it.status in ACTIVE },
         secure = secure,
         ublock = ublockUi,
+        searchEngine = newEngine,
     )
     KoanSheet(menu, overlays.menuNav) { p, pageScope ->
         when (p) {
@@ -334,6 +346,15 @@ fun KoanOverlays(
                         (tabAction ?: s.extensions[UBlock.ID]?.browserAction)?.onClick?.invoke()
                     },
                     ublockInstall = components.ublock::install,
+                    addSearchEngine = {
+                        val draft = newEngine
+                        close()
+                        if (draft != null) {
+                            overlays.settingsOpen = true
+                            overlays.settingsNav.push(SettingsPage.SearchEngines)
+                            overlays.settingsNav.push(SettingsPage.EditEngine(null, draft))
+                        }
+                    },
                 ),
             )
             MenuPage.UBlock -> UBlockPage(ublockPopup, pageScope) {
@@ -605,6 +626,25 @@ fun KoanOverlays(
                 onTheme = { mode -> scope.launch { components.settings.setThemeMode(mode) } },
                 engine = engine,
                 onEngine = { e -> scope.launch { components.settings.setSearchEngine(e) } },
+                engines = engines,
+                onSaveEngine = { e ->
+                    val added = engines.none { it.id == e.id }
+                    scope.launch { components.settings.saveCustomEngine(e) }
+                    onToast(Toast(if (added) "${e.label} added" else "${e.label} saved"))
+                },
+                onDeleteEngine = { e ->
+                    // Undo puts it back, as the default again if it was.
+                    val wasDefault = e.id == engine.id
+                    scope.launch { components.settings.deleteCustomEngine(e.id) }
+                    onToast(
+                        Toast("${e.label} deleted", "Undo") {
+                            scope.launch {
+                                components.settings.saveCustomEngine(e)
+                                if (wasDefault) components.settings.setSearchEngine(e)
+                            }
+                        },
+                    )
+                },
                 startPageAfter = startPageAfter,
                 onStartPageAfter = { v -> scope.launch { components.settings.setStartPageAfter(v) } },
                 suggestions = suggestionsOn,

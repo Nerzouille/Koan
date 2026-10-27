@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.menu
 
+import dev.nerzouille.koan.search.EngineDraft
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -58,6 +59,8 @@ data class MenuState(
     val activeDownloads: Int = 0,
     val secure: Boolean = false,
     val ublock: UBlockUi? = null,
+    /** A search engine the page declares and Koan doesn't have yet ("Add this search engine"). */
+    val searchEngine: EngineDraft? = null,
 )
 
 /** What the menu's root page does. Rows without an action yet show as "Soon". */
@@ -83,6 +86,7 @@ class MenuActions(
     val ublockToggle: (Boolean) -> Unit,
     val ublockOpen: () -> Unit,
     val ublockInstall: () -> Unit,
+    val addSearchEngine: () -> Unit,
 )
 
 /**
@@ -132,6 +136,10 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
                 EssentialsAction.Remove -> SheetRow(KoanIcons.Essentials, "Remove from Essentials", on, onClick = actions.essentials)
                 EssentialsAction.FromZen -> SheetRow(KoanIcons.Essentials, "In Essentials", on) { RowValue("From Zen") }
                 EssentialsAction.None -> SheetRow(KoanIcons.Essentials, "Add to Essentials", on) { RowValue("No page") }
+            }
+            if (state.searchEngine != null) {
+                SheetDivider()
+                SheetRow(KoanIcons.Search, "Add this search engine", on, subtitle = state.searchEngine.name, onClick = actions.addSearchEngine) { RowChevron() }
             }
             SheetDivider()
             SheetRow(KoanIcons.History, "History", on, onClick = actions.history) { RowChevron() }

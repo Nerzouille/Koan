@@ -1,41 +1,52 @@
 package dev.nerzouille.koan.search
 
-import java.net.URLEncoder
 import java.util.Locale
 
 /**
- * "@ddg", "@wiki"…: search one engine once (design 7c/7d). [home] gives its icon. Suggestions:
- * DuckDuckGo, Google and Wikipedia as in android-components' search plugins; YouTube through
- * Google's YouTube suggestions (android-components has none for it).
+ * "@ddg", "@wiki"…: search one engine once (design 7c/7d). [home] gives its icon. Templates hold
+ * "%s" where the query goes. Suggestions: DuckDuckGo, Google and Wikipedia as in
+ * android-components' search plugins; YouTube through Google's YouTube suggestions
+ * (android-components has none for it). Custom engines with a shortcut join them ([of]).
  */
-enum class Shortcut(
+class Shortcut(
     val key: String,
     val label: String,
     val home: String,
-    private val prefix: () -> String,
-    private val suggestPrefix: () -> String?,
+    private val template: () -> String,
+    private val suggestTemplate: () -> String?,
+    /** The engine it is, for the picker's "default" label. */
+    private val engineId: String? = null,
 ) {
-    DuckDuckGo("ddg", "DuckDuckGo", "https://duckduckgo.com", { "https://duckduckgo.com/?q=" }, { "https://ac.duckduckgo.com/ac/?type=list&q=" }),
-    Google("g", "Google", "https://www.google.com", { "https://www.google.com/search?q=" }, { "https://www.google.com/complete/search?client=firefox&q=" }),
-    Wikipedia(
-        "wiki", "Wikipedia", "https://www.wikipedia.org",
-        { "https://${wikiLanguage()}.wikipedia.org/w/index.php?search=" },
-        { "https://${wikiLanguage()}.wikipedia.org/w/api.php?action=opensearch&search=" },
-    ),
-    YouTube(
-        "yt", "YouTube", "https://www.youtube.com",
-        { "https://www.youtube.com/results?search_query=" },
-        { "https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=" },
-    ),
-    ;
+    fun searchUrl(query: String): String = fill(template(), query)
 
-    fun searchUrl(query: String): String = prefix() + URLEncoder.encode(query, "UTF-8")
+    fun suggestUrl(query: String): String? = suggestTemplate()?.let { fill(it, query) }
 
-    fun suggestUrl(query: String): String? = suggestPrefix()?.let { it + URLEncoder.encode(query, "UTF-8") }
+    fun isDefault(engine: SearchEngine): Boolean = engineId == engine.id
 
-    /** The setting's engine this shortcut is, for the picker's "default" label. */
-    fun isDefault(engine: SearchEngine): Boolean =
-        (this == DuckDuckGo && engine == SearchEngine.DuckDuckGo) || (this == Google && engine == SearchEngine.Google)
+    companion object {
+        val DuckDuckGo = Shortcut("ddg", "DuckDuckGo", "https://duckduckgo.com", { SearchEngine.DuckDuckGo.searchTemplate }, { SearchEngine.DuckDuckGo.suggestTemplate }, SearchEngine.DuckDuckGo.id)
+        val Google = Shortcut("g", "Google", "https://www.google.com", { SearchEngine.Google.searchTemplate }, { SearchEngine.Google.suggestTemplate }, SearchEngine.Google.id)
+        val Wikipedia = Shortcut(
+            "wiki", "Wikipedia", "https://www.wikipedia.org",
+            { "https://${wikiLanguage()}.wikipedia.org/w/index.php?search=%s" },
+            { "https://${wikiLanguage()}.wikipedia.org/w/api.php?action=opensearch&search=%s" },
+        )
+        val YouTube = Shortcut(
+            "yt", "YouTube", "https://www.youtube.com",
+            { "https://www.youtube.com/results?search_query=%s" },
+            { "https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=%s" },
+        )
+
+        val builtIns = listOf(DuckDuckGo, Google, Wikipedia, YouTube)
+
+        /** A custom engine's "@" shortcut, if it has one. */
+        fun of(engine: SearchEngine): Shortcut? = engine.shortcut?.let { key ->
+            Shortcut(key, engine.label, engine.home, { engine.searchTemplate }, { engine.suggestTemplate }, engine.id)
+        }
+
+        /** The built-in shortcuts, then the custom engines'. */
+        fun all(engines: List<SearchEngine>): List<Shortcut> = builtIns + engines.mapNotNull(::of)
+    }
 }
 
 private fun wikiLanguage(): String = Locale.getDefault().language.ifEmpty { "en" }
@@ -53,13 +64,13 @@ enum class Scope(val key: String, val label: String) {
  */
 data class Parsed(val shortcut: Shortcut? = null, val scope: Scope? = null, val rest: String, val picking: Boolean = false)
 
-fun parseQuery(text: String): Parsed {
+fun parseQuery(text: String, shortcuts: List<Shortcut> = Shortcut.builtIns): Parsed {
     val t = text.trimStart()
     if (!t.startsWith("@")) return Parsed(rest = text.trim())
     val word = t.drop(1).substringBefore(' ')
     if (' ' !in t) return Parsed(rest = word, picking = true)
     val rest = t.substringAfter(' ').trim()
-    Shortcut.entries.firstOrNull { it.key.equals(word, ignoreCase = true) }?.let { return Parsed(shortcut = it, rest = rest) }
+    shortcuts.firstOrNull { it.key.equals(word, ignoreCase = true) }?.let { return Parsed(shortcut = it, rest = rest) }
     Scope.entries.firstOrNull { it.key.equals(word, ignoreCase = true) }?.let { return Parsed(scope = it, rest = rest) }
     return Parsed(rest = text.trim())
 }
