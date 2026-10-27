@@ -248,7 +248,19 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 
 ### Search engines
 
-- **⋯ › Settings › Search engine:** DuckDuckGo (default), Google, Brave Search or Startpage.
+- **⋯ › Settings › Search engine:** DuckDuckGo (default), Google, Brave Search or Startpage,
+  and your own engines. Tap one to make it the default.
+- **Add a search engine** (at the end of the list): a name, the search address with `%s` where the
+  words go (`https://example.com/search?q=%s`, https only), an optional `@shortcut` (not one Koan
+  already uses), and an optional suggestions address (`%s` too; empty = no suggestions). Each
+  field says what's wrong as you type.
+- Your engines work like the built-in ones: default search, `@shortcut` in the picker (with the
+  site's icon), suggestions if they have an address for them. **Edit** on their row changes or
+  deletes them (a toast confirms; Undo brings a deleted one back). Built-in engines can't be
+  deleted. Deleting the default one makes DuckDuckGo the default again.
+- **⋯ › Add this search engine:** on a page that declares a search engine (most self-hosted
+  SearXNG instances, many sites), the menu offers it, with the form already filled in. Hidden when
+  Koan already has an engine for that site.
 - **Settings › Search suggestions** turns suggestions off entirely. They come from the chosen
   engine; if it's slow or unreachable you simply get none, and local results never wait for it.
 
@@ -271,7 +283,8 @@ Tap **⋯** in a page. It opens as a sheet at half height; swipe up for all of i
 - **Top row:** back, forward, the address (tap to edit it), copy link, reload / stop.
 - **New tab**, **Bookmark** (saved on the phone; the star fills), **Share**, **Find**.
 - **Site settings** (see below), **Desktop site** (toggle), **Reader view**, **Add to Essentials**,
-  **History**, **Downloads**, **Settings**, and the **uBlock Origin** card.
+  **Add this search engine** (only on a page that offers one, see Search engines), **History**,
+  **Downloads**, **Settings**, and the **uBlock Origin** card.
 
 ### Find in page
 
@@ -486,7 +499,7 @@ closes it).
 | Start page | After how long unused Koan opens on the [start page](#the-start-page): 30 min, 1 h (default), 4 h, Never |
 | Default browser | Opens Android's choice to make Koan the default browser |
 | Theme (Display) | Light, Dark, Follow system (pages follow it too) |
-| Hide status bar (Display) | Off by default. On: pages use the whole screen up to the camera; swipe down from the top edge to see the status bar for a moment. The overview, menus, Settings and the other pages still show it |
+| Hide status bar while scrolling (Display) | Off by default. On: in a page, the status bar hides with the dock as you scroll down and comes back with it as you scroll up; at the top of a page, and on pages that can't scroll, it always shows. The page never jumps: it slides under the status bar, with a strip in the page's top colour behind it. The search sheet keeps it as it was; the overview, menus, Settings and the other pages always show it |
 | Passwords | See [Passwords and autofill](#8-passwords-and-autofill) |
 | uBlock Origin | On/off, blocked this week, or Install |
 | Downloads | The Downloads page |
