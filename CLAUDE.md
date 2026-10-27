@@ -89,6 +89,33 @@ The canonical Zen sync wire format lives in Z-Sync's repo: `reference/Z-Sync/sha
   (patch release, tagged) and into `dev`.
 - Start every report to the owner with the branch you're on (`git branch --show-current`).
 
+## Release checklist
+
+Every release follows these steps, in this order. **→ Stop** marks a point where you wait for the
+owner's approval before going on.
+
+1. **Docs:** `CHANGELOG.md` (user-facing, sections New / Improved / Fixed / Known limitations),
+   release notes, `docs/FEATURES.md`, `README.md` (APK size, requirements), `docs/PRIVACY.md` if
+   the release adds any network call. **→ Show the owner the release notes draft.**
+2. **Tour review:** go through every tour card (`ui/tour`) and check it still matches the app
+   (gestures, wording, clips). List which cards are outdated, which new features deserve a card,
+   and which cards could go. **→ Put it in the summary for the owner to choose.**
+3. **"What's new" sheet:** decide whether the release needs one: only if it has user-visible
+   highlights, never for a fix-only release. If yes, propose 3–5 highlights, each with one line on
+   how to use it, and say which ones need a clip (only gestures or flows that are hard to explain
+   in words). **→ Put it in the summary for the owner to choose.**
+4. **Recordings:** propose the recordings you want to make (new What's new clips, outdated tour
+   cards to re-record) **→ and ask the owner about them**: what may be shown, which demo pages or
+   tabs to open. Then record only what was approved, with the same rules as the tour: on the
+   owner's phone only, Show taps on, public demo pages, never the owner's email or personal tabs,
+   check every frame, Show taps off afterwards.
+5. **Technical checks:** full unit test suite; full R8 release build from `main`; update path tested
+   on the phone (previous release → new one: data kept, tour / What's new shown once);
+   `tools/perf` against the previous release on the phone.
+6. **Release:** merge `dev` into `main`, tag on `main` (`vX.Y.Z`), draft the GitHub release (a
+   normal release, not a pre-release) with the APK and its SHA-256. **→ Stop: the owner publishes.**
+7. **After the owner publishes:** draft a short Discord update post for the owner's thread.
+
 ## Dev environment
 
 - Owner's machine: Linux (EndeavourOS, Hyprland). Android Studio / Gradle CLI.
