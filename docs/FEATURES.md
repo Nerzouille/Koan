@@ -248,7 +248,7 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 
 ### Search engines
 
-- **⋯ › Settings › Search engine:** DuckDuckGo (default), Google, Brave Search or Startpage,
+- **⋯ › Settings › Search engine:** DuckDuckGo (default), Google, Brave Search, Startpage or Baidu,
   and your own engines. Tap one to make it the default.
 - **Add a search engine** (at the end of the list): a name, the search address with `%s` where the
   words go (`https://example.com/search?q=%s`, https only), an optional `@shortcut` (not one Koan
@@ -267,7 +267,7 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 ### @ shortcuts
 
 - Type **@** in the field: a picker shows **Search with** (DuckDuckGo `@ddg`, Google `@g`,
-  Wikipedia `@wiki`, YouTube `@yt`) and **Search in** (Tabs, History, Bookmarks).
+  Wikipedia `@wiki`, YouTube `@yt`, Baidu `@bd`) and **Search in** (Tabs, History, Bookmarks).
 - Tap one, or type it: `@wiki koan` searches Wikipedia, with that engine's own suggestions.
   `@history docs` searches only your history (up to 8 results).
 - Wikipedia searches in your phone's language.
@@ -494,12 +494,12 @@ closes it).
 | Setting | What it does |
 |---|---|
 | Account card | Connect (signed out), or open the account page: **Sync now**, **Sign out** |
-| Search engine | DuckDuckGo, Google, Brave Search, Startpage |
+| Search engine | DuckDuckGo, Google, Brave Search, Startpage, Baidu |
 | Search suggestions | On by default; off = no suggestions at all |
 | Start page | After how long unused Koan opens on the [start page](#the-start-page): 30 min, 1 h (default), 4 h, Never |
 | Default browser | Opens Android's choice to make Koan the default browser |
 | Theme (Display) | Light, Dark, Follow system (pages follow it too) |
-| Hide status bar (Display) | Off by default. On: pages use the whole screen up to the camera; swipe down from the top edge to see the status bar for a moment. The overview, menus, Settings and the other pages still show it |
+| Hide status bar (Display) | Off by default. On: pages use the whole screen up to the camera; swipe down from the top edge to see the status bar for a moment. The search sheet, the overview, menus, Settings and the other pages still show it |
 | Passwords | See [Passwords and autofill](#8-passwords-and-autofill) |
 | uBlock Origin | On/off, blocked this week, or Install |
 | Downloads | The Downloads page |

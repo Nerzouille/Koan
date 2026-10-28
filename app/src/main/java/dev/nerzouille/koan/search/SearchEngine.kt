@@ -7,7 +7,7 @@ import java.net.URLEncoder
  * Koan's, or one the owner added ([custom]). Its templates hold "%s" where the query goes;
  * [suggestTemplate] null = it has no suggestions. Built-in suggestion endpoints: Google and
  * DuckDuckGo as in android-components' bundled search plugins, Brave from its OpenSearch
- * description, Startpage's own.
+ * description, Startpage's own, Baidu as in Firefox's Baidu search plugin (UTF-8 both ways).
  */
 data class SearchEngine(
     /** Built-ins keep their old enum names: the saved default survives updates. */
@@ -31,8 +31,9 @@ data class SearchEngine(
         val Google = SearchEngine("Google", "Google", "https://www.google.com/search?q=%s", "https://www.google.com/complete/search?client=firefox&q=%s")
         val Brave = SearchEngine("Brave", "Brave Search", "https://search.brave.com/search?q=%s", "https://search.brave.com/api/suggest?q=%s")
         val Startpage = SearchEngine("Startpage", "Startpage", "https://www.startpage.com/do/search?q=%s", "https://www.startpage.com/osuggestions?q=%s")
+        val Baidu = SearchEngine("Baidu", "Baidu", "https://www.baidu.com/s?ie=utf-8&wd=%s", "https://www.baidu.com/su?ie=utf-8&action=opensearch&wd=%s")
 
-        val builtIns = listOf(DuckDuckGo, Google, Brave, Startpage)
+        val builtIns = listOf(DuckDuckGo, Google, Brave, Startpage, Baidu)
     }
 }
 

@@ -17,5 +17,14 @@ class SuggestionsTest {
         assertTrue(SearchEngine.DuckDuckGo.suggestUrl("x")!!.startsWith("https://ac.duckduckgo.com/"))
         assertTrue(Shortcut.YouTube.suggestUrl("x")!!.contains("ds=yt"))
         assertTrue(Shortcut.Wikipedia.suggestUrl("x")!!.contains("action=opensearch"))
+        // Baidu answers in UTF-8 only when asked (ie=utf-8), and reads the query the same way.
+        assertEquals("https://www.baidu.com/su?ie=utf-8&action=opensearch&wd=%E5%8C%97%E4%BA%AC", SearchEngine.Baidu.suggestUrl("北京"))
+        assertEquals("https://www.baidu.com/s?ie=utf-8&wd=%E5%8C%97%E4%BA%AC", Shortcut.Baidu.searchUrl("北京"))
+    }
+
+    @Test fun `bd searches Baidu once`() {
+        val parsed = parseQuery("@bd 北京")
+        assertEquals(Shortcut.Baidu, parsed.shortcut)
+        assertEquals("北京", parsed.rest)
     }
 }

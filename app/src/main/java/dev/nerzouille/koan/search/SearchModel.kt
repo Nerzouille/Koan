@@ -6,7 +6,7 @@ import java.util.Locale
  * "@ddg", "@wiki"…: search one engine once (design 7c/7d). [home] gives its icon. Templates hold
  * "%s" where the query goes. Suggestions: DuckDuckGo, Google and Wikipedia as in
  * android-components' search plugins; YouTube through Google's YouTube suggestions
- * (android-components has none for it). Custom engines with a shortcut join them ([of]).
+ * (android-components has none for it); Baidu's own. Custom engines with a shortcut join them ([of]).
  */
 class Shortcut(
     val key: String,
@@ -37,7 +37,9 @@ class Shortcut(
             { "https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=%s" },
         )
 
-        val builtIns = listOf(DuckDuckGo, Google, Wikipedia, YouTube)
+        val Baidu = Shortcut("bd", "Baidu", "https://www.baidu.com", { SearchEngine.Baidu.searchTemplate }, { SearchEngine.Baidu.suggestTemplate }, SearchEngine.Baidu.id)
+
+        val builtIns = listOf(DuckDuckGo, Google, Wikipedia, YouTube, Baidu)
 
         /** A custom engine's "@" shortcut, if it has one. */
         fun of(engine: SearchEngine): Shortcut? = engine.shortcut?.let { key ->
