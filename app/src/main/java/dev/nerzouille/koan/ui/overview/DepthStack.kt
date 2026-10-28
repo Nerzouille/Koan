@@ -334,7 +334,7 @@ fun DepthStack(
                                 tracker.addPosition(change.uptimeMillis, change.position)
                                 if (!change.pressed) return@withTimeoutOrNull Gesture.Tap
                                 total += change.positionChange()
-                                if (total.getDistance() > viewConfiguration.touchSlop) {
+                                if (total.getDistance() > StackTokens.GestureSlop.toPx()) {
                                     slop = total
                                     change.consume()
                                     return@withTimeoutOrNull Gesture.Drag
@@ -357,7 +357,7 @@ fun DepthStack(
                                 if (abs(slop.x) > abs(slop.y) && focusedId != null) {
                                     // Sideways always swipes the focused card, wherever the finger is (prototype).
                                     state.release()
-                                    swipeCard(state, state.anim(focusedId, 0), down.id) { dir -> flyOff(focusedId, dir) }
+                                    swipeCard(state, state.anim(focusedId, 0), down.id, slop.x, geo.cardWidth) { dir -> flyOff(focusedId, dir) }
                                 } else {
                                     trackUntilUp(down.id, tracker) { state.dragBy(it.positionChange().y) }
                                     state.release(tracker.calculateVelocity().y)
@@ -662,18 +662,27 @@ private suspend fun AwaitPointerEventScope.trackUntilUp(
     }
 }
 
-/** Swipe-to-close: the card follows the finger; released past 100dp it flies off, else springs back. */
+/**
+ * Swipe-to-close: the card follows the finger 1:1 (from the touch's start, [slopX] included).
+ * Released past [StackTokens.SWIPE_CLOSE_FRACTION] of its width, at any speed, or flung sideways,
+ * it flies off (the way it was flung); else it springs back.
+ */
 private suspend fun AwaitPointerEventScope.swipeCard(
     state: StackState,
     a: CardAnim,
     pointer: PointerId,
+    slopX: Float,
+    cardWidth: Float,
     onFlyOff: (dir: Float) -> Unit,
 ) {
-    trackUntilUp(pointer, VelocityTracker()) { a.swipeX += it.positionChange().x }
-    if (abs(a.swipeX) > StackTokens.SwipeCloseDistance.toPx()) {
-        onFlyOff(sign(a.swipeX))
-    } else {
-        state.launch { animate(a.swipeX, 0f, 0f, Motion.SwipeReturn) { v, _ -> a.swipeX = v } }
+    a.swipeX += slopX
+    val tracker = VelocityTracker()
+    trackUntilUp(pointer, tracker) { a.swipeX += it.positionChange().x }
+    val vx = tracker.calculateVelocity().x
+    when {
+        abs(vx) > StackTokens.SwipeCloseFling.toPx() -> onFlyOff(sign(vx))
+        abs(a.swipeX) > cardWidth * StackTokens.SWIPE_CLOSE_FRACTION -> onFlyOff(sign(a.swipeX))
+        else -> state.launch { animate(a.swipeX, 0f, 0f, Motion.SwipeReturn) { v, _ -> a.swipeX = v } }
     }
 }
 

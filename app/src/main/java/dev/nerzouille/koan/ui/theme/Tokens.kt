@@ -359,8 +359,14 @@ object StackTokens {
     val SwipeFadeDistance = 420.dp
     const val SWIPE_MIN_ALPHA = 0.3f
 
-    /** Released past this: the card flies off. */
-    val SwipeCloseDistance = 100.dp
+    /** Released past this fraction of the card's width (at any speed), the card flies off. */
+    const val SWIPE_CLOSE_FRACTION = 0.35f
+
+    /** Or flung sideways faster than this (per second), wherever it is. */
+    val SwipeCloseFling = 800.dp
+
+    /** A touch moved this far picks its axis: sideways = close, else scroll (smaller than Android's slop). */
+    val GestureSlop = 6.dp
     val FlyOffDistance = 480.dp
     const val FLY_OFF_TILT = 8f
 }
@@ -961,7 +967,7 @@ object TabMenuTokens {
     const val IN_MS = 160
     const val OUT_MS = 120
 
-    /** The tab counter's menu is at least this wide (it widens to the right). */
+    /** The tab counter's menu is at least this wide (it grows to the left). */
     val MinWidth = 200.dp
 
     /** Back's history list: at most this wide, scrolls past [MAX_ROWS] (half a row peeks). */
