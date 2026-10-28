@@ -670,9 +670,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
     }
     // A fullscreen video: no bars, the video's orientation; Back leaves fullscreen first.
-    // "Hide status bar" holds in the page view (its search sheet included): anything else over it
-    // (the overview, the menu and other sheets, Settings, the tour…) brings the status bar back.
-    val pageOnly = !overviewVisible && !covered
+    // "Hide status bar" holds in the page view only: anything over it (the search sheet, the
+    // overview, the menu and other sheets, Settings, the tour…) brings the status bar back. The
+    // page keeps its size meanwhile (BrowserScreen's toTop): the bar draws over its top row.
+    val pageOnly = !overviewVisible && !covered && !editing
     val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly)
     val heroCard = when (val pick = heroPick) {
         NO_CARD -> null
