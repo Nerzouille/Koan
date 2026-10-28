@@ -214,6 +214,10 @@ interface KoanDao {
     @Query("SELECT * FROM closed_tabs WHERE koanTabId = :koanTabId")
     suspend fun closedTab(koanTabId: String): ClosedTabEntity?
 
+    /** The tab last closed in [spaceUuid] (the tab counter's "Reopen closed tab"). */
+    @Query("SELECT * FROM closed_tabs WHERE tab_spaceUuid = :spaceUuid ORDER BY closedAt DESC LIMIT 1")
+    fun observeLastClosed(spaceUuid: String): Flow<ClosedTabEntity?>
+
     /** Records [closed] and drops what falls beyond the newest [keep]; returns the dropped rows. */
     @Transaction
     suspend fun addClosedTab(closed: ClosedTabEntity, keep: Int): List<ClosedTabEntity> {

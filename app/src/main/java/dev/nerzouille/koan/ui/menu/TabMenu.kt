@@ -15,32 +15,32 @@ import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.TabMenuTokens
 
 /**
- * The tab counter's long-press menu (New tab, Close tab), just above the dock: its left edge
- * where it was when its right edge sat on the counter's, widened to the right (within the dock's
- * margin) so the labels have room. It grows out of the counter.
+ * The tab counter's long-press menu (New tab, Close tab, Reopen closed tab: greyed out when
+ * [onReopenClosed] is null), just above the dock: its right edge on the dock's right margin,
+ * growing to the left with its labels. It grows out of the counter.
  */
 @Composable
-fun TabMenu(open: Boolean, onDismiss: () -> Unit, onNewTab: () -> Unit, onCloseTab: () -> Unit) {
+fun TabMenu(open: Boolean, onDismiss: () -> Unit, onNewTab: () -> Unit, onCloseTab: () -> Unit, onReopenClosed: (() -> Unit)?) {
     DockPopup(
         open = open,
         onDismiss = onDismiss,
         end = true,
-        // The counter's right edge from the screen's: margin, ⋯, gap.
-        edge = BarTokens.RowPadding + BarTokens.IconTouch + BarTokens.RowGap,
+        // The counter's centre from the screen's right edge: margin, ⋯, gap, half the counter.
         anchor = BarTokens.RowPadding + BarTokens.IconTouch + BarTokens.RowGap + BarTokens.IconTouch / 2,
         minWidth = TabMenuTokens.MinWidth,
     ) {
         MenuItem(KoanIcons.Plus, "New tab", open, onNewTab)
         MenuItem(KoanIcons.Close, "Close tab", open, onCloseTab)
+        MenuItem(KoanIcons.History, "Reopen closed tab", open && onReopenClosed != null, onReopenClosed ?: {}, enabled = onReopenClosed != null)
     }
 }
 
 @Composable
-private fun MenuItem(icon: ImageVector, title: String, interactive: Boolean, onClick: () -> Unit) {
+private fun MenuItem(icon: ImageVector, title: String, interactive: Boolean, onClick: () -> Unit, enabled: Boolean = true) {
     val palette = KoanTheme.colors
     DockPopupRow(interactive, onClick) {
-        Icon(icon, null, tint = palette.Icon, modifier = Modifier.size(TabMenuTokens.Icon))
+        Icon(icon, null, tint = if (enabled) palette.Icon else palette.TextDisabled, modifier = Modifier.size(TabMenuTokens.Icon))
         Spacer(Modifier.width(TabMenuTokens.IconGap))
-        Text(title, color = palette.TextPrimary, fontSize = TabMenuTokens.TextSize, fontWeight = FontWeight.Medium)
+        Text(title, color = if (enabled) palette.TextPrimary else palette.TextDisabled, fontSize = TabMenuTokens.TextSize, fontWeight = FontWeight.Medium)
     }
 }

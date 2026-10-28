@@ -945,6 +945,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             onSignIn = { signingIn = true },
             onToast = toasts::show,
             onRestoreClosed = ::restoreClosed,
+            currentSpaceUuid = spaces.getOrNull(currentSpace)?.space?.uuid,
             // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
             devActions = if (!BuildConfig.DEBUG) emptyList() else buildList {
                 for (n in listOf(50, 150)) {
