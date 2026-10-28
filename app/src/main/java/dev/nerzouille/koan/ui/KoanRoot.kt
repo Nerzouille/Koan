@@ -7,6 +7,7 @@ import dev.nerzouille.koan.ui.overview.CardHero
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
@@ -53,6 +54,10 @@ import dev.nerzouille.koan.ui.search.SearchSheet
 import dev.nerzouille.koan.ui.search.TabTarget
 import dev.nerzouille.koan.ui.search.rememberSearch
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
@@ -700,6 +705,24 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             toTop = hideStatus,
             swipe = tabSwipe,
         )
+        // "Hide status bar", with the status bar back over the page (search sheet, menus): a strip
+        // of the page view's colour fades in behind it, so its icons never sit on the page. Under
+        // the sheets' scrim, so it dims with the page.
+        // The fade is read in the layer only: no recomposition per frame.
+        val statusStrip = animateFloatAsState(
+            if (hideStatus && !pageOnly && !overviewVisible && !fullScreen) 1f else 0f,
+            Motion.SearchScrim,
+            label = "statusStrip",
+        )
+        if (hideStatus && !overviewVisible) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .windowInsetsTopHeight(WindowInsets.statusBars)
+                    .graphicsLayer { alpha = statusStrip.value }
+                    .background(palette.Base),
+            )
+        }
         if (overviewVisible) {
             OverviewScreen(
                 spaces = spaces,
