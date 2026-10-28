@@ -78,15 +78,16 @@ fun PermissionPrompt(host: String, ask: SiteAsk, interactive: Boolean, onBlock: 
         }
         Spacer(Modifier.height(SheetTokens.Gap / 2))
         Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
-            Secondary("Block", interactive, onBlock, Modifier.weight(1f))
-            Secondary("Always allow", interactive, onAlways, Modifier.weight(1f))
+            CardButton("Block", interactive, onBlock, Modifier.weight(1f))
+            CardButton("Always allow", interactive, onAlways, Modifier.weight(1f))
         }
         PrimaryButton("Allow once", onClick = { if (interactive) onOnce() }, modifier = Modifier.fillMaxWidth())
     }
 }
 
+/** A card's secondary button (permission, download cards). */
 @Composable
-private fun Secondary(text: String, interactive: Boolean, onClick: () -> Unit, modifier: Modifier) {
+internal fun CardButton(text: String, interactive: Boolean, onClick: () -> Unit, modifier: Modifier) {
     Box(
         modifier
             .height(ButtonTokens.Height)

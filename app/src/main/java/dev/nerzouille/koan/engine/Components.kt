@@ -108,6 +108,12 @@ class Components(context: Context) {
     val downloadsUseCases by lazy { DownloadsUseCases(store, downloadFiles) }
     val downloads by lazy { Downloads(appContext, downloadFiles, downloadsUseCases) }
 
+    /** A download Koan didn't see a tap for, waiting on its card (KoanOverlays). */
+    val downloadAsk = MutableStateFlow<DownloadAsk?>(null)
+
+    /** When the owner last tapped or pressed a key in Koan (uptime ms): downloads right after one start at once. */
+    @Volatile var lastInputAt = 0L
+
     /** A download stopped (completed, failed, cancelled): KoanRoot shows the "downloaded" toast. */
     val downloadDone = MutableSharedFlow<Pair<DownloadState, DownloadState.Status>>(extraBufferCapacity = 4)
 
@@ -206,6 +212,9 @@ class Components(context: Context) {
         }
     }
 }
+
+/** A download waiting for "Download" or "Cancel" on its card. */
+class DownloadAsk(val download: DownloadState, val start: () -> Unit, val cancel: () -> Unit)
 
 /** Something another app handed to Koan: a url to open, or text to open or search ([text]). */
 data class Incoming(val text: String, val kind: Kind, val at: Long = System.currentTimeMillis()) {

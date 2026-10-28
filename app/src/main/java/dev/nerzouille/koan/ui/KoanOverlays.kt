@@ -27,6 +27,9 @@ import dev.nerzouille.koan.engine.SiteAsk
 import dev.nerzouille.koan.engine.SiteDecision
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.menu.PermissionPrompt
+import dev.nerzouille.koan.ui.menu.DownloadPrompt
+import dev.nerzouille.koan.ui.downloads.host
+import dev.nerzouille.koan.ui.downloads.sizeText
 import dev.nerzouille.koan.ui.menu.SiteSettingsPage
 import dev.nerzouille.koan.ui.menu.SiteSettingsUi
 import mozilla.components.browser.state.action.ContentAction
@@ -58,6 +61,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.flow.flowOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -145,6 +149,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val permissionCard = SheetState(scope, splineBasedDecay(density))
     var permission by mutableStateOf<Pair<PermissionRequest, SiteAsk>?>(null)
 
+    /** A download Koan didn't see a tap for: "Download" or "Cancel" ([Components.downloadAsk]). */
+    val downloadCard = SheetState(scope, splineBasedDecay(density))
+
     /** What the page asks on the card: a <select>, a date, alert/confirm, HTTP sign-in… */
     val promptCard = SheetState(scope, splineBasedDecay(density))
     val settingsNav = SheetNav<SettingsPage>(scope, SettingsPage.Root)
@@ -166,7 +173,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
             historyOpen || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
-            saveLoginCard.open || permissionCard.open || promptCard.open || tourOpen
+            saveLoginCard.open || permissionCard.open || downloadCard.open || promptCard.open || tourOpen
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
     fun dismissAll() {
@@ -203,6 +210,8 @@ fun KoanOverlays(
     onToast: (Toast) -> Unit,
     /** A recently closed tab picked in History: back in its space and place. */
     onRestoreClosed: (String) -> Unit,
+    /** The space on screen (the tab counter's "Reopen closed tab"). */
+    currentSpaceUuid: String?,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
@@ -452,6 +461,31 @@ fun KoanOverlays(
             onOnce = { answer(allow = true, always = false) },
         )
     }
+    // ---- a download the page started on its own: Download / Cancel ----
+    val downloadAsk by components.downloadAsk.collectAsStateWithLifecycle()
+    val downloadCard = overlays.downloadCard
+    LaunchedEffect(downloadAsk) { if (downloadAsk != null) downloadCard.animateTo(Detent.Compact) }
+    fun answerDownload(start: Boolean) {
+        val ask = components.downloadAsk.value ?: return
+        components.downloadAsk.value = null
+        downloadCard.animateTo(Detent.Closed)
+        if (start) ask.start() else ask.cancel()
+    }
+    // Dismissed (tap outside, Back): cancelled.
+    LaunchedEffect(downloadCard.open) { if (!downloadCard.open && components.downloadAsk.value != null) answerDownload(start = false) }
+    KoanCard(downloadCard) { interactive ->
+        val ask = downloadAsk ?: return@KoanCard
+        val d = ask.download
+        val site = components.store.state.findTab(d.sessionId.orEmpty())?.content?.url?.let(::displayHost)?.ifBlank { null } ?: host(d)
+        DownloadPrompt(
+            name = d.fileName?.ifBlank { null } ?: "File",
+            detail = listOfNotNull(d.contentLength?.takeIf { it > 0 }?.let(::sizeText), site).joinToString(" · "),
+            interactive = interactive,
+            onCancel = { answerDownload(start = false) },
+            onDownload = { answerDownload(start = true) },
+        )
+    }
+
     // Gecko needs Android's own permission too (location, camera, microphone); it asks for it itself.
     var pendingApp by remember { mutableStateOf<PermissionRequest?>(null) }
     val askAndroid = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
@@ -577,11 +611,15 @@ fun KoanOverlays(
     }
 
     // ---- the tab counter's long-press menu ----
+    val lastClosed by remember(currentSpaceUuid) {
+        currentSpaceUuid?.let { components.database.dao().observeLastClosed(it) } ?: flowOf(null)
+    }.collectAsStateWithLifecycle(null)
     TabMenu(
         open = overlays.tabMenuOpen,
         onDismiss = { overlays.tabMenuOpen = false },
         onNewTab = { overlays.tabMenuOpen = false; onNewTab() },
         onCloseTab = { overlays.tabMenuOpen = false; onCloseTab() },
+        onReopenClosed = lastClosed?.let { closed -> { overlays.tabMenuOpen = false; onRestoreClosed(closed.koanTabId) } },
     )
 
     // ---- back's long-press list: the pages before this one ----

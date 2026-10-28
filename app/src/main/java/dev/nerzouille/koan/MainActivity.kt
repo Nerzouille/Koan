@@ -11,9 +11,11 @@ import mozilla.components.feature.downloads.manager.FetchDownloadManager
 import mozilla.components.support.base.android.NotificationsDelegate
 import android.content.Intent
 import android.graphics.Color
+import dev.nerzouille.koan.engine.DownloadAsk
 import dev.nerzouille.koan.engine.Incoming
 import dev.nerzouille.koan.sync.PairingFlow
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.MotionEvent
 import androidx.activity.SystemBarStyle
@@ -115,6 +117,9 @@ class MainActivity : FragmentActivity() {
 
         /** When Koan last went to the background; null in a new process (then read from disk). */
         @Volatile var hiddenAt: Long? = null
+
+        /** A download this soon after a tap counts as tapped (a link that redirects to the file too). */
+        const val TAPPED_DOWNLOAD_MS = 3_000L
     }
 
     // Downloads need the notification permission for their progress notification (Android 13+).
@@ -125,8 +130,10 @@ class MainActivity : FragmentActivity() {
     }
 
     /**
-     * Pages start downloads; the service runs them. No confirmation dialog: a download starts at
-     * once (design 7g) and the end of it shows in a toast (KoanRoot, via [Components.downloadDone]).
+     * Pages start downloads; the service runs them. A download right after a tap (or a key) starts
+     * at once (design 7g); one the page starts on its own (later, from a script, in a background
+     * tab) waits on a card ([Components.downloadAsk]). The end shows in a toast (KoanRoot, via
+     * [Components.downloadDone]).
      */
     private fun startDownloads(components: Components) {
         // The download list lives on disk (DownloadStorage): back into the store once per process.
@@ -142,7 +149,14 @@ class MainActivity : FragmentActivity() {
                 applicationContext, components.store, KoanDownloadService::class,
                 notificationsDelegate = NotificationsDelegate(NotificationManagerCompat.from(applicationContext)),
             ),
-            customFirstPartyDownloadDialog = { current, _, positive, _, _ -> positive.value(current.value) },
+            customFirstPartyDownloadDialog = { current, _, positive, negative, _ ->
+                val download = current.value
+                if (SystemClock.uptimeMillis() - components.lastInputAt <= TAPPED_DOWNLOAD_MS) {
+                    positive.value(download)
+                } else {
+                    components.downloadAsk.value = DownloadAsk(download, start = { positive.value(download) }, cancel = { negative.value() })
+                }
+            },
             customThirdPartyDownloadDialog = { _, _, negative -> negative.value() },
         )
         downloads = feature
@@ -207,11 +221,13 @@ class MainActivity : FragmentActivity() {
     // High refresh only while the user interacts (and the animations that follow); see RefreshBooster.
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         refresh.onInput()
+        if (ev.actionMasked == MotionEvent.ACTION_UP) (application as KoanApp).components.lastInputAt = SystemClock.uptimeMillis()
         return super.dispatchTouchEvent(ev)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         refresh.onInput()
+        if (event.action == KeyEvent.ACTION_UP) (application as KoanApp).components.lastInputAt = SystemClock.uptimeMillis()
         return super.dispatchKeyEvent(event)
     }
 
