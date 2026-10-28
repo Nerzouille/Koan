@@ -41,6 +41,7 @@ import android.app.Activity
 import dev.nerzouille.koan.engine.ClosedTab
 import dev.nerzouille.koan.engine.Opener
 import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.engine.Incoming
 import dev.nerzouille.koan.search.resolveInput
 import dev.nerzouille.koan.search.resolveShared
 import dev.nerzouille.koan.search.Hit
@@ -336,7 +337,12 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             overlays.settingsOpen = false
             overlays.historyOpen = false
             overlays.downloadsOpen = false
-            openNewTab(if (incoming.isUrl) incoming.text else resolveShared(incoming.text, searchEngine), select = true, nextToCurrent = false, fromApp = true)
+            val url = when (incoming.kind) {
+                Incoming.Kind.Url -> incoming.text
+                Incoming.Kind.Shared -> resolveShared(incoming.text, searchEngine)
+                Incoming.Kind.Selected -> resolveInput(incoming.text, searchEngine)
+            }
+            openNewTab(url, select = true, nextToCurrent = false, fromApp = true)
         }
     }
     /** A url from the field: loads in the current tab, or in a new one from the start page. */

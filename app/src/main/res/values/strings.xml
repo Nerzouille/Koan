@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Koan</string>
+    <string name="search_in_koan">Search in Koan</string>
 </resources>

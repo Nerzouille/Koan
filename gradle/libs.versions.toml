@@ -9,6 +9,7 @@ fragment = "1.9.1"
 coroutines = "1.11.0"
 room = "2.8.5"
 biometric = "1.1.0"
+browser = "1.10.0"
 ksp = "2.3.12"
 # android-components and GeckoView must move together: AC X.Y depends on one exact GeckoView build.
 mozillaComponents = "157.0.1"
@@ -20,6 +21,7 @@ zxing = "3.5.4"
 orgJson = "20260814"
 
 [libraries]
+androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }

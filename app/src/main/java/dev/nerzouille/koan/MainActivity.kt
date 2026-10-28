@@ -154,7 +154,10 @@ class MainActivity : FragmentActivity() {
         handleIntent(intent)
     }
 
-    /** Links and text other apps send: they open as a new tab in the current space (KoanRoot). */
+    /**
+     * Links and text other apps send (and text selected there, "Search in Koan"): they open as a
+     * new tab in the current space (KoanRoot).
+     */
     private fun handleIntent(intent: Intent?) {
         val link = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString
         if (PairingFlow.isPairingLink(link)) {
@@ -163,9 +166,11 @@ class MainActivity : FragmentActivity() {
             return
         }
         val incoming = when (intent?.action) {
-            Intent.ACTION_VIEW -> intent.dataString?.let { Incoming(it, isUrl = true) }
-            Intent.ACTION_WEB_SEARCH -> intent.getStringExtra(SearchManager.QUERY)?.let { Incoming(it, isUrl = false) }
-            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let { Incoming(it, isUrl = false) }
+            // Custom Tabs links too: a VIEW with a session extra, opened like any other link.
+            Intent.ACTION_VIEW -> intent.dataString?.let { Incoming(it, Incoming.Kind.Url) }
+            Intent.ACTION_WEB_SEARCH -> intent.getStringExtra(SearchManager.QUERY)?.let { Incoming(it, Incoming.Kind.Shared) }
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let { Incoming(it, Incoming.Kind.Shared) }
+            Intent.ACTION_PROCESS_TEXT -> intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.let { Incoming(it.toString(), Incoming.Kind.Selected) }
             else -> null
         } ?: return
         if (incoming.text.isBlank()) return

@@ -146,6 +146,7 @@ androidx.security / Keystore, Coil 3 (images), Mozilla android-components + Geck
 `browser-session-storage`, approved for M3),
 androidsvg (favicons, as in Z-Sync), zxing-core (QR sign-in, decoding only; approved 2026-10-26), baselineprofile, JUnit, Turbine, Robolectric (if needed).
 Approved for M5 (2026-10-16): AC `feature-readerview`, AC `concept-storage`, `androidx.biometric`.
+Approved 2026-10-29: `androidx.browser` (Custom Tabs provider; already in the APK through android-components).
 
 ## Decisions log
 

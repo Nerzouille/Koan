@@ -143,6 +143,8 @@ dependencies {
     implementation(libs.androidx.fragment)
     // Passwords: reveal/copy only after the fingerprint or the device PIN (approved for M5).
     implementation(libs.androidx.biometric)
+    // Custom Tabs provider (KoanCustomTabsService); android-components already brings the same version.
+    implementation(libs.androidx.browser)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)

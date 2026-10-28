@@ -208,4 +208,13 @@ class Components(context: Context) {
 }
 
 /** Something another app handed to Koan: a url to open, or text to open or search ([text]). */
-data class Incoming(val text: String, val isUrl: Boolean, val at: Long = System.currentTimeMillis())
+data class Incoming(val text: String, val kind: Kind, val at: Long = System.currentTimeMillis()) {
+    enum class Kind {
+        /** A link (default browser, Custom Tabs): opened as is. */
+        Url,
+        /** Shared text or a web search: a link inside it opens, anything else is searched. */
+        Shared,
+        /** Text selected in another app ("Search in Koan"): opened if it is a url, else searched. */
+        Selected,
+    }
+}
