@@ -39,18 +39,17 @@ import dev.nerzouille.koan.ui.theme.TabMenuTokens
 
 /**
  * A small popup attached to the page view's dock, opened by a long press on one of its buttons,
- * just above the dock. Its edge sits [edge] in from the screen's side ([end]: the right one, else
- * the left). With [minWidth] (only for content that has intrinsic sizes) that edge is where its
- * own width would put the far one: the far edge stays there and it widens towards [end], within
- * the dock's margin. It grows out of the button ([anchor]: the button's centre, from that side)
- * and shrinks back into it; a tap anywhere else or Back closes it.
+ * just above the dock (UI_SPEC, "Dock popups"). Its outer edge sits on the dock's margin, on the
+ * side of its button ([end]: the right one, else the left), and never moves: its width hugs its
+ * content (at least [minWidth], only for content that has intrinsic sizes) and it grows towards
+ * the middle. It grows out of the button ([anchor]: the button's centre, from that side) and
+ * shrinks back into it; a tap anywhere else or Back closes it.
  */
 @Composable
 fun DockPopup(
     open: Boolean,
     onDismiss: () -> Unit,
     end: Boolean,
-    edge: Dp,
     anchor: Dp,
     modifier: Modifier = Modifier,
     minWidth: Dp? = null,
@@ -87,21 +86,16 @@ fun DockPopup(
                 .layout { measurable, constraints ->
                     val full = constraints.maxWidth
                     val margin = BarTokens.RowPadding.roundToPx()
-                    val edgePx = edge.roundToPx()
                     val loose = constraints.copy(minWidth = 0, maxWidth = full - 2 * margin)
-                    val p: Placeable
-                    val x: Int
-                    if (minWidth != null) {
-                        val natural = measurable.maxIntrinsicWidth(constraints.maxHeight).coerceAtMost(loose.maxWidth)
-                        val left = if (end) full - edgePx - natural else edgePx
-                        val room = if (end) full - margin - left else left + natural - margin
-                        val w = maxOf(natural, minWidth.roundToPx()).coerceAtMost(room)
-                        p = measurable.measure(loose.copy(minWidth = w, maxWidth = w))
-                        x = if (end) left else left + natural - w
+                    val p: Placeable = if (minWidth != null) {
+                        // Rows fill the popup's width: measured at the width its content wants.
+                        val natural = measurable.maxIntrinsicWidth(constraints.maxHeight)
+                        val w = maxOf(natural, minWidth.roundToPx()).coerceAtMost(loose.maxWidth)
+                        measurable.measure(loose.copy(minWidth = w, maxWidth = w))
                     } else {
-                        p = measurable.measure(loose)
-                        x = if (end) full - edgePx - p.width else edgePx
+                        measurable.measure(loose)
                     }
+                    val x = if (end) full - margin - p.width else margin
                     placed[0] = x
                     placed[1] = full
                     layout(full, p.height) { p.place(x, 0) }

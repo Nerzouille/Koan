@@ -266,12 +266,17 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   above). Long presses (each with a haptic), and only the pill's scrubs the spaces:
   - **back:** a small popup of the pages before this one in the tab (favicon, title, most recent
     first; scrolls past 6); tap = back to that page.
-  - **tab count:** New tab · Close tab (Undo toast).
+  - **tab count:** New tab · Close tab (Undo toast) · Reopen closed tab (the last tab closed in
+    this space, with its history; greyed out when there is none).
   - **⋯:** Settings.
   - **History** (overview): Recently closed.
-  The dock's popups sit just above the dock, attached to its end (back's at the left margin; the
-  tab count's left edge where its own width puts it from the counter, widened to the right to at
-  least 200dp within the margin), grow out of their button and close on a tap elsewhere or Back.
+  **Dock popups** (every popup opened from a dock button follows this): just above the dock,
+  anchored by the outer edge on the side of their button. A button on the right half (tab count,
+  ⋯) → the popup's **right** edge on the dock's right margin (the ⋯ button's outer edge); a button
+  on the left half (back) → its **left** edge on the dock's left margin. That edge never moves:
+  the width hugs the content (tab count: at least 200dp; back: at most 300dp), so longer or extra
+  items make it grow towards the middle, never shift it. They grow out of their button and close
+  on a tap elsewhere or Back.
 - **Loading line** (design 4d, 7g): a 2dp line in the **brand gradient** on the dock's top edge,
   from the left, with a soft glow. It eases towards the engine's progress (800ms, never backwards), a
   lighter streak sweeps along it while it waits, and on completion it runs to the end and fades

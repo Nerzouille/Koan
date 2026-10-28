@@ -36,7 +36,6 @@ fun BackMenu(open: Boolean, history: HistoryState?, onDismiss: () -> Unit, onGoT
         open = open && entries.isNotEmpty(),
         onDismiss = onDismiss,
         end = false,
-        edge = BarTokens.RowPadding,
         anchor = BarTokens.RowPadding + BarTokens.IconTouch / 2,
         modifier = Modifier.widthIn(max = TabMenuTokens.MaxWidth),
     ) {
