@@ -44,8 +44,9 @@ GitHub releases.
 - **Stack:** cards in front of the peek now slide down out of view, opaque, instead of fading.
 - **Dock popups** (tab counter, back's history) stay on their side of the dock and grow towards
   the middle as their items get longer.
-- **Smaller app:** the download is about 206 MB (was 228) and it takes about 22 MB less space once
-  installed: an unused library and the libraries' translations are gone (Koan is English only).
+- **Smaller app:** the download is about 201 MB (was 228) and it takes about 27 MB less space once
+  installed: an unused library and the libraries' translations are gone (Koan is English only),
+  and the tour's clips are lighter.
 
 ### Fixed
 
@@ -75,7 +76,8 @@ GitHub releases.
   and an app can't move itself up.
 - **Long screenshots:** HyperOS's scrolling screenshot still doesn't scroll Koan's pages; waiting
   on the GeckoView update due after 10 November.
-- **arm64 only** (64-bit ARM phones); APK about 206 MB.
+- **Old WebView warning:** written but not tested on a phone with an old WebView.
+- **arm64 only** (64-bit ARM phones); APK about 201 MB.
 
 ## 0.3.0 — 2026-10-25 (beta)
 

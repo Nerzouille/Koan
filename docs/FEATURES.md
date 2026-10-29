@@ -17,7 +17,7 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 - Requirements: Android 11 or newer (tested on Android 14 and 17; 11–13 are supported but less tested),
   a 64-bit ARM phone (arm64-v8a). Other CPUs are not built. Below Android 12 the drawer dims
   what's behind it instead of blurring it; phones with less memory keep fewer tabs live.
-- Download `koan-v0.4.0.apk` (about 206 MB) from the GitHub release and open it. Android asks you to allow
+- Download `koan-v0.4.0.apk` (about 201 MB) from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
 - **Updates:** install with [Obtainium](https://github.com/ImranR98/Obtainium) from the GitHub
   releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you.
