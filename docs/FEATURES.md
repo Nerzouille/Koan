@@ -1,4 +1,4 @@
-# Koan — user guide (v0.3.0)
+# Koan — user guide (v0.4.0)
 
 Everything that works in this build, how to use it, and what isn't there yet. Koan is a browser
 built on GeckoView (Firefox's engine). Its workspaces are your Zen Browser Spaces, read from your
@@ -14,10 +14,10 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 
 ### Install
 
-- Requirements: Android 11 or newer (tested on Android 14; 11–13 are supported but less tested),
+- Requirements: Android 11 or newer (tested on Android 14 and 17; 11–13 are supported but less tested),
   a 64-bit ARM phone (arm64-v8a). Other CPUs are not built. Below Android 12 the drawer dims
   what's behind it instead of blurring it; phones with less memory keep fewer tabs live.
-- Download `koan-v0.3.0.apk` from the GitHub release and open it. Android asks you to allow
+- Download `koan-v0.4.0.apk` (about 206 MB) from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
 - **Updates:** install with [Obtainium](https://github.com/ImranR98/Obtainium) from the GitHub
   releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you.
@@ -132,7 +132,8 @@ Koan only reads. Nothing you do on the phone is written to your account or to Ze
 - **Scroll:** drag up and down in the card area; flings coast.
 - **Open a tab:** tap the card in front. Tap a card in the pile or the one peeking below to bring it
   to the front.
-- **Close a tab:** swipe the front card sideways, or tap its ✕: it goes at once, the card on the
+- **Close a tab:** swipe the front card sideways (past about a third of its width, or a quick
+  flick, at any speed or angle), or tap its ✕: it goes at once, the card on the
   side you last scrolled from comes forward, and a **Tab closed · Undo** toast follows (Undo puts
   it back in its place, with its page history). A pinned tab or essential's card is only unloaded
   (see above).
@@ -185,8 +186,10 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
     Only the pill does this;
   - **back:** a small list of the pages before this one in the tab (icon and title, most recent
     first); tap one to go straight back to it;
-  - **the tab count:** a small menu with **New tab** and **Close tab** (the next tab shows, with a
-    **Tab closed · Undo** toast; a pinned tab or an essential goes back to its row);
+  - **the tab count:** a small menu with **New tab**, **Close tab** (the next tab shows, with a
+    **Tab closed · Undo** toast; a pinned tab or an essential goes back to its row) and **Reopen
+    closed tab** (the last tab closed in this space, in its place and with its history; greyed out
+    when there is none);
   - **⋯:** Settings;
   - **History** (the clock, in the overview): Recently closed.
 - **The dock hides** while you scroll a page down and comes back when you scroll up or a new page
@@ -394,8 +397,10 @@ with Koan in the background or the screen off.
 
 ## 7. Downloads
 
-- A download starts as soon as a page offers a file, without asking. A small ring in the address
-  pill shows its progress. Tap the ring for Downloads.
+- A download you start (tapping a file link or a download button) begins at once, without asking.
+  One a page starts on its own (a countdown, a script, a background tab) asks first, on a card
+  with the file's name, size and site: **Download** or **Cancel** (a tap outside or Back cancels).
+  A small ring in the address pill shows the progress. Tap the ring for Downloads.
 - When it's done: a toast with the file's name, size and site, and **Open**. A failed download says
   so, with **Retry**.
 - A link that only downloads a file (from another app, or opening a new tab) doesn't leave an empty
@@ -507,7 +512,12 @@ closes it).
 | About Koan | Version, update check, **Take the tour**, links to the changelog, the privacy notice and the open-source licences |
 
 **As the default browser:** links you open in other apps, web searches, and text or links shared to
-Koan open as a new tab in your current space.
+Koan open as a new tab in your current space. So do links apps open "in the app" (Custom Tabs, as
+in Discord or GitHub), and Back returns to the app.
+
+**Search in Koan:** select text in any app and pick **Search in Koan** in the selection menu (it
+may sit under ⋯, near the end). A link or an address opens as it is; anything else is searched
+with your default engine, in a new tab of the current space. Back returns to the app.
 
 **Update check:** opening About looks once at Koan's GitHub releases and says **Up to date** or
 **Update available** (tap it to open the release page and download the APK). Koan never checks in
@@ -533,7 +543,7 @@ the background. If the check fails (no network), tap the chip to try again.
 - **No editing of Spaces:** no creating, renaming or reordering spaces, no moving a tab to another
   space, no editing folders. Card reordering works within a space only.
 - **Unofficial sign-in:** see [Signing in](#signing-in-with-a-mozilla-account).
-- **Android 11+ and arm64 only:** tested on Android 14; 11–13 are supported but less tested.
+- **Android 11+ and arm64 only:** tested on Android 14 and 17; 11–13 are supported but less tested.
 - **Long screenshots:** HyperOS's scrolling screenshot doesn't scroll Koan's pages yet (a GeckoView
   update after 10 November should help).
 - **Old WebView warning on sign-in:** shown when Android System WebView is older than 92 (it can't

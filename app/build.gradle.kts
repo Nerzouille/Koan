@@ -111,9 +111,20 @@ android {
                 .forEach { resources.srcDir(contract.resolve(it)) }
         }
     }
+    // UI strings are English only (CLAUDE.md): the libraries' translations stay out.
+    androidResources {
+        localeFilters += "en"
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            // Never loaded: megazord is Nimbus's native side (Koan runs no experiments; only its
+            // Kotlin flag classes are used). ~22 MB off the APK and the install. Gecko's crash
+            // libraries stay: GeckoView starts its CrashHelper process at every launch, and that
+            // process crashes without libcrashhelper.so (tried 2026-10-29).
+            excludes += "**/libmegazord.so"
         }
     }
 }

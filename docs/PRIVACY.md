@@ -25,7 +25,7 @@ Apart from the sites you open, Koan only connects to these:
 | Server | When | What it gets |
 |---|---|---|
 | Mozilla accounts and Firefox Sync (`accounts.firefox.com`, `token.services.mozilla.com`, Sync storage) | When you sign in, and when Koan syncs | Your sign-in, then requests for your Spaces, passwords, history and bookmarks. Sync data is end-to-end encrypted: Mozilla can't read it. Koan only reads it. |
-| Your search engine (DuckDuckGo, Google, Brave Search, Startpage, or an engine you added yourself) | When you search, and while you type if search suggestions are on | What you type in the search field, never a web address. Turn suggestions off in Settings. An engine you add gets your searches (and, if you gave it a suggestions address, what you type) exactly like the built-in ones: only add engines you trust. |
+| Your search engine (DuckDuckGo, Google, Brave Search, Startpage, Baidu, or an engine you added yourself) | When you search, and while you type if search suggestions are on | What you type in the search field, never a web address. Turn suggestions off in Settings. An engine you add gets your searches (and, if you gave it a suggestions address, what you type) exactly like the built-in ones: only add engines you trust. |
 | DuckDuckGo's icon service (`icons.duckduckgo.com`) | When a site's own icon can't be found | The site's domain name only. Never for local network addresses. |
 | GitHub (`github.com`) | Each time you open Settings › About Koan | A request for Koan's public releases feed, to tell you whether an update exists. Never in the background. |
 | Mozilla Add-ons (`addons.mozilla.org`) | On first start, to install uBlock Origin, and for its updates | A normal download request. |

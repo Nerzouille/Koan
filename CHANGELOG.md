@@ -1,13 +1,13 @@
 # Changelog
 
-## Unreleased (0.3.1)
+## 0.4.0 — unreleased
+
+Installs over 0.3.x and keeps your data. Full guide: [`docs/FEATURES.md`](docs/FEATURES.md). For
+automatic updates, install with [Obtainium](https://github.com/ImranR98/Obtainium) from this repo's
+GitHub releases.
 
 ### New
 
-- **Hide status bar** (Settings › Display, off by default): pages use the whole screen, right up
-  to the camera. Swipe down from the top edge to see the status bar for a moment. The overview,
-  menus, Settings and the other pages keep it (the search sheet too: it belongs to the page).
-  Theme moved into the new Display section.
 - **Sign in from your computer:** on the sign-in screen, scan the code Zen shows under Settings ›
   Sync › Connect another device (or paste its link). No password to type on the phone. Signing out
   revokes that sign-in. Email and password still work as before. A first page asks which of the
@@ -18,8 +18,23 @@
   They work like the built-in ones (default search, `@` picker with the site's icon, suggestions)
   and can be edited or deleted (Undo in the toast). On a page that offers its search engine (a
   SearXNG instance, many sites), ⋯ › **Add this search engine** fills the form in for you.
+- **Baidu** is one of the built-in search engines, with its own suggestions and the `@bd` shortcut.
+- **Hide status bar** (Settings › Display, off by default): pages use the whole screen, right up
+  to the camera. Swipe down from the top edge to see the status bar for a moment. The search
+  sheet, the overview, menus, Settings and the other pages bring it back (over the page, on a
+  strip of the page's colour). Theme moved into the new Display section.
+- **Search in Koan** from any app: select text, then pick **Search in Koan** in the selection menu
+  (sometimes under ⋯). A link or an address opens as it is, anything else is searched with your
+  default engine, in a new tab of the current space; Back returns to the app.
+- **Links opened "in the app"** (Custom Tabs, as in Discord or GitHub) can open in Koan: a new tab
+  in the current space, and Back closes it and returns to the app.
+- **Reopen closed tab:** long-press the tab counter. It brings back the last tab closed in this
+  space, in its place and with its back/forward history (greyed out when there is none).
+- **Downloads a page starts on its own** (a countdown, a script, a background tab) now ask first,
+  on a card with the file's name, size and site: **Download** or **Cancel**. A download you tap
+  still starts at once.
 
-### Changed
+### Improved
 
 - **Page ↔ overview, no more double image:** the overview no longer fades over the page. The tab's
   card flies between the page and its place in the stack, fully opaque, both ways (also when you
@@ -27,9 +42,19 @@
   slides up from the bottom and the space name slides down from the top, nothing pops in at the
   end.
 - **Stack:** cards in front of the peek now slide down out of view, opaque, instead of fading.
+- **Dock popups** (tab counter, back's history) stay on their side of the dock and grow towards
+  the middle as their items get longer.
+- **Smaller app:** the download is about 206 MB (was 228) and it takes about 22 MB less space once
+  installed: an unused library and the libraries' translations are gone (Koan is English only).
 
 ### Fixed
 
+- **Links from other apps** always open on their page, even when Koan comes back after a long
+  time (it could stay on the overview, with the new card at the bottom). Back on that page returns
+  to the app that sent the link, when Android says which one.
+- **Swipe to close in the overview** works every time: a slow swipe past about a third of the card,
+  a short quick flick, or a diagonal one all close it, and the card follows your finger exactly
+  (a slow start used to pick the card up for reordering instead).
 - After sign-in, once the first sync is done, the overview opens on Zen's top tab (the front-most
   Zen card; tabs opened on the phone sit just in front of it).
 - **Tab order on sync:** tabs opened on the phone keep their place in the stack when Zen's tabs
@@ -43,6 +68,14 @@
   if the space is empty), and Undo makes the closed tab current again.
 - **Issue templates:** bug reports and feature requests on GitHub ask for what's needed (phone,
   Android and Koan versions, steps). See Feedback in the README.
+
+### Known limitations
+
+- **Search in Koan** comes near the end of the selection menu: Android sorts these entries by app,
+  and an app can't move itself up.
+- **Long screenshots:** HyperOS's scrolling screenshot still doesn't scroll Koan's pages; waiting
+  on the GeckoView update due after 10 November.
+- **arm64 only** (64-bit ARM phones); APK about 206 MB.
 
 ## 0.3.0 — 2026-10-25 (beta)
 
