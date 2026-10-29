@@ -189,7 +189,8 @@ class MainActivity : FragmentActivity() {
         } ?: return
         if (incoming.text.isBlank()) return
         openedFromLink = true
-        (application as KoanApp).components.incoming.value = incoming
+        val from = referrer?.takeIf { it.scheme == "android-app" }?.host?.takeIf { it != packageName }
+        (application as KoanApp).components.incoming.value = incoming.copy(referrer = from)
     }
 
     /** This time Koan came to the front for a link or a share: never the start page. */

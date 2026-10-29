@@ -41,6 +41,7 @@ import dev.nerzouille.koan.data.TabOrigin
 import android.app.Activity
 import dev.nerzouille.koan.engine.ClosedTab
 import dev.nerzouille.koan.engine.Opener
+import dev.nerzouille.koan.engine.returnToApp
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.engine.Incoming
 import dev.nerzouille.koan.search.resolveInput
@@ -143,6 +144,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val tabsStarted by tabs.started.collectAsStateWithLifecycle()
     var overviewOpen by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
+    /** A tab another app just opened, until it is the current one (see the incoming links). */
+    var landing by remember { mutableStateOf<String?>(null) }
     // The start page is up (with the field): not a tab until something opens from it. It goes
     // with the field.
     var startPage by remember { mutableStateOf(false) }
@@ -313,9 +316,9 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             ?: (s.pinnedTabs + s.essentials).firstOrNull { it.koanTabId == id }
     }
     /** A url as a new tab of the current space; [nextToCurrent]: right after the current card. */
-    fun openNewTab(url: String, select: Boolean, nextToCurrent: Boolean, fromApp: Boolean = false) {
+    fun openNewTab(url: String, select: Boolean, nextToCurrent: Boolean, fromApp: Opener.App? = null): String? {
         val index = currentSpace.coerceIn(0, (spaces.size - 1).coerceAtLeast(0))
-        val space = spaces.getOrNull(index) ?: return
+        val space = spaces.getOrNull(index) ?: return null
         val opener = if (nextToCurrent) activeTabId?.let(::tabById) else null
         val id = tabs.openNew(space.space.uuid, url, opener, select, fromApp)
         if (!select) {
@@ -326,12 +329,13 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     }?.let { (i, tab) -> openTab(i, tab) }
                 },
             )
-            return
+            return id
         }
         currentTabs[space.space.uuid] = id
         editing = false
         heroPick = id
         overviewOpen = false
+        return id
     }
     // Links and text other apps send (default browser, share): a new tab in the current space.
     LaunchedEffect(tabsStarted, spaces.isEmpty(), placeRestored) {
@@ -339,6 +343,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         components.incoming.collect { incoming ->
             if (incoming == null) return@collect
             components.incoming.value = null
+            tabSwipe.cancel()
+            tabs.cancelBlank()
+            overlays.dismissAll()
+            overlays.menu.snapClosed()
             overlays.settingsOpen = false
             overlays.historyOpen = false
             overlays.downloadsOpen = false
@@ -347,8 +355,19 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 Incoming.Kind.Shared -> resolveShared(incoming.text, searchEngine)
                 Incoming.Kind.Selected -> resolveInput(incoming.text, searchEngine)
             }
-            openNewTab(url, select = true, nextToCurrent = false, fromApp = true)
+            landing = openNewTab(url, select = true, nextToCurrent = false, fromApp = Opener.App(incoming.referrer, url))
         }
+    }
+    // The app's tab is created a moment later (TabManager): until it is the current one, nothing
+    // may put the overview up (no current tab, at launch), and then it shows, in the page view.
+    LaunchedEffect(landing) {
+        val id = landing ?: return@LaunchedEffect
+        withTimeoutOrNull(LANDING_TIMEOUT_MS) { snapshotFlow { activeTabId }.first { it == id } }
+        if (activeTabId == id && overviewOpen) {
+            heroPick = NO_CARD
+            overviewOpen = false
+        }
+        landing = null
     }
     /** A url from the field: loads in the current tab, or in a new one from the start page. */
     fun loadHere(url: String) {
@@ -492,7 +511,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // No tab to show (first run, or the last one was closed in Zen): the overview (once the start
     // page, if up, is left).
     LaunchedEffect(tabsStarted, activeTabId, spaces.isEmpty(), startPage) {
-        if (tabsStarted && activeTabId == null && spaces.isNotEmpty() && !overviewOpen && !startPage) openOverview()
+        if (tabsStarted && activeTabId == null && spaces.isNotEmpty() && !overviewOpen && !startPage && landing == null) openOverview()
     }
 
     val signedIn = account is AccountState.SignedIn
@@ -644,11 +663,11 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         val next = stack.getOrNull(i + 1)?.first ?: stack.getOrNull(i - 1)?.first
         scope.launch {
             when {
-                opener == Opener.App -> {
+                opener is Opener.App -> {
                     // Coming back to Koan later shows the tab next to it.
                     if (next != null) openTab(si, next, captureLeaving = false)
                     tabs.closeForUndo(id)
-                    activity?.moveTaskToBack(true)
+                    activity?.returnToApp(opener)
                     return@launch
                 }
                 parent != null -> {
@@ -1028,3 +1047,6 @@ private const val NO_CARD = ""
 
 /** After sign-in, how long the overview waits for the first sync before giving up on showing Zen's top tab. */
 private const val ZEN_TOP_WAIT_MS = 120_000L
+
+/** How long an incoming link's tab may take to become the current one (it is a Room write). */
+private const val LANDING_TIMEOUT_MS = 5_000L

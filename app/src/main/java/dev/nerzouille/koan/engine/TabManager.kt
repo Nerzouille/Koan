@@ -107,6 +107,9 @@ class TabManager(
     /** The tab another app opened (a link, a share), while it is the current one: Back goes back there. */
     private var fromApp: String? = null
 
+    /** That app ([fromApp]'s), when Android told us, and the link it sent. */
+    private var fromAppSource: Opener.App = Opener.App(null, null)
+
     // ---- start -------------------------------------------------------------------------------
 
     /**
@@ -200,19 +203,22 @@ class TabManager(
      * new tab"), else at the bottom of the stack. [select]: shown now; otherwise it waits in the
      * stack and loads when opened. Returns the new tab's id.
      */
-    fun openNew(spaceUuid: String, url: String, opener: TabEntity? = null, select: Boolean = true, fromApp: Boolean = false): String {
+    fun openNew(spaceUuid: String, url: String, opener: TabEntity? = null, select: Boolean = true, fromApp: Opener.App? = null): String {
         val id = UUID.randomUUID().toString()
         if (opener != null) openers[id] = opener.koanTabId
         main.launch {
             openNew(id, spaceUuid, url, opener, select)
-            if (fromApp) this@TabManager.fromApp = id
+            if (fromApp != null) {
+                this@TabManager.fromApp = id
+                fromAppSource = fromApp
+            }
         }
         return id
     }
 
     /** Who opened tab [id], for Back on its first page; null = nobody in particular. */
     fun openerOf(id: String): Opener? = when {
-        fromApp == id -> Opener.App
+        fromApp == id -> fromAppSource
         else -> openers[id]?.let { Opener.Tab(it) }
     }
 
@@ -688,7 +694,9 @@ private fun TabEntity.hasCard() = !closed && inStack
 /** Who opened a tab: another tab (a link), or another app. */
 sealed interface Opener {
     data class Tab(val id: String) : Opener
-    data object App : Opener
+
+    /** [referrer]: the app's package, when Android says; [link]: what it sent. */
+    data class App(val referrer: String?, val link: String?) : Opener
 }
 
 /** A closed tab, kept for Undo: its Room row and its engine state (page history, scroll). */

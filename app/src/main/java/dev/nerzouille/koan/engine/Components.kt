@@ -217,7 +217,13 @@ class Components(context: Context) {
 class DownloadAsk(val download: DownloadState, val start: () -> Unit, val cancel: () -> Unit)
 
 /** Something another app handed to Koan: a url to open, or text to open or search ([text]). */
-data class Incoming(val text: String, val kind: Kind, val at: Long = System.currentTimeMillis()) {
+data class Incoming(
+    val text: String,
+    val kind: Kind,
+    /** The sending app's package, when Android says (Back returns there). */
+    val referrer: String? = null,
+    val at: Long = System.currentTimeMillis(),
+) {
     enum class Kind {
         /** A link (default browser, Custom Tabs): opened as is. */
         Url,
