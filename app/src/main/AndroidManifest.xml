@@ -58,18 +58,21 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
-        <!-- "Search in Koan" in the text selection menu of other apps (its label is the entry's). -->
-        <activity-alias
+        <!-- "Search in Koan" in the text selection menu of other apps (its label is the entry's):
+             it hands the text to MainActivity in Koan's own task, SearchSelection.kt. -->
+        <activity
             android:name=".SearchSelection"
             android:exported="true"
             android:label="@string/search_in_koan"
-            android:targetActivity=".MainActivity">
+            android:theme="@android:style/Theme.NoDisplay"
+            android:excludeFromRecents="true"
+            android:noHistory="true">
             <intent-filter>
                 <action android:name="android.intent.action.PROCESS_TEXT" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-        </activity-alias>
+        </activity>
         <!-- Apps opening links in a Custom Tab find Koan as a provider (the links come as VIEW). -->
         <service
             android:name=".engine.KoanCustomTabsService"
