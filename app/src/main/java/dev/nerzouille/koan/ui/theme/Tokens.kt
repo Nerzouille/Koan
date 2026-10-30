@@ -444,6 +444,14 @@ object TourTokens {
     val TitleGap = 6.dp
     val Gap = 16.dp
 
+    /** A card without a clip: its icon on a rounded tile above the title, all centred. */
+    val IconTile = 96.dp
+    val IconTileRadius = 28.dp
+    val IconGlyph = 44.dp
+
+    /** The GitHub mark on the last highlight's "See the full changelog". */
+    val ChangelogIcon = 20.dp
+
     /** The clip's phone frame: this share of the sheet's width, all the height left. */
     const val FRAME_WIDTH = 0.9f
 

@@ -111,6 +111,7 @@ import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.tour.TourOverlay
 import dev.nerzouille.koan.ui.tour.TourSheet
+import dev.nerzouille.koan.ui.tour.Highlights
 import dev.nerzouille.koan.ui.tour.featureVersion
 import dev.nerzouille.koan.update.UpdateCheck
 import kotlinx.coroutines.CoroutineScope
@@ -702,6 +703,8 @@ fun KoanOverlays(
                 version = BuildConfig.VERSION_NAME,
                 checkUpdate = { UpdateCheck.check(BuildConfig.VERSION_NAME) },
                 onTour = { overlays.showTour(TourSheet.Tour) },
+                onWhatsNew = featureVersion(BuildConfig.VERSION_NAME).takeIf { it in Highlights }
+                    ?.let { version -> { overlays.showTour(TourSheet.WhatsNew(version)) } },
                 onOpenUrl = { url ->
                     overlays.settingsOpen = false
                     onOpenNew(url, true, false)
@@ -833,10 +836,20 @@ fun KoanOverlays(
     }
 
     // ---- the tour / "What's new": full screen, on top of everything; leaving it counts as seen ----
-    TourOverlay(overlays.tourOpen, overlays.tourSheet) {
+    val closeTour = {
         overlays.tourOpen = false
         scope.launch { components.settings.setTourSeen(featureVersion(BuildConfig.VERSION_NAME)) }
     }
+    TourOverlay(
+        overlays.tourOpen,
+        overlays.tourSheet,
+        onOpenUrl = { url ->
+            closeTour()
+            overlays.settingsOpen = false
+            onOpenNew(url, true, false)
+        },
+        onClosed = { closeTour() },
+    )
 }
 
 /** Find in page for the address row, while it is open. */

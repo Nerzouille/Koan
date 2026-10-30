@@ -1,11 +1,15 @@
 package dev.nerzouille.koan.ui.tour
 
 import androidx.activity.compose.BackHandler
-import androidx.annotation.RawRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -60,11 +64,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.util.lerp
 import dev.nerzouille.koan.ui.theme.BrandTokens
+import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.ButtonTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.TourTokens
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
@@ -76,7 +83,7 @@ import kotlinx.coroutines.launch
  * card.
  */
 @Composable
-fun TourOverlay(open: Boolean, sheet: TourSheet?, onClosed: () -> Unit) {
+fun TourOverlay(open: Boolean, sheet: TourSheet?, onOpenUrl: (String) -> Unit, onClosed: () -> Unit) {
     val shown = remember { Animatable(0f) }
     LaunchedEffect(open) { shown.animateTo(if (open) 1f else 0f, Motion.Sheet) }
     val visible by remember { derivedStateOf { open || shown.value > 0f } }
@@ -149,6 +156,8 @@ fun TourOverlay(open: Boolean, sheet: TourSheet?, onClosed: () -> Unit) {
                 val card = cards[i]
                 if (card.welcome) {
                     WelcomePage(card, motion) { (pager.currentPage + pager.currentPageOffsetFraction - i).coerceIn(0f, 1f) }
+                } else if (sheet is TourSheet.WhatsNew && i == cards.lastIndex) {
+                    TourPage(card) { WhatsNewEnd { if (open) onOpenUrl(LATEST_RELEASE_URL) } }
                 } else {
                     TourPage(card)
                 }
@@ -157,7 +166,7 @@ fun TourOverlay(open: Boolean, sheet: TourSheet?, onClosed: () -> Unit) {
             PageDots(pager, welcome, Modifier.align(Alignment.CenterHorizontally))
             Spacer(Modifier.height(TourTokens.Gap))
             val last = pager.currentPage == cards.lastIndex
-            TourButton(if (last) "Get started" else "Next", filled = true, welcome, Modifier.fillMaxWidth().padding(horizontal = TourTokens.Padding)) {
+            TourButton(if (!last) "Next" else if (sheet is TourSheet.WhatsNew) "Got it" else "Get started", filled = true, welcome, Modifier.fillMaxWidth().padding(horizontal = TourTokens.Padding)) {
                 if (!open) return@TourButton
                 if (last) onClosed() else scope.launch { pager.animateScrollToPage(pager.currentPage + 1, animationSpec = Motion.PagerSettle) }
             }
@@ -202,9 +211,26 @@ private fun Modifier.swipeDownToClose(drag: Animatable<Float, *>, onClose: () ->
 
 /** One card, from the top: title, line, then the clip in its phone frame in all the room left. */
 @Composable
-private fun TourPage(card: TourCard) {
+private fun TourPage(card: TourCard, footer: (@Composable () -> Unit)? = null) {
     val palette = KoanTheme.colors
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+    val res = if (palette.isDark) card.dark else card.light
+    val still = if (palette.isDark) card.stillDark else card.stillLight
+    val media = res != null || still != null
+    // Without a clip the text sits in the middle, under its icon, instead of over an empty frame.
+    Column(
+        Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = if (!media) Arrangement.Center else Arrangement.Top,
+    ) {
+        if (!media && card.icon != null) {
+            Box(
+                Modifier.size(TourTokens.IconTile).clip(RoundedCornerShape(TourTokens.IconTileRadius)).background(palette.GroupedRow),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(card.icon, null, tint = palette.TextPrimary, modifier = Modifier.size(TourTokens.IconGlyph))
+            }
+            Spacer(Modifier.height(TourTokens.Gap * 1.5f))
+        }
         Text(
             card.title,
             color = palette.TextPrimary,
@@ -223,8 +249,7 @@ private fun TourPage(card: TourCard) {
             minLines = 2,
             modifier = Modifier.fillMaxWidth().padding(horizontal = TourTokens.Padding),
         )
-        val res = if (palette.isDark) card.dark else card.light
-        if (res != null) {
+        if (media) {
             Spacer(Modifier.height(TourTokens.Gap))
             BoxWithConstraints(Modifier.fillMaxWidth(TourTokens.FRAME_WIDTH).weight(1f), contentAlignment = Alignment.Center) {
                 // Shaped like its clip, as big as the room allows; a focus crop takes all the room.
@@ -232,10 +257,37 @@ private fun TourPage(card: TourCard) {
                 val aspect = card.framing.aspect
                 val width = if (aspect == null) maxWidth else min(maxWidth, (maxHeight - bezels) * aspect + bezels)
                 val height = if (aspect == null) maxHeight else min(maxHeight, (width - bezels) / aspect + bezels)
-                PhoneFrame(res, Modifier.size(width, height))
+                PhoneFrame(Modifier.size(width, height)) { inner ->
+                    if (res != null) {
+                        TourVideo(res, inner)
+                    } else if (still != null) {
+                        Image(painterResource(still), null, inner, contentScale = ContentScale.Crop, alignment = Alignment.TopCenter)
+                    }
+                }
             }
             Spacer(Modifier.height(TourTokens.FrameShadow / 2))
         }
+        footer?.invoke()
+    }
+}
+
+/** Under the last highlight: the full changelog on GitHub ([onChangelog]). */
+@Composable
+private fun WhatsNewEnd(onChangelog: () -> Unit) {
+    val palette = KoanTheme.colors
+    Spacer(Modifier.height(TourTokens.Gap))
+    Row(
+        Modifier
+            .height(ButtonTokens.Height)
+            .clip(CircleShape)
+            .background(palette.GroupedRow)
+            .clickable(onClick = onChangelog)
+            .padding(horizontal = ButtonTokens.PaddingH),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(KoanIcons.GitHub, null, tint = palette.TextPrimary, modifier = Modifier.size(TourTokens.ChangelogIcon))
+        Spacer(Modifier.width(TourTokens.TitleGap * 1.5f))
+        Text("See the full changelog", color = palette.TextPrimary, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -244,7 +296,7 @@ private fun TourPage(card: TourCard) {
  * reads as a demo and never as Koan's own.
  */
 @Composable
-private fun PhoneFrame(@RawRes res: Int, modifier: Modifier) {
+private fun PhoneFrame(modifier: Modifier, content: @Composable (Modifier) -> Unit) {
     val palette = KoanTheme.colors
     val outer = RoundedCornerShape(TourTokens.FrameRadius)
     Box(
@@ -256,7 +308,7 @@ private fun PhoneFrame(@RawRes res: Int, modifier: Modifier) {
             .padding(TourTokens.FrameBezel),
     ) {
         val inner = Modifier.fillMaxSize().clip(RoundedCornerShape(TourTokens.FrameRadius - TourTokens.FrameBezel))
-        TourVideo(res, inner.background(palette.GroupedRow))
+        content(inner.background(palette.GroupedRow))
     }
 }
 

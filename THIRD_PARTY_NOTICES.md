@@ -71,6 +71,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
+## GitHub mark (Octicons, MIT)
+
+The GitHub icon in `ui/icons/KoanIcons.kt` (`GitHub`) is the path of `mark-github-16` from
+Octicons (https://github.com/primer/octicons), Copyright (c) GitHub Inc., under the MIT License
+(same text as in the Z-Sync section above). It is used only on the link to Koan's own release
+page.
+
 ## Dependencies
 
 Pulled in by Gradle, not copied into this repository:
@@ -91,5 +98,6 @@ Pulled in by Gradle, not copied into this repository:
 ## Trademarks
 
 Firefox and Mozilla are trademarks of the Mozilla Foundation in the U.S. and other countries.
+GitHub and the GitHub logo are trademarks of GitHub, Inc.
 Zen Browser is an independent project. Koan is not affiliated with, endorsed by or connected to
 Mozilla or Zen Browser; these names are used only to describe compatibility.

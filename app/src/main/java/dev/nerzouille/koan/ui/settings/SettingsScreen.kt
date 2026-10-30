@@ -92,6 +92,8 @@ class SettingsUi(
     val checkUpdate: suspend () -> UpdateStatus,
     /** Replays the first-run tour (About). */
     val onTour: () -> Unit,
+    /** Replays this version's "What's new" (About); null = it has none (the changelog instead). */
+    val onWhatsNew: (() -> Unit)?,
     /** Opens a page (changelog, licences) in a new tab. */
     val onOpenUrl: (String) -> Unit,
     /** Debug builds only. */

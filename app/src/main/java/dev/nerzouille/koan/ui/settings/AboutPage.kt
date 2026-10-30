@@ -34,7 +34,8 @@ import dev.nerzouille.koan.ui.theme.SettingsTokens
 import dev.nerzouille.koan.ui.theme.brandOutline
 import dev.nerzouille.koan.update.UpdateStatus
 
-private const val REPO = "https://github.com/Nerzouille/Koan"
+/** Koan's GitHub repository (changelog, releases, licences). */
+internal const val REPO = "https://github.com/Nerzouille/Koan"
 
 /**
  * About Koan (design 7o). Opening it looks at GitHub's releases once (no background polling): the
@@ -90,7 +91,7 @@ internal fun AboutPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
         Spacer(Modifier.height(SettingsTokens.Divider * 8))
         SettingsRow(null, "Take the tour", on, chevron = true, onClick = ui.onTour)
         SettingsDivider()
-        SettingsRow(null, "What's new in ${ui.version.split('.').take(2).joinToString(".")}", on, chevron = true, onClick = { ui.onOpenUrl("$REPO/blob/main/CHANGELOG.md") })
+        SettingsRow(null, "What's new in ${ui.version.split('.').take(2).joinToString(".")}", on, chevron = true, onClick = ui.onWhatsNew ?: { ui.onOpenUrl("$REPO/blob/main/CHANGELOG.md") })
         SettingsDivider()
         SettingsRow(null, "Privacy notice", on, chevron = true, onClick = { ui.onOpenUrl("$REPO/blob/main/docs/PRIVACY.md") })
         SettingsDivider()

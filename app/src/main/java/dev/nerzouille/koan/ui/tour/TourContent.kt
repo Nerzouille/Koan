@@ -1,13 +1,19 @@
 package dev.nerzouille.koan.ui.tour
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.RawRes
+import androidx.compose.ui.graphics.vector.ImageVector
 import dev.nerzouille.koan.R
+import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.settings.REPO
 import dev.nerzouille.koan.ui.theme.TourTokens
 
 /**
  * One card of the tour or of a "What's new": a title, one line, and a looping clip recorded in
- * Koan ([dark] / [light] so it matches the theme; null = text only), framed per [framing].
- * [welcome]: the tour's first card instead (the K on the brand gradient, Welcome.kt).
+ * Koan ([dark] / [light] so it matches the theme), or a still screenshot ([stillDark] /
+ * [stillLight], a screen words describe well enough), framed per [framing]; neither = text only,
+ * then [icon] above the title. [welcome]: the tour's first card instead (the K on the brand
+ * gradient, Welcome.kt).
  */
 class TourCard(
     val title: String,
@@ -16,6 +22,9 @@ class TourCard(
     @param:RawRes val light: Int? = null,
     val framing: Framing = Framing.Focus,
     val welcome: Boolean = false,
+    val icon: ImageVector? = null,
+    @param:DrawableRes val stillDark: Int? = null,
+    @param:DrawableRes val stillLight: Int? = null,
 )
 
 /**
@@ -73,16 +82,43 @@ val TourCards: List<TourCard> = listOf(
     ),
     TourCard(
         "Long presses",
-        "Hold ← for earlier pages, History for recently closed tabs, ⋯ for Settings.",
+        "Hold ← for earlier pages, the tab counter for Reopen closed tab, ⋯ for Settings.",
         R.raw.tour_holds_dark, R.raw.tour_holds_light,
     ),
 )
 
 /**
- * "What's new" per version ("0.4"): 3 to 5 highlights, one line on how to use each. A version
- * without an entry shows nothing. 0.3 has none: it brought the tour itself.
+ * "What's new" per version ("0.4"): 3 to 5 highlights, one line on how to use each, a clip only for
+ * a gesture or a flow words don't carry. A version without an entry (fix-only) shows nothing. 0.3
+ * has none: it brought the tour itself.
  */
-val Highlights: Map<String, List<TourCard>> = mapOf()
+val Highlights: Map<String, List<TourCard>> = mapOf(
+    "0.4" to listOf(
+        TourCard("Sign in from your computer", "On the sign-in screen, scan the code Zen shows: no password to type.", icon = KoanIcons.Desktop),
+        TourCard(
+            "Search in Koan from any app",
+            "Select text in any app, then pick Search in Koan in the menu.",
+            R.raw.whatsnew_search_dark, R.raw.whatsnew_search_light,
+            Framing.Screen,
+        ),
+        TourCard(
+            "Reopen a closed tab",
+            "Hold the tab counter, then Reopen closed tab.",
+            R.raw.whatsnew_reopen_dark, R.raw.whatsnew_reopen_light,
+            Framing.Screen,
+        ),
+        TourCard(
+            "Your own search engines",
+            "Add your own search engines and @shortcuts in Settings › Search engine, or add a site's engine from ⋯ › Add this search engine.",
+            framing = Framing.Screen,
+            stillDark = R.drawable.whatsnew_engines_dark,
+            stillLight = R.drawable.whatsnew_engines_light,
+        ),
+    ),
+)
+
+/** Koan's latest GitHub release: the last highlight links to its full changelog. */
+const val LATEST_RELEASE_URL = "$REPO/releases/latest"
 
 /** "0.3.1" → "0.3": the tour and highlights go by feature version. */
 fun featureVersion(versionName: String): String = versionName.split('.').take(2).joinToString(".")

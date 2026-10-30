@@ -33,6 +33,12 @@ class TourContentTest {
     }
 
     @Test
+    fun `0_4 has 3 to 5 highlights and shows after 0_3`() {
+        assertEquals(TourSheet.WhatsNew("0.4"), dueSheet("0.3", "0.4"))
+        assert(Highlights.getValue("0.4").size in 3..5)
+    }
+
+    @Test
     fun `feature version drops the patch`() {
         assertEquals("0.3", featureVersion("0.3.0"))
         assertEquals("1.12", featureVersion("1.12.4"))
