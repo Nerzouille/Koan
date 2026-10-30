@@ -102,7 +102,7 @@ fun TourOverlay(open: Boolean, sheet: TourSheet?, onOpenUrl: (String) -> Unit, o
         if (!open) return@LaunchedEffect
         drag.snapTo(0f)
         pager.scrollToPage(0)
-        if (hasWelcome) motion.play(still)
+        if (hasWelcome) motion.play(still, pop = sheet is TourSheet.WhatsNew)
     }
     // The welcome card's idle motion runs only while it is (partly) on screen.
     val welcomeOnScreen by remember { derivedStateOf { hasWelcome && pager.currentPage + pager.currentPageOffsetFraction < 1f } }
@@ -149,7 +149,8 @@ fun TourOverlay(open: Boolean, sheet: TourSheet?, onOpenUrl: (String) -> Unit, o
                     fontSize = TourTokens.LineSize,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = TourTokens.TitleGap),
+                    // The intro card says it big: the header comes in as it leaves.
+                    modifier = Modifier.fillMaxWidth().padding(bottom = TourTokens.TitleGap).graphicsLayer { alpha = 1f - welcome() },
                 )
             }
             HorizontalPager(pager, modifier = Modifier.fillMaxWidth().weight(1f), beyondViewportPageCount = 0) { i ->
@@ -215,7 +216,7 @@ private fun TourPage(card: TourCard, footer: (@Composable () -> Unit)? = null) {
     val palette = KoanTheme.colors
     val res = if (palette.isDark) card.dark else card.light
     val still = if (palette.isDark) card.stillDark else card.stillLight
-    val media = res != null || still != null
+    val media = res != null || still != null || card.scene != null
     // Without a clip the text sits in the middle, under its icon, instead of over an empty frame.
     Column(
         Modifier.fillMaxSize(),
@@ -258,7 +259,9 @@ private fun TourPage(card: TourCard, footer: (@Composable () -> Unit)? = null) {
                 val width = if (aspect == null) maxWidth else min(maxWidth, (maxHeight - bezels) * aspect + bezels)
                 val height = if (aspect == null) maxHeight else min(maxHeight, (width - bezels) / aspect + bezels)
                 PhoneFrame(Modifier.size(width, height)) { inner ->
-                    if (res != null) {
+                    if (card.scene == TourScene.SignIn) {
+                        SignInScene(inner)
+                    } else if (res != null) {
                         TourVideo(res, inner)
                     } else if (still != null) {
                         Image(painterResource(still), null, inner, contentScale = ContentScale.Crop, alignment = Alignment.TopCenter)

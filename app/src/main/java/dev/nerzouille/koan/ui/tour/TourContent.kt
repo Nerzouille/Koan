@@ -4,15 +4,14 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.RawRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.nerzouille.koan.R
-import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.settings.REPO
 import dev.nerzouille.koan.ui.theme.TourTokens
 
 /**
  * One card of the tour or of a "What's new": a title, one line, and a looping clip recorded in
  * Koan ([dark] / [light] so it matches the theme), or a still screenshot ([stillDark] /
- * [stillLight], a screen words describe well enough), framed per [framing]; neither = text only,
- * then [icon] above the title. [welcome]: the tour's first card instead (the K on the brand
+ * [stillLight], a screen words describe well enough), or a [scene] drawn in code, framed per
+ * [framing]; none = text only, then [icon] above the title. [welcome]: the tour's first card instead (the K on the brand
  * gradient, Welcome.kt).
  */
 class TourCard(
@@ -25,7 +24,11 @@ class TourCard(
     val icon: ImageVector? = null,
     @param:DrawableRes val stillDark: Int? = null,
     @param:DrawableRes val stillLight: Int? = null,
+    val scene: TourScene? = null,
 )
+
+/** Looping illustrations drawn in code, where a recording would show a real account. */
+enum class TourScene { SignIn }
 
 /**
  * How a clip is framed, and its shape (width / height; null = the frame's whole slot): the whole
@@ -45,8 +48,9 @@ sealed interface TourSheet {
         override val cards get() = TourCards
     }
 
+    /** Opens on [whatsNewIntro] (the welcome card's look), then the version's highlights. */
     data class WhatsNew(val version: String) : TourSheet {
-        override val cards get() = Highlights.getValue(version)
+        override val cards get() = listOf(whatsNewIntro(version)) + Highlights.getValue(version)
     }
 }
 
@@ -94,7 +98,7 @@ val TourCards: List<TourCard> = listOf(
  */
 val Highlights: Map<String, List<TourCard>> = mapOf(
     "0.4" to listOf(
-        TourCard("Sign in from your computer", "On the sign-in screen, scan the code Zen shows: no password to type.", icon = KoanIcons.Desktop),
+        TourCard("Sign in from your computer", "On the sign-in screen, scan the code Zen shows: no password to type.", scene = TourScene.SignIn),
         TourCard(
             "Search in Koan from any app",
             "Select text in any app, then pick Search in Koan in the menu.",
@@ -119,6 +123,10 @@ val Highlights: Map<String, List<TourCard>> = mapOf(
 
 /** Koan's latest GitHub release: the last highlight links to its full changelog. */
 const val LATEST_RELEASE_URL = "$REPO/releases/latest"
+
+/** The first card of a "What's new": the welcome card's gradient and K, with the version. */
+fun whatsNewIntro(version: String): TourCard =
+    TourCard("What's new in $version", "A few new things since last time ✨", welcome = true)
 
 /** "0.3.1" → "0.3": the tour and highlights go by feature version. */
 fun featureVersion(versionName: String): String = versionName.split('.').take(2).joinToString(".")

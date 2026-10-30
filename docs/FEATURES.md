@@ -34,7 +34,8 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
   shows once (also after updating from 0.2.x), and not when a link from another app opens Koan.
   Replay it from **Settings › About Koan › Take the tour**.
 - **What's new:** after an update that brings new features, a short sheet of the same kind shows
-  the highlights once (clips for gestures, a screenshot or an icon for the rest), ending with
+  the highlights once: it opens on the tour's welcome look ("What's new in 0.4"), then one card
+  per highlight (a clip, a screenshot or a small drawn animation), ending with
   **See the full changelog** (the latest GitHub release). **Settings › About Koan › What's new in
   0.4** shows it again.
 - Without an account, Koan is a plain browser with one space called **Phone** (📱). The overview

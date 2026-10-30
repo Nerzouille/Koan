@@ -65,7 +65,8 @@ import kotlinx.coroutines.launch
 /*
  * The tour's welcome card: the 3D K on the brand gradient. It springs up from below turning into
  * its tilt, a light sweeps across it, then the title; while shown it floats among twinkling
- * sparkles over a slowly turning vortex. Swiping on flies it off to the left, following the pager
+ * sparkles over a slowly turning vortex. A "What's new" opens on the same card, lighter: the K is
+ * already in place and only pops (play's [pop]). Swiping on flies it off to the left, following the pager
  * both ways. Everything moves in layers and draw only: nothing recomposes per frame.
  */
 
@@ -78,6 +79,9 @@ fun animationsOff(context: Context): Boolean =
 class WelcomeMotion {
     /** The K's rise, 0 … 1 (a spring: a little past 1 at its peak). */
     val rise = Animatable(0f)
+
+    /** The "What's new" entrance instead: the K pops in place, 0 … 1 (a spring); 1 on the tour. */
+    val pop = Animatable(1f)
 
     /** Ms since the tour opened, up to the end of the intro. */
     private val intro = Animatable(0f)
@@ -99,17 +103,32 @@ class WelcomeMotion {
     private fun phase(start: Int, duration: Int, easing: Easing): Float =
         easing.transform(((intro.value - start) / duration).coerceIn(0f, 1f))
 
-    /** The intro from the start, or straight to its end when animations are off. */
-    suspend fun play(still: Boolean) = coroutineScope {
+    /**
+     * The intro from the start, or straight to its end when animations are off. [pop]: the
+     * "What's new" entrance, the K already there with a small spring, the sweep and text sooner.
+     */
+    suspend fun play(still: Boolean, pop: Boolean = false) = coroutineScope {
         if (still) {
             rise.snapTo(1f)
+            this@WelcomeMotion.pop.snapTo(1f)
             intro.snapTo(TourTokens.INTRO_MS.toFloat())
             clock = STILL_CLOCK
             return@coroutineScope
         }
-        rise.snapTo(0f)
-        intro.snapTo(0f)
         clock = 0f
+        if (pop) {
+            rise.snapTo(1f)
+            this@WelcomeMotion.pop.snapTo(0f)
+            // The same timeline, entered past the rise: the sweep comes right after the pop.
+            val skip = (TourTokens.SWEEP_AT_MS - TourTokens.POP_SWEEP_AT_MS).toFloat()
+            intro.snapTo(skip)
+            launch { this@WelcomeMotion.pop.animateTo(1f, spring(TourTokens.POP_DAMPING, TourTokens.POP_STIFFNESS)) }
+            intro.animateTo(TourTokens.INTRO_MS.toFloat(), tween(TourTokens.INTRO_MS - skip.toInt(), easing = LinearEasing))
+            return@coroutineScope
+        }
+        rise.snapTo(0f)
+        this@WelcomeMotion.pop.snapTo(1f)
+        intro.snapTo(0f)
         launch {
             delay(TourTokens.K_RISE_DELAY_MS.toLong())
             rise.animateTo(1f, spring(TourTokens.K_RISE_DAMPING, TourTokens.K_RISE_STIFFNESS))
@@ -181,10 +200,12 @@ fun WelcomePage(card: TourCard, motion: WelcomeMotion, leave: () -> Float) {
                             translationY = kRiseY(r, pageHeight) + kFloatY(motion.clock)
                             rotationZ = (1f - r) * TourTokens.K_START_TURN + p * TourTokens.K_LEAVE_TURN +
                                 sin(motion.clock / TourTokens.FLOAT_TURN_MS * 2f * PI.toFloat()) * TourTokens.FLOAT_TURN
-                            val s = (TourTokens.K_START_SCALE + (1f - TourTokens.K_START_SCALE) * r) * (1f - 0.1f * p)
+                            val pop = motion.pop.value
+                            val s = (TourTokens.K_START_SCALE + (1f - TourTokens.K_START_SCALE) * r) * (1f - 0.1f * p) *
+                                (TourTokens.POP_START_SCALE + (1f - TourTokens.POP_START_SCALE) * pop)
                             scaleX = s
                             scaleY = s
-                            alpha = (r * 2.5f).coerceIn(0f, 1f)
+                            alpha = (r * 2.5f).coerceIn(0f, 1f) * (pop * 3f).coerceIn(0f, 1f)
                             // The sweep paints over the K's own pixels only: its own layer while it runs.
                             val sweeping = motion.sweep() in 0.001f..0.999f
                             compositingStrategy = if (sweeping) CompositingStrategy.Offscreen else CompositingStrategy.Auto

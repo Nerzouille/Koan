@@ -199,6 +199,45 @@ object SpaceColorTokens {
  * (owner's choice, 2026-10-27). Never on Mozilla's pages, password fields or buttons, permission prompts,
  * destructive actions, body text, or behind web content. Helpers: ui/theme/Brand.kt.
  */
+/**
+ * The "Sign in from your computer" scene (ui/tour/SignInScene.kt): a laptop with a made-up code, a
+ * phone slides in, a gradient line scans the code, it turns into a check and the K shows on the
+ * phone; a hold, then it all goes back and loops. Times in ms of the loop.
+ */
+object SignInSceneTokens {
+    const val LOOP_MS = 4_400f
+    const val PHONE_IN_AT = 250f
+    const val PHONE_IN_MS = 750f
+    const val SCAN_AT = 1_050f
+    const val SCAN_MS = 900f
+    const val CHECK_AT = 1_950f
+    const val CHECK_MS = 450f
+    const val K_AT = 2_150f
+    const val K_MS = 400f
+    const val RESET_AT = 3_750f
+    const val RESET_MS = 550f
+
+    /** Animations off: this moment, everything in place. */
+    const val STILL_MS = 3_000f
+
+    /** Laptop and phone, neutral (light, dark). */
+    val LidLight = Color(0xFFE4E4EA)
+    val LidDark = Color(0xFF3A3A41)
+    val DisplayLight = Color(0xFFFFFFFF)
+    val DisplayDark = Color(0xFF1F1F24)
+    val BaseLight = Color(0xFFD3D3DB)
+    val BaseDark = Color(0xFF2D2D33)
+    val CodeLight = Color(0xFF1C1C1E)
+    val CodeDark = Color(0xFFEDEDF2)
+    val PhoneBody = Color(0xFF1C1C1F)
+    val PhoneScreenTop = Color(0xFF2B2B33)
+    val PhoneScreenBottom = Color(0xFF141418)
+
+    /** The brand mist in the background. */
+    const val MIST_ALPHA_LIGHT = 0.13f
+    const val MIST_ALPHA_DARK = 0.16f
+}
+
 object BrandTokens {
     val Pink = Color(0xFFFF5FA2)
     val Violet = Color(0xFFB46BFF)
@@ -509,6 +548,12 @@ object TourTokens {
     const val TEXT_MS = 380
     val TextRise = 14.dp
     const val INTRO_MS = TEXT_AT_MS + TEXT_STAGGER_MS + TEXT_MS
+
+    /** "What's new": the K is already there and pops (a small spring); the sweep follows sooner. */
+    const val POP_START_SCALE = 0.86f
+    const val POP_DAMPING = 0.5f
+    const val POP_STIFFNESS = 380f
+    const val POP_SWEEP_AT_MS = 180
 
     /** While shown: the K floats; sparkles twinkle around it. */
     val FloatAmplitude = 7.dp
