@@ -51,7 +51,7 @@ A one-person hobby project, built for my own phone and shared as-is.
 
 - Sideloaded only: no Play Store, no support. Issues and PRs may go unanswered.
 - Android 11+ (minSdk 30): tested on Android 14 and 17; 11–13 are supported but less tested.
-  64-bit ARM (arm64-v8a) only. The APK is about 201 MB.
+  64-bit ARM (arm64-v8a) only. The APK is about 206 MB.
 - See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what is done and what is planned.
 
 ## Feedback

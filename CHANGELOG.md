@@ -30,6 +30,9 @@ GitHub releases.
   in the current space, and Back closes it and returns to the app.
 - **Reopen closed tab:** long-press the tab counter. It brings back the last tab closed in this
   space, in its place and with its back/forward history (greyed out when there is none).
+- **What's new:** after this update, a short sheet shows the highlights of 0.4 once, with a link
+  to the full changelog. **Settings › About Koan › What's new in 0.4** shows it again. The tour's
+  **Long presses** card now shows the tab counter's menu.
 - **Downloads a page starts on its own** (a countdown, a script, a background tab) now ask first,
   on a card with the file's name, size and site: **Download** or **Cancel**. A download you tap
   still starts at once.
@@ -44,7 +47,7 @@ GitHub releases.
 - **Stack:** cards in front of the peek now slide down out of view, opaque, instead of fading.
 - **Dock popups** (tab counter, back's history) stay on their side of the dock and grow towards
   the middle as their items get longer.
-- **Smaller app:** the download is about 201 MB (was 228) and it takes about 27 MB less space once
+- **Smaller app:** the download is about 206 MB (was 228) and it takes about 22 MB less space once
   installed: an unused library and the libraries' translations are gone (Koan is English only),
   and the tour's clips are lighter.
 
@@ -77,7 +80,7 @@ GitHub releases.
 - **Long screenshots:** HyperOS's scrolling screenshot still doesn't scroll Koan's pages; waiting
   on the GeckoView update due after 10 November.
 - **Old WebView warning:** written but not tested on a phone with an old WebView.
-- **arm64 only** (64-bit ARM phones); APK about 201 MB.
+- **arm64 only** (64-bit ARM phones); APK about 206 MB.
 
 ## 0.3.0 — 2026-10-25 (beta)
 

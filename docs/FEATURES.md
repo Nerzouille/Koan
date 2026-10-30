@@ -17,13 +17,13 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 - Requirements: Android 11 or newer (tested on Android 14 and 17; 11–13 are supported but less tested),
   a 64-bit ARM phone (arm64-v8a). Other CPUs are not built. Below Android 12 the drawer dims
   what's behind it instead of blurring it; phones with less memory keep fewer tabs live.
-- Download `koan-v0.4.0.apk` (about 201 MB) from the GitHub release and open it. Android asks you to allow
+- Download `koan-v0.4.0.apk` (about 206 MB) from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
 - **Updates:** install with [Obtainium](https://github.com/ImranR98/Obtainium) from the GitHub
   releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you.
   Otherwise Settings › About checks once when you open it.
 - Installing over a previous Koan version keeps your tabs, spaces, logins and settings.
-- The APK is about 228 MB. See [Known limitations](#13-known-limitations).
+- The APK is about 206 MB. See [Known limitations](#13-known-limitations).
 
 ### First run
 
@@ -32,8 +32,11 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
   switch tabs, holding the bar to change space, `@` search shortcuts, long presses). Swipe or tap
   **Next**; **Skip** or a swipe down on the sheet closes it, Back goes to the previous card. It
   shows once (also after updating from 0.2.x), and not when a link from another app opens Koan.
-  Replay it from **Settings › About Koan › Take the tour**. Later versions show a short **What's
-  new** the same way, once.
+  Replay it from **Settings › About Koan › Take the tour**.
+- **What's new:** after an update that brings new features, a short sheet of the same kind shows
+  the highlights once (clips for gestures, a screenshot or an icon for the rest), ending with
+  **See the full changelog** (the latest GitHub release). **Settings › About Koan › What's new in
+  0.4** shows it again.
 - Without an account, Koan is a plain browser with one space called **Phone** (📱). The overview
   opens on a **Connect your Zen Spaces** card; you can ignore it and just browse.
 - Tap the address pill, type an address or a search, and go.
@@ -548,7 +551,7 @@ the background. If the check fails (no network), tap the chip to try again.
   update after 10 November should help).
 - **Old WebView warning on sign-in:** shown when Android System WebView is older than 92 (it can't
   load Mozilla's sign-in page), with a Play Store button; not yet tested on such a phone.
-- **APK size (~228 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
+- **APK size (~206 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
