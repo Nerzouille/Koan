@@ -1,6 +1,6 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-10**.
+State of Koan for a session that starts with no context. Last updated **2026-11-10** (night).
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
@@ -20,7 +20,7 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 
 | Branch | Base | What it contains | Tested | Status |
 |---|---|---|---|---|
-| `dev` | — | Working branch. v0.4.0 + docs + **design-audit fixes (2026-11-10, uncommitted)**: contrast tokens, collapsing page header (`ui/kit/PageHeader`), one field (`ui/kit/KoanField`), one destructive button, menu icon tiles in dock popups, one favicon letter tile + `m.` hosts share icons, brand-gradient rule fixes, typography (`ui/theme/Type.kt`). | 233 JVM tests green; staging (R8) build checked on the phone in light and dark. Login radio not seen live (needs a saved login). | Active, waiting for the owner's commit |
+| `dev` | — | Working branch. v0.4.0 + docs + **design-audit fixes (2026-11-10, uncommitted)**: contrast tokens, collapsing page header (`ui/kit/PageHeader`), one field (`ui/kit/KoanField`), one destructive button, menu icon tiles in dock popups, one favicon letter tile + `m.` hosts share icons, brand-gradient rule fixes, typography (`ui/theme/Type.kt`), find-in-page colours per Koan's theme (`FindCurrent`/`FindMatch`, set live via GeckoView `GeckoPreferenceController` in `engine/GeckoPrefs.kt`). | 235 JVM tests green; staging (R8) checked on the Xiaomi and the POCO in light and dark, Settings scroll 0.45% jank at 120 Hz. Login radio not seen live (Gecko offers no saved logins on a local http page). | Active, waiting for the owner's commit |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | — | Release only |
 | `sync-back` | dev (behind it by ~20 commits) | **M6 step 1:** sync-back **dry run** for passwords, history and bookmarks. `sync/SyncBackPlan.kt` (what would be uploaded: `LoginUpload`, `HistoryUpload`, `BookmarkUpload`, `WriteGuard`), `data/SyncBack.kt` (dry run only: logs counts and field names, never values, **has no send path**), opt-in setting `Settings.syncBack` (off), DAO queries for phone-only visits and bookmarks, `SyncClient.metaGlobal`, switches on the Account page. Tests `SyncBackPlanTest`, `SyncBackTest` (fake data). | JVM tests green when made (2026-10-27). **Never run against a real account**, never on the phone. Needs a rebase on `dev` before more work. | Waiting for the owner's test Mozilla account + Zen test profile |
 | `statusbar` | dev (behind it by ~16 commits) | Prototype: **hide the status bar only while scrolling** (`DockState.statusHidden` / `statusShift`, `PageTokens.STATUS_SETTLE_FRAMES`). | Checked frame by frame on a release build (2026-10-28): works, but a fixed bottom bar can still be off by one frame (Gecko's redraw timing varies; `CompositorController.addDrawCallback` never fires in GV 157 release). | **Dropped** by the owner; kept for reference. Don't merge. Revisit only if GeckoView adds a draw callback or top-toolbar support (ROADMAP M7 "Display"). |
@@ -153,3 +153,14 @@ notes from past releases:
 `reference/` holds Z-Sync, release APKs and notes, the sync-back patch, screenshots and probes.
 `app/build/` holds perf results. Recordings for the tour / promo live outside the repo. None of it
 is ever committed (CLAUDE.md "Public repo").
+
+## Design audit follow-ups (proposed 2026-11-10, waiting for the owner's pick)
+
+1. Snap the collapsing header to open / collapsed when the finger lifts mid-way (`SettingsPageFrame`).
+2. Light `FindMatch` `#D0DDF5` nearly vanishes on grey backgrounds (code chips): stronger value or outline.
+3. Per-theme find colours make light pages in dark Koan heavy (navy blocks); per page scheme is a one-line change in `GeckoPrefs.findPrefs`.
+4. Light toggle OFF `#848489` looks heavy: lighter fill + thin darker outline would also pass 3:1.
+5. About shows "About" then "Koan": start that page collapsed, or drop its large title.
+6. Tour clips (cards 2 and 5) show real data: re-record before a public release.
+
+The old POCO X4 GT (serial `JJV87TVGTOCAAYPR`, 1080×2460, one display, its VPN can drop) is available for unattended tests; its Koan runs the dev build of this batch over old 0.2.2 data, Koan Test there was cleared.
