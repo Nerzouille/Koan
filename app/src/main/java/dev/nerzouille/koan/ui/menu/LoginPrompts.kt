@@ -1,6 +1,7 @@
 package dev.nerzouille.koan.ui.menu
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +36,8 @@ import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.LoginTokens
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SearchTokens
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import mozilla.components.concept.storage.Login
@@ -100,7 +103,7 @@ fun LoginSheet(origin: String, logins: List<Login>, interactive: Boolean, onUse:
             Favicon(origin, SheetTokens.RowIconBox + SheetTokens.Gap)
             Spacer(Modifier.width(SheetTokens.RowPadding))
             Column {
-                Text("Sign in to ${displayHost(origin)} with", color = palette.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold)
+                Text("Sign in to ${displayHost(origin)} with", color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize))
                 Text("Koan passwords", color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize)
             }
         }
@@ -138,7 +141,7 @@ fun SaveLoginCard(origin: String, username: String, update: Boolean, interactive
             Column {
                 Text(
                     if (update) "Update the password for ${displayHost(origin)}?" else "Save the password for ${displayHost(origin)}?",
-                    color = palette.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold,
+                    color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize),
                 )
                 Text(masked(username), color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize)
             }
@@ -173,7 +176,8 @@ private fun Radio(selected: Boolean) {
         Modifier
             .size(SearchTokens.Favicon - SearchTokens.ChipGap / 2)
             .clip(CircleShape)
-            .background(if (selected) palette.Primary else palette.GroupedRow),
+            // Unselected: a ring in the controls' off colour (≥ 3:1 on the row), like a toggle's off track.
+            .then(if (selected) Modifier.background(palette.Primary) else Modifier.border(LoginTokens.RadioRing, palette.ToggleOff, CircleShape)),
         contentAlignment = Alignment.Center,
     ) {
         if (selected) Icon(KoanIcons.Check, null, tint = palette.OnPrimary, modifier = Modifier.size(SearchTokens.ChipIcon))

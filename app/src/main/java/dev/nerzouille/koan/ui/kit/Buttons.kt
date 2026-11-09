@@ -69,19 +69,22 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
     }
 }
 
-/** A destructive action: red text only, on a neutral row. */
+/**
+ * The one destructive button: red SemiBold text on a neutral pill ([surface]), never a red fill.
+ * Destructive rows ("Sign out") are rows with a red title instead.
+ */
 @Composable
-fun DestructiveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun DestructiveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, surface: Color = KoanTheme.colors.GroupedRow) {
     Row(
         modifier
             .height(ButtonTokens.Height)
             .clip(CircleShape)
-            .background(KoanTheme.colors.GroupedRow)
+            .background(surface)
             .clickable(onClick = onClick)
             .padding(horizontal = ButtonTokens.PaddingH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        Text(text, color = KoanTheme.colors.Destructive, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.Medium)
+        Text(text, color = KoanTheme.colors.Destructive, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.SemiBold)
     }
 }

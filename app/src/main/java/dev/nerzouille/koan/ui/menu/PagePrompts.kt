@@ -10,7 +10,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,12 +37,12 @@ import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,23 +54,23 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.browser.observeSlice
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanFieldFrame
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.sheet.Detent
 import dev.nerzouille.koan.ui.sheet.KoanCard
 import dev.nerzouille.koan.ui.sheet.SheetState
 import dev.nerzouille.koan.ui.theme.ButtonTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.PromptTokens
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import mozilla.components.browser.state.action.ContentAction
@@ -273,7 +272,7 @@ private fun PromptRequest.shownOnCard() = when (this) {
 
 @Composable
 private fun PromptTitle(text: String) {
-    Text(text, color = KoanTheme.colors.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold, maxLines = 3, overflow = TextOverflow.Ellipsis)
+    Text(text, color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize), maxLines = 3, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable
@@ -297,16 +296,7 @@ private fun PromptField(value: String, onChange: (String) -> Unit, hint: String,
     if (field.text != value) field = TextFieldValue(value, TextRange(value.length))
     if (focus) LaunchedEffect(Unit) { runCatching { focuser.requestFocus() } }
     Spacer(Modifier.height(SheetTokens.Gap))
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(SheetTokens.NavFieldHeight)
-            .clip(RoundedCornerShape(PromptTokens.FieldRadius))
-            .background(palette.BarField)
-            .padding(horizontal = SheetTokens.RowPadding),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        if (value.isEmpty() && hint.isNotEmpty()) Text(hint, color = palette.FieldHint, fontSize = SheetTokens.NavFieldTextSize)
+    KoanFieldFrame(hint, empty = value.isEmpty(), modifier = Modifier.fillMaxWidth()) { style ->
         BasicTextField(
             value = field,
             onValueChange = {
@@ -314,7 +304,7 @@ private fun PromptField(value: String, onChange: (String) -> Unit, hint: String,
                 onChange(it.text)
             },
             singleLine = true,
-            textStyle = TextStyle(color = palette.TextPrimary, fontSize = SheetTokens.NavFieldTextSize),
+            textStyle = style,
             cursorBrush = SolidColor(palette.TextPrimary),
             visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             keyboardOptions = if (password) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
@@ -578,7 +568,7 @@ private fun MonthGrid(selected: LocalDate, min: LocalDate?, max: LocalDate?, int
     var year by remember { mutableStateOf(selected.year) }
     Row(Modifier.fillMaxWidth().padding(vertical = SheetTokens.Gap), verticalAlignment = Alignment.CenterVertically) {
         YearStep("‹", interactive && (min == null || year > min.year)) { year-- }
-        Text("$year", color = palette.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Text("$year", color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize), modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         YearStep("›", interactive && (max == null || year < max.year)) { year++ }
     }
     val locale = LocalConfiguration.current.locales[0] ?: Locale.ENGLISH

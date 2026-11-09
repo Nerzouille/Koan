@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import dev.nerzouille.koan.ui.kit.DestructiveButton
 import dev.nerzouille.koan.ui.kit.QuietButton
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
 
 /** Floating card before signing out: the Zen Spaces leave the phone, phone-only tabs stay. */
@@ -31,7 +32,7 @@ fun SignOutConfirm(interactive: Boolean, onSignOut: () -> Unit, onCancel: () -> 
 @Composable
 fun Confirm(title: String, text: String, confirm: String, interactive: Boolean, onConfirm: () -> Unit, onCancel: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
-        Text(title, color = KoanTheme.colors.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold)
+        Text(title, color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize))
         Text(text, color = KoanTheme.colors.TextSecondary, fontSize = SheetTokens.CardTextSize)
         Spacer(Modifier.height(SheetTokens.Gap / 2))
         DestructiveButton(confirm, onClick = { if (interactive) onConfirm() }, modifier = Modifier.fillMaxWidth())

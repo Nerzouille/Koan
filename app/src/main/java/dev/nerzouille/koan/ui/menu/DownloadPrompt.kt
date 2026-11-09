@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
 
 /**
@@ -43,7 +44,7 @@ fun DownloadPrompt(name: String, detail: String, interactive: Boolean, onCancel:
             }
             Spacer(Modifier.width(SheetTokens.RowPadding))
             Column {
-                Text(name, color = palette.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+                Text(name, color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize), maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
                 if (detail.isNotEmpty()) Text(detail, color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }

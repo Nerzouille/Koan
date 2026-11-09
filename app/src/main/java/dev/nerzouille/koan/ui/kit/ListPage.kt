@@ -2,8 +2,6 @@ package dev.nerzouille.koan.ui.kit
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -11,27 +9,17 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.settings.settingsWash
 import dev.nerzouille.koan.ui.theme.DownloadTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -72,19 +60,7 @@ fun ListPage(
             .navigationBarsPadding()
             .imePadding(),
     ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .height(SettingsTokens.TopBar)
-                .padding(horizontal = SettingsTokens.Padding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(Modifier.size(SettingsTokens.TopBar).clip(CircleShape).clickable(onClick = onClose), contentAlignment = Alignment.CenterStart) {
-                Icon(KoanIcons.Back, null, tint = palette.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph + SettingsTokens.Divider * 4))
-            }
-            Text(title, color = palette.TextPrimary, fontSize = SettingsTokens.TitleSize * 0.7f, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            headerTrailing()
-        }
+        PageBar(title, interactive = true, onBack = onClose, trailing = headerTrailing)
 
         Column(Modifier.weight(1f).fillMaxWidth(), content = content)
 
@@ -92,42 +68,10 @@ fun ListPage(
             Modifier.padding(horizontal = SettingsTokens.Padding, vertical = DownloadTokens.BottomGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                Modifier
-                    .weight(1f)
-                    .height(DownloadTokens.SearchHeight)
-                    .clip(CircleShape)
-                    .background(palette.BarField)
-                    .padding(horizontal = SettingsTokens.Padding),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(KoanIcons.Search, null, tint = palette.FieldHint, modifier = Modifier.size(SettingsTokens.RowGlyph))
-                Spacer(Modifier.width(SettingsTokens.RowInset))
-                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (query.isEmpty()) Text(searchHint, color = palette.FieldHint, fontSize = SettingsTokens.RowTitleSize)
-                    BasicTextField(
-                        value = query,
-                        onValueChange = onQuery,
-                        singleLine = true,
-                        textStyle = TextStyle(color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize),
-                        cursorBrush = SolidColor(palette.TextPrimary),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
+            KoanField(query, onQuery, searchHint, Modifier.weight(1f), search = true)
             if (onClear != null) {
                 Spacer(Modifier.width(DownloadTokens.ActionGap))
-                Box(
-                    Modifier
-                        .height(DownloadTokens.SearchHeight)
-                        .clip(CircleShape)
-                        .background(palette.Card)
-                        .clickable(onClick = onClear)
-                        .padding(horizontal = SettingsTokens.Padding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Clear", color = palette.Destructive, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium)
-                }
+                DestructiveButton("Clear", onClick = onClear, surface = palette.Card)
             }
         }
     }

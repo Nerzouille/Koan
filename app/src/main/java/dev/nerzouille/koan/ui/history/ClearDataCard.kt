@@ -20,6 +20,7 @@ import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.sheet.SheetRow
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
 
 /** What Clear browsing data clears. */
@@ -35,7 +36,7 @@ fun ClearDataCard(interactive: Boolean, onClear: (ClearChoice) -> Unit, onCancel
     var cookies by remember { mutableStateOf(false) }
     var cache by remember { mutableStateOf(true) }
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
-        Text("Clear browsing data?", color = KoanTheme.colors.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold)
+        Text("Clear browsing data?", color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize))
         SheetGroup {
             SheetRow(null, "History", interactive, subtitle = "Desktop history is only hidden here", onClick = { history = !history }) {
                 KoanToggle(history, if (interactive) ({ history = it }) else null)

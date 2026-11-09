@@ -42,10 +42,11 @@ class KoanPalette(
     /** Primary buttons: black in light, white in dark. */
     val Primary: Color,
     val OnPrimary: Color,
-    /** Destructive actions: red text only, never a red fill. */
+    /** Destructive actions: red text only, never a red fill (one exception: History's swipe-to-remove background). ≥ 4.5:1 on every surface. */
     val Destructive: Color,
     /** Grouped rows on a sheet or a screen (menu, settings). */
     val GroupedRow: Color,
+    /** Off state of a control (toggle track, unselected radio ring): ≥ 3:1 against every row surface. */
     val ToggleOff: Color,
     /** The address input's ring while typing (neutral; "@" turns it into the brand gradient). */
     val FocusRing: Color,
@@ -62,7 +63,7 @@ class KoanPalette(
     /** Behind favicons too dark to read on dark surfaces; Unspecified = never needed. */
     val IconBacking: Color,
     val Notice: Color,
-    /** Quiet sync notices: amber, never red. */
+    /** Quiet sync notices and "not secure": amber, never red. ≥ 4.5:1 as text. */
     val Attention: Color,
     /** Over the overview while the drawer is open, at full open. */
     val DrawerScrim: Color,
@@ -72,6 +73,14 @@ class KoanPalette(
     val DrawerShadowNoBlur: Color,
     /** Over the page while a sheet or a floating card is open (the menu, prompts). */
     val SheetScrim: Color,
+    // Find in page, drawn by Gecko in the page (engine/GeckoPrefs), set per Koan's theme: every
+    // page gets these whatever its own colour scheme, and Gecko never picks its own text colour.
+    /** The current match and its text. */
+    val FindCurrent: Color,
+    val FindCurrentText: Color,
+    /** Every other match and its text. */
+    val FindMatch: Color,
+    val FindMatchText: Color,
     // Depth stack.
     /** Back cards fade towards Base (light: a haze) instead of black (dark: brightness). */
     val DimToBase: Boolean,
@@ -95,7 +104,8 @@ class KoanPalette(
             Base = Color(0xFFF5F5F7),
             Glass = Color(0xFFEBEBEF),
             TextPrimary = Color(0xFF1C1C1E),
-            TextSecondary = Color(0xFF6E6E73),
+            // ≥ 4.5:1 on every light surface, Glass (#EBEBEF) included.
+            TextSecondary = Color(0xFF66666B),
             TextDisabled = Color.Black.copy(alpha = 0.22f),
             Icon = Color(0xFF6E6E73),
             Card = Color(0xFFFFFFFF),
@@ -106,24 +116,28 @@ class KoanPalette(
             DefaultAccent = Color(0xFF5B6CFF),
             Primary = Color(0xFF1C1C1E),
             OnPrimary = Color.White,
-            Destructive = Color(0xFFE5342B),
+            Destructive = Color(0xFFC42A20),
             GroupedRow = Color(0xFFF2F2F5),
-            ToggleOff = Color(0xFFE5E5EA),
+            ToggleOff = Color(0xFF848489),
             FocusRing = Color(0xFFB4B4BA),
             Dock = Color(0xFFFFFFFF),
             DockShadow = Color(0xFF3C281E).copy(alpha = 0.07f),
             DrawerHandle = Color.Black.copy(alpha = 0.16f),
             BarField = Color(0xFFF1F1F4),
             SegmentPill = Color(0xFFFFFFFF),
-            FieldHint = Color(0xFF8E8E93),
+            FieldHint = Color(0xFF66666B),
             Skeleton = Color.Black.copy(alpha = 0.06f),
             IconBacking = Color.Unspecified,
             Notice = Color(0xF2F2F2F5),
-            Attention = Color(0xFFC0841A),
+            Attention = Color(0xFF8A5C00),
             DrawerScrim = Color(0xFF1C1C28).copy(alpha = 0.16f),
             DrawerScrimNoBlur = Color(0xFF1C1C28).copy(alpha = 0.32f),
             DrawerShadowNoBlur = Color(0xFF1C1C28).copy(alpha = 0.16f),
             SheetScrim = Color(0xFF1C1C28).copy(alpha = 0.30f),
+            FindCurrent = Color(0xFF1554CB),
+            FindCurrentText = Color.White,
+            FindMatch = Color(0xFFD0DDF5),
+            FindMatchText = Color.Black,
             DimToBase = true,
             DimGain = 1.25f,
             DimMax = 0.85f,
@@ -152,9 +166,9 @@ class KoanPalette(
             DefaultAccent = Color(0xFF8EA2FF),
             Primary = Color.White,
             OnPrimary = Color(0xFF1C1C1E),
-            Destructive = Color(0xFFFF5A50),
+            Destructive = Color(0xFFFF8077),
             GroupedRow = Color.White.copy(alpha = 0.07f),
-            ToggleOff = Color(0xFF3A3A3C),
+            ToggleOff = Color(0xFF8E8E93),
             FocusRing = Color.White.copy(alpha = 0.30f),
             Dock = Color(0xFF252527),
             DockShadow = Color.Black.copy(alpha = 0.35f),
@@ -170,6 +184,10 @@ class KoanPalette(
             DrawerScrimNoBlur = Color.Black.copy(alpha = 0.62f),
             DrawerShadowNoBlur = Color.Black.copy(alpha = 0.45f),
             SheetScrim = Color.Black.copy(alpha = 0.50f),
+            FindCurrent = Color(0xFF1554CB),
+            FindCurrentText = Color.White,
+            FindMatch = Color(0xFF1C396E),
+            FindMatchText = Color.White,
             DimToBase = false,
             DimGain = 1f,
             DimMax = 1f,
@@ -908,9 +926,19 @@ object PromptTokens {
 /** Settings and its pages (design 7n / 7o): full screen, rows straight on the base. */
 object SettingsTokens {
     val Padding = 20.dp
+    /** The page bar (back + compact title), one for every full page (docs/UI_SPEC.md "Page header"). */
     val TopBar = 56.dp
+    val BackGlyph = 24.dp
+    /** Compact title in the bar; ellipsized on one line. */
+    val BarTitleSize = 22.sp
+    /** Large title under the bar (settings pages); wraps to 2 lines, collapses into the bar on scroll. */
     val TitleSize = 34.sp
+    const val TITLE_MAX_LINES = 2
     val TitleBottom = 12.dp
+    /** The large title fades out over the first part of the collapse, the compact one in over the rest. */
+    const val BAR_TITLE_FROM = 0.6f
+    /** The bar's bottom hairline fades in over this much scroll once the title is gone. */
+    val BarHairlineFade = 12.dp
     val SectionTop = 22.dp
     val SectionTitleSize = 13.sp
     val RowHeight = 54.dp
@@ -936,8 +964,6 @@ object SettingsTokens {
     val SegmentShadow = 2.dp
 
     // Forms (Add a search engine).
-    val FieldHeight = 48.dp
-    val FieldRadius = 14.dp
     val FieldGap = 16.dp
     val FieldLabelGap = 6.dp
 
@@ -1011,7 +1037,7 @@ object TabMenuTokens {
     val Radius = 16.dp
     val Shadow = 12.dp
     val Gap = 8.dp
-    val RowHeight = 44.dp
+    val RowHeight = 48.dp
     val RowPadding = 16.dp
     val Icon = 18.dp
     val IconGap = 12.dp
@@ -1215,4 +1241,23 @@ object Motion {
 
     /** Keep the high refresh rate this long after the last touch/key: longer than the longest fling (2.2 s). */
     const val REFRESH_BOOST_IDLE_MS = 3000L
+}
+
+/** The one text field of pages, forms and prompts (ui/kit/KoanField); the dock's address field is its own. */
+object FieldTokens {
+    /** Same as a button (ButtonTokens.Height), so a field and its button line up. */
+    val Height = 50.dp
+    val PaddingH = 18.dp
+    val Glyph = 20.dp
+    val GlyphGap = 12.dp
+    val TextSize = 16.sp
+    /** The ✕ that empties a search field. */
+    val ClearTouch = 32.dp
+    val ClearGlyph = 16.dp
+}
+
+/** Login prompts (ui/menu/LoginPrompts). */
+object LoginTokens {
+    /** The unselected account radio's ring. */
+    val RadioRing = 2.dp
 }

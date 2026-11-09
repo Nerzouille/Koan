@@ -8,19 +8,10 @@ import android.content.Context
 import android.os.PersistableBundle
 import androidx.biometric.BiometricManager.Authenticators
 import androidx.biometric.BiometricPrompt
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Icon
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,10 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
@@ -40,6 +31,7 @@ import dev.nerzouille.koan.data.Login
 import dev.nerzouille.koan.data.LoginSummary
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanField
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
@@ -76,7 +68,7 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
             return@SettingsPageFrame
         }
         val unlocked = ui.unlocked
-        SearchBox(query, "Search passwords") { query = it }
+        KoanField(query, { query = it }, "Search passwords", Modifier.fillMaxWidth(), search = true)
         Spacer(Modifier.height(SettingsTokens.RowInset))
         if (unlocked == null) {
             Text(
@@ -113,40 +105,6 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
                 // Locked: the fingerprint first, then straight to the site's accounts.
                 onClick = { if (unlocked == null) ui.onUnlock(site, logins.map { it.guid }) else onOpenSite(site) },
             )
-        }
-    }
-}
-
-/** A search field in a settings page. */
-@Composable
-internal fun SearchBox(value: String, hint: String, onChange: (String) -> Unit) {
-    val palette = KoanTheme.colors
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(SettingsTokens.SegmentHeight + SettingsTokens.RowInset / 2)
-            .clip(CircleShape)
-            .background(palette.Glass)
-            .padding(horizontal = SettingsTokens.RowInset + SettingsTokens.Divider * 4),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(KoanIcons.Search, null, tint = palette.FieldHint, modifier = Modifier.size(SettingsTokens.RowGlyph))
-        Spacer(Modifier.width(SettingsTokens.RowInset))
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            if (value.isEmpty()) Text(hint, color = palette.FieldHint, fontSize = SettingsTokens.RowTitleSize)
-            BasicTextField(
-                value = value,
-                onValueChange = onChange,
-                singleLine = true,
-                textStyle = TextStyle(color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize),
-                cursorBrush = SolidColor(palette.TextPrimary),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        if (value.isNotEmpty()) {
-            Box(Modifier.size(SettingsTokens.RowGlyph + SettingsTokens.RowInset).clip(CircleShape).clickable { onChange("") }, contentAlignment = Alignment.Center) {
-                Icon(KoanIcons.Close, null, tint = palette.FieldHint, modifier = Modifier.size(SettingsTokens.RowGlyph * 0.8f))
-            }
         }
     }
 }

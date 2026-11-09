@@ -18,12 +18,19 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import dev.nerzouille.koan.ui.kit.CollapsingBar
+import dev.nerzouille.koan.ui.theme.KoanType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,41 +69,45 @@ fun Modifier.settingsWash(dark: Boolean): Modifier = drawBehind {
 }
 
 /**
- * One settings page: ‹ on top, an optional big [title], then [content], scrolling as a whole.
+ * One settings page (docs/UI_SPEC.md "Page header"): the page bar on top, a large [title] under it
+ * that collapses into the bar as [content] scrolls (iOS style), then the content.
  * [interactive]: only the page on top takes taps.
  */
 @Composable
-fun SettingsPageFrame(title: String?, interactive: Boolean, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            // A form's fields stay above the keyboard.
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .topSafePadding()
-            .navigationBarsPadding()
-            .padding(horizontal = SettingsTokens.Padding),
-    ) {
-        Box(
+fun SettingsPageFrame(title: String, interactive: Boolean, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val scroll = rememberScrollState()
+    var largeTitle by remember { mutableIntStateOf(0) }
+    Box(Modifier.fillMaxSize()) {
+        Column(
             Modifier
-                .size(SettingsTokens.TopBar)
-                .clip(CircleShape)
-                .then(if (interactive) Modifier.clickable(onClick = onBack) else Modifier),
-            contentAlignment = Alignment.CenterStart,
+                .fillMaxSize()
+                // A form's fields stay above the keyboard.
+                .imePadding()
+                .verticalScroll(scroll)
+                .topSafePadding()
+                .navigationBarsPadding()
+                .padding(horizontal = SettingsTokens.Padding),
         ) {
-            Icon(KoanIcons.Back, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph + SettingsTokens.Divider * 4))
-        }
-        if (title != null) {
+            Spacer(Modifier.height(SettingsTokens.TopBar))
             Text(
                 title,
                 color = KoanTheme.colors.TextPrimary,
-                fontSize = SettingsTokens.TitleSize,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = SettingsTokens.TitleBottom),
+                style = KoanType.largeTitle(SettingsTokens.TitleSize),
+                maxLines = SettingsTokens.TITLE_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .onSizeChanged { largeTitle = it.height }
+                    // Gone before the compact title appears: the two never show at once.
+                    .graphicsLayer {
+                        val h = largeTitle.coerceAtLeast(1)
+                        alpha = 1f - (scroll.value / (h * SettingsTokens.BAR_TITLE_FROM)).coerceIn(0f, 1f)
+                    }
+                    .padding(bottom = SettingsTokens.TitleBottom),
             )
+            content()
+            Spacer(Modifier.height(SettingsTokens.SectionTop))
         }
-        content()
-        Spacer(Modifier.height(SettingsTokens.SectionTop))
+        CollapsingBar(title, scroll, { largeTitle }, interactive, onBack)
     }
 }
 

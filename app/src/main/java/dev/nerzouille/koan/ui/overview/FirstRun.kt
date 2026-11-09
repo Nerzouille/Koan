@@ -25,6 +25,7 @@ import dev.nerzouille.koan.R
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.brandOutline
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 
@@ -74,8 +75,7 @@ fun ConnectCard(onConnect: () -> Unit, compact: Boolean, modifier: Modifier = Mo
         Text(
             "Connect your Zen Spaces",
             color = KoanTheme.colors.TextPrimary,
-            fontSize = FirstRunTokens.TitleSize,
-            fontWeight = FontWeight.Bold,
+            style = KoanType.title(FirstRunTokens.TitleSize),
             textAlign = TextAlign.Center,
         )
         Text(

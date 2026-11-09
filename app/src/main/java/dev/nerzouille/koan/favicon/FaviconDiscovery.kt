@@ -45,10 +45,27 @@ object FaviconDiscovery {
         return runCatching { URI("$scheme://$authority$path") }.getOrNull()
     }
 
+    /**
+     * The host a site's icon belongs to: "m.example.com", "en.m.example.org", "mobile.example.com"
+     * and "www.example.com" share the desktop site's icon (Koan change, not in Z-Sync). A mobile
+     * label is dropped anywhere before the site name; a name and a suffix always stay.
+     */
+    fun iconHost(host: String): String {
+        val labels = host.lowercase().split('.').toMutableList()
+        if (labels.size > 2 && labels.first() == "www") labels.removeAt(0)
+        var i = 0
+        while (i < labels.size - 2) {
+            if (labels[i] in MOBILE_LABELS) labels.removeAt(i) else i++
+        }
+        return labels.joinToString(".")
+    }
+
+    private val MOBILE_LABELS = setOf("m", "mobile")
+
     fun siteKey(uri: URI): String? {
         val scheme = uri.scheme?.lowercase() ?: return null
         if (scheme != "http" && scheme != "https") return null
-        val host = uri.host?.lowercase()?.takeIf { it.isNotEmpty() } ?: return null
+        val host = uri.host?.lowercase()?.takeIf { it.isNotEmpty() }?.let(::iconHost) ?: return null
         val port = uri.port
         val authority = when {
             port == -1 || (scheme == "https" && port == 443) || (scheme == "http" && port == 80) -> host

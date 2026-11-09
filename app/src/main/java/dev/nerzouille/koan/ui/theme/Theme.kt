@@ -35,7 +35,7 @@ fun KoanTheme(dark: Boolean, content: @Composable () -> Unit) {
         )
     }
     CompositionLocalProvider(LocalKoanPalette provides palette) {
-        MaterialTheme(colorScheme = scheme, content = content)
+        MaterialTheme(colorScheme = scheme, typography = KoanTypography, content = content)
     }
 }
 

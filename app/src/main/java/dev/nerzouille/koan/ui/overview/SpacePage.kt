@@ -39,6 +39,7 @@ import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import dev.nerzouille.koan.ui.theme.SpaceColors
@@ -149,8 +150,7 @@ private fun EmptySpace(space: SpaceModel, onNewTab: () -> Unit, modifier: Modifi
         Text(
             "No open tabs in ${space.name}",
             color = KoanTheme.colors.TextPrimary,
-            fontSize = OverviewTokens.EmptyTitleSize,
-            fontWeight = FontWeight.SemiBold,
+            style = KoanType.headline(OverviewTokens.EmptyTitleSize),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -225,8 +225,7 @@ internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit
             Text(
                 space.name,
                 color = KoanTheme.colors.TextPrimary,
-                fontSize = OverviewTokens.TitleSize,
-                fontWeight = FontWeight.Bold,
+                style = KoanType.title(OverviewTokens.TitleSize),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),

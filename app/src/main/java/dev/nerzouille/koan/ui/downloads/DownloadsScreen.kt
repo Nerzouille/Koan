@@ -236,7 +236,7 @@ private fun Action(icon: ImageVector, label: String, modifier: Modifier, primary
     ) {
         Icon(icon, null, tint = color, modifier = Modifier.size(SettingsTokens.RowGlyph * 0.85f))
         Spacer(Modifier.width(SettingsTokens.Divider * 6))
-        Text(label, color = color, fontSize = SettingsTokens.RowValueSize, fontWeight = FontWeight.Medium)
+        Text(label, color = color, fontSize = SettingsTokens.RowValueSize, fontWeight = FontWeight.SemiBold)
     }
 }
 

@@ -240,12 +240,14 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
 private fun AccountCard(ui: SettingsUi, on: Boolean, onClick: () -> Unit) {
     val palette = KoanTheme.colors
     val shape = RoundedCornerShape(SettingsTokens.CardRadius)
+    // The gradient means "working / active": not while sync is failing (docs/UI_SPEC.md "Brand gradient").
+    val failing = ui.email != null && ui.status.label()?.second == true
     Column(
         Modifier
             .fillMaxWidth()
             .clip(shape)
             .background(palette.Card)
-            .brandOutline(shape)
+            .then(if (failing) Modifier else Modifier.brandOutline(shape))
             .then(if (on) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(SettingsTokens.CardPadding),
     ) {

@@ -1,35 +1,28 @@
 package dev.nerzouille.koan.ui.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import dev.nerzouille.koan.search.CustomEngines
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanField
 import dev.nerzouille.koan.ui.kit.DestructiveButton
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -136,26 +129,10 @@ private fun Field(
     Column(Modifier.padding(top = SettingsTokens.FieldGap)) {
         Text(label, color = palette.TextSecondary, fontSize = SettingsTokens.SectionTitleSize, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(SettingsTokens.FieldLabelGap))
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(SettingsTokens.FieldHeight)
-                .clip(RoundedCornerShape(SettingsTokens.FieldRadius))
-                .background(palette.Glass)
-                .padding(horizontal = SettingsTokens.RowInset),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            if (value.isEmpty()) Text(hint, color = palette.FieldHint, fontSize = SettingsTokens.RowValueSize, maxLines = 1)
-            BasicTextField(
-                value = value,
-                onValueChange = onChange,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = keyboard, autoCorrectEnabled = false),
-                textStyle = TextStyle(color = palette.TextPrimary, fontSize = SettingsTokens.RowValueSize),
-                cursorBrush = SolidColor(palette.TextPrimary),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        KoanField(
+            value, onChange, hint, Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboard, autoCorrectEnabled = false),
+        )
         val note = error ?: help
         if (note != null) {
             Text(

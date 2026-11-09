@@ -40,6 +40,7 @@ import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.overview.SpaceModel
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.StartPageTokens
 
@@ -110,8 +111,7 @@ fun StartPage(
                 Text(
                     current.name,
                     color = palette.TextPrimary,
-                    fontSize = OverviewTokens.TitleSize,
-                    fontWeight = FontWeight.Bold,
+                    style = KoanType.title(OverviewTokens.TitleSize),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

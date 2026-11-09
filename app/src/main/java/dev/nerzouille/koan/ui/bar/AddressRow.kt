@@ -97,6 +97,7 @@ import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.BrandHorizontal
+import dev.nerzouille.koan.ui.theme.brandOutline
 import dev.nerzouille.koan.ui.theme.SearchFieldTokens
 import androidx.compose.animation.core.Animatable
 import android.provider.Settings
@@ -617,6 +618,8 @@ private fun FindBar(find: FindUi, modifier: Modifier = Modifier) {
                 .height(BarTokens.FieldHeight)
                 .clip(CircleShape)
                 .background(palette.BarField)
+                // Find is an active moment: the full brand gradient rings its field (docs/UI_SPEC.md "Brand gradient").
+                .brandOutline(CircleShape)
                 .padding(start = BarTokens.FieldPadding - SearchFieldTokens.GlyphGap / 2, end = BarTokens.FieldPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {

@@ -4,6 +4,7 @@ import android.app.SearchManager
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationManagerCompat
+import dev.nerzouille.koan.engine.GeckoPrefs
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.engine.downloads.KoanDownloadService
 import mozilla.components.feature.downloads.DownloadsFeature
@@ -90,6 +91,9 @@ class MainActivity : FragmentActivity() {
             }
             LaunchedEffect(dark) {
                 components.pageTools.setReaderDark(dark)
+                // Find in page in the theme's colours (the engine is running by now).
+                components.runtime
+                GeckoPrefs.applyFind(dark)
                 WindowCompat.getInsetsController(window, window.decorView).apply {
                     isAppearanceLightStatusBars = !dark
                     isAppearanceLightNavigationBars = !dark

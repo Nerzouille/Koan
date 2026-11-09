@@ -67,6 +67,7 @@ import dev.nerzouille.koan.ui.theme.BrandTokens
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.ButtonTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.TourTokens
@@ -235,8 +236,7 @@ private fun TourPage(card: TourCard, footer: (@Composable () -> Unit)? = null) {
         Text(
             card.title,
             color = palette.TextPrimary,
-            fontSize = TourTokens.TitleSize,
-            fontWeight = FontWeight.Bold,
+            style = KoanType.title(TourTokens.TitleSize),
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(horizontal = TourTokens.Padding),
         )
