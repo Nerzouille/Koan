@@ -1013,7 +1013,7 @@ object TranslateTokens {
     val Track = 4.dp
     val Close = 32.dp
     /** The offer leaves on its own after this long. */
-    const val OFFER_MS = 12_000L
+    const val OFFER_MS = 20_000L
 }
 
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
