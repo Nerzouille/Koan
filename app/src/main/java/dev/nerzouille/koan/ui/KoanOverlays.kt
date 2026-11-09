@@ -1,5 +1,14 @@
 package dev.nerzouille.koan.ui
 
+import dev.nerzouille.koan.ui.menu.translateUiOf
+import dev.nerzouille.koan.ui.menu.TranslateActions
+import dev.nerzouille.koan.ui.menu.TranslateUi
+import dev.nerzouille.koan.ui.menu.TranslatePage
+import mozilla.components.concept.engine.translate.Language
+import mozilla.components.concept.engine.translate.TranslationOperation
+import mozilla.components.concept.engine.translate.TranslationPageSettingOperation
+import mozilla.components.concept.engine.translate.TranslationOptions
+import mozilla.components.browser.state.action.TranslationsAction
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
@@ -284,6 +293,24 @@ fun KoanOverlays(
     }
     fun close() = menu.animateTo(Detent.Closed)
 
+    // ---- Firefox Translations, per tab (engine: TranslationsMiddleware) ----
+    val tabTranslations by components.store.observeSlice(activeTabId) { s -> activeTabId?.let { s.findTab(it) }?.translationsState }
+    val translateEngine by components.store.observeSlice(Unit) { s -> s.translationEngine }
+    val phoneLanguage = remember { java.util.Locale.getDefault().language }
+    val translateUi = tabTranslations?.let { t -> translateUiOf(t, translateEngine) }
+    fun dispatchTranslate(action: mozilla.components.browser.state.action.BrowserAction) = components.store.dispatch(action)
+    val translateActions = TranslateActions(
+        translate = { from, to ->
+            activeTabId?.let { dispatchTranslate(TranslationsAction.TranslateAction(it, from, to, TranslationOptions(downloadModel = true))) }
+        },
+        showOriginal = { activeTabId?.let { dispatchTranslate(TranslationsAction.TranslateRestoreAction(it)) } },
+        neverLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_LANGUAGE, on)) } },
+        neverSite = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_SITE, on)) } },
+        pairChanged = { from, to ->
+            activeTabId?.let { if (from.isNotEmpty() && from != to) dispatchTranslate(TranslationsAction.FetchTranslationDownloadSizeAction(it, Language(from), Language(to))) }
+        },
+    )
+
     // ---- the ⋯ menu ----
     val state = MenuState(
         bookmarked = page.url in bookmarks,
@@ -299,6 +326,13 @@ fun KoanOverlays(
         secure = secure,
         ublock = ublockUi,
         searchEngine = newEngine,
+        translate = translateUi?.takeIf { page.url.isNotEmpty() && (it.pageLanguage != null || it.translated) }?.let {
+            when {
+                it.translated -> "Translated · show original"
+                it.working -> "Translating…"
+                else -> "Translate page"
+            }
+        },
     )
     KoanSheet(menu, overlays.menuNav) { p, pageScope ->
         when (p) {
@@ -356,6 +390,14 @@ fun KoanOverlays(
                         (tabAction ?: s.extensions[UBlock.ID]?.browserAction)?.onClick?.invoke()
                     },
                     ublockInstall = components.ublock::install,
+                    translate = {
+                        activeTabId?.let { id ->
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_PAGE_SETTINGS))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_SUPPORTED_LANGUAGES))
+                            translateUi?.pageLanguage?.let { from -> translateActions.pairChanged(from, phoneLanguage) }
+                        }
+                        overlays.menuNav.push(MenuPage.Translate)
+                    },
                     addSearchEngine = {
                         val draft = newEngine
                         close()
@@ -372,6 +414,12 @@ fun KoanOverlays(
                 components.store.state.extensions[UBlock.ID]?.popupSession?.close()
                 components.store.dispatch(WebExtensionAction.UpdatePopupSessionAction(UBlock.ID, popupSession = null))
             }
+            MenuPage.Translate -> TranslatePage(
+                translateUi ?: TranslateUi(null, emptyList(), emptyList(), false, false, null, null, false, false, unsupported = false),
+                target = phoneLanguage,
+                actions = translateActions,
+                scope = pageScope,
+            )
             MenuPage.SiteSettings -> SiteSettingsPage(
                 SiteSettingsUi(
                     url = page.url,

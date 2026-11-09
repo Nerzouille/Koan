@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.engine
 
+import mozilla.components.browser.state.engine.middleware.TranslationsMiddleware
+import mozilla.components.browser.state.action.TranslationsAction
 import android.content.Context
 import dev.nerzouille.koan.data.AccountStore
 import dev.nerzouille.koan.data.Bookmarks
@@ -86,8 +88,10 @@ class Components(context: Context) {
                     // Removing a download from the list never deletes the file (Delete does that explicitly).
                     deleteFileFromStorage = { false },
                     downloadFileUtils = downloadFiles, downloadStorage = downloadStorage,
-                ),
-        )
+                ) +
+                // Firefox Translations, on the phone. GeckoView wants its calls on the main thread.
+                TranslationsMiddleware(engine = engine, scope = kotlinx.coroutines.MainScope(), isTranslationsEnabled = { true }),
+        ).also { it.dispatch(TranslationsAction.InitTranslationsBrowserState) }
     }
 
     // ---- downloads ----

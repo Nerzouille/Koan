@@ -1007,6 +1007,15 @@ object ToastTokens {
     val Rise = 16.dp
 }
 
+/** Translate page (⋯ menu) and the offer above the dock. */
+object TranslateTokens {
+    const val SWEEP_MS = 1100
+    val Track = 4.dp
+    val Close = 32.dp
+    /** The offer leaves on its own after this long. */
+    const val OFFER_MS = 12_000L
+}
+
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
 object DownloadTokens {
     val FileTile = 40.dp

@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui
 
+import dev.nerzouille.koan.ui.browser.TranslateOfferHost
 import androidx.compose.runtime.mutableStateSetOf
 import dev.nerzouille.koan.ui.overview.LocalCardHero
 import dev.nerzouille.koan.ui.overview.PageHeroLayer
@@ -1001,6 +1002,11 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             },
         )
 
+        TranslateOfferHost(
+            components, activeTabId,
+            allowed = !overviewVisible && !editing && !covered && !fullScreen,
+            onToast = toasts::show,
+        )
         KoanToastHost(toasts, bottom = barZone(overviewOpen), modifier = Modifier.align(Alignment.BottomCenter))
 
         // Sign-in slides up over everything and back down when done.
