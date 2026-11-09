@@ -620,6 +620,19 @@ class TabManager(
     }
 
     /**
+     * The pixels of tab [id] as the page view shows them now (not stored), for the Back close
+     * animation; null if it isn't on screen and painted, or the engine takes longer than [timeoutMs].
+     */
+    suspend fun grabScreen(id: String, timeoutMs: Long): Bitmap? {
+        val view = engineView.get() ?: return null
+        val tab = store.state.findTab(id) ?: return null
+        if (store.state.selectedTabId != id || tab.engineState.engineSession == null || !tab.content.firstContentfulPaint) return null
+        return withTimeoutOrNull(timeoutMs) {
+            suspendCancellableCoroutine<Bitmap?> { cont -> view.captureThumbnail { if (cont.isActive) cont.resume(it) } }
+        }
+    }
+
+    /**
      * Screenshots tab [id] if it is the one on screen and has painted; stores it and points Room at
      * it. Waits at most [timeoutMs] for the engine (the encode runs in the background).
      */
