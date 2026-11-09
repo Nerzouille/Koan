@@ -18,8 +18,12 @@ fun resolveInput(raw: String, engine: SearchEngine = SearchEngine.DuckDuckGo): S
     if (text.any { it.isWhitespace() }) return engine.searchUrl(text)
     if (KNOWN_SCHEMES.any { text.startsWith(it, ignoreCase = true) }) return text
     if (HOST_LIKE.matches(text)) return "https://$text"
+    // An app's own link (weixin://…, alipays://…, intent://…): opened by its app (ExternalLinks).
+    if (APP_LINK.matches(text)) return text
     return engine.searchUrl(text)
 }
+
+private val APP_LINK = Regex("^[a-z][a-z0-9+.-]{1,30}://\\S+$", RegexOption.IGNORE_CASE)
 
 /**
  * Text shared to Koan or a web search from another app: a link inside it opens as is, anything

@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.engine
 
+import mozilla.components.browser.state.selector.selectedTab
 import android.content.Context
 import dev.nerzouille.koan.data.AccountStore
 import dev.nerzouille.koan.data.Bookmarks
@@ -63,7 +64,10 @@ class Components(context: Context) {
         }
     }
 
-    val engine by lazy {
+    /** tel:, intent://, apps' own schemes; the "Open in YouTube?" card and the menu's "Open in …". */
+    val externalLinks: ExternalLinks by lazy { ExternalLinks(appContext) { store.state.selectedTab?.content?.url } }
+
+    val engine: GeckoEngine by lazy {
         GeckoEngine(
             appContext,
             DefaultSettings(
@@ -72,13 +76,13 @@ class Components(context: Context) {
                 // Visited links, and page titles for history.
                 historyTrackingDelegate = history,
                 // tel:, mailto:, intent:// … open in their app.
-                requestInterceptor = ExternalLinks(appContext),
+                requestInterceptor = externalLinks,
             ),
             runtime,
         )
     }
 
-    val store by lazy {
+    val store: BrowserStore by lazy {
         BrowserStore(
             middleware = EngineMiddleware.create(engine) + ReaderViewMiddleware() +
                 DownloadMiddleware(

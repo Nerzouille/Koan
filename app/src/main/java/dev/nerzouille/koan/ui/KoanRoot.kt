@@ -393,7 +393,9 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             top != null && input.equals(completion(searchField.typed, top) ?: "\u0000", ignoreCase = true) -> openHit(top)
             else -> {
                 editing = false
-                loadHere(resolveInput(input, searchEngine))
+                val url = resolveInput(input, searchEngine)
+                val links = components.externalLinks
+                if (links.isAppLink(url)) links.openTyped(url)?.let(::loadHere) else loadHere(url)
             }
         }
     }
