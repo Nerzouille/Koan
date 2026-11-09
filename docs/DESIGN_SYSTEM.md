@@ -1,7 +1,7 @@
 # Koan design system
 
 The design language of **Koan**, an Android browser built around Zen Browser's Spaces, as it is in
-the code today (v0.4.0). Every value is read from the code; references are `path:line` from the
+the code today (v0.4.0 + the design-audit fixes of 2026-11-10, on `dev`). Every value is read from the code; references are `path:line` from the
 repository root (`T:` = `app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt`). Where the code
 and `docs/UI_SPEC.md` disagree, the code is what ships and the difference is noted.
 
@@ -43,7 +43,7 @@ Rules (docs/UI_SPEC.md "Themes", "Visual restraint"):
 | `Base` | `#F5F5F7FF` | `#1C1C1EFF` | Page background behind everything, and what the stack fades to above the dock. |
 | `Glass` | `#EBEBEFFF` | `#FFFFFF14` | Small surfaces on Base: the header's space icon box, essentials tiles, pinned list. |
 | `TextPrimary` | `#1C1C1EFF` | `#FFFFFFFF` |  |
-| `TextSecondary` | `#6E6E73FF` | `#FFFFFF9E` |  |
+| `TextSecondary` | `#66666BFF` | `#FFFFFF9E` |  |
 | `TextDisabled` | `#00000038` | `#FFFFFF30` |  |
 | `Icon` | `#6E6E73FF` | `#98989DFF` | Bar icons and the tab-count badge. |
 | `Card` | `#FFFFFFFF` | `#2C2C2EFF` |  |
@@ -54,26 +54,47 @@ Rules (docs/UI_SPEC.md "Themes", "Visual restraint"):
 | `DefaultAccent` | `#5B6CFFFF` | `#8EA2FFFF` | Fallback accent for spaces without a usable Zen colour. |
 | `Primary` | `#1C1C1EFF` | `#FFFFFFFF` | Primary buttons: black in light, white in dark. |
 | `OnPrimary` | `#FFFFFFFF` | `#1C1C1EFF` |  |
-| `Destructive` | `#E5342BFF` | `#FF5A50FF` | Destructive actions: red text only, never a red fill. |
+| `Destructive` | `#C42A20FF` | `#FF8077FF` | Destructive actions: red text only, never a red fill (one exception: History's swipe-to-remove background). ≥ 4.5:1 on every surface. |
 | `GroupedRow` | `#F2F2F5FF` | `#FFFFFF12` | Grouped rows on a sheet or a screen (menu, settings). |
-| `ToggleOff` | `#E5E5EAFF` | `#3A3A3CFF` |  |
+| `ToggleOff` | `#848489FF` | `#8E8E93FF` | Off state of a control: toggle track, unselected radio ring. ≥ 3:1 against every row surface. |
 | `FocusRing` | `#B4B4BAFF` | `#FFFFFF4C` | The address input's ring while typing (neutral; "@" turns it into the brand gradient). |
 | `Dock` | `#FFFFFFFF` | `#252527FF` | The dock: the bottom bar's own surface (also the drawer sheet). |
 | `DockShadow` | `#3C281E12` | `#00000059` | Soft shadow the dock casts upward over the content. |
 | `DrawerHandle` | `#00000029` | `#FFFFFF33` |  |
 | `BarField` | `#F1F1F4FF` | `#FFFFFF14` |  |
 | `SegmentPill` | `#FFFFFFFF` | `#4A4A4DFF` | The chosen option's pill in a segmented selector (on a [Glass] track). |
-| `FieldHint` | `#8E8E93FF` | `#FFFFFF99` |  |
+| `FieldHint` | `#66666BFF` | `#FFFFFF99` |  |
 | `Skeleton` | `#0000000F` | `#FFFFFF12` |  |
 | `IconBacking` | `—` | `#E9E9EEFF` | Behind favicons too dark to read on dark surfaces; Unspecified = never needed. |
 | `Notice` | `#F2F2F5F2` | `#2C2C2EF2` |  |
-| `Attention` | `#C0841AFF` | `#E8B45AFF` | Quiet sync notices: amber, never red. |
+| `Attention` | `#8A5C00FF` | `#E8B45AFF` | Quiet sync notices and "not secure": amber, never red. ≥ 4.5:1 as text. |
 | `DrawerScrim` | `#1C1C2829` | `#00000073` | Over the overview while the drawer is open, at full open. |
 | `DrawerScrimNoBlur` | `#1C1C2852` | `#0000009E` | The same without blur behind the drawer (Android 11, DeviceProfile.liveBlur): stronger. |
 | `DrawerShadowNoBlur` | `#1C1C2829` | `#00000073` | Without blur, the drawer sheet also casts a taller shadow over the cards, at full open. |
 | `SheetScrim` | `#1C1C284C` | `#00000080` | Over the page while a sheet or a floating card is open (the menu, prompts). |
+| `FindCurrent` | `#1554CBFF` | `#1554CBFF` | Find in page, the current match (Gecko `ui.textSelectAttentionBackground`). |
+| `FindCurrentText` | `#FFFFFFFF` | `#FFFFFFFF` | Its text (`ui.textSelectAttentionForeground`). |
+| `FindMatch` | `#D0DDF5FF` | `#1C396EFF` | Every other match (`ui.textHighlightBackground`). |
+| `FindMatchText` | `#000000FF` | `#FFFFFFFF` | Their text (`ui.textHighlightForeground`), so Gecko never forces its own white. |
 | `CardShadowColor` | `#1E1E3C80` | `#000000FF` |  |
 | `ContactShadow` | `#1C1C301A` | `#00000038` | Short, soft shadow a card casts on the card behind it, just above its top edge. |
+
+#### Contrast
+
+Text ≥ **4.5:1**, controls ≥ **3:1** (WCAG 2.x), measured against the worst surface each token is
+drawn on: light = White, `Base`, `GroupedRow`, `BarField`, `Glass`; dark = `Base`, `Card`, `Dock`,
+and `GroupedRow` / `Glass` composited over them. Changed in the 2026-11-10 design audit:
+
+| Token | Light before → after | Light ratio before → after | Dark before → after | Dark ratio before → after |
+|---|---|---|---|---|
+| `FieldHint` ("Search or type URL", search glyph) | `#8E8E93` → `#66666B` | 2.89 on BarField (2.74 on Glass) → **4.80** worst | white 60% (unchanged) | 5.21 |
+| `Attention` ("not secure", amber dots) | `#C0841A` → `#8A5C00` | 2.94 (2.87 on GroupedRow) → **4.89** | `#E8B45A` (unchanged) | 5.93 |
+| `Destructive` (red text) | `#E5342B` → `#C42A20` | 3.87 on GroupedRow → **4.77** | `#FF5A50` → `#FF8077` | 3.65 on GroupedRow over Card → **4.60** |
+| `TextSecondary` | `#6E6E73` → `#66666B` | 4.27 on Glass → **4.80** | white 62% (unchanged) | 5.44 |
+| `ToggleOff` (toggle OFF track) | `#E5E5EA` → `#848489` | ~1.1 → **3.13** | `#3A3A3C` → `#8E8E93` | ~1.1 → **3.44** |
+| Login sheet radio, unselected | `GroupedRow` fill on a `GroupedRow` row → 2dp `ToggleOff` ring | 1.0 → **3.13** | same | 1.0 → **3.44** |
+
+The white toggle knob stays readable on the darker OFF track (3.6:1 light, 3.3:1 dark).
 
 #### Brand gradient
 
@@ -88,8 +109,10 @@ active, or holds your focus**.
 | Syncing indicator: a turning gradient arc (2dp stroke, 270° sweep, one turn per 900 ms) | Permission prompts |
 | Toggles ON (gradient track at 90%) | Destructive actions |
 | The "@" search mode: ring (2dp) and cursor | Body text |
-| Settings' wash behind the top of the screen (320dp, 20% light / 14% dark), the account card outline (1.5dp), About | Behind web content |
+| Settings' wash behind the top of the screen (320dp, 20% light / 14% dark, also on About); the account card outline (1.5dp), **not while it says "Couldn't sync"** | Behind web content |
 | First-run "Connect your Zen Spaces" card outline (1.5dp) | Primary buttons (always black / white) |
+| Find in page: the find field's ring (1.5dp) while find is open; the matches in the page in Koan's find blues (`FindCurrent`, `FindMatch`) | Static, non-tappable cards (About "Built to pair with Zen" is a plain card) |
+| "Moment" toasts (outline) | A failure state (the account card while sync fails) |
 | Tour / What's new: faint glow behind each title (240dp, 16% light / 12% dark), the welcome card (whole sheet) | Random gradients on cards |
 | The faint glow behind the K on the sign-in choice page (owner's one exception) | |
 
@@ -113,13 +136,24 @@ text on the pill ("ink") = the accent at 38% / 80% lightness.
 
 ### 1.2 Typography
 
-- **Font:** the system default sans-serif (Compose `FontFamily.Default`). Koan bundles no font and
-  sets no `Typography`; on the owner's phone that is the HyperOS system font.
-- **Base style:** every text is a Material 3 `Text`, so it inherits Material 3's default
-  `bodyLarge`: **line height 24sp, letter spacing 0.5sp**. Koan overrides only `fontSize` and
-  `fontWeight`, so these two stay the same for every size below.
-- **Weights in use:** Normal 400 (2 uses), Medium 500 (33), SemiBold 600 (32), Bold 700 (12).
-  The weight per component is given in each component's section.
+- **Font:** the system default sans-serif (Compose `FontFamily.Default`). Koan bundles no font; on
+  the owner's phone that is the HyperOS system font.
+- **Base style** (`ui/theme/Type.kt`, `KoanTypography`, given to `MaterialTheme`): every Material 3
+  `Text` inherits it. **Line height 1.33em** (relative to the font size, so it scales with any
+  size a call sets), **letter spacing 0**, line-height style centred, no trim. Before the audit the
+  base was Material's `bodyLarge`: a fixed 24sp line height and 0.5sp tracking for every size, so
+  a 30–34sp title that wrapped overlapped itself and 12sp helper text was spaced like 16sp.
+- **Title styles** (`KoanType`, used with each feature's size token):
+
+| Style | Use | Weight | Line height | Letter spacing |
+|---|---|---|---|---|
+| body (default) | everything ≤ 16sp | as set | 1.33em | 0 |
+| `KoanType.headline(size)` | 17–20sp: card titles (`SheetTokens.CardTitleSize` 18), sheet headers (`HeaderTitleSize` 17), empty-state titles | SemiBold | 1.25em | −0.006em |
+| `KoanType.title(size)` | 20–30sp: page bar title (`SettingsTokens.BarTitleSize` 22), tour (22), welcome (30), sign-in (17), overview space name (20), first run (20), About app name (30) | Bold | 1.18em | −0.012em |
+| `KoanType.largeTitle(size)` | settings large title (`SettingsTokens.TitleSize` 34), up to 2 lines | Bold | 1.12em | −0.016em |
+
+- **Weights in use:** Normal 400, Medium 500, SemiBold 600, Bold 700. The weight per component is
+  given in each component's section. Buttons and destructive actions are SemiBold.
 
 Type scale (every text size token, sp):
 
@@ -128,7 +162,7 @@ Type scale (every text size token, sp):
 | **34** | `SettingsTokens.TitleSize` |
 | **30** | `TourTokens.WelcomeTitleSize`, `SettingsTokens.AppNameSize` |
 | **26** | `SignInTokens.HeroSize` |
-| **22** | `TourTokens.TitleSize` |
+| **22** | `TourTokens.TitleSize`, `SettingsTokens.BarTitleSize` |
 | **20** | `OverviewTokens.TitleSize`, `FirstRunTokens.TitleSize` |
 | **18** | `OverviewTokens.EmptyTitleSize`, `SheetTokens.CardTitleSize`, `SettingsTokens.AvatarTextSize` |
 | **17** | `TourTokens.WelcomeLineSize`, `SignInTokens.TitleSize`, `BarTokens.FieldTextSize`, `SheetTokens.HeaderTitleSize` |
@@ -159,7 +193,8 @@ drawer, sheets, first run), 16dp (start page), 20dp (settings, sign-in pages), 2
 | **9** | `SheetTokens.RowIconRadius` |
 | **10** | `OverviewTokens.SpaceIconRadius`, `SignInTokens.BracketRadius`, `DownloadTokens.FileTileRadius`, `StartPageTokens.ContinueTileRadius` |
 | **12** | `PromptTokens.FieldRadius`, `SettingsTokens.SegmentRadius` |
-| **14** | `DrawerTokens.EssentialRadius`, `SettingsTokens.RowRadius`, `SettingsTokens.FieldRadius` |
+| **14** | `DrawerTokens.EssentialRadius`, `SettingsTokens.RowRadius` |
+| **pill** | `KoanField` (all fields outside the dock), buttons, the dock's address field |
 | **16** | `FirstRunTokens.AppIconRadius`, `SignInTokens.NoticeRadius`, `SheetTokens.TileRadius`, `ToastTokens.Radius`, `TabMenuTokens.Radius`, `StartPageTokens.ContinueRadius` |
 | **18** | `DrawerTokens.PinnedRadius`, `SheetTokens.GroupRadius`, `DownloadTokens.GroupRadius`, `SearchTokens.GroupRadius` |
 | **22** | `SignInTokens.ChoiceRadius`, `SettingsTokens.CardRadius` |
@@ -401,10 +436,10 @@ Light palette starts at `T:93`, dark at `T:139`. "@ n%" = that colour at alpha n
 | `Dock` | `#FFFFFF` | `#252527` | T:113 / T:159 | dock surface, drawer sheet, dock popups |
 | `DockShadow` | `#3C281E @ 7%` | `#000000 @ 35%` | T:114 / T:160 | upward shadow on the dock's top edge |
 | `BarField` | `#F1F1F4` | `#FFFFFF @ 8%` | T:116 / T:162 | address pill fill |
-| `FieldHint` | `#8E8E93` | `#FFFFFF @ 60%` | T:118 / T:164 | "Search or type URL", search glyph, completion title |
+| `FieldHint` | `#66666B` | `#FFFFFF @ 60%` | T:118 / T:164 | "Search or type URL", search glyph, completion title |
 | `FocusRing` | `#B4B4BA` | `#FFFFFF @ 30%` | T:112 / T:158 | address input ring while typing |
 | `TextPrimary` | `#1C1C1E` | `#FFFFFF` | T:97 / T:143 | host text, row titles, space icons |
-| `TextSecondary` | `#6E6E73` | `#FFFFFF @ 62%` | T:98 / T:144 | find count, status row, folder glyphs, pin glyph, active dot, download progress arc |
+| `TextSecondary` | `#66666B` | `#FFFFFF @ 62%` | T:98 / T:144 | find count, status row, folder glyphs, pin glyph, active dot, download progress arc |
 | `TextDisabled` | `#000000 @ 22%` | `#FFFFFF @ 19%` | T:99 / T:145 | disabled back icon, disabled popup row |
 | `Icon` | `#6E6E73` | `#98989D` | T:100 / T:146 | bar icons, tab-count badge border and number, popup icons |
 | `Glass` | `#EBEBEF` | `#FFFFFF @ 8%` | T:96 / T:142 | essentials tiles, pinned group, download ring track |
@@ -412,7 +447,7 @@ Light palette starts at `T:93`, dark at `T:139`. "@ n%" = that colour at alpha n
 | `DrawerScrim` | `#1C1C28 @ 16%` | `#000000 @ 45%` | T:123 / T:169 | overview dim behind open drawer (live blur devices) |
 | `DrawerScrimNoBlur` | `#1C1C28 @ 32%` | `#000000 @ 62%` | T:124 / T:170 | same on Android 11 (no blur) |
 | `DrawerShadowNoBlur` | `#1C1C28 @ 16%` | `#000000 @ 45%` | T:125 / T:171 | taller sheet shadow on Android 11 |
-| `Attention` | `#C0841A` | `#E8B45A` | T:122 / T:168 | amber dot on a sync-problem status row |
+| `Attention` | `#8A5C00` | `#E8B45A` | T:122 / T:168 | amber dot on a sync-problem status row |
 | `DefaultAccent` | `#5B6CFF` | `#8EA2FF` | T:106 / T:152 | space accent when its Zen colour is grey |
 | `PillAlpha` (float) | 0.14 | 0.18 | T:136 / T:182 | alpha of the active space pill tint |
 | `InkLightness` (float) | 0.38 | 0.80 | T:135 / T:181 | HSL lightness of the space name colour |
@@ -719,14 +754,15 @@ Status texts (`bar/SpaceDrawer.kt:298-308`): "Connect your Zen Spaces", "Syncing
 | Width | hugs content; with `minWidth`, measured at max intrinsic width ≥ minWidth | `menu/DockPopup.kt:90-97` |
 | Corner radius | 16dp | T:1011 |
 | Shadow | 12dp elevation (`Modifier.shadow`) | T:1012 |
-| Row height | 44dp, 16dp horizontal padding | T:1014-1015, `menu/DockPopup.kt:128-130` |
-| Leading icon / favicon | 18dp, then 12dp gap | T:1016-1017 |
+| Row height | 48dp, 16dp horizontal padding | `TabMenuTokens.RowHeight`, `menu/DockPopup.kt` |
+| Leading icon | `MenuIconTile`: 30dp tile, 9dp corners, `GroupedRow` fill, 18dp glyph `TextPrimary`, then 12dp gap (same tile as sheet menu rows) | `ui/sheet/SheetKit.kt` `MenuIconTile` |
+| Leading favicon (Back menu) | 18dp, then 12dp gap | `TabMenuTokens.Icon/IconGap` |
 | Row text | 15sp | T:1018 |
 | Tab menu | min width 200dp, Medium weight text, anchor 80dp from the right edge | T:1024, `menu/TabMenu.kt:27-44` |
 | Back menu | max width 300dp; max height 6 rows + half a row = 286dp (scrolls, half a row peeks); anchor 6 + 24 = 30dp from the left edge | T:1027-1028, `menu/BackMenu.kt:39-42` |
 
 **Rows**
-- Tab menu: icon in `Icon` + text `TextPrimary` Medium; disabled row both in `TextDisabled` and not clickable (`menu/TabMenu.kt:38-45`).
+- Tab menu: icon on its tile (`TextPrimary` glyph) + text `TextPrimary` Medium; disabled row: glyph and text `TextDisabled`, not clickable (`menu/TabMenu.kt`).
 - Back menu: favicon 18dp + page title (or host, or the raw url) in `TextPrimary`, regular weight, 1 line ellipsis; the pages before the current one, most recent first (`menu/BackMenu.kt:34,44-53`). Tap = go back to that entry.
 
 **States**
@@ -775,7 +811,7 @@ Palette tokens used in this file (resolved once):
 | Base | #F5F5F7 | #1C1C1E | T:95 / T:141 |
 | Glass | #EBEBEF | white @ 0.08 | T:96 / T:142 |
 | TextPrimary | #1C1C1E | #FFFFFF | T:97 / T:143 |
-| TextSecondary | #6E6E73 | white @ 0.62 | T:98 / T:144 |
+| TextSecondary | #66666B | white @ 0.62 | T:98 / T:144 |
 | Card | #FFFFFF | #2C2C2E | T:101 / T:147 |
 | CardStrip | white @ 0.94 | #F22C2C2E (≈ #2C2C2E @ 0.95) | T:102 / T:148 |
 | CardBorder | #E4E4EA | white @ 0.08 | T:103 / T:149 |
@@ -785,7 +821,7 @@ Palette tokens used in this file (resolved once):
 | Dock | #FFFFFF | #252527 | T:113 / T:159 |
 | Skeleton | black @ 0.06 | white @ 0.07 | T:119 / T:165 |
 | IconBacking | Unspecified (never used) | #E9E9EE | T:120 / T:166 |
-| Attention | #C0841A | #E8B45A | T:122 / T:168 |
+| Attention | #8A5C00 | #E8B45A | T:122 / T:168 |
 | DimToBase | true (back cards haze towards Base) | false (they darken towards black) | T:127 / T:173 |
 | DimGain | 1.25 | 1.0 | T:128 / T:174 |
 | DimMax | 0.85 | 1.0 | T:129 / T:175 |
@@ -937,12 +973,21 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 ### Favicon
 
-**Purpose:** a tab's icon: Zen static icon, else the real favicon, else a coloured letter tile.
+**Purpose:** a tab's icon: Zen static icon, else the real favicon, else **the one letter tile**
+(the same everywhere: cards, drawer, history, search results, the @ picker, prompts).
 
-**Anatomy** (`OV/Favicon.kt:83-154`)
-- Zen static icon: the glyph tinted `TextPrimary` (`Favicon.kt:85-90`).
-- Letter tile: rounded square, corner = size × 0.28 (`Favicon.kt:104`); background = the host's colour; letters Bold, font size = size × 0.42 for 2+ letters, × 0.55 for one (`Favicon.kt:146-152`), colour white unless the host entry says otherwise.
-  - Colour: a fixed table of 22 well-known public hosts (`Favicon.kt:40-63`), else one of 8 muted tones picked by host hash: #4F6D8F, #7A5C8E, #5E8C6A, #8E6A4F, #4F8A8B, #8B4F5E, #6B6F8F, #7F7A4A (`Favicon.kt:66-68`). Letter = first letter of the second-level domain, uppercased; "•" if none (`Favicon.kt:70-76`).
+**Anatomy** (`ui/overview/Favicon.kt`)
+- Zen static icon: the glyph tinted `TextPrimary`.
+- Letter tile: rounded square, corner = size × 0.28; background = one of 8 muted tones picked by
+  host hash: #4F6D8F, #7A5C8E, #5E8C6A, #8E6A4F, #4F8A8B, #8B4F5E, #6B6F8F, #7F7A4A; one letter,
+  Bold, white, font size (and line height) = size × 0.55. Letter = first letter of the site name
+  (the label before the suffix), uppercased; "•" if none. Before the audit a table of 22 known
+  hosts had their own tiles (two letters, light tiles with coloured letters), which read as a
+  different style, e.g. a bare black "W" in the @ picker; that table is gone.
+- **One site, one icon:** the host loses `www.`, `m.` and `mobile.` labels (anywhere before the
+  site name: `en.m.example.org` → `en.example.org`) before it picks the tile colour and the icon
+  cache key (`FaviconDiscovery.iconHost`, `siteKey`), so `m.example.com` and `example.com` show
+  the same icon and tile. The page that is fetched to find the icon is unchanged.
 - Real favicon: fitted in the same rounded square; fades in over the letter tile in 140ms (`Favicon.kt:100, 134`). An icon already in memory draws in the first frame without a fade.
 - Dark: an icon detected as dark is placed on an `IconBacking` tile (#E9E9EE) at 72% of the size (`Favicon.kt:108-128`). Light: no backing (`IconBacking` = Unspecified).
 
@@ -987,7 +1032,7 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 - Space icon box: 32dp (T:457), corner 10dp (T:458), `Glass` fill, Zen icon 20dp (T:459) tinted `TextPrimary`.
 - 10dp gap (T:456).
 - Space name: 20sp (T:460) Bold `TextPrimary`, 1 line, ellipsis.
-- Sync badge (`SyncBadgeView`, `SpacePage.kt:251-267`): 36dp circular touch (T:592); None = nothing; Syncing = `BrandSpinner` 12dp (T:594); Attention = 7dp dot (T:593) in `Attention` (Light #C0841A, Dark #E8B45A). Tap = sync now / sign in.
+- Sync badge (`SyncBadgeView`, `SpacePage.kt:251-267`): 36dp circular touch (T:592); None = nothing; Syncing = `BrandSpinner` 12dp (T:594); Attention = 7dp dot (T:593) in `Attention` (Light #8A5C00, Dark #E8B45A). Tap = sync now / sign in.
 - Gesture: vertical drag down on the header > 48dp (T:462) dismisses the overview back to the page.
 - (UI_SPEC lists "tap space name → space menu"; the current header has no tap action on the name.)
 
@@ -1171,24 +1216,24 @@ code disagree, the code is documented and the difference is noted. A bare `:line
 | Base | `#F5F5F7` | `#1C1C1E` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:95 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:141 |
 | Glass | `#EBEBEF` | `#FFFFFF` @ 8% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:96 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:142 |
 | TextPrimary | `#1C1C1E` | `#FFFFFF` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:97 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:143 |
-| TextSecondary | `#6E6E73` | `#FFFFFF` @ 62% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:98 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:144 |
+| TextSecondary | `#66666B` | `#FFFFFF` @ 62% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:98 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:144 |
 | TextDisabled | `#000000` @ 22% | `#FFFFFF` @ 19% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:99 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:145 |
 | Icon | `#6E6E73` | `#98989D` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:100 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:146 |
 | Card | `#FFFFFF` | `#2C2C2E` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:101 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:147 |
 | CardBorder | `#E4E4EA` | `#FFFFFF` @ 8% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:103 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:149 |
 | Primary | `#1C1C1E` | `#FFFFFF` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:107 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:153 |
 | OnPrimary | `#FFFFFF` | `#1C1C1E` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:108 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:154 |
-| Destructive | `#E5342B` | `#FF5A50` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:109 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:155 |
+| Destructive | `#C42A20` | `#FF8077` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:109 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:155 |
 | GroupedRow | `#F2F2F5` | `#FFFFFF` @ 7% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:110 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:156 |
-| ToggleOff | `#E5E5EA` | `#3A3A3C` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:111 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:157 |
+| ToggleOff | `#848489` | `#8E8E93` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:111 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:157 |
 | FocusRing | `#B4B4BA` | `#FFFFFF` @ 30% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:112 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:158 |
 | Dock (sheet and card surface) | `#FFFFFF` | `#252527` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:113 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:159 |
 | DrawerHandle | `#000000` @ 16% | `#FFFFFF` @ 20% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:115 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:161 |
 | BarField | `#F1F1F4` | `#FFFFFF` @ 8% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:116 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:162 |
 | SegmentPill | `#FFFFFF` | `#4A4A4D` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:117 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:163 |
-| FieldHint | `#8E8E93` | `#FFFFFF` @ 60% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:118 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:164 |
+| FieldHint | `#66666B` | `#FFFFFF` @ 60% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:118 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:164 |
 | IconBacking (behind dark favicons) | unspecified (never) | `#E9E9EE` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:120 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:166 |
-| Attention (amber, "not secure") | `#C0841A` | `#E8B45A` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:122 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:168 |
+| Attention (amber, "not secure") | `#8A5C00` | `#E8B45A` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:122 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:168 |
 | SheetScrim | `#1C1C28` @ 30% | `#000000` @ 50% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:126 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:172 |
 
 Brand gradient (`BrandTokens.Colors`): Pink `#FF5FA2` → Violet `#B46BFF` → Blue `#4F8DFF`
@@ -1311,7 +1356,8 @@ above the keyboard.
 |---|---|---|
 | `SheetGroup` | full-width column, `GroupedRow` fill, 18dp corners | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:40-49, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:841 |
 | `SheetDivider` | 1dp `CardBorder` hairline, inset 54dp from the left (12 + 30 + 12, aligned with titles) | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:52-61, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:844-851 |
-| `SheetRow` | height 50dp, 58dp with a subtitle; 12dp side padding; icon box 30dp, 9dp corners, `Dock` fill (white tile on the grey group in light; `#252527` on white 7% in dark), glyph 18dp `TextPrimary`; 12dp gap; title 16sp Medium `TextPrimary` (or a caller colour), 1 line ellipsis; subtitle 12sp `TextSecondary`; trailing slot | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:67-119, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:842-850 |
+| `MenuIconTile` | the icon of every menu row (sheet menus and dock popups): 30dp tile, 9dp corners, 18dp glyph `TextPrimary` (`TextDisabled` disabled); fill = the neutral that differs from the surface under it (`Dock` on a grouped row, `GroupedRow` on a dock popup) | `ui/sheet/SheetKit.kt` |
+| `SheetRow` | height 50dp, 58dp with a subtitle; 12dp side padding; icon = `MenuIconTile` with `Dock` fill (white tile on the grey group in light; `#252527` on white 7% in dark), glyph 18dp `TextPrimary`; 12dp gap; title 16sp Medium `TextPrimary` (or a caller colour), 1 line ellipsis; subtitle 12sp `TextSecondary`; trailing slot | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:67-119, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:842-850 |
 | `SheetRow` disabled (`enabled = false`) | icon and title `TextDisabled`, trailing replaced by "Soon" (14sp `TextDisabled`), not clickable | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:96, :104, :117, :134-137 |
 | `SheetRow` without `onClick` | not tappable, no ripple | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:84 |
 | `RowValue` | trailing text 14sp `TextSecondary` | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:122-125 |
@@ -1464,7 +1510,7 @@ Pushed in the menu sheet. Column 14dp side/bottom padding, 10dp gaps.
 - Header row 62dp tall (52 + 10): back button 52dp circle, Back glyph 22dp; favicon 40dp
   (30 + 10); 12dp gap; host 17sp SemiBold `TextPrimary`; under it a 14dp lock + 4dp gap +
   "Connection is secure" 12sp `TextSecondary`, or "Connection is not secure" with lock and text in
-  `Attention` amber (`#C0841A` light / `#E8B45A` dark) (:64-88).
+  `Attention` amber (`#8A5C00` light / `#E8B45A` dark) (:64-88).
 - "Permissions" section title; group with one row per decided permission: glyph, label
   (Location, Camera, Microphone, Camera and microphone, Storage, Protected content, Cross-site
   cookies, Local network, Virtual reality; `app/src/main/java/dev/nerzouille/koan/engine/SitePermissions.kt:21-31`),
@@ -1609,8 +1655,8 @@ the camera permission first if needed. Nothing picked = the field stays empty.
   rows (avatar, 12dp gap, masked name 16sp, radio); PrimaryButton "Use", QuietButton "Not now".
   The most recently used account is preselected.
   - Radio (:169-181): 22dp circle (26 − 4); selected = `Primary` fill with a 14dp Check in
-    `OnPrimary`; unselected = `GroupedRow` fill, which is the same colour as the group behind it
-    (nearly invisible: an observation, not a documented intent).
+    `OnPrimary`; unselected = a 2dp ring in `ToggleOff` (`LoginTokens.RadioRing`), ≥ 3:1 on the
+    group (was a `GroupedRow` fill on the `GroupedRow` group: invisible).
 - **Save / update password card** (`SaveLoginCard`, :130-153): favicon 40dp + title "Save the
   password for example.com?" (or "Update the password for example.com?") 18sp SemiBold + masked
   username 12sp; body "Kept encrypted on this phone only; it isn't added to your Mozilla account."
@@ -1625,9 +1671,8 @@ Building blocks (the card's column has no automatic spacing; each block adds its
   "example.com says" (the host, not the engine's long title) (:186-188).
 - `PromptMessage`: 6dp spacer (`TextGap`, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:877), then the text 16sp `TextSecondary`, scrolling
   past 220dp (`MessageMaxHeight`, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:881) (:279-287).
-- `PromptField`: 10dp spacer; 44dp tall, 12dp corners (`FieldRadius`, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:878), `BarField`, 12dp
-  side padding; text 16sp `TextPrimary`, hint 16sp `FieldHint`; password fields masked; the JS
-  prompt's field is focused with its text selected (:289-324).
+- `PromptField`: 10dp spacer; a `KoanFieldFrame` (50dp pill, `Glass`, 16sp text and hint);
+  password fields masked; the JS prompt's field is focused with its text selected.
 - `NoMoreDialogs`: 10dp spacer; row with 12dp corners and 8dp vertical padding: tick box + 12dp
   gap + "Don't let this page show more dialogs" 14sp. Offered when a dialog comes within 3000ms of
   the previous answer (`MANY_DIALOGS_MS`, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:888) (:326-342, :157).
@@ -1690,12 +1735,16 @@ shape, 28dp side padding (app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.
 | `PrimaryButton` | `Primary` (`#1C1C1E` light / `#FFFFFF` dark) | `OnPrimary`, SemiBold; optional leading slot, 10dp gap (app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:274) | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt:21-37 |
 | `QuietButton` | none | `TextPrimary`, Medium | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt:39-53 |
 | `SecondaryButton` | `GroupedRow` (`#F2F2F5` / white @ 7%), overridable `surface` | `TextPrimary`, SemiBold | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt:55-70 |
-| `DestructiveButton` | `GroupedRow` | `Destructive` (`#E5342B` / `#FF5A50`), Medium; never a red fill | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt:72-87 |
+| `DestructiveButton` | `GroupedRow`, overridable `surface` (`Card` when it sits on `Base`, e.g. History/Downloads' Clear) | `Destructive` (`#C42A20` / `#FF8077`), **SemiBold**; never a red fill | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt:72-87 |
 
 Related non-kit buttons: `CardButton` (`GroupedRow`, Medium, no padding;
 app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt:88-101), PagePrompts' private secondary (same, 1 line;
-app/src/main/java/dev/nerzouille/koan/ui/menu/PagePrompts.kt:378-390), Site settings' "Clear site data" pill (app/src/main/java/dev/nerzouille/koan/ui/menu/SiteSettings.kt:121-131),
-ListPage's "Clear" (see ListPage).
+app/src/main/java/dev/nerzouille/koan/ui/menu/PagePrompts.kt:378-390). **One destructive button:**
+History/Downloads' "Clear", Site settings' "Clear site data", Delete (search engine) and the
+confirm cards all use `DestructiveButton` (their own pills are gone). Downloads' inline row
+actions (Open / Share / Delete, 40dp) follow the same rules: SemiBold labels, Delete in red on a
+neutral pill. A destructive *row* ("Sign out") is a `SettingsRow` with a red title. The one red
+fill in the app is History's swipe-to-remove background.
 
 **States:** default; pressed = Material 3 ripple clipped to the pill. **No disabled style**: the
 kit buttons have no `enabled` parameter; callers ignore taps when not interactive
@@ -1709,6 +1758,66 @@ screen.
 
 ---
 
+### Field (`KoanField`, `KoanFieldFrame`) (app/src/main/java/dev/nerzouille/koan/ui/kit/KoanField.kt)
+
+**Purpose:** the one text field outside the dock.
+
+**Anatomy:** height **50dp** (`FieldTokens.Height`, the same as a button), full pill, `Glass` fill
+(`#EBEBEF` / white 8%), 18dp side padding; optional leading `Search` glyph 20dp `FieldHint` + 12dp
+gap; hint and input **16sp** (hint `FieldHint`, input `TextPrimary`, solid `TextPrimary` cursor);
+a search field shows a ✕ (32dp circle, 16dp `Close` glyph `FieldHint`, end padding 9dp) once it
+has text. `KoanFieldFrame` is the same frame for callers that drive their own `BasicTextField`
+(page prompts: `TextFieldValue`, focus, password mask).
+
+**Where:** History and Downloads search (bottom of `ListPage`), Passwords search, the four
+search-engine form fields (label 13sp SemiBold `TextSecondary` above, help/error 12sp under),
+page prompts (`prompt()` / login dialogs). Replaced: ListPage's 48dp `BarField` pill,
+Passwords' 46dp `SearchBox`, the engine form's 48dp / 14dp-corner box with 14sp text, and page
+prompts' 44dp / 12dp-corner `BarField` box.
+
+**Not this:** the dock's address field and find-in-page (50dp pill on `BarField`, 17sp) are the
+dock's own control; the ⋯ menu's address chip is a button.
+
+---
+
+### Page header (`PageBar`, `CollapsingBar`) (app/src/main/java/dev/nerzouille/koan/ui/kit/PageHeader.kt)
+
+**Purpose:** one header for every full page (UI_SPEC "Page header").
+
+**Bar** (`PageBar`): **56dp** tall (`SettingsTokens.TopBar`), under the status bar, 20dp side
+padding; back target 56dp circle with `KoanIcons.Back` **24dp** (`BackGlyph`) `TextPrimary`,
+start-aligned (content description "Back"); title **22sp** (`BarTitleSize`, `KoanType.title`:
+Bold, 1.18em, −0.012em) `TextPrimary`, 1 line, ellipsis, weight 1; optional trailing slot
+(Downloads' folder chip).
+
+**Collapsing large title** (`SettingsPageFrame` + `CollapsingBar`; every settings page: Settings,
+About, Passwords, a site's passwords, Search engine, Add/Edit search engine, Mozilla account,
+Save downloads to): the scrolling column starts with a 56dp spacer, then the large title
+**34sp** (`KoanType.largeTitle`: Bold, 1.12em, −0.016em), up to **2 lines** (ellipsis after),
+12dp under it, then the content. The bar sits on top, fixed. With `h` = the large title's height
+and `y` = the scroll offset, all read in layer / draw lambdas (scrolling never recomposes):
+
+| Part | Value |
+|---|---|
+| Bar surface (`Base` + settings wash, drawn at the page's origin so it is seamless) | alpha = clamp(y / h) |
+| Large title | alpha = 1 − clamp(y / (0.6·h)) |
+| Compact title in the bar | alpha = clamp((y/h − 0.6) / 0.4) (`BAR_TITLE_FROM` = 0.6) |
+| Bottom hairline (1dp `CardBorder`) | alpha = clamp((y − h) / 12dp) (`BarHairlineFade`) |
+
+The two titles never show at once. Collapsed, the bar stays put. No snap: it follows the finger.
+
+**List pages** (History, Downloads, `ListPage`) show `PageBar` directly (always "collapsed", no
+large title, no surface: the list scrolls in its own area under it).
+
+**Not this:** a sheet's pushed pages keep `SheetHeader` (52dp, 17sp SemiBold); the sign-in
+screen keeps its ✕.
+
+**Before the audit:** settings pages had the ‹ on its own 56dp row and a 34sp title that
+scrolled away (no bar once scrolled); History/Downloads had ‹ + a 23.8sp title on one row;
+About had no title.
+
+---
+
 ### Toggle (KoanToggle) (app/src/main/java/dev/nerzouille/koan/ui/kit/KoanToggle.kt:27-90)
 
 **Purpose:** Koan's switch.
@@ -1719,7 +1828,7 @@ of the radius to transparent, radius knob + 3dp, offset 1dp down (shadow / 3) (a
 :74-86). ON = the brand gradient across the full track width, revealed from the left edge up to
 the knob's right side + inset, at 90% alpha (`TRACK_ALPHA`, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:265) over the OFF track (:62-73).
 
-**States:** off (track `ToggleOff`: `#E5E5EA` light / `#3A3A3C` dark); on (gradient); moving;
+**States:** off (track `ToggleOff`: `#848489` light / `#8E8E93` dark); on (gradient); moving;
 read-only (`onCheckedChange = null`: same look, not toggleable). No pressed visual (no ripple), no
 disabled look.
 
@@ -1763,14 +1872,11 @@ app/src/main/java/dev/nerzouille/koan/ui/history/HistoryScreen.kt:96, app/src/ma
    55% / 5%, blue at 95% / 30% of width / wash height), radius 75% of 320dp, alpha 20% light /
    14% dark (app/src/main/java/dev/nerzouille/koan/ui/settings/SettingsKit.kt:51-62, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:945-947). Status bar, navigation bar and
    keyboard insets are padded.
-2. Top bar 56dp tall (`SettingsTokens.TopBar`, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:911), 20dp side padding (app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:910): back target
-   56dp circle with the Back glyph 24dp (20 + 4) `TextPrimary`, aligned to the start; title
-   23.8sp (34 × 0.7, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:912) Bold `TextPrimary`; optional trailing slot (:75-87).
+2. `PageBar` (see **Page header**): 56dp, ‹ 24dp, title 22sp Bold, optional trailing slot.
 3. Content: fills the rest; scrolls itself (:89).
 4. Bottom row, in thumb reach and above the keyboard: 20dp side padding, 10dp vertical
-   (`DownloadTokens.BottomGap`, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:1001): search pill 48dp (`SearchHeight`, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:1000) on `BarField`,
-   20dp side padding, Search glyph 20dp `FieldHint`, 12dp gap, hint/text 16sp; then (if `onClear`)
-   an 8dp gap and a 48dp pill on `Card` with "Clear" 16sp Medium `Destructive` (:91-132).
+   (`DownloadTokens.BottomGap`): a search `KoanField` (50dp, weight 1); then (if `onClear`) an 8dp
+   gap and `DestructiveButton` "Clear" on `Card` (50dp, SemiBold).
 5. `DayCard` (:136-147): full width, 18dp corners (`DownloadTokens.GroupRadius`, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:997), `Card`
    fill, 12dp side padding; `dayRowShape` rounds only the first and last rows of a lazily drawn
    day (:149-160). Day labels: "Today", "Yesterday", "Monday 12 October", "12 October 2025" for
@@ -1779,8 +1885,8 @@ app/src/main/java/dev/nerzouille/koan/ui/history/HistoryScreen.kt:96, app/src/ma
 **Motion:** the page slides up from the bottom (`translationY = (1 − slide) × height`) with
 `Motion.Sheet` (1.0 / 380) (app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt:753, :782); Back closes (:64).
 
-**Light vs dark:** base `#F5F5F7` vs `#1C1C1E`; day cards `#FFFFFF` vs `#2C2C2E`; search pill
-`#F1F1F4` vs white @ 8%; wash 20% vs 14%.
+**Light vs dark:** base `#F5F5F7` vs `#1C1C1E`; day cards `#FFFFFF` vs `#2C2C2E`; search field
+`#EBEBEF` vs white @ 8%; wash 20% vs 14%.
 
 **Screenshot needed:** History with fake visits (`example.com`, `example.org`) grouped under Today
 / Yesterday, search empty, light and dark; Downloads with one fake file; keyboard up with a query.
@@ -1807,20 +1913,20 @@ Token values are resolved from `ui/theme/Tokens.kt` (abbreviated **T**), `ui/the
 | Base | `#F5F5F7` (T:95) | `#1C1C1E` (T:141) |
 | Glass | `#EBEBEF` (T:96) | White @ 0.08 (T:142) |
 | TextPrimary | `#1C1C1E` (T:97) | `#FFFFFF` (T:143) |
-| TextSecondary | `#6E6E73` (T:98) | White @ 0.62 (T:144) |
+| TextSecondary | `#66666B` (T:98) | White @ 0.62 (T:144) |
 | TextDisabled | Black @ 0.22 (T:99) | White @ 0.19 (T:145) |
 | Card | `#FFFFFF` (T:101) | `#2C2C2E` (T:147) |
 | CardBorder (hairlines) | `#E4E4EA` (T:103) | White @ 0.08 (T:149) |
 | Primary | `#1C1C1E` (T:107) | `#FFFFFF` (T:153) |
 | OnPrimary | `#FFFFFF` (T:108) | `#1C1C1E` (T:154) |
-| Destructive | `#E5342B` (T:109) | `#FF5A50` (T:155) |
+| Destructive | `#C42A20` (T:109) | `#FF8077` (T:155) |
 | GroupedRow | `#F2F2F5` (T:110) | White @ 0.07 (T:156) |
-| ToggleOff | `#E5E5EA` (T:111) | `#3A3A3C` (T:157) |
+| ToggleOff | `#848489` (T:111) | `#8E8E93` (T:157) |
 | Dock | `#FFFFFF` (T:113) | `#252527` (T:159) |
 | BarField | `#F1F1F4` (T:116) | White @ 0.08 (T:162) |
 | SegmentPill | `#FFFFFF` (T:117) | `#4A4A4D` (T:163) |
-| FieldHint | `#8E8E93` (T:118) | White @ 0.60 (T:164) |
-| Attention | `#C0841A` (T:122) | `#E8B45A` (T:168) |
+| FieldHint | `#66666B` (T:118) | White @ 0.60 (T:164) |
+| Attention | `#8A5C00` (T:122) | `#E8B45A` (T:168) |
 | SheetScrim | `#1C1C28` @ 0.30 (T:126) | Black @ 0.50 (T:172) |
 
 Brand colours (`BrandTokens`, T:241-254): Pink `#FF5FA2` (T:242), Violet `#B46BFF` (T:243), Blue `#4F8DFF` (T:244); `Colors = [Pink, Violet, Blue]` (T:245). Same in light and dark.
@@ -1831,14 +1937,13 @@ Typography: no `FontFamily` is set anywhere in `app/src/main/java` and there is 
 
 ### Settings page frame (`SettingsPageFrame`)
 
-**Purpose.** The shell of every Settings page: back chevron, optional large title, scrolling content, on the base colour with the brand wash at the top.
+**Purpose.** The shell of every Settings page: the page bar, a large title that collapses into it,
+scrolling content, on the base colour with the brand wash at the top.
 
-**Anatomy** (`ui/settings/SettingsKit.kt:68-101`)
-1. Page background: `Base` + `settingsWash` (`ui/settings/SettingsScreen.kt:126-127`; pushed pages repeat it, `:141`).
-2. Back button: a 56dp circle-clipped box (`SettingsTokens.TopBar` = 56.dp, T:911), glyph `KoanIcons.Back` aligned centre-start, tint `TextPrimary`, glyph size `RowGlyph + Divider*4` = 20 + 4 = **24dp** (`SettingsKit.kt:80-88`).
-3. Title (optional; About has none): `TitleSize` **34sp** Bold, `TextPrimary`, bottom padding `TitleBottom` **12dp** (T:912-913, `SettingsKit.kt:89-97`).
-4. Content column, then a trailing spacer `SectionTop` **22dp** (`SettingsKit.kt:99`).
-- Horizontal page padding `SettingsTokens.Padding` **20dp** (T:910, `SettingsKit.kt:78`). Insets: `imePadding`, `topSafePadding`, `navigationBarsPadding` (`:74-77`). The whole page scrolls (`verticalScroll`, `:75`).
+**Anatomy** (`ui/settings/SettingsKit.kt`): see **Page header** (section 3.C) for the bar and the
+collapse. The title is required (About is titled "About"). Horizontal page padding 20dp; insets
+`imePadding`, `topSafePadding`, `navigationBarsPadding`; the content column scrolls
+(`verticalScroll`) and ends with a 22dp spacer (`SectionTop`).
 
 **Settings wash** (`settingsWash`, `SettingsKit.kt:51-62`): three radial gradients, each `color @ a → Transparent`, radius `h*0.75`, where `h = WashHeight` **320dp** (T:945):
 | Spot | Colour | Centre (x, y) |
@@ -1894,7 +1999,7 @@ Full-width **1dp** hairline (`SettingsTokens.Divider`, T:927), colour `CardBorde
 | Segmented host | row with no click, followed by a `Segmented` control and a 10dp spacer (`Divider*10`) | "Start page" (`:176-178`), "Theme" (`:189-194`) |
 | Selection (check) | trailing `KoanIcons.Check` 20dp `TextPrimary` on the chosen item | Search engine list (`EnginesPage.kt:52-54`), Save downloads to (`SettingsScreen.kt:304-310`) |
 | Row action word | trailing `RowAction` text 14sp `TextSecondary`, own circle-clipped tap target padded 6dp | "Edit" on custom engines (`EnginesPage.kt:55`), "Copy", "Reveal"/"Hide" (`PasswordsPage.kt:198-202`, `RowAction` `:208-216`) |
-| Destructive | `titleColor = Destructive` (light `#E5342B`, dark `#FF5A50`); red text only, no fill | "Sign out" (`SettingsScreen.kt:321`) |
+| Destructive | `titleColor = Destructive` (light `#C42A20`, dark `#FF8077`); red text only, no fill | "Sign out" (`SettingsScreen.kt:321`) |
 | Info (no click) | `onClick` null | Account page email row (`SettingsScreen.kt:317`) |
 | Soon (disabled) | `enabled = false`: glyph and title `TextDisabled`, value replaced by "Soon" in `TextDisabled`, trailing and chevron hidden, not tappable (`SettingsKit.kt:149,156,169-176`) | not used on any current Settings page (API only) |
 
@@ -1911,7 +2016,7 @@ Full-width **1dp** hairline (`SettingsTokens.Divider`, T:927), colour `CardBorde
 
 ### Toggle (`KoanToggle`, used in settings rows and Clear data card)
 
-`ui/kit/KoanToggle.kt:32-89`. Size **50×30dp** (`ToggleTokens.Width/Height`, T:258-259). Track: rounded (radius h/2) `ToggleOff` (light `#E5E5EA`, dark `#3A3A3C`). Knob: white circle, radius `h/2 − KnobInset` (KnobInset **2dp**, T:260), with a radial shadow (`Black @ 0.22` at 75% → transparent, radius r + **3dp**, offset down by shadow/3; T:261-262; `KoanToggle.kt:74-86`). ON: brand horizontal gradient revealed from the left edge up to the knob's right side, alpha `reveal·0.9` (`TRACK_ALPHA` **0.9**, T:265), where `reveal = clamp(p·3, 0, 1)` (`KoanToggle.kt:63-72`). Motion: `ToggleTokens.Spring` = spring(dampingRatio **0.72**, stiffness **520**) (T:266); knob clamped inside the track during overshoot (`:60-61`). Haptic `CLOCK_TICK` on change (`:44`). Disabled/non-interactive: `onCheckedChange` null → no toggleable modifier (`:38`). No pressed indication (`indication = null`, `:41`).
+`ui/kit/KoanToggle.kt:32-89`. Size **50×30dp** (`ToggleTokens.Width/Height`, T:258-259). Track: rounded (radius h/2) `ToggleOff` (light `#848489`, dark `#8E8E93`). Knob: white circle, radius `h/2 − KnobInset` (KnobInset **2dp**, T:260), with a radial shadow (`Black @ 0.22` at 75% → transparent, radius r + **3dp**, offset down by shadow/3; T:261-262; `KoanToggle.kt:74-86`). ON: brand horizontal gradient revealed from the left edge up to the knob's right side, alpha `reveal·0.9` (`TRACK_ALPHA` **0.9**, T:265), where `reveal = clamp(p·3, 0, 1)` (`KoanToggle.kt:63-72`). Motion: `ToggleTokens.Spring` = spring(dampingRatio **0.72**, stiffness **520**) (T:266); knob clamped inside the track during overshoot (`:60-61`). Haptic `CLOCK_TICK` on change (`:44`). Disabled/non-interactive: `onCheckedChange` null → no toggleable modifier (`:38`). No pressed indication (`indication = null`, `:41`).
 
 ### Segmented control (`Segmented`)
 
@@ -1927,12 +2032,12 @@ Full-width **1dp** hairline (`SettingsTokens.Divider`, T:927), colour `CardBorde
 
 **Purpose.** The Mozilla account entry point; a card that "holds your focus".
 
-**Anatomy** (`SettingsScreen.kt:238-298`): full-width, radius **22dp** (`SettingsTokens.CardRadius`, T:928), background `Card`, **brand gradient outline 1.5dp** (`brandOutline`, `BrandTokens.Outline` T:253, `ui/theme/Brand.kt:33-34`), padding **16dp** (`CardPadding`, T:929).
+**Anatomy** (`SettingsScreen.kt:238-298`): full-width, radius **22dp** (`SettingsTokens.CardRadius`, T:928), background `Card`, **brand gradient outline 1.5dp** (`brandOutline`) except while the status needs attention ("Couldn't sync": a failure is not an active moment, the card is then a plain `Card`), padding **16dp** (`CardPadding`, T:929).
 - Avatar: **44dp** circle (`Avatar`, T:930) on `Glass`, the email's first letter uppercased (or "Z" signed out), **18sp** SemiBold (`AvatarTextSize`, T:931).
 - 14dp gap; title **16sp** SemiBold ("Connect your Zen Spaces" signed out / "Mozilla account" signed in) and subtitle **12sp** `TextSecondary` (email or "Sign in with your Mozilla account"), then `ChevronRight` 20dp `TextSecondary`.
-- Signed in with a status: 12dp gap (`Divider*12`), then a status line **14sp** `TextPrimary`, led by either a `BrandSpinner` **12dp** (`FirstRunTokens.BadgeSpinner`, T:594) + 8dp while syncing, or a **6dp** `Attention` dot (light `#C0841A`, dark `#E8B45A`) + 8dp when the status needs attention (`:285-296`).
+- Signed in with a status: 12dp gap (`Divider*12`), then a status line **14sp** `TextPrimary`, led by either a `BrandSpinner` **12dp** (`FirstRunTokens.BadgeSpinner`, T:594) + 8dp while syncing, or a **6dp** `Attention` dot (light `#8A5C00`, dark `#E8B45A`) + 8dp when the status needs attention (`:285-296`).
 
-**States.** Signed out / signed in idle / syncing / attention. Pressed: default ripple in the 22dp shape.
+**States.** Signed out / signed in idle / syncing (outline) / attention (no outline, amber dot). Pressed: default ripple in the 22dp shape.
 
 **Brand spinner** (`Brand.kt:37-62`): a 270° arc (`SPINNER_SWEEP`, T:249), stroke **2dp** round cap (T:248), sweep gradient Pink→Violet→Blue→Pink, one turn per **900ms** linear (T:250).
 
@@ -1942,8 +2047,8 @@ Full-width **1dp** hairline (`SettingsTokens.Divider`, T:927), colour `CardBorde
 
 **Purpose.** App identity, version, update check, links (tour, What's new, privacy, licences).
 
-**Anatomy** (`ui/settings/AboutPage.kt:44-108`), no page title:
-1. Top spacer 44dp (`SectionTop*2`, `:54`).
+**Anatomy** (`ui/settings/AboutPage.kt`), page title "About" (collapsing large title):
+1. Top spacer 22dp (`SectionTop`).
 2. App icon (`R.drawable.koan_icon`) **104dp**, radius **26dp** (T:950-951, `:55-59`).
 3. 22dp; "Koan" **30sp** Bold `TextPrimary` (T:952); 6dp; "Version x.y.z" **14sp** `TextSecondary` (T:953); 13.2dp (`SectionTop*0.6`).
 4. Update chip (`UpdateChip`, `:110-143`): height **30dp** (T:955), fully rounded (radius 15dp), shadow **1dp** (T:960), background `Card`, horizontal padding **12dp** (T:956); optional **13dp** glyph (T:958) + **6dp** gap (T:957); label **13sp** SemiBold (T:959).
@@ -1951,7 +2056,7 @@ Full-width **1dp** hairline (`SettingsTokens.Divider`, T:927), colour `CardBorde
    - Up to date: `KoanIcons.Check`, "Up to date", `TextPrimary`, not tappable.
    - Available: `KoanIcons.Download`, "Update available: vX", tappable (opens the release).
    - Failed: `KoanIcons.Retry`, "Couldn't check for updates", tappable (retries).
-5. 66dp (`SectionTop*3`); "Built to pair with Zen" card: radius 22dp, `Card`, **brand outline 1.5dp**, padding 16dp, `KoanIcons.Essentials` 20dp, 14dp gap, title 16sp SemiBold + subtitle 12sp `TextSecondary` (`:74-90`). Not tappable.
+5. 66dp (`SectionTop*3`); "Built to pair with Zen" card: radius 22dp, `Card` (no outline: it is not tappable, so no gradient), padding 16dp, `KoanIcons.Essentials` 20dp, 14dp gap, title 16sp SemiBold + subtitle 12sp `TextSecondary` (`:74-90`). Not tappable.
 6. 8dp; navigation rows (chevron): "Take the tour", "What's new in X.Y", "Privacy notice", "Open-source licences", separated and followed by dividers (`:92-99`).
 7. 44dp; footer "Built on GeckoView · Made for one hand" **12sp** `TextSecondary`, centred (T:954, `:101-106`).
 
@@ -1964,9 +2069,9 @@ Full-width **1dp** hairline (`SettingsTokens.Divider`, T:927), colour `CardBorde
 **EnginesPage** (`ui/settings/EnginesPage.kt:42-61`): title "Search engine"; one `SettingsRow` per engine (no glyph), custom ones with subtitle "@shortcut · host", the chosen one with a trailing `Check` 20dp, custom ones with an "Edit" `RowAction`; dividers between; last row "Add a search engine" with `KoanIcons.Plus`.
 
 **EngineEditPage** (`:67-122`): title "Add a search engine" / "Edit search engine"; four `Field`s (Name, Search address, Shortcut, Suggestions address), then 16dp, `PrimaryButton` "Add"/"Save" full width, and when editing 8dp + `DestructiveButton` "Delete".
-- **Field** (`:124-169`): top padding **16dp** (`FieldGap`, T:941); label **13sp** SemiBold `TextSecondary`; **6dp** (`FieldLabelGap`, T:942); box height **48dp** (`FieldHeight`, T:939), radius **14dp** (`FieldRadius`, T:940), background `Glass`, horizontal padding 12dp; hint 14sp `FieldHint`; input 14sp `TextPrimary`, cursor `TextPrimary` (solid, never gradient). Under it, error text in `Destructive` or help text in `TextSecondary`, **12sp**, 6dp top. Error shows once the field has text or after a Save attempt (`:77`).
+- **Field**: top padding **16dp** (`FieldGap`); label **13sp** SemiBold `TextSecondary`; **6dp** (`FieldLabelGap`); then a `KoanField` (50dp pill, `Glass`, 16sp hint and input, solid `TextPrimary` cursor, never gradient). Under it, error text in `Destructive` or help text in `TextSecondary`, **12sp**, 6dp top. Error shows once the field has text or after a Save attempt (`:77`).
 - **PrimaryButton** (`ui/kit/Buttons.kt:22-37`): height **50dp** (T:271), pill, background `Primary`, horizontal padding **28dp** (T:272), text **16sp** SemiBold `OnPrimary` (T:273), icon gap 10dp (T:274).
-- **DestructiveButton** (`Buttons.kt:73-87`): 50dp pill, background `GroupedRow`, text 16sp Medium `Destructive`.
+- **DestructiveButton** (`Buttons.kt`): 50dp pill, background `GroupedRow`, text 16sp SemiBold `Destructive`.
 
 **States.** Field: empty (hint) / filled / error / help. Buttons: default + ripple pressed; no disabled look (Save validates on tap).
 
@@ -1978,7 +2083,7 @@ Full-width **1dp** hairline (`SettingsTokens.Divider`, T:927), colour `CardBorde
 
 **PasswordsPage** (`ui/settings/PasswordsPage.kt:64-118`), title "Passwords":
 - Empty state: one paragraph, 14sp `TextSecondary`, 22dp top: "Passwords saved in your Mozilla account show up here after the next sync." (`:69-77`).
-- `SearchBox` (`:120-152`): height 40 + 6 = **46dp** (`SegmentHeight + RowInset/2`), full pill, `Glass`, horizontal padding 12 + 4 = **16dp**; `Search` glyph 20dp `FieldHint`; 12dp; hint/input **16sp**; when not empty a clear button **32dp** circle (20 + 12) with `Close` glyph **16dp** (20·0.8) `FieldHint`.
+- Search: a search `KoanField` (50dp pill, `Glass`, `Search` glyph 20dp, 16sp, ✕ once typed), "Search passwords".
 - Locked: "N saved. Unlock to see usernames and passwords." 14sp `TextSecondary`, then full-width `PrimaryButton` "Unlock", 12dp gaps (`:81-90`).
 - No match: "No password matches “q”." 14sp `TextSecondary` (`:96-98`).
 - Site rows: `SettingsRow` with `KoanIcons.Key`, site host, subtitle = username once unlocked ("No username" / "…" while opening), value "N accounts" or "This phone", chevron (`:99-116`).
@@ -1997,11 +2102,9 @@ Full-width **1dp** hairline (`SettingsTokens.Divider`, T:927), colour `CardBorde
 
 **Anatomy** (`ui/kit/ListPage.kt:52-134`)
 1. Background `Base` + `settingsWash` (same wash as Settings), insets top-safe, navigation bars, IME (`:67-73`).
-2. Header row: height **56dp** (`TopBar`), horizontal padding 20dp; back button 56dp circle with `KoanIcons.Back` **24dp** `TextPrimary`; title `TitleSize·0.7` = **23.8sp** Bold `TextPrimary` (weight 1); optional trailing slot (`:75-87`).
-3. Content (weight 1) (`:89`).
-4. Bottom bar row: padding horizontal 20dp, vertical **10dp** (`DownloadTokens.BottomGap`, T:1001) (`:91-94`).
-   - Search field: height **48dp** (`DownloadTokens.SearchHeight`, T:1000), full pill, background `BarField` (light `#F1F1F4`, dark White @ 0.08), horizontal padding 20dp, `Search` glyph 20dp `FieldHint`, 12dp gap, hint/input **16sp**, cursor `TextPrimary` (`:95-117`).
-   - Clear button (only when `onClear` != null): 8dp gap (`ActionGap`, T:996), height 48dp, full pill, background `Card`, horizontal padding 20dp, "Clear" **16sp** Medium `Destructive` (`:118-131`).
+2. Header: `PageBar` (see **Page header**): 56dp, ‹ 24dp, title **22sp** Bold, trailing slot.
+3. Content (weight 1).
+4. Bottom bar row: padding horizontal 20dp, vertical **10dp** (`DownloadTokens.BottomGap`): a search `KoanField` (50dp pill, `Glass`, 16sp, ✕ once typed), then, when `onClear` != null, 8dp (`ActionGap`) and `DestructiveButton` "Clear" with `surface = Card` (50dp, SemiBold `Destructive`).
 
 **Open/close motion.** Slides up from the bottom: `translationY = (1 − slide)·height`, slide animated with `Motion.Sheet` spring(1.0, 380) (`ui/KoanOverlays.kt:752-762` Downloads, `:781-804` History). Back closes.
 
@@ -2032,7 +2135,7 @@ Full-width **1dp** hairline (`SettingsTokens.Divider`, T:927), colour `CardBorde
 | Group (`GroupRow`, `:244-265`) | host | "N pages · HH:mm–HH:mm" (single time when equal) | 8dp + `ChevronRight` **18dp** `TextSecondary` (`HistoryTokens.Chevron`, T:1102), rotates 0° → 90° when open, `tween(200ms)` (`CHEVRON_MS`, T:1106) |
 | Show all | "Show all N more" | — | — |
 
-**Swipe to remove** (`SwipeToRemove`, `:183-209`): Material 3 `SwipeToDismissBox`, end-to-start only (`enableDismissFromStartToEnd = false`); background under the row: `Destructive` fill (light `#E5342B`, dark `#FF5A50`) with `KoanIcons.Trash` **20dp** tinted `OnPrimary` (light white, dark `#1C1C1E`), aligned centre-end with 20dp end padding; clipped to `dayRowShape`. The dismiss threshold is **not set in code**: it is Material 3's `SwipeToDismissBoxDefaults` positional threshold (unresolved from repo code). A removal shows a toast with Undo (`ui/KoanOverlays.kt:795`). A group's swipe removes the whole group. Note: this red fill under a swiped row is the one place a red *fill* appears, despite `KoanPalette.Destructive`'s comment "red text only, never a red fill" (T:45).
+**Swipe to remove** (`SwipeToRemove`, `:183-209`): Material 3 `SwipeToDismissBox`, end-to-start only (`enableDismissFromStartToEnd = false`); background under the row: `Destructive` fill (light `#C42A20`, dark `#FF8077`) with `KoanIcons.Trash` **20dp** tinted `OnPrimary` (light white, dark `#1C1C1E`), aligned centre-end with 20dp end padding; clipped to `dayRowShape`. The dismiss threshold is **not set in code**: it is Material 3's `SwipeToDismissBoxDefaults` positional threshold (unresolved from repo code). A removal shows a toast with Undo (`ui/KoanOverlays.kt:795`). A group's swipe removes the whole group. Note: this red fill under a swiped row is the one place a red *fill* appears, despite `KoanPalette.Destructive`'s comment "red text only, never a red fill" (T:45).
 
 **Item motion.** Every item uses `Modifier.animateItem()` (default LazyColumn placement/fade specs) (`:113-167`).
 
@@ -2379,14 +2482,15 @@ Definition: `BrandTokens.Colors` = Pink `#FF5FA2` → Violet `#B46BFF` → Blue 
 | Syncing spinner | 270° sweep arc | `ui/theme/Brand.kt:37-62`; used `ui/settings/SettingsScreen.kt:289`, `ui/bar/SpaceDrawer.kt:290`, `ui/overview/SpacePage.kt:262`, `ui/browser/PullRefresh.kt:154` |
 | Download progress bars | `BrandHorizontal` fill | `ui/downloads/DownloadsScreen.kt:163` |
 | Download-done toast ("moment") | `brandOutline` | `ui/kit/KoanToast.kt:176` |
-| Account card, About "Built to pair with Zen" card | `brandOutline` 1.5dp | `ui/settings/SettingsScreen.kt:248`, `ui/settings/AboutPage.kt:80` |
+| Account card (not while sync fails) | `brandOutline` 1.5dp | `ui/settings/SettingsScreen.kt` `AccountCard` |
+| Find-in-page field | `brandOutline(CircleShape)` 1.5dp while find is open | `ui/bar/AddressRow.kt` `FindBar` |
 | First-run Connect card / pill | `brandOutline` | `ui/overview/FirstRun.kt:49,64` |
 | Settings / History / Downloads wash | 3 radial spots @ 0.20 light / 0.14 dark | `ui/settings/SettingsKit.kt:51-62`, `ui/kit/ListPage.kt:70` |
 | Tour title glow | 3 radial spots @ 0.16 / 0.12 | `ui/tour/TourOverlay.kt:375-387` |
 | Welcome / What's new intro backdrop | full-sheet linear gradient + vortex | `ui/tour/Welcome.kt:267-281` |
 | Sign-in scene (tour) | mist, scan line, check disc, violet glows/sparkles | `ui/tour/SignInScene.kt:107-117,191,205,223,266` |
 | Sign-in Choice page | faint breathing glow behind the K; violet sparkles in light mode | `ui/signin/SignInPages.kt:124-126,158-172` |
-| Find in page highlight (Gecko pref) | Brand Blue only, rgba @ 0.32 for matches, solid for the current | `engine/GeckoPrefs.kt:12-24` |
+| Find in page highlights (Gecko prefs, not the gradient) | per Koan's theme, set live through GeckoView's `GeckoPreferenceController` when the theme changes, under both `ui.<colour>` and `ui.<colour>.dark` so every page gets the theme's colours whatever its own colour scheme: current `FindCurrent` `#1554CB` / white text; others `FindMatch` `#D0DDF5` / black (light) or `#1C396E` / white (dark) | `engine/GeckoPrefs.kt`, `MainActivity.kt` |
 
 **Not used (by code and stated rule):** primary buttons (`ui/kit/Buttons.kt:21`), the Recommended badge, Mozilla's pages, the sign-in header/progress line (neutral `TextSecondary`, `ui/signin/SignInScreen.kt:206-207,248`), password fields and Passwords pages, destructive actions, the current tab/space marker, body text, text cursors in Settings fields (solid `TextPrimary`), icons, and web content.
 
@@ -2394,7 +2498,7 @@ Definition: `BrandTokens.Colors` = Pink `#FF5FA2` → Violet `#B46BFF` → Blue 
 
 ### Spec vs code disagreements (brief)
 - `docs/UI_SPEC.md:26` lists Settings as "account, sync, search engine, write-back toggle, add-ons, about". Code: sections General / Display / Privacy / Koan (+ Developer in debug); **no write-back toggle** on the Settings page (`ui/settings/SettingsScreen.kt:162-236`).
-- `docs/UI_SPEC.md:391-393` typography "titles 20sp bold, card titles 16sp semibold, body 14sp", "Inter or Google Sans Flex if bundled": Settings titles are **34sp**, list-page titles **23.8sp**, tour titles 22sp / welcome 30sp; no font is bundled.
+- Typography: UI_SPEC now describes the code (system sans, `KoanType` styles, em line heights); resolved in the 2026-11-10 audit.
 - `docs/UI_SPEC.md:394` "cards 28dp": settings cards are **22dp**, choice cards 22dp, day cards 18dp, tour frame 30dp; the floating card and tour sheet match (28dp / 32dp top).
 - `docs/UI_SPEC.md:371-372` "Destructive = red text only … never a red fill": the History swipe-to-remove background is a full `Destructive` fill (`ui/history/HistoryScreen.kt:201`).
 - `docs/UI_SPEC.md:355` allows only "the faint glow behind the K" on sign-in UI; code also draws **Brand Violet sparkles** around that K in light mode (`ui/signin/SignInPages.kt:124`).

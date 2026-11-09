@@ -25,6 +25,8 @@ outside the repo; the interaction rules below always apply.
    opens something. Back, swipe down or the field's ✕ return to the last tab, leaving nothing
    behind. Never shown when a link or a share from another app brought Koan up.
 6. **Settings.** Plain list: account, sync, search engine, write-back toggle, add-ons, about.
+   Every full page (Settings and its pages, History, Downloads) uses the one page header (see
+   "Page header").
 7. **Sign-in.** Mozilla accounts web login (see `docs/SYNC.md`).
 
 ## Space overview layout (top → bottom)
@@ -351,23 +353,69 @@ your focus**, used only for:
 - the page loading line; the download completion moment; download progress bars in the list;
 - the syncing indicator (a small turning gradient arc);
 - toggles ON; the "@" search mode (ring + cursor);
-- Settings' aurora glow, the account card outline, About, and the first-run "Connect your Zen
+- Settings' aurora glow (also behind About), the account card outline (**not** while it says
+  "Couldn't sync": a failure is not an active moment), and the first-run "Connect your Zen
   Spaces" card (gradient outline);
+- find in page: the find field gets the gradient ring while find is open (an active moment).
+  The matches in the page are not the gradient (Gecko draws one colour per highlight); they
+  follow Koan's theme, for every page: current match `FindCurrent` `#1554CB` with white text,
+  other matches `FindMatch` `#D0DDF5` with black text (light) / `#1C396E` with white text (dark);
 - the first-run tour / "What's new" (`ui/tour`, a 92% sheet): a faint glow behind each card's
   title, and the welcome card, where the whole sheet is the vivid gradient with a slowly turning
   vortex behind the 3D K, blending into the sheet's own colour as you swipe on.
 
 **Never** as a passive "this is the current one" marker (the current tab is a state, not a moment), on login or password UI (one exception, the owner's choice: the faint glow behind the K on the sign-in choice page), permission prompts, destructive actions, body text, or behind
-web content. Primary buttons are never gradient.
+web content, or a static card that does nothing (the About "Built to pair with Zen" card is a
+plain card). Primary buttons are never gradient.
+
+### Page header
+
+One component for every full page (`ui/kit/PageHeader`), iOS style:
+
+- **The bar** (`PageBar`): 56dp, fixed at the top under the status bar, 20dp side padding: a 56dp
+  back target with the 24dp ‹, the title in 22sp Bold (`KoanType.title`), one line, ellipsized,
+  then an optional trailing slot (Downloads' folder chip).
+- **Settings pages** (Settings, About, Passwords and a site's passwords, Search engine, Add/Edit
+  search engine, Mozilla account, Save downloads to; `SettingsPageFrame`) also show a **large
+  title** under the bar: 34sp Bold (`KoanType.largeTitle`), up to 2 lines, on the page's aurora
+  glow. It scrolls with the content and **collapses into the bar**, driven by the scroll offset
+  (layer properties only, no recomposition): over the large title's height the bar's surface
+  (the page's own base and glow, drawn at the same origin, so it is seamless) fades in; the large
+  title fades out over the first 60%, the compact title fades in over the last 40%, so the two
+  never show together; once the content passes under the bar, a 1dp hairline fades in over 12dp.
+  Collapsed, the bar stays fixed. A long title wraps on 2 lines when large and ellipsizes in the
+  bar.
+- **List pages** (History, Downloads; `ListPage`) use the bar directly, already collapsed: the
+  list scrolls under a fixed bar, the search field and Clear sit at the bottom in thumb reach.
+- Sheets' pushed pages (menu › Site settings, uBlock) keep the sheet header (‹ + 17sp title):
+  they are part of a sheet, not full pages. The sign-in screen keeps its ✕ (a flow, not a page).
 
 ### Controls
 
 - **Toggles** (`ui/kit/KoanToggle`, 50×30dp): ON = the gradient track at 90% (slightly softened)
-  with a white knob and a soft shadow; OFF = `#E5E5EA` light / `#3A3A3C` dark. On a tap the knob
+  with a white knob and a soft shadow; OFF = `#848489` light / `#8E8E93` dark (≥ 3:1 against every
+  row surface, so an OFF toggle still reads as a control). The unselected radio of the login
+  sheet uses the same colour as a 2dp ring. On a tap the knob
   springs across and the gradient flows in behind it, from the left edge up to the knob. Light
   haptic tick. Draw-only animation.
 - **Buttons** (`ui/kit/Buttons`): primary = black pill with white text in light, white with black
-  text in dark, 50dp tall. Destructive = red text only on a neutral row, never a red fill.
+  text in dark, 50dp tall. **One destructive button** (`DestructiveButton`): red SemiBold text on
+  a neutral pill, 50dp, never a red fill: History/Downloads' Clear, Clear site data, Delete
+  engine, the confirm cards. A destructive *row* ("Sign out") is a row with a red title. The one
+  red fill is History's swipe-to-remove background (it shows what the gesture does).
+- **Fields** (`ui/kit/KoanField`): one style for every field outside the dock: 50dp (a button's
+  height), pill, Glass fill, 16sp text and hint, an optional search glyph and a ✕ that empties a
+  search. History, Downloads and Passwords search, the search-engine form, page prompts. The
+  dock's address field and find-in-page are the dock's own (50dp pill, 17sp).
+- **Rows, one style per role:** settings rows (full pages: 54dp, 62dp with a subtitle, bare
+  20dp glyph); menu rows (sheet menus, link menu, site settings: 50dp / 58dp, the glyph on a
+  30dp tile); dock popup rows (tab menu, back menu: 48dp, the same tile, or a favicon); item rows
+  (history, downloads: a 40dp tile holding the favicon or file type).
+- **Menu icons:** always on a tile (`MenuIconTile`, 30dp, 9dp corners, 18dp glyph): Dock fill on
+  a grouped row, GroupedRow fill on a dock popup.
+- **Favicons:** one letter tile everywhere, the @ picker included: the site's first letter,
+  white, on a muted tone picked by host. `m.`, `mobile.` and `www.` hosts share the site's icon
+  and tile.
 - **Search field:** docked right above the keyboard (the bar follows the IME), search glyph on the
   left, ✕ on the right. While typing: a neutral 1.5dp ring (`#B4B4BA` light / white 30% dark) and
   a plain cursor. Typing "@" first makes the brand gradient flow in from the left around both
@@ -384,14 +432,18 @@ All values live in `ui/theme/Tokens.kt`: one `KoanPalette` per theme (colours), 
 size/motion objects.
 
 - Light: base `#F5F5F7`, cards/dock/sheets `#FFFFFF`, small surfaces `#EBEBEF`, grouped rows
-  `#F2F2F5`, field `#F1F1F4`, text `#1C1C1E`, secondary/icons `#6E6E73`, hints `#8E8E93`, toggle
-  OFF `#E5E5EA`, destructive `#E5342B`.
+  `#F2F2F5`, field `#F1F1F4`, text `#1C1C1E`, secondary and hints `#66666B`, icons `#6E6E73`,
+  toggle OFF `#848489`, destructive `#C42A20`, attention (amber) `#8A5C00`.
 - Dark: base `#1C1C1E`, cards `#2C2C2E`, dock `#252527`, small surfaces and field `white @ 8%`,
   grouped rows `white @ 7%`, text `#FFFFFF`, secondary `white @ 62%`, icons `#98989D`, hints
-  `white @ 60%`, toggle OFF `#3A3A3C`, destructive `#FF5A50`.
+  `white @ 60%`, toggle OFF `#8E8E93`, destructive `#FF8077`, attention `#E8B45A`.
+- Contrast: text ≥ 4.5:1 and controls ≥ 3:1 against every surface they sit on, in both themes
+  (values in `docs/DESIGN_SYSTEM.md` "Contrast").
 - Brand gradient: `#FF5FA2` → `#B46BFF` → `#4F8DFF` (see "Brand gradient").
-- Typography: one geometric sans (e.g. Inter or Google Sans Flex if bundled); titles 20sp bold,
-  card titles 16sp semibold, body 14sp.
+- Typography: the system sans. Line height scales with the size (em), titles tighter
+  (`ui/theme/Type.kt`): body 1.33em, tracking 0; headlines (17–20sp) 1.25em, −0.006em; titles
+  (20–30sp) 1.18em, −0.012em; large title (34sp) 1.12em, −0.016em. A wrapped title never
+  overlaps itself.
 - Radii: cards 28dp, pills full, sheets 32dp top.
 - Motion: springs everywhere; avoid linear/tween except for alpha. Respect the system
   "remove animations" setting (snap instead).
