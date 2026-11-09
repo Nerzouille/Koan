@@ -1,5 +1,12 @@
 package dev.nerzouille.koan.ui
 
+import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.ui.graphics.ImageBitmap
+import dev.nerzouille.koan.engine.downloads.DuplicateDownloads
+import dev.nerzouille.koan.ui.menu.DuplicateDownloadPrompt
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
@@ -150,6 +157,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val permissionCard = SheetState(scope, splineBasedDecay(density))
     var permission by mutableStateOf<Pair<PermissionRequest, SiteAsk>?>(null)
 
+    /** A download of a file already there ([Components.duplicateAsk]). */
+    val duplicateCard = SheetState(scope, splineBasedDecay(density))
+
     /** A download Koan didn't see a tap for: "Download" or "Cancel" ([Components.downloadAsk]). */
     val downloadCard = SheetState(scope, splineBasedDecay(density))
 
@@ -174,7 +184,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
             historyOpen || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
-            saveLoginCard.open || permissionCard.open || downloadCard.open || promptCard.open || tourOpen
+            saveLoginCard.open || permissionCard.open || duplicateCard.open || downloadCard.open || promptCard.open || tourOpen
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
     fun dismissAll() {
@@ -484,6 +494,54 @@ fun KoanOverlays(
             interactive = interactive,
             onCancel = { answerDownload(start = false) },
             onDownload = { answerDownload(start = true) },
+        )
+    }
+
+    // ---- a download of a file already downloaded: Open / Replace / Keep both / Cancel ----
+    val dupAsk by components.duplicateAsk.collectAsStateWithLifecycle()
+    val dupCard = overlays.duplicateCard
+    LaunchedEffect(dupAsk) { if (dupAsk != null) dupCard.animateTo(Detent.Compact) }
+    fun answerDuplicate(start: DownloadState?) {
+        val ask = components.duplicateAsk.value ?: return
+        components.duplicateAsk.value = null
+        dupCard.animateTo(Detent.Closed)
+        if (start != null) ask.start(start) else ask.cancel()
+    }
+    // Dismissed (tap outside, Back): cancelled.
+    LaunchedEffect(dupCard.open) { if (!dupCard.open && components.duplicateAsk.value != null) answerDuplicate(null) }
+    KoanCard(dupCard) { interactive ->
+        val ask = dupAsk ?: return@KoanCard
+        val dup = ask.dup
+        val files = components.downloadFiles
+        val thumb by produceState<ImageBitmap?>(null, dup.existingName, dup.existingFolder) {
+            value = withContext(Dispatchers.IO) { fileThumbnail(context, files, dup.existingName, dup.existingFolder, dup.download.contentType) }
+        }
+        val folder = dup.existingFolder.takeIf { it.startsWith("content://") }?.let(::folderLabel) ?: dup.existingFolder.substringAfterLast('/').ifEmpty { "Download" }
+        DuplicateDownloadPrompt(
+            name = dup.existingName,
+            // A new name nobody has is kept as it is; else the first free "name (1).ext".
+            keepBothName = { n -> if (!files.fileExists(dup.existingFolder, n)) n else DuplicateDownloads.keepBothName(n) { files.fileExists(dup.existingFolder, it) } },
+            folder = folder,
+            thumbnail = thumb,
+            size = dup.download.contentLength?.takeIf { it > 0 }?.let(::sizeText),
+            interactive = interactive,
+            onOpen = {
+                val opened = files.openFile(dup.existingName, dup.existingFolder, dup.earlier?.contentType ?: dup.download.contentType)
+                if (!opened) onToast(Toast("Couldn't open the file"))
+                answerDuplicate(null)
+            },
+            onReplace = { n ->
+                // The old file goes (and its row), then the new one takes its name.
+                files.deleteMediaFile(context.contentResolver, dup.existingName, dup.existingFolder)
+                dup.earlier?.let { components.downloadsUseCases.removeDownload(it.id) }
+                if (n != dup.existingName && files.fileExists(dup.existingFolder, n)) files.deleteMediaFile(context.contentResolver, n, dup.existingFolder)
+                answerDuplicate(dup.download.copy(fileName = n))
+            },
+            onKeepBoth = { n ->
+                val name = if (files.fileExists(dup.existingFolder, n)) DuplicateDownloads.keepBothName(n) { files.fileExists(dup.existingFolder, it) } else n
+                answerDuplicate(dup.download.copy(fileName = name))
+            },
+            onCancel = { answerDuplicate(null) },
         )
     }
 
@@ -880,6 +938,35 @@ fun rememberFindUi(components: Components, overlays: Overlays, activeTabId: Stri
 
 /** Downloads still going (for the menu's "2 active"). */
 private val ACTIVE = setOf(DownloadState.Status.INITIATED, DownloadState.Status.DOWNLOADING, DownloadState.Status.PAUSED)
+
+/**
+ * A small picture of a file already downloaded: the image itself (scaled down), an APK's app icon,
+ * else null (the card shows the file's type).
+ */
+private fun fileThumbnail(context: Context, files: mozilla.components.support.utils.DownloadFileUtils, name: String, folder: String, type: String?): ImageBitmap? = runCatching {
+    val uri = files.findDownloadFileUri(name, folder) ?: return null
+    val lower = name.lowercase()
+    when {
+        type?.startsWith("image/") == true || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp") || lower.endsWith(".gif") -> {
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, bounds) }
+            val sample = generateSequence(1) { it * 2 }.first { maxOf(bounds.outWidth, bounds.outHeight) / it <= 256 }
+            context.contentResolver.openInputStream(uri)?.use {
+                android.graphics.BitmapFactory.decodeStream(it, null, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+            }?.asImageBitmap()
+        }
+        lower.endsWith(".apk") -> {
+            // The package manager reads an archive from a path: the folder's own (not a picked tree).
+            val path = (if (uri.scheme == "file") uri.path else java.io.File(folder, name).takeIf { folder.startsWith("/") && it.canRead() }?.path) ?: return null
+            val pm = context.packageManager
+            val info = pm.getPackageArchiveInfo(path, 0)?.applicationInfo ?: return null
+            info.sourceDir = path
+            info.publicSourceDir = path
+            pm.getApplicationIcon(info).toBitmap(128, 128).asImageBitmap()
+        }
+        else -> null
+    }
+}.getOrNull()
 
 /** A picked folder's name, from its tree uri ("primary:Documents/Books" → "Books"). */
 private fun folderLabel(uri: String): String =

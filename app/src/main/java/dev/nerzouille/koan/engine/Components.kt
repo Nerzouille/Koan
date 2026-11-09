@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.engine
 
+import dev.nerzouille.koan.engine.downloads.DuplicateMiddleware
 import android.content.Context
 import dev.nerzouille.koan.data.AccountStore
 import dev.nerzouille.koan.data.Bookmarks
@@ -81,6 +82,7 @@ class Components(context: Context) {
     val store by lazy {
         BrowserStore(
             middleware = EngineMiddleware.create(engine) + ReaderViewMiddleware() +
+                DuplicateMiddleware({ downloadFiles }, duplicateAsk) +
                 DownloadMiddleware(
                     appContext, KoanDownloadService::class.java,
                     // Removing a download from the list never deletes the file (Delete does that explicitly).
@@ -109,6 +111,9 @@ class Components(context: Context) {
 
     /** A download Koan didn't see a tap for, waiting on its card (KoanOverlays). */
     val downloadAsk = MutableStateFlow<DownloadAsk?>(null)
+
+    /** A download of a file that is already there, waiting on the duplicate card (KoanOverlays). */
+    val duplicateAsk = MutableStateFlow<DuplicateAsk?>(null)
 
     /** When the owner last tapped or pressed a key in Koan (uptime ms): downloads right after one start at once. */
     @Volatile var lastInputAt = 0L
@@ -211,6 +216,9 @@ class Components(context: Context) {
         }
     }
 }
+
+/** A download of a file already downloaded: [start] with the (maybe renamed) download, or [cancel]. */
+class DuplicateAsk(val dup: dev.nerzouille.koan.engine.downloads.DuplicateDownload, val start: (DownloadState) -> Unit, val cancel: () -> Unit)
 
 /** A download waiting for "Download" or "Cancel" on its card. */
 class DownloadAsk(val download: DownloadState, val start: () -> Unit, val cancel: () -> Unit)
