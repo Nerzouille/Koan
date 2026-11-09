@@ -734,10 +734,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     var siteControls by remember { mutableStateOf(false) }
     val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly, videoRotated)
     LaunchedEffect(fullScreen) {
-        if (!fullScreen) {
-            videoRotated = false
-            siteControls = false
-        }
+        videoRotated = false
+        // A site whose fullscreen player draws its own controls over the video: its controls,
+        // not Koan's (the two would sit on top of each other). PiP still works there.
+        siteControls = fullScreen && ownPlayer(activeTabId?.let(::tabById)?.url ?: components.store.state.findTab(activeTabId.orEmpty())?.content?.url)
     }
     val pipHost by components.pip.collectAsStateWithLifecycle()
     val noPip = remember { kotlinx.coroutines.flow.MutableStateFlow(false) }
@@ -1133,3 +1133,11 @@ private const val ZEN_TOP_WAIT_MS = 120_000L
 
 /** How long an incoming link's tab may take to become the current one (it is a Room write). */
 private const val LANDING_TIMEOUT_MS = 5_000L
+
+/** Sites whose fullscreen player keeps its own controls over the video (checked on the phone). */
+private fun ownPlayer(url: String?): Boolean {
+    val host = url?.let { android.net.Uri.parse(it).host }?.removePrefix("www.")?.removePrefix("m.") ?: return false
+    return OWN_PLAYER_SITES.any { host == it || host.endsWith(".$it") }
+}
+
+private val OWN_PLAYER_SITES = listOf("youtube.com", "youtube-nocookie.com")
