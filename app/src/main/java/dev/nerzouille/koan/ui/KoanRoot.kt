@@ -792,6 +792,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     onRotate = { videoRotated = !videoRotated },
                     onDownload = { url ->
                         activeTabId?.let { id ->
+                            // Its cards (already downloaded?) show over the page, not over a fullscreen video.
+                            components.sessionUseCases.exitFullscreen(id)
                             val page = components.store.state.findTab(id)?.content?.url
                             components.store.dispatch(
                                 mozilla.components.browser.state.action.ContentAction.UpdateDownloadAction(
