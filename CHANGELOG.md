@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 — unreleased
+## 0.4.0 — 2026-10-30 (beta)
 
 Installs over 0.3.x and keeps your data. Full guide: [`docs/FEATURES.md`](docs/FEATURES.md). For
 automatic updates, install with [Obtainium](https://github.com/ImranR98/Obtainium) from this repo's

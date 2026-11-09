@@ -34,7 +34,8 @@ This repository is **public**. Everything committed (code, docs, tests, commit m
 | `docs/UI_SPEC.md` | Screens, card stack, workspace bar, gestures, motion specs, visual tokens |
 | `docs/ARCHITECTURE.md` | Stack, modules, data flow, tab lifecycle, performance budgets |
 | `docs/SYNC.md` | How Zen Spaces sync works (Firefox Sync `spaces` collection) and how we reuse Z-Sync |
-| `docs/ROADMAP.md` | Milestones with acceptance criteria. **Work one milestone at a time.** |
+| `docs/ROADMAP.md` | Milestones with acceptance criteria and a **Status** table (done / in progress / next step). **Work one milestone at a time.** |
+| `docs/HANDOFF.md` | **Start here in a new session:** current release, open branches, untested parts, pending owner decisions, build / test / perf / release how-to. Keep it up to date at the end of every session. |
 
 The canonical Zen sync wire format lives in Z-Sync's repo: `reference/Z-Sync/shared/contract/SPEC.md`
 (+ JSON fixtures). Clone it there if it's missing:
@@ -88,6 +89,9 @@ The canonical Zen sync wire format lives in Z-Sync's repo: `reference/Z-Sync/sha
 - **Urgent fix on a published version:** branch from `main` (e.g. `fix/…`), merge it into `main`
   (patch release, tagged) and into `dev`.
 - Start every report to the owner with the branch you're on (`git branch --show-current`).
+- **Commits:** by default the owner commits. Prepare the changes and give the exact `git add` /
+  `git commit` commands. Commit, push, tag or release yourself only when the owner asks for it.
+  Message style: Conventional Commits, `type(scope): summary`.
 
 ## Release checklist
 
@@ -119,8 +123,9 @@ owner's approval before going on.
 ## Dev environment
 
 - Owner's machine: Linux (EndeavourOS, Hyprland). Android Studio / Gradle CLI.
-- Test devices: POCO X4 GT (Dimensity 8100, 144 Hz, HyperOS, Android 14) is the reference for
-  performance: if it's smooth there, it's smooth everywhere. Soon also a Xiaomi 18 Pro Max.
+- Test device: **Xiaomi 18 Pro Max** (HyperOS, Android 17, 120 Hz), the owner's only phone since
+  2026-10-29 and the performance reference. The POCO X4 GT (Dimensity 8100, Android 14) is retired.
+  The phone has several displays: `adb shell screencap` needs `-d <main display id>`.
   HyperOS caps refresh rate for unknown apps and kills background apps aggressively: check the real
   refresh rate before blaming the code, and always test state restore after process death.
 - **Test builds (follow every time):**

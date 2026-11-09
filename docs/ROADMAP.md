@@ -7,6 +7,26 @@ tests green, a short summary to the owner, and a git tag `m<N>`.
 M7. Browser essentials come before the motion polish, so Koan can become the daily browser sooner.
 Milestone numbers are kept as they are.
 
+## Status (2026-11-09)
+
+Latest release **v0.4.0** (pre-release, 2026-10-30). Branches and how to build/test/release:
+`docs/HANDOFF.md`.
+
+| Item | Status | Where | Next concrete step |
+|---|---|---|---|
+| M0 Skeleton browser | Done | tag `m0` | — |
+| M1 Overview UI | Done | tag `m1` | — |
+| M2 Sign in + read Spaces | Done | tag `m2` | — |
+| M3 Real tabs | Done | tag `m3` | — |
+| v0.1.0 pre-release | Done | tag `v0.1.0` | — |
+| M5 Browser essentials | Done | tag `m5`, v0.2.0 / v0.2.1 | — |
+| Android 11+ (minSdk 30) | Done | v0.3.0 | — |
+| Releases v0.3.0, v0.4.0 | Done | tags on `main` | 0.4.0: owner decides whether to mark it a normal release (`/releases/latest` 404s, see HANDOFF) |
+| M4 Motion polish | **Partly done**, no branch | `dev` | Owner picks the next M4 item. Done: card flies page ↔ stack both ways (`ui/overview/CardHero.kt`, v0.4.0), long-press lift, swipe-to-close by distance or fling, Undo toast after a close. Not started: stack compression / elastic trailing, new-tab grow, close collapse, baseline profile, JankStats, search backdrop retry. |
+| M6 Write-back | **In progress** | branch `sync-back` | Owner creates a test Mozilla account + Zen test profile; then rebase `sync-back` on `dev` and turn the passwords dry run into a real upload on the staging copy only (`docs/SYNC_WRITE.md` test plan). Spaces writes come last, behind `writeBackEnabled`. |
+| M7 Delights | **Partly done** | `dev` | Done: `@engine` shortcuts, custom engines, Undo close, Reopen closed tab (last tab only), background audio. Dropped: status bar hidden while scrolling (branch `statusbar`, not merged). Not started: everything else below. |
+| Open items after v0.2.0 | Not started | — | **Long screenshots** first: bump to GeckoView / android-components 160 (released 2026-11-10) on a branch from `dev`, then retest HyperOS scroll screenshots. The other items wait for the owner's choice. |
+
 ## M0 — Skeleton browser (≈ 2–4 days)
 - Gradle project, package `dev.nerzouille.koan` (rename if owner prefers), Compose, single activity.
 - GeckoView via android-components rendering one tab; bottom toolbar with address pill, back, menu.
@@ -85,7 +105,7 @@ losing data, and the owner has approved and published the release.
 - Tested as `preview-android11` (0.2.2-preview.1, versionCode 7): no frame or start-time
   difference on the owner's phone (`tools/perf`). v0.3.0 is versionCode 8.
 
-## M4 — Motion polish (≈ 1–2 weeks, iterate with owner)
+## M4 — Motion polish (≈ 1–2 weeks, iterate with owner) — partly done (see Status)
 - Hero open/close morph per `UI_SPEC.md` (springs, thumbnail → live swap, pre-scroll on close).
 - Stack compression/elastic trailing while scrolling.
 - New-tab grow animation, card lift/drop, close collapse.
@@ -93,7 +113,7 @@ losing data, and the owner has approved and published the release.
 - Retry search backdrop: old dim + subtle blur behind the suggestion cards only.
 **Done when:** owner signs off on the feel. Expect several rounds of tweaks.
 
-## M6 — Write-back to Zen (≈ 1 week, careful)
+## M6 — Write-back to Zen (≈ 1 week, careful) — in progress on branch `sync-back` (dry run only)
 - `writeBackEnabled` setting (off by default), undo journal, conditional writes per spec §7.2.
 - Operations in the order listed in `SYNC.md`.
 - Test against a throwaway Mozilla account / throwaway Space first.
@@ -117,8 +137,9 @@ conflict is handled without data loss.
 
 **Tabs**
 - **Undo close**: after closing a card (swipe or ✕), a small "Undo" toast for a few seconds.
-  (Done for Back on a tab's first page in v0.2.0; not yet for a card closed in the overview.)
+  (Done: Back on a tab's first page since v0.2.0, and a card closed in the overview.)
 - **Recently closed**: long-press the tab button → list of recently closed tabs, tap to reopen.
+  (v0.4.0 has **Reopen closed tab** in the tab counter's long-press menu: the last one only.)
 - **Previous tab**: double-tap the tab button → switch back to the previous tab (Alt-Tab style).
 - **Glance a card** (maybe): long-press a card in the overview to preview it larger without switching. Same sheet as Glance. To evaluate.
 - **Auto-archive**: phone-only tabs untouched for N days (setting) move to an "Archived" list instead of piling up. Never touches tabs that come from Zen.
