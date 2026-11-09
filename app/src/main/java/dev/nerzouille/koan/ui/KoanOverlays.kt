@@ -42,6 +42,10 @@ import android.provider.DocumentsContract
 import dev.nerzouille.koan.ui.downloads.DownloadsScreen
 import dev.nerzouille.koan.ui.history.ClearDataCard
 import dev.nerzouille.koan.ui.history.HistoryScreen
+import dev.nerzouille.koan.ui.history.HistoryMenus
+import dev.nerzouille.koan.ui.kit.RowMenu
+import dev.nerzouille.koan.ui.kit.RowMenuContent
+import dev.nerzouille.koan.data.VisitEntity
 import dev.nerzouille.koan.ui.menu.FilePrompt
 import dev.nerzouille.koan.ui.menu.PagePrompts
 import dev.nerzouille.koan.ui.menu.Confirm
@@ -139,6 +143,25 @@ class Overlays(scope: CoroutineScope, density: Density) {
 
     /** History opened on its whole "Recently closed" list (long press on the dock's History). */
     var historyShowsClosed by mutableStateOf(false)
+
+    /** History was opened from a page (not the overview): a tap opens the entry in that tab. */
+    var historyFromPage by mutableStateOf(false)
+
+    /** History from anywhere: the same page, its "Recently closed" on top (all of it when [allClosed]). */
+    fun openHistory(fromPage: Boolean, allClosed: Boolean = false) {
+        historyShowsClosed = allClosed
+        historyFromPage = fromPage
+        historyOpen = true
+    }
+
+    /** A library row's long-press menu (History, Downloads, Passwords), on its floating card. */
+    val rowMenuCard = SheetState(scope, splineBasedDecay(density))
+    var rowMenu by mutableStateOf<RowMenu?>(null)
+
+    fun showRowMenu(menu: RowMenu) {
+        rowMenu = menu
+        rowMenuCard.animateTo(Detent.Compact)
+    }
     val clearDataCard = SheetState(scope, splineBasedDecay(density))
     val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
     val clearSiteCard = SheetState(scope, splineBasedDecay(density))
@@ -174,7 +197,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
     /** Something covers the page or the overview (a sheet, a card, a full page): toasts make way. */
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
-            historyOpen || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
+            historyOpen || rowMenuCard.open || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
             saveLoginCard.open || permissionCard.open || downloadCard.open || promptCard.open || tourOpen
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
@@ -346,7 +369,7 @@ fun KoanOverlays(
                     },
                     history = {
                         close()
-                        overlays.historyOpen = true
+                        overlays.openHistory(fromPage = activeTabId != null)
                     },
                     siteSettings = { overlays.menuNav.push(MenuPage.SiteSettings) },
                     ublockToggle = components.ublock::setEnabled,
@@ -744,6 +767,34 @@ fun KoanOverlays(
                         }
                     },
                     onCopied = { what -> copiedToast(what)?.let(onToast) },
+                    onRemove = { guids ->
+                        scope.launch {
+                            val removed = components.logins.remove(guids)
+                            if (removed.count == 0) return@launch
+                            val what = if (removed.count == 1) "Password deleted" else "${removed.count} passwords deleted"
+                            val detail = if (removed.hidden.isNotEmpty()) "Hidden on this phone; still in your Mozilla account" else null
+                            onToast(Toast(what, "Undo", detail = detail) { scope.launch { components.logins.restore(removed) } })
+                        }
+                    },
+                    onMenu = overlays::showRowMenu,
+                    onOpenUrl = { url ->
+                        overlays.settingsOpen = false
+                        onOpenNew(url, true, false)
+                    },
+                    onAdd = { site, username, password ->
+                        val ok = components.logins.addManual(site, username, password)
+                        if (ok) {
+                            onToast(Toast("Password saved"))
+                            // Unlocked: the new one opens too, so its row shows its username.
+                            if (unlockedLogins != null) {
+                                components.logins.openAll { logins ->
+                                    val current = unlockedLogins ?: return@openAll
+                                    unlockedLogins = current + logins.associateBy { it.guid }
+                                }
+                            }
+                        }
+                        ok
+                    },
                 ),
             ),
             nav = overlays.settingsNav,
@@ -763,6 +814,9 @@ fun KoanOverlays(
             actions = components.downloads,
             onClear = { overlays.clearDownloadsCard.animateTo(Detent.Compact) },
             onClose = { overlays.downloadsOpen = false },
+            onToast = onToast,
+            onMenu = overlays::showRowMenu,
+            onCopyLink = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
             modifier = Modifier.graphicsLayer { translationY = (1f - downloadsSlide.value) * size.height },
         )
     }
@@ -787,23 +841,34 @@ fun KoanOverlays(
     val historyVisible by remember { derivedStateOf { overlays.historyOpen || historySlide.value > 0f } }
     if (historyVisible) {
         val dao = components.database.dao()
+        val removeVisits = { visits: List<VisitEntity> ->
+            scope.launch { visits.forEach { dao.removeVisit(it.url) } }
+            val what = if (visits.size == 1) "Removed from history" else "Removed ${visits.size} pages from history"
+            onToast(Toast(what, "Undo") { scope.launch { visits.forEach { dao.restoreVisit(it) } } })
+        }
         HistoryScreen(
             dao = dao,
             onOpen = { url ->
                 overlays.historyOpen = false
-                onOpenNew(url, true, false)
+                // From a page: the entry opens in that tab (its menu has "Open in new tab").
+                val here = activeTabId?.takeIf { overlays.historyFromPage }
+                if (here != null) session.loadUrl(url, here) else onOpenNew(url, true, false)
             },
-            onRemove = { visits ->
-                scope.launch { visits.forEach { dao.removeVisit(it.url) } }
-                val what = if (visits.size == 1) "Removed from history" else "Removed ${visits.size} pages from history"
-                onToast(Toast(what, "Undo") { scope.launch { visits.forEach { dao.restoreVisit(it) } } })
-            },
+            onRemove = removeVisits,
             onClear = { overlays.clearDataCard.animateTo(Detent.Compact) },
             onClose = { overlays.historyOpen = false },
             onRestore = { id ->
                 overlays.historyOpen = false
                 onRestoreClosed(id)
             },
+            onMenu = overlays::showRowMenu,
+            menus = HistoryMenus(
+                openNew = { url -> overlays.historyOpen = false; onOpenNew(url, true, false) },
+                copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
+                share = { url -> share(url, "") },
+                remove = removeVisits,
+                restore = { id -> overlays.historyOpen = false; onRestoreClosed(id) },
+            ),
             allClosed = overlays.historyShowsClosed,
             modifier = Modifier.graphicsLayer { translationY = (1f - historySlide.value) * size.height },
         )
@@ -822,6 +887,13 @@ fun KoanOverlays(
             },
             onCancel = { clearData.animateTo(Detent.Closed) },
         )
+    }
+
+    // ---- a library row's long-press menu (History, Downloads, Passwords), over those pages ----
+    val rowMenuCard = overlays.rowMenuCard
+    KoanCard(rowMenuCard) { interactive ->
+        val rowMenu = overlays.rowMenu ?: return@KoanCard
+        RowMenuContent(rowMenu, interactive, onPick = { rowMenuCard.animateTo(Detent.Closed) })
     }
 
     // ---- sign out asks first ----

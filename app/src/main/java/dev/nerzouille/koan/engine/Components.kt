@@ -8,6 +8,7 @@ import dev.nerzouille.koan.data.SyncBack
 import dev.nerzouille.koan.data.RoomPhoneData
 import kotlinx.coroutines.flow.first
 import dev.nerzouille.koan.data.LoginStore
+import dev.nerzouille.koan.data.HiddenLogins
 import dev.nerzouille.koan.data.DataStoreBlob
 import dev.nerzouille.koan.data.KeystoreBox
 import dev.nerzouille.koan.data.KoanDatabase
@@ -191,7 +192,7 @@ class Components(context: Context) {
     val spaces by lazy { SpacesRepository(database.dao(), appScope) }
     val accounts by lazy { AccountStore(DataStoreBlob(appContext), KeystoreBox()) }
     /** Saved logins, sealed with their own Keystore key. */
-    val logins by lazy { LoginStore(database.dao(), KeystoreBox("koan_logins")) }
+    val logins by lazy { LoginStore(database.dao(), KeystoreBox("koan_logins"), HiddenLogins(appContext)) }
     val sync by lazy {
         SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }, library = LibrarySync(database.dao(), logins),
             syncBack = SyncBack({ settings.syncBack.first() }, RoomPhoneData(database.dao(), logins)))

@@ -38,6 +38,15 @@ import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.DayCard
 import dev.nerzouille.koan.ui.kit.ListPage
+import dev.nerzouille.koan.ui.kit.LibraryRowFrame
+import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
+import dev.nerzouille.koan.ui.kit.LibraryRowTitle
+import dev.nerzouille.koan.ui.kit.RowMenu
+import dev.nerzouille.koan.ui.kit.RowMenuItem
+import dev.nerzouille.koan.ui.kit.SwipeToDelete
+import dev.nerzouille.koan.ui.kit.Toast
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.key
 import dev.nerzouille.koan.ui.kit.byDay
 import dev.nerzouille.koan.ui.settings.SettingsDivider
 import dev.nerzouille.koan.ui.settings.SettingsSection
@@ -50,8 +59,10 @@ import mozilla.components.browser.state.state.content.DownloadState.Status
 
 /**
  * Downloads (design 7i): what is downloading (gradient progress, pause / resume, cancel), then
- * the finished ones by day; a finished row opens to Open / Share / Delete. Search and Clear sit at
- * the bottom, in thumb reach. [folder] names where files go ("Download", or the picked folder).
+ * the finished ones by day, with the library rules (ui/kit/LibraryRow): a tap opens the file, a
+ * swipe either way takes it off the list (the file stays; Undo), a long press opens its menu
+ * (Open, Share, Copy link, Delete file). Search and Clear sit at the bottom, in thumb reach.
+ * [folder] names where files go ("Download", or the picked folder).
  */
 @Composable
 fun DownloadsScreen(
@@ -60,13 +71,16 @@ fun DownloadsScreen(
     actions: Downloads,
     onClear: () -> Unit,
     onClose: () -> Unit,
+    onToast: (Toast) -> Unit,
+    onMenu: (RowMenu) -> Unit,
+    onCopyLink: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf<String?>(null) }
+    val hidden by actions.hidden.collectAsState()
     val shown = downloads
-        .filterNot { it.private || it.status == Status.CANCELLED }
+        .filterNot { it.private || it.status == Status.CANCELLED || it.id in hidden }
         .filter { query.isBlank() || it.fileName.orEmpty().contains(query.trim(), ignoreCase = true) }
         .sortedByDescending { it.createdTime }
     val (running, done) = shown.partition { it.status in RUNNING }
@@ -114,12 +128,45 @@ fun DownloadsScreen(
                 DayCard { running.forEachIndexed { i, d -> if (i > 0) SettingsDivider(); RunningRow(d, actions) } }
             }
             // One card per day, newest first.
+            fun open(d: DownloadState) {
+                if (!actions.open(d)) onToast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
+            }
+            fun share(d: DownloadState) {
+                if (!actions.share(d)) onToast(Toast("Couldn't share this file"))
+            }
+            fun remove(d: DownloadState) {
+                actions.removeFromList(d)
+                onToast(Toast("Removed from the list", "Undo", detail = "The file is still in $folder") { actions.restore(d) })
+            }
             byDay(done, { it.createdTime }).forEach { (day, items) ->
                 SettingsSection(day)
-                DayCard {
-                    items.forEachIndexed { i, d ->
-                        if (i > 0) SettingsDivider()
-                        DoneRow(d, open = expanded == d.id, actions = actions) { expanded = if (expanded == d.id) null else d.id }
+                items.forEachIndexed { i, d ->
+                    key(d.id) {
+                        SwipeToDelete(first = i == 0, last = i == items.lastIndex, onRemove = { remove(d) }) {
+                            DoneRow(d, first = i == 0, onOpen = { open(d) }) {
+                                onMenu(
+                                    RowMenu(
+                                        title = d.fileName.orEmpty(),
+                                        subtitle = listOfNotNull((d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · "),
+                                        iconUrl = null,
+                                        groups = listOf(
+                                            listOf(
+                                                RowMenuItem(KoanIcons.Open, "Open") { open(d) },
+                                                RowMenuItem(KoanIcons.Share, "Share") { share(d) },
+                                                RowMenuItem(KoanIcons.Link, "Copy download link") { onCopyLink(d.url) },
+                                            ),
+                                            listOf(
+                                                RowMenuItem(KoanIcons.Close, "Remove from the list") { remove(d) },
+                                                RowMenuItem(KoanIcons.Trash, "Delete file", destructive = true) {
+                                                    actions.delete(d)
+                                                    onToast(Toast("File deleted"))
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -182,61 +229,14 @@ private fun RunningRow(d: DownloadState, actions: Downloads) {
 }
 
 @Composable
-private fun DoneRow(d: DownloadState, open: Boolean, actions: Downloads, onToggle: () -> Unit) {
-    val palette = KoanTheme.colors
-    Column(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onToggle)
-                .padding(vertical = DownloadTokens.RowPaddingV),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FileTile(d)
-            Spacer(Modifier.width(DownloadTokens.RowGap))
-            Column(Modifier.weight(1f)) {
-                Text(d.fileName.orEmpty(), color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    listOfNotNull((d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · "),
-                    color = palette.TextSecondary,
-                    fontSize = SettingsTokens.RowSubtitleSize,
-                    maxLines = 1,
-                )
-            }
+private fun DoneRow(d: DownloadState, first: Boolean, onOpen: () -> Unit, onLong: () -> Unit) {
+    LibraryRowFrame(first, onClick = onOpen, onLongClick = onLong) {
+        FileTile(d)
+        Spacer(Modifier.width(DownloadTokens.RowGap))
+        Column(Modifier.weight(1f)) {
+            LibraryRowTitle(d.fileName.orEmpty())
+            LibraryRowSubtitle(listOfNotNull((d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · "))
         }
-        if (open) {
-            Row(
-                Modifier.padding(bottom = DownloadTokens.RowPaddingV),
-                horizontalArrangement = Arrangement.spacedBy(DownloadTokens.ActionGap),
-            ) {
-                Action(KoanIcons.Open, "Open", primary = true, modifier = Modifier.weight(1f)) { actions.open(d) }
-                Action(KoanIcons.Share, "Share", modifier = Modifier.weight(1f)) { actions.share(d) }
-                Action(KoanIcons.Trash, "Delete", destructive = true, modifier = Modifier.weight(1f)) { actions.delete(d) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun Action(icon: ImageVector, label: String, modifier: Modifier, primary: Boolean = false, destructive: Boolean = false, onClick: () -> Unit) {
-    val palette = KoanTheme.colors
-    val color = when {
-        primary -> palette.OnPrimary
-        destructive -> palette.Destructive
-        else -> palette.TextPrimary
-    }
-    Row(
-        modifier
-            .height(DownloadTokens.ActionHeight)
-            .clip(CircleShape)
-            .background(if (primary) palette.Primary else palette.GroupedRow)
-            .clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Icon(icon, null, tint = color, modifier = Modifier.size(SettingsTokens.RowGlyph * 0.85f))
-        Spacer(Modifier.width(SettingsTokens.Divider * 6))
-        Text(label, color = color, fontSize = SettingsTokens.RowValueSize, fontWeight = FontWeight.SemiBold)
     }
 }
 

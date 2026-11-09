@@ -6,6 +6,9 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.PersistableBundle
+import android.view.View
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
 import androidx.biometric.BiometricManager.Authenticators
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.clickable
@@ -33,6 +36,32 @@ import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.KoanField
 import dev.nerzouille.koan.ui.kit.PrimaryButton
+import dev.nerzouille.koan.ui.kit.FaviconTile
+import dev.nerzouille.koan.ui.kit.LibraryRowFrame
+import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
+import dev.nerzouille.koan.ui.kit.LibraryRowTitle
+import dev.nerzouille.koan.ui.kit.RowMenu
+import dev.nerzouille.koan.ui.kit.RowMenuItem
+import dev.nerzouille.koan.ui.kit.SwipeToDelete
+import dev.nerzouille.koan.data.LoginStore
+import dev.nerzouille.koan.ui.theme.DownloadTokens
+import dev.nerzouille.koan.ui.theme.PasswordTokens
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import kotlinx.coroutines.launch
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 
@@ -47,65 +76,191 @@ class PasswordsUi(
     val onUnlock: (site: String?, first: List<String>) -> Unit,
     /** Something was copied ("Password"): confirms it where Android doesn't. */
     val onCopied: (what: String) -> Unit,
+    /** Swiped away or "Delete" in the menu: the phone's logins deleted, the account's hidden (Undo in the toast). */
+    val onRemove: (guids: List<String>) -> Unit = {},
+    /** A row's long-press menu. */
+    val onMenu: (RowMenu) -> Unit = {},
+    /** "Open site": the login's site in a new tab. */
+    val onOpenUrl: (String) -> Unit = {},
+    /** Passwords › +: saves a login typed in by hand; false when the site isn't a web address. */
+    val onAdd: suspend (site: String, username: String, password: String) -> Boolean = { _, _, _ -> false },
 )
 
 /**
- * Settings › Passwords: one row per site, searchable. Tapping a site asks for the fingerprint or
- * the device PIN (once per visit), then opens its page with every account on it.
+ * Settings › Passwords: one row per site, searchable, with the library rules (ui/kit/LibraryRow): a
+ * tap opens the site's accounts (after the fingerprint or the device PIN, once per visit), a swipe
+ * either way deletes (a login from the Mozilla account is only hidden on the phone; Undo), a long
+ * press opens its menu. The round + adds one by hand ([onAdd]).
  */
 @Composable
-internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpenSite: (String) -> Unit) {
+internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpenSite: (String) -> Unit, onAdd: () -> Unit) {
     val palette = KoanTheme.colors
+    val context = LocalContext.current
     var query by remember { mutableStateOf("") }
-    SettingsPageFrame("Passwords", on, onBack) {
-        if (ui.summaries.isEmpty()) {
-            Text(
-                "Passwords saved in your Mozilla account show up here after the next sync.",
-                color = palette.TextSecondary,
-                fontSize = SettingsTokens.RowValueSize,
-                modifier = Modifier.padding(top = SettingsTokens.SectionTop),
-            )
-            return@SettingsPageFrame
-        }
-        val unlocked = ui.unlocked
-        KoanField(query, { query = it }, "Search passwords", Modifier.fillMaxWidth(), search = true)
-        Spacer(Modifier.height(SettingsTokens.RowInset))
-        if (unlocked == null) {
-            Text(
-                "${ui.summaries.size} saved. Unlock to see usernames and passwords.",
-                color = palette.TextSecondary,
-                fontSize = SettingsTokens.RowValueSize,
-            )
+    Box(Modifier.fillMaxSize()) {
+        SettingsPageFrame("Passwords", on, onBack) {
+            if (ui.summaries.isEmpty()) {
+                Spacer(Modifier.height(SettingsTokens.SectionTop))
+                Text("No saved passwords yet", color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(SettingsTokens.FieldLabelGap))
+                Text(
+                    "Passwords from your Mozilla account show up here after the next sync. You can also add one yourself.",
+                    color = palette.TextSecondary,
+                    fontSize = SettingsTokens.RowValueSize,
+                )
+                Spacer(Modifier.height(SettingsTokens.SectionTop))
+                PrimaryButton("Add a password", onClick = { if (on) onAdd() }, modifier = Modifier.fillMaxWidth())
+                return@SettingsPageFrame
+            }
+            val unlocked = ui.unlocked
+            KoanField(query, { query = it }, "Search passwords", Modifier.fillMaxWidth(), search = true)
             Spacer(Modifier.height(SettingsTokens.RowInset))
-            PrimaryButton("Unlock", onClick = { if (on) ui.onUnlock(null, emptyList()) }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(SettingsTokens.RowInset))
-        }
-        val q = query.trim()
-        val shown = ui.summaries.filter { s ->
-            q.isEmpty() || s.origin.contains(q, ignoreCase = true) ||
-                unlocked?.get(s.guid)?.username?.contains(q, ignoreCase = true) == true
-        }
-        if (shown.isEmpty()) {
-            Text("No password matches “$q”.", color = palette.TextSecondary, fontSize = SettingsTokens.RowValueSize)
-        }
-        shown.groupBy(::siteOf).entries.forEachIndexed { i, (site, logins) ->
-            if (i > 0) SettingsDivider()
-            val single = logins.singleOrNull()
-            SettingsRow(
-                KoanIcons.Key, site, on,
-                // One account: its username once unlocked; several: how many.
-                subtitle = single?.let { s ->
-                    when {
-                        unlocked == null -> null
-                        else -> unlocked[s.guid]?.username?.ifEmpty { "No username" } ?: "…"
+            if (unlocked == null) {
+                Text(
+                    "${ui.summaries.size} saved. Unlock to see usernames and passwords.",
+                    color = palette.TextSecondary,
+                    fontSize = SettingsTokens.RowValueSize,
+                )
+                Spacer(Modifier.height(SettingsTokens.RowInset))
+                PrimaryButton("Unlock", onClick = { if (on) ui.onUnlock(null, emptyList()) }, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(SettingsTokens.RowInset))
+            }
+            val q = query.trim()
+            val shown = ui.summaries.filter { s ->
+                q.isEmpty() || s.origin.contains(q, ignoreCase = true) ||
+                    unlocked?.get(s.guid)?.username?.contains(q, ignoreCase = true) == true
+            }
+            if (shown.isEmpty()) {
+                Text("No password matches “$q”.", color = palette.TextSecondary, fontSize = SettingsTokens.RowValueSize)
+            }
+            val sites = shown.groupBy(::siteOf).entries.toList()
+            sites.forEachIndexed { i, (site, logins) ->
+                key(site) {
+                    val single = logins.singleOrNull()
+                    val login = single?.let { unlocked?.get(it.guid) }
+                    // Locked: the fingerprint first, then straight to the site's accounts.
+                    val open = { if (unlocked == null) ui.onUnlock(site, logins.map { it.guid }) else onOpenSite(site) }
+                    val remove = { ui.onRemove(logins.map { it.guid }) }
+                    SwipeToDelete(first = i == 0, last = i == sites.lastIndex, onRemove = remove) {
+                        LibraryRowFrame(
+                            first = i == 0,
+                            onClick = { if (on) open() },
+                            onLongClick = {
+                                ui.onMenu(
+                                    RowMenu(
+                                        title = site,
+                                        subtitle = logins.first().origin,
+                                        iconUrl = logins.first().origin,
+                                        groups = listOf(
+                                            listOf(
+                                                RowMenuItem(KoanIcons.Key, if (single != null) "Open password" else "Open ${logins.size} accounts") { open() },
+                                                RowMenuItem(KoanIcons.Plus, "Open site in new tab") { ui.onOpenUrl(logins.first().origin) },
+                                            ),
+                                            listOfNotNull(
+                                                login?.takeIf { it.username.isNotEmpty() }?.let { l ->
+                                                    RowMenuItem(KoanIcons.Link, "Copy username") { copy(context, "Username", l.username, sensitive = false, ui.onCopied) }
+                                                },
+                                                login?.let { l -> RowMenuItem(KoanIcons.Key, "Copy password") { copy(context, "Password", l.password, sensitive = true, ui.onCopied) } },
+                                            ),
+                                            listOf(RowMenuItem(KoanIcons.Trash, if (logins.size > 1) "Delete ${logins.size} passwords" else "Delete password", destructive = true) { remove() }),
+                                        ),
+                                    ),
+                                )
+                            },
+                        ) {
+                            FaviconTile(logins.first().origin)
+                            Spacer(Modifier.width(DownloadTokens.RowGap))
+                            Column(Modifier.weight(1f)) {
+                                LibraryRowTitle(site)
+                                // One account: its username once unlocked; several: how many.
+                                val sub = when {
+                                    single == null -> "${logins.size} accounts"
+                                    unlocked == null -> if (single.local) "Saved on this phone" else "From your Mozilla account"
+                                    else -> unlocked[single.guid]?.username?.ifEmpty { "No username" } ?: "…"
+                                }
+                                LibraryRowSubtitle(sub)
+                            }
+                            if (single?.local == true && unlocked != null) {
+                                Spacer(Modifier.width(DownloadTokens.ActionGap))
+                                Text("This phone", color = palette.TextSecondary, fontSize = SettingsTokens.RowSubtitleSize)
+                            }
+                        }
                     }
-                },
-                value = if (single == null) "${logins.size} accounts" else if (single.local) "This phone" else null,
-                chevron = true,
-                // Locked: the fingerprint first, then straight to the site's accounts.
-                onClick = { if (unlocked == null) ui.onUnlock(site, logins.map { it.guid }) else onOpenSite(site) },
-            )
+                }
+            }
+            // Room for the + button over the last row.
+            Spacer(Modifier.height(PasswordTokens.AddButton + PasswordTokens.AddMargin))
         }
+        if (ui.summaries.isNotEmpty()) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(PasswordTokens.AddMargin)
+                    .size(PasswordTokens.AddButton)
+                    .clip(CircleShape)
+                    .background(palette.Primary)
+                    .clickable(enabled = on, onClick = onAdd),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(KoanIcons.Plus, "Add a password", tint = palette.OnPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))
+            }
+        }
+    }
+}
+
+/** Passwords › +: a login typed in by hand (site, username, password), saved encrypted on the phone. */
+@Composable
+internal fun AddPasswordPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit) {
+    val palette = KoanTheme.colors
+    val scope = rememberCoroutineScope()
+    var site by rememberSaveable { mutableStateOf("") }
+    var username by rememberSaveable { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var reveal by remember { mutableStateOf(false) }
+    var tried by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+    val siteError = when {
+        site.isBlank() -> "Type the site, like example.com"
+        LoginStore.originOf(site) == null -> "That isn't a web address"
+        else -> null
+    }
+    val passwordError = if (password.isEmpty()) "Type the password" else null
+    // Koan keeps this one itself: no "Save to <password manager>?" from Android's autofill.
+    val view = LocalView.current
+    DisposableEffect(view) {
+        val before = view.importantForAutofill
+        view.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+        onDispose { view.importantForAutofill = before }
+    }
+    SettingsPageFrame("Add a password", on, onBack) {
+        Field("Site", site, "example.com", siteError.takeIf { tried }, keyboard = KeyboardType.Uri) { site = it }
+        Field("Username", username, "name@example.com", null, help = "Leave empty if the site only asks for a password.", keyboard = KeyboardType.Email) { username = it }
+        Field(
+            "Password", password, "Password", passwordError.takeIf { tried },
+            keyboard = KeyboardType.Password,
+            visualTransformation = if (reveal) VisualTransformation.None else PasswordVisualTransformation(),
+        ) { password = it }
+        Row(Modifier.padding(top = SettingsTokens.FieldLabelGap)) {
+            RowAction(if (reveal) "Hide password" else "Show password") { if (on) reveal = !reveal }
+        }
+        Spacer(Modifier.height(SettingsTokens.FieldGap))
+        Text("Saved encrypted on this phone.", color = palette.TextSecondary, fontSize = SettingsTokens.RowSubtitleSize)
+        Spacer(Modifier.height(SettingsTokens.FieldGap))
+        PrimaryButton(
+            "Save",
+            onClick = {
+                if (!on || saving) return@PrimaryButton
+                tried = true
+                if (siteError == null && passwordError == null) {
+                    saving = true
+                    scope.launch {
+                        if (ui.onAdd(site, username.trim(), password)) onBack() else saving = false
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

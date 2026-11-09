@@ -3,6 +3,12 @@ package dev.nerzouille.koan.engine.downloads
 import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.DownloadsUseCases
@@ -39,6 +45,33 @@ class Downloads(
         useCases.removeDownload(download.id)
     }
 
+    /**
+     * Swiped away: gone from the list at once, the file stays. Really dropped from the store only
+     * once its Undo had its chance ([restore] in time keeps it), so Undo never has to re-add a
+     * download (which would start it again).
+     */
+    fun removeFromList(download: DownloadState) {
+        pending[download.id]?.cancel()
+        _hidden.value = _hidden.value + download.id
+        pending[download.id] = scope.launch {
+            delay(UNDO_WINDOW_MS)
+            useCases.removeDownload(download.id)
+            pending.remove(download.id)
+            _hidden.value = _hidden.value - download.id
+        }
+    }
+
+    fun restore(download: DownloadState) {
+        pending.remove(download.id)?.cancel()
+        _hidden.value = _hidden.value - download.id
+    }
+
+    /** Downloads swiped away, waiting for their Undo window to pass. */
+    val hidden: StateFlow<Set<String>> get() = _hidden
+    private val _hidden = MutableStateFlow(emptySet<String>())
+    private val pending = mutableMapOf<String, Job>()
+    private val scope = MainScope()
+
     /** Clears the list; the files stay where they are. */
     fun clearHistory() = useCases.removeAllDownloads()
 
@@ -57,6 +90,9 @@ class Downloads(
     }
 
     private companion object {
+        /** The toast's time on screen and its way out: Undo can't come later. */
+        const val UNDO_WINDOW_MS = 4_000L
+
         /** The id extra the service's receiver reads (AbstractFetchDownloadService). */
         const val EXTRA_DOWNLOAD_ID = "downloadId"
     }
