@@ -81,6 +81,10 @@ class SettingsUi(
     /** Two-way sync, dry run only: which collections Koan would send. */
     val syncBack: SyncBackChoice,
     val onSyncBack: (SyncBackChoice) -> Unit,
+    val syncBackPasswordEdits: Boolean = false,
+    val onSyncBackPasswordEdits: (Boolean) -> Unit = {},
+    /** The last two-way sync outcome per collection (no content). */
+    val syncWriteStatus: Map<String, String> = emptyMap(),
     /** The status bar stays hidden in the page and the overview. */
     val hideStatusBar: Boolean,
     val onHideStatusBar: (Boolean) -> Unit,
@@ -336,14 +340,26 @@ private fun AccountPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
         SettingsDivider()
         SettingsRow(null, "Sign out", on, titleColor = KoanTheme.colors.Destructive, onClick = ui.onSignOut)
 
-        // Two-way sync (docs/SYNC_WRITE.md): off by default, and a dry run for now.
-        SettingsSection("Send to your Mozilla account (dry run)")
+        // Two-way sync (docs/SYNC_WRITE.md): off by default; any surprise turns a switch off again.
+        SettingsSection("Send to your Mozilla account")
         val choice = ui.syncBack
-        SyncBackRow("Passwords saved on this phone", choice.passwords, on) { ui.onSyncBack(choice.copy(passwords = it)) }
+        SettingsRow(
+            null, "Passwords saved on this phone", on,
+            subtitle = ui.syncWriteStatus["passwords"] ?: "New ones only, added to the account",
+            onClick = { ui.onSyncBack(choice.copy(passwords = !choice.passwords)) },
+        ) { KoanToggle(checked = choice.passwords, onCheckedChange = if (on) ({ ui.onSyncBack(choice.copy(passwords = it)) }) else null) }
         SettingsDivider()
-        SyncBackRow("History of this phone", choice.history, on) { ui.onSyncBack(choice.copy(history = it)) }
+        SettingsRow(
+            null, "Change and delete passwords", on,
+            subtitle = "Edits and deletions made here change the account too",
+            onClick = { ui.onSyncBackPasswordEdits(!ui.syncBackPasswordEdits) },
+        ) { KoanToggle(checked = ui.syncBackPasswordEdits, onCheckedChange = if (on) ui.onSyncBackPasswordEdits else null) }
         SettingsDivider()
-        SyncBackRow("Bookmarks added on this phone", choice.bookmarks, on) { ui.onSyncBack(choice.copy(bookmarks = it)) }
-        SettingsRow(null, "Test only: Koan notes what it would send after each sync. Nothing is sent yet.", false)
+        SettingsRow(
+            null, "History, both ways", on,
+            subtitle = ui.syncWriteStatus["history"] ?: "Pages visited here; pages removed here are removed there too",
+            onClick = { ui.onSyncBack(choice.copy(history = !choice.history)) },
+        ) { KoanToggle(checked = choice.history, onCheckedChange = if (on) ({ ui.onSyncBack(choice.copy(history = it)) }) else null) }
+        SettingsRow(null, "Before the first change, Koan keeps a copy of each collection on this phone.", false)
     }
 }

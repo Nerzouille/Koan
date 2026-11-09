@@ -321,6 +321,14 @@ interface KoanDao {
     @Query("SELECT * FROM logins ORDER BY origin")
     suspend fun allLogins(): List<LoginEntity>
 
+    /** Two-way sync: pages of the account's history removed on the phone (hidden here). */
+    @Query("SELECT url FROM visits WHERE hidden")
+    suspend fun hiddenVisitUrls(): List<String>
+
+    /** Two-way sync: pages the account deleted too, gone from the phone for good. */
+    @Query("DELETE FROM visits WHERE url IN (:urls)")
+    suspend fun deleteVisits(urls: List<String>)
+
     /** Two-way sync (dry run): pages first visited on the phone, not the account's copy. */
     @Query("SELECT * FROM visits WHERE NOT fromSync AND NOT hidden ORDER BY lastVisit DESC LIMIT :limit")
     suspend fun phoneVisits(limit: Int): List<VisitEntity>

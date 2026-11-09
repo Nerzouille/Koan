@@ -13,7 +13,7 @@ import org.json.JSONObject
  * never fails the Spaces sync. Logs say how many records came and an error's class, nothing more:
  * records carry secrets.
  */
-class LibrarySync(private val dao: KoanDao, private val logins: LoginStore) {
+class LibrarySync(private val dao: KoanDao, private val logins: LoginStore, private val deletions: HistoryDeletions? = null) {
     private var lastPullAt = 0L
 
     suspend fun pull(client: SyncClient, force: Boolean = false) = withContext(Dispatchers.IO) {
@@ -65,10 +65,17 @@ class LibrarySync(private val dao: KoanDao, private val logins: LoginStore) {
 
     private suspend fun pullHistory(client: SyncClient) {
         // The most recently changed pages only: history can be huge, search needs the recent.
+        // Ids by page (two-way sync deletes by id), and pages the account deleted since.
+        val seen = HashMap<String, String>()
+        val deletedIds = HashSet<String>()
         val rows = client.getRecentRecords("history", HISTORY_LIMIT).mapNotNull { record ->
             val r = runCatching { client.decryptRecord("history", record) }.getOrNull() ?: return@mapNotNull null
-            if (r.optBoolean("deleted")) return@mapNotNull null
+            if (r.optBoolean("deleted")) {
+                deletedIds += record.optString("id")
+                return@mapNotNull null
+            }
             val url = r.optString("histUri")
+            if (url.isNotEmpty()) seen[url] = r.optString("id").ifEmpty { record.optString("id") }
             // Redirect pages are not history, here or on the phone.
             if (!url.startsWith("http") || HistoryFilter.isRedirect(url, r.optString("title"))) return@mapNotNull null
             val visits = r.optJSONArray("visits")
@@ -77,6 +84,13 @@ class LibrarySync(private val dao: KoanDao, private val logins: LoginStore) {
             VisitEntity(url, r.optString("title"), last, dates.size.coerceAtLeast(1), fromSync = true)
         }
         dao.mergeSyncedVisits(rows)
+        deletions?.let { d ->
+            // Deleted on another device: gone here too (the phone's own copy of that page included).
+            val gone = d.ids().filterValues { it in deletedIds }.keys.filter { it !in seen }
+            if (gone.isNotEmpty()) dao.deleteVisits(gone)
+            d.updateIds(seen, gone)
+            if (gone.isNotEmpty()) Log.i(TAG, "history: ${gone.size} deleted on another device")
+        }
         Log.i(TAG, "history: ${rows.size}")
     }
 

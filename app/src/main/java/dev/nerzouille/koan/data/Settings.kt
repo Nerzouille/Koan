@@ -64,6 +64,15 @@ class Settings(context: Context) {
      * Two-way sync (docs/SYNC_WRITE.md), per collection, all off by default. For now a dry run
      * only: Koan logs what it would send, nothing is sent.
      */
+    private val passwordEdits = booleanPreferencesKey("sync_back_password_edits")
+
+    /** Two-way sync may also change and delete the account's passwords (off; the owner turns it on after checking). */
+    val syncBackPasswordEdits: Flow<Boolean> = store.data.map { it[passwordEdits] ?: false }
+
+    suspend fun setSyncBackPasswordEdits(on: Boolean) {
+        store.edit { it[passwordEdits] = on }
+    }
+
     val syncBack: Flow<SyncBackChoice> = store.data.map {
         SyncBackChoice(it[sendPasswords] ?: false, it[sendHistory] ?: false, it[sendBookmarks] ?: false)
     }

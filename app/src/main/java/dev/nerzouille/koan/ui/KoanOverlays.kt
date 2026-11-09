@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui
 
+import kotlinx.coroutines.flow.first
 import dev.nerzouille.koan.data.SyncBackChoice
 import android.app.role.RoleManager
 import android.content.Context
@@ -267,6 +268,8 @@ fun KoanOverlays(
     val suggestionsOn by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val hideStatusBar by components.settings.hideStatusBar.collectAsStateWithLifecycle(false)
     val syncBack by components.settings.syncBack.collectAsStateWithLifecycle(SyncBackChoice())
+    val syncBackEdits by components.settings.syncBackPasswordEdits.collectAsStateWithLifecycle(false)
+    val syncWriteStatus by components.syncWrite.status.collectAsStateWithLifecycle()
     val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
     // uBlock Origin on this page: on or off, and its badge (the tab's own, else the default).
     val ublockUi by components.store.observeSlice(activeTabId) { s ->
@@ -715,6 +718,9 @@ fun KoanOverlays(
                 onSuggestions = { on -> scope.launch { components.settings.setSearchSuggestions(on) } },
                 syncBack = syncBack,
                 onSyncBack = { c -> scope.launch { components.settings.setSyncBack(c) } },
+                syncBackPasswordEdits = syncBackEdits,
+                onSyncBackPasswordEdits = { on -> scope.launch { components.settings.setSyncBackPasswordEdits(on) } },
+                syncWriteStatus = syncWriteStatus,
                 hideStatusBar = hideStatusBar,
                 onHideStatusBar = { on -> scope.launch { components.settings.setHideStatusBar(on) } },
                 email = signedIn?.email,
@@ -842,9 +848,17 @@ fun KoanOverlays(
     if (historyVisible) {
         val dao = components.database.dao()
         val removeVisits = { visits: List<VisitEntity> ->
-            scope.launch { visits.forEach { dao.removeVisit(it.url) } }
+            val urls = visits.map { it.url }
+            scope.launch {
+                visits.forEach { dao.removeVisit(it.url) }
+                // Two-way history on: the account deletes them too, at the next sync.
+                if (components.settings.syncBack.first().history) components.historyDeletions.add(urls)
+            }
             val what = if (visits.size == 1) "Removed from history" else "Removed ${visits.size} pages from history"
-            onToast(Toast(what, "Undo") { scope.launch { visits.forEach { dao.restoreVisit(it) } } })
+            onToast(Toast(what, "Undo") {
+                components.historyDeletions.remove(urls)
+                scope.launch { visits.forEach { dao.restoreVisit(it) } }
+            })
         }
         HistoryScreen(
             dao = dao,

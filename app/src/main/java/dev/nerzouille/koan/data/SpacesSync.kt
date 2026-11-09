@@ -44,8 +44,8 @@ class SpacesSync(
     private val liveTabs: () -> Set<String> = { emptySet() },
     /** Passwords, bookmarks and history, pulled after the Spaces (null in tests). */
     private val library: LibrarySync? = null,
-    /** Two-way sync, dry run only (null in tests). */
-    private val syncBack: SyncBack? = null,
+    /** Two-way sync, for the switches turned on (null in tests). */
+    private val syncWrite: SyncWrite? = null,
 ) {
     private val _status = MutableStateFlow<SyncStatus>(SyncStatus.Idle(0))
     val status: StateFlow<SyncStatus> = _status
@@ -165,8 +165,8 @@ class SpacesSync(
         dao.upsertSyncMeta(SyncMetaEntity(COLLECTION, lastModified = snapshot.fetchedAtMillis, lastSyncAt = lastSyncAt))
         // Never fails the Spaces sync (LibrarySync catches its own errors).
         library?.pull(client, force = forceLibrary)
-        // Logs what two-way sync would send, for the collections turned on; sends nothing.
-        runCatching { syncBack?.dryRun(client) }
+        // Two-way sync, for the collections turned on (it stops itself on any surprise).
+        runCatching { syncWrite?.run(client, force = forceLibrary) }
     }
 
     /** Sign-out: forget the session and every Zen row; phone-only tabs stay. */

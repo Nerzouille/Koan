@@ -287,6 +287,74 @@ class SyncClient internal constructor(
         return PostOutcome.Applied
     }
 
+    // MARK: - Two-way sync (data/SyncWrite.kt)
+
+    /** One record as the server has it (encrypted), or null if it has none with [id]. */
+    fun getRecord(collection: String, id: String): JSONObject? {
+        val raw = requestRaw(creds = this.creds, method = "GET", path = "/storage/$collection/${encodedBSOId(id)}", allowMissing = true)
+        if (raw.statusCode == 404) return null
+        return runCatching { JSONObject(String(raw.body, Charsets.UTF_8)) }.getOrNull()
+    }
+
+    /** The collection's `X-Last-Modified` now (what a conditional write is checked against). */
+    fun collectionLastModified(collection: String): String? =
+        requestRaw(creds = this.creds, method = "GET", path = "/storage/$collection?limit=1", allowMissing = true).header("X-Last-Modified")
+
+    /**
+     * Every record of [collection] exactly as the server has it (still encrypted), page by page to
+     * [onPage], each page conditioned on the first one's `X-Last-Modified` (a concurrent writer
+     * fails the read instead of mixing two versions). Returns that timestamp.
+     */
+    fun streamRecords(collection: String, onPage: (List<JSONObject>) -> Unit): String? {
+        var offset: String? = null
+        var lastModified: String? = null
+        var pages = 0
+        while (pages < 200) {
+            var path = "/storage/$collection?full=1&limit=1000"
+            if (!offset.isNullOrEmpty()) path += "&offset=" + encodeUnreserved(offset)
+            val response = requestRaw(
+                creds = this.creds, method = "GET", path = path,
+                ifUnmodifiedSince = if (offset.isNullOrEmpty()) null else lastModified,
+                allowPreconditionFailed = true,
+            )
+            if (response.statusCode == 412) throw SyncError.Conflict("collection '$collection' changed while reading")
+            if (lastModified == null) lastModified = response.header("X-Last-Modified")
+            val result = pageFrom(response)
+            onPage(result.page)
+            pages++
+            if (result.nextOffset.isNullOrEmpty() || result.page.isEmpty() || result.nextOffset == offset) break
+            offset = result.nextOffset
+        }
+        return lastModified
+    }
+
+    /**
+     * [postRecords] with records already in cleartext and the collection's new `X-Last-Modified`
+     * after an applied batch (the next batch is conditioned on it).
+     */
+    fun postBatch(collection: String, records: List<JSONObject>, ifUnmodifiedSince: String): Pair<PostOutcome, String?> {
+        val array = JSONArray()
+        val requestedIds = records.map { it.optString("id").also { id -> require(id.isNotEmpty()) } }
+        for (record in records) {
+            val payload = SyncCrypto.encryptBSO(record.toString().toByteArray(Charsets.UTF_8), keys(collection))
+            array.put(JSONObject().put("id", record.optString("id")).put("payload", payload))
+        }
+        val response = requestRaw(
+            creds = this.creds, method = "POST", path = "/storage/$collection", json = array,
+            allowMissing = false, ifUnmodifiedSince = ifUnmodifiedSince, allowPreconditionFailed = true,
+        )
+        if (response.statusCode == 412) return PostOutcome.PreconditionFailed(response.header("X-Last-Modified")) to null
+        val parsed = runCatching { JSONObject(String(response.body, Charsets.UTF_8)) }.getOrNull() ?: JSONObject()
+        val successArr = parsed.optJSONArray("success") ?: JSONArray()
+        val success = (0 until successArr.length()).mapNotNullTo(HashSet()) { successArr.opt(it) as? String }
+        val failedObj = parsed.optJSONObject("failed") ?: JSONObject()
+        val failed = failedObj.keys().asSequence().associateWith { failedObj.optString(it) }
+        val missing = requestedIds.filter { it !in success }
+        val modified = response.header("X-Last-Modified") ?: parsed.opt("modified")?.toString()
+        if (failed.isNotEmpty() || missing.isNotEmpty()) return PostOutcome.PartialFailure(failed, missing) to modified
+        return PostOutcome.Applied to modified
+    }
+
     /**
      * Weave tombstone: encrypted `{ id, deleted: true }` payload.
      * Zen's Spaces engine reads `CryptoWrapper.deleted` from *cleartext*
