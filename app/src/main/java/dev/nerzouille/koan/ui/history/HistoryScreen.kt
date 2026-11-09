@@ -47,6 +47,12 @@ import dev.nerzouille.koan.data.VisitEntity
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.ListPage
+import dev.nerzouille.koan.ui.kit.LibraryRowFrame
+import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
+import dev.nerzouille.koan.ui.kit.LibraryRowTitle
+import dev.nerzouille.koan.ui.kit.FaviconTile
+import dev.nerzouille.koan.ui.kit.RowMenu
+import dev.nerzouille.koan.ui.kit.SwipeToDelete
 import dev.nerzouille.koan.ui.kit.byDay
 import dev.nerzouille.koan.ui.kit.dayRowShape
 import dev.nerzouille.koan.ui.overview.Favicon
@@ -65,8 +71,9 @@ import java.util.Locale
  * History (the ⋯ menu, next to Downloads, laid out like it): the pages visited, the phone's and the
  * account's (desktop) mixed, one card per day, newest first. Back-to-back visits to one site make a
  * group row ("N pages · time range") that opens inline; a search shows the pages flat. Search and
- * Clear (Clear browsing data) at the bottom. Tap opens a page in a new tab; a swipe left removes
- * it, or a whole group (a synced page is only hidden on the phone).
+ * Clear (Clear browsing data) at the bottom. The library rules (ui/kit/LibraryRow): a tap opens a
+ * page ([onOpen]: in the current tab when History was opened from a page, else a new tab), a swipe
+ * either way removes it, or a whole group, with Undo; a long press opens its menu ([onMenu]).
  *
  * On top, "Recently closed": the last tabs closed on the phone, newest first (the first few, all of
  * them once shown, or from the start when [allClosed]: the long press on the dock's History). A tap
@@ -80,9 +87,15 @@ fun HistoryScreen(
     onClear: () -> Unit,
     onClose: () -> Unit,
     onRestore: (String) -> Unit,
+    /** A row's long-press menu ([HistoryMenus] builds it). */
+    onMenu: (RowMenu) -> Unit,
+    menus: HistoryMenus,
     modifier: Modifier = Modifier,
     allClosed: Boolean = false,
 ) {
+    fun pageMenu(v: VisitEntity, all: List<VisitEntity>) = menus.page(v, all)
+    fun closedMenu(c: ClosedTabEntity) = menus.closed(c)
+    fun groupMenu(g: HistoryItem.Group) = menus.group(g.host, g.pages.first().visit.url, g.all)
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
     // The last list stays on screen while the next query runs.
@@ -114,14 +127,14 @@ fun HistoryScreen(
                 shown.forEachIndexed { i, c ->
                     item(key = "closed:${c.koanTabId}") {
                         Box(Modifier.animateItem().clip(dayRowShape(i == 0, i == shown.lastIndex && more == 0))) {
-                            ClosedRow(c, first = i == 0, onRestore)
+                            ClosedRow(c, first = i == 0, onRestore) { onMenu(closedMenu(it)) }
                         }
                     }
                 }
                 if (more > 0) {
                     item(key = "closed:more") {
                         Box(Modifier.animateItem().clip(dayRowShape(first = false, last = true))) {
-                            RowFrame(first = false, indent = false, onClick = { showAllClosed = true }) {
+                            LibraryRowFrame(first = false, onClick = { showAllClosed = true }) {
                                 Text("Show all $more more", color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium)
                             }
                         }
@@ -147,8 +160,8 @@ fun HistoryScreen(
                     when (row) {
                         is HistoryItem.Page -> item(key = row.key) {
                             Box(Modifier.animateItem()) {
-                                SwipeToRemove(first, last, onRemove = { onRemove(row.all) }) {
-                                    PageRow(row.visit, first, indent = false, onOpen)
+                                SwipeToDelete(first, last, onRemove = { onRemove(row.all) }) {
+                                    PageRow(row.visit, first, indent = false, onOpen) { onMenu(pageMenu(it, row.all)) }
                                 }
                             }
                         }
@@ -156,8 +169,8 @@ fun HistoryScreen(
                             val open = row.key in expanded
                             item(key = row.key) {
                                 Box(Modifier.animateItem()) {
-                                    SwipeToRemove(first, last && !open, onRemove = { onRemove(row.all) }) {
-                                        GroupRow(row, first, open) { expanded = if (open) expanded - row.key else expanded + row.key }
+                                    SwipeToDelete(first, last && !open, onRemove = { onRemove(row.all) }) {
+                                        GroupRow(row, first, open, onLong = { onMenu(groupMenu(row)) }) { expanded = if (open) expanded - row.key else expanded + row.key }
                                     }
                                 }
                             }
@@ -165,8 +178,8 @@ fun HistoryScreen(
                                 row.pages.forEachIndexed { j, page ->
                                     item(key = page.key) {
                                         Box(Modifier.animateItem()) {
-                                            SwipeToRemove(first = false, last = last && j == row.pages.lastIndex, onRemove = { onRemove(page.all) }) {
-                                                PageRow(page.visit, first = false, indent = true, onOpen)
+                                            SwipeToDelete(first = false, last = last && j == row.pages.lastIndex, onRemove = { onRemove(page.all) }) {
+                                                PageRow(page.visit, first = false, indent = true, onOpen) { onMenu(pageMenu(it, page.all)) }
                                             }
                                         }
                                     }
@@ -180,44 +193,16 @@ fun HistoryScreen(
     }
 }
 
-/** A row of a day's card that a swipe left removes (the red bin shows under it). */
-@Composable
-private fun SwipeToRemove(first: Boolean, last: Boolean, onRemove: () -> Unit, content: @Composable () -> Unit) {
-    val palette = KoanTheme.colors
-    val state = rememberSwipeToDismissBoxState()
-    LaunchedEffect(state) {
-        // The list keeps a row's state by its key: a row back from Undo comes back swiped away.
-        if (state.currentValue != SwipeToDismissBoxValue.Settled) state.snapTo(SwipeToDismissBoxValue.Settled)
-        snapshotFlow { state.currentValue }.drop(1).collect { if (it == SwipeToDismissBoxValue.EndToStart) onRemove() }
-    }
-    SwipeToDismissBox(
-        state = state,
-        enableDismissFromStartToEnd = false,
-        modifier = Modifier.clip(dayRowShape(first, last)),
-        backgroundContent = {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(palette.Destructive)
-                    .padding(end = SettingsTokens.Padding),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Icon(KoanIcons.Trash, "Remove", tint = palette.OnPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))
-            }
-        },
-    ) { content() }
-}
-
 /** One page: favicon, title, host and time; a desktop mark when it came from the account. */
 @Composable
-private fun PageRow(v: VisitEntity, first: Boolean, indent: Boolean, onOpen: (String) -> Unit) {
+private fun PageRow(v: VisitEntity, first: Boolean, indent: Boolean, onOpen: (String) -> Unit, onPageMenu: (VisitEntity) -> Unit) {
     val palette = KoanTheme.colors
-    RowFrame(first, indent, onClick = { onOpen(v.url) }) {
+    LibraryRowFrame(first, onClick = { onOpen(v.url) }, onLongClick = { onPageMenu(v) }, indent = indent) {
         FaviconTile(v.url)
         Spacer(Modifier.width(DownloadTokens.RowGap))
         Column(Modifier.weight(1f)) {
-            RowTitle(v.title.ifBlank { displayHost(v.url) })
-            RowSubtitle("${displayHost(v.url)} · ${time(v.lastVisit)}")
+            LibraryRowTitle(v.title.ifBlank { displayHost(v.url) })
+            LibraryRowSubtitle("${displayHost(v.url)} · ${time(v.lastVisit)}")
         }
         if (v.fromSync) {
             Spacer(Modifier.width(DownloadTokens.ActionGap))
@@ -228,32 +213,32 @@ private fun PageRow(v: VisitEntity, first: Boolean, indent: Boolean, onOpen: (St
 
 /** A closed tab: favicon, title, host and when it was closed. */
 @Composable
-private fun ClosedRow(c: ClosedTabEntity, first: Boolean, onRestore: (String) -> Unit) {
+private fun ClosedRow(c: ClosedTabEntity, first: Boolean, onRestore: (String) -> Unit, onClosedMenu: (ClosedTabEntity) -> Unit) {
     val url = c.tab.url
-    RowFrame(first, indent = false, onClick = { onRestore(c.koanTabId) }) {
+    LibraryRowFrame(first, onClick = { onRestore(c.koanTabId) }, onLongClick = { onClosedMenu(c) }) {
         FaviconTile(url)
         Spacer(Modifier.width(DownloadTokens.RowGap))
         Column(Modifier.weight(1f)) {
-            RowTitle(c.tab.title.ifBlank { displayHost(url) })
+            LibraryRowTitle(c.tab.title.ifBlank { displayHost(url) })
             val day = dayLabel(Instant.ofEpochMilli(c.closedAt).atZone(ZoneId.systemDefault()).toLocalDate(), LocalDate.now())
-            RowSubtitle("${displayHost(url)} · ${if (day == "Today") time(c.closedAt) else day}")
+            LibraryRowSubtitle("${displayHost(url)} · ${if (day == "Today") time(c.closedAt) else day}")
         }
     }
 }
 
 /** Several pages of one site in a row: favicon, site, "N pages · 14:02–14:35", a chevron that turns as it opens. */
 @Composable
-private fun GroupRow(group: HistoryItem.Group, first: Boolean, open: Boolean, onToggle: () -> Unit) {
+private fun GroupRow(group: HistoryItem.Group, first: Boolean, open: Boolean, onLong: () -> Unit, onToggle: () -> Unit) {
     val palette = KoanTheme.colors
     val turn by animateFloatAsState(if (open) 90f else 0f, tween(HistoryTokens.CHEVRON_MS), label = "chevron")
-    RowFrame(first, indent = false, onClick = onToggle) {
+    LibraryRowFrame(first, onClick = onToggle, onLongClick = onLong) {
         FaviconTile(group.pages.first().visit.url)
         Spacer(Modifier.width(DownloadTokens.RowGap))
         Column(Modifier.weight(1f)) {
-            RowTitle(group.host)
+            LibraryRowTitle(group.host)
             val from = time(group.oldest)
             val to = time(group.newest)
-            RowSubtitle("${group.pages.size} pages · ${if (from == to) to else "$from–$to"}")
+            LibraryRowSubtitle("${group.pages.size} pages · ${if (from == to) to else "$from–$to"}")
         }
         Spacer(Modifier.width(DownloadTokens.ActionGap))
         Icon(
@@ -262,54 +247,6 @@ private fun GroupRow(group: HistoryItem.Group, first: Boolean, open: Boolean, on
             modifier = Modifier.size(HistoryTokens.Chevron).graphicsLayer { rotationZ = turn },
         )
     }
-}
-
-@Composable
-private fun RowFrame(first: Boolean, indent: Boolean, onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
-    Column(
-        Modifier
-            .background(KoanTheme.colors.Card)
-            .padding(horizontal = SettingsTokens.RowInset),
-    ) {
-        if (!first) SettingsDivider()
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(start = if (indent) HistoryTokens.GroupIndent else 0.dp)
-                .padding(vertical = DownloadTokens.RowPaddingV),
-            verticalAlignment = Alignment.CenterVertically,
-            content = content,
-        )
-    }
-}
-
-@Composable
-private fun FaviconTile(url: String) {
-    Box(
-        Modifier
-            .size(DownloadTokens.FileTile)
-            .clip(RoundedCornerShape(DownloadTokens.FileTileRadius))
-            .background(KoanTheme.colors.GroupedRow),
-        contentAlignment = Alignment.Center,
-    ) { Favicon(url, HistoryTokens.Favicon) }
-}
-
-@Composable
-private fun RowTitle(text: String) {
-    Text(
-        text,
-        color = KoanTheme.colors.TextPrimary,
-        fontSize = SettingsTokens.RowTitleSize,
-        fontWeight = FontWeight.Medium,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
-}
-
-@Composable
-private fun RowSubtitle(text: String) {
-    Text(text, color = KoanTheme.colors.TextSecondary, fontSize = SettingsTokens.RowSubtitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
 private fun time(at: Long) = TIME.format(Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault()))

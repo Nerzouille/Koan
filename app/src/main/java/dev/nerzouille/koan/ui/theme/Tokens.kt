@@ -1007,6 +1007,12 @@ object ToastTokens {
     val Rise = 16.dp
 }
 
+/** Settings › Passwords: the round + that adds one by hand. */
+object PasswordTokens {
+    val AddButton = 56.dp
+    val AddMargin = 20.dp
+}
+
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
 object DownloadTokens {
     val FileTile = 40.dp

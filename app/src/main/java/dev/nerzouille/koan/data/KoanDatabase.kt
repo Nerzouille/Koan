@@ -327,6 +327,12 @@ interface KoanDao {
     @Query("UPDATE logins SET timeLastUsed = :at WHERE guid = :guid")
     suspend fun touchLogin(guid: String, at: Long)
 
+    @Query("SELECT * FROM logins WHERE guid IN (:guids)")
+    suspend fun loginsByGuid(guids: List<String>): List<LoginEntity>
+
+    @Query("DELETE FROM logins WHERE guid IN (:guids)")
+    suspend fun deleteLogins(guids: List<String>)
+
     @Query("SELECT * FROM bookmarks WHERE url LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%' ORDER BY createdAt DESC LIMIT :limit")
     suspend fun searchBookmarks(q: String, limit: Int): List<BookmarkEntity>
 
