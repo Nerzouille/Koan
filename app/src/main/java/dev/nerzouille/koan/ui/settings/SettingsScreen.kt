@@ -89,6 +89,8 @@ class SettingsUi(
     /** The status bar stays hidden in the page and the overview. */
     val hideStatusBar: Boolean,
     val onHideStatusBar: (Boolean) -> Unit,
+    val pictureInPicture: Boolean = true,
+    val onPictureInPicture: (Boolean) -> Unit = {},
     val email: String?,
     val status: DrawerStatus,
     val onSyncNow: () -> Unit,
@@ -219,6 +221,12 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
             subtitle = "Swipe down from the top edge to see it",
             onClick = { ui.onHideStatusBar(!ui.hideStatusBar) },
         ) { KoanToggle(checked = ui.hideStatusBar, onCheckedChange = if (on) ui.onHideStatusBar else null) }
+        SettingsDivider()
+        SettingsRow(
+            KoanIcons.Play, "Picture-in-picture", on,
+            subtitle = "A fullscreen video keeps playing in a small window when you leave Koan",
+            onClick = { ui.onPictureInPicture(!ui.pictureInPicture) },
+        ) { KoanToggle(checked = ui.pictureInPicture, onCheckedChange = if (on) ui.onPictureInPicture else null) }
 
         SettingsSection("Privacy")
         SettingsRow(

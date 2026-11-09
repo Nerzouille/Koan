@@ -204,6 +204,37 @@ object KoanIcons {
         }
     }
     val Pause: ImageVector by lazy { stroked("pause") { moveTo(9f, 6f); lineTo(9f, 18f); moveTo(15f, 6f); lineTo(15f, 18f) } }
+    val Volume: ImageVector by lazy {
+        stroked("volume") {
+            moveTo(4f, 9.5f); lineTo(7.5f, 9.5f); lineTo(12f, 5.5f); lineTo(12f, 18.5f); lineTo(7.5f, 14.5f); lineTo(4f, 14.5f); close()
+            moveTo(15.5f, 9f); arcTo(4f, 4f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 15.5f, y1 = 15f)
+            moveTo(18f, 6.5f); arcTo(7.5f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 18f, y1 = 17.5f)
+        }
+    }
+    val Rotate: ImageVector by lazy {
+        stroked("rotate") {
+            moveTo(7f, 4f); lineTo(17f, 4f); lineTo(17f, 20f); lineTo(7f, 20f); close()
+            moveTo(20f, 9f); arcTo(6f, 6f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 20f, y1 = 15f)
+        }
+    }
+    val ExitFullscreen: ImageVector by lazy {
+        stroked("exit-fullscreen") {
+            moveTo(9f, 4f); lineTo(9f, 9f); lineTo(4f, 9f)
+            moveTo(15f, 4f); lineTo(15f, 9f); lineTo(20f, 9f)
+            moveTo(9f, 20f); lineTo(9f, 15f); lineTo(4f, 15f)
+            moveTo(15f, 20f); lineTo(15f, 15f); lineTo(20f, 15f)
+        }
+    }
+    /** "Use the site's own controls": a hand pointer. */
+    val SiteControls: ImageVector by lazy {
+        stroked("site-controls") {
+            moveTo(9f, 11f); lineTo(9f, 5f); arcTo(1.5f, 1.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 12f, y1 = 5f); lineTo(12f, 10f)
+            moveTo(12f, 9.5f); lineTo(15f, 10f); arcTo(2.5f, 2.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 17f, y1 = 12.5f); lineTo(17f, 16f)
+            arcTo(5f, 5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 12f, y1 = 21f); lineTo(11f, 21f)
+            arcTo(4f, 4f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 7.5f, y1 = 18.5f); lineTo(5.5f, 14f)
+            arcTo(1.4f, 1.4f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 8f, y1 = 12.8f); lineTo(9f, 14f)
+        }
+    }
     val Play: ImageVector by lazy { stroked("play") { moveTo(8f, 5f); lineTo(19f, 12f); lineTo(8f, 19f); close() } }
     val File: ImageVector by lazy {
         stroked("file") {

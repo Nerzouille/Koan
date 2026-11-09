@@ -85,6 +85,15 @@ class Settings(context: Context) {
         }
     }
 
+    private val pip = booleanPreferencesKey("picture_in_picture")
+
+    /** Leaving Koan while a fullscreen video plays keeps it playing in a small window; on by default. */
+    val pictureInPicture: Flow<Boolean> = store.data.map { it[pip] ?: true }
+
+    suspend fun setPictureInPicture(on: Boolean) {
+        store.edit { it[pip] = on }
+    }
+
     private val downloads = stringPreferencesKey("download_location")
 
     /** Where downloads go: a folder the owner picked (a content:// tree), or null = the phone's Download folder. */

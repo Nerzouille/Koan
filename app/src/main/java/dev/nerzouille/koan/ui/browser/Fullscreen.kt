@@ -22,7 +22,7 @@ import mozilla.components.browser.state.selector.findTab
  * status bar inset) and the bar (hidden).
  */
 @Composable
-fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boolean): Boolean {
+fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boolean, rotated: Boolean = false): Boolean {
     val fullScreen by components.store.observeSlice(tabId) { s -> tabId?.let { s.findTab(it) }?.content?.fullScreen == true }
     // The video's shape, when the page told it (a landscape video unless it says otherwise).
     val portrait by components.store.observeSlice(tabId) { s ->
@@ -31,10 +31,11 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
         } == true
     }
     val activity = LocalContext.current as? Activity
-    LaunchedEffect(fullScreen, portrait) {
+    // [rotated]: the video layer's rotate button turns it the other way.
+    LaunchedEffect(fullScreen, portrait, rotated) {
         activity?.requestedOrientation = when {
             !fullScreen -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            portrait -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+            portrait != rotated -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
             else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         }
     }

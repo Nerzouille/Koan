@@ -313,6 +313,7 @@ fun KoanOverlays(
     val syncBack by components.settings.syncBack.collectAsStateWithLifecycle(SyncBackChoice())
     val syncBackEdits by components.settings.syncBackPasswordEdits.collectAsStateWithLifecycle(false)
     val syncWriteStatus by components.syncWrite.status.collectAsStateWithLifecycle()
+    val pictureInPicture by components.settings.pictureInPicture.collectAsStateWithLifecycle(true)
     val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
     // uBlock Origin on this page: on or off, and its badge (the tab's own, else the default).
     val ublockUi by components.store.observeSlice(activeTabId) { s ->
@@ -958,6 +959,8 @@ fun KoanOverlays(
                 syncWriteStatus = syncWriteStatus,
                 hideStatusBar = hideStatusBar,
                 onHideStatusBar = { on -> scope.launch { components.settings.setHideStatusBar(on) } },
+                pictureInPicture = pictureInPicture,
+                onPictureInPicture = { on -> scope.launch { components.settings.setPictureInPicture(on) } },
                 email = signedIn?.email,
                 status = drawerStatus,
                 onSyncNow = { components.sync.syncNow() },

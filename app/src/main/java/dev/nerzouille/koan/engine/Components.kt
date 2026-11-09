@@ -121,6 +121,9 @@ class Components(context: Context) {
     val downloadsUseCases by lazy { DownloadsUseCases(store, downloadFiles) }
     val downloads by lazy { Downloads(appContext, downloadFiles, downloadsUseCases) }
 
+    /** The activity's picture-in-picture (MainActivity): whether Koan is in its PiP window. */
+    val pip = MutableStateFlow<PictureInPicture?>(null)
+
     /** A download Koan didn't see a tap for, waiting on its card (KoanOverlays). */
     val downloadAsk = MutableStateFlow<DownloadAsk?>(null)
 

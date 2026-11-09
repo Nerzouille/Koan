@@ -1,5 +1,7 @@
 package dev.nerzouille.koan
 
+import dev.nerzouille.koan.engine.PictureInPicture
+import androidx.lifecycle.lifecycleScope
 import android.app.SearchManager
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
@@ -74,6 +76,7 @@ class MainActivity : FragmentActivity() {
         components.startExtensions()
         components.startMedia()
         components.watchDownloadLocation()
+        pip = PictureInPicture(this, components.store, components.settings, lifecycleScope).also { components.pip.value = it }
         startDownloads(components)
         // A fresh start from a link (default browser, share); a recreated activity already had it.
         if (savedInstanceState == null) handleIntent(intent)
@@ -222,6 +225,23 @@ class MainActivity : FragmentActivity() {
             val after = components.settings.startPageAfter.first().millis ?: return@launch
             if (System.currentTimeMillis() - at >= after) components.startPage.value = true
         }
+    }
+
+    private var pip: PictureInPicture? = null
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        pip?.onUserLeaveHint()
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        pip?.onModeChanged(isInPictureInPictureMode)
+    }
+
+    override fun onDestroy() {
+        pip?.release()
+        super.onDestroy()
     }
 
     // High refresh only while the user interacts (and the animations that follow); see RefreshBooster.

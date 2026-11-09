@@ -7,6 +7,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.ImageBitmap
 import dev.nerzouille.koan.ui.browser.TranslateOfferHost
+import dev.nerzouille.koan.ui.browser.downloadableVideo
+import dev.nerzouille.koan.ui.browser.VideoUi
+import dev.nerzouille.koan.ui.browser.VideoControls
 import androidx.compose.runtime.mutableStateSetOf
 import dev.nerzouille.koan.ui.overview.LocalCardHero
 import dev.nerzouille.koan.ui.overview.PageHeroLayer
@@ -725,7 +728,20 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // overview, the menu and other sheets, Settings, the tour…) brings the status bar back. The
     // page keeps its size meanwhile (BrowserScreen's toTop): the bar draws over its top row.
     val pageOnly = !overviewVisible && !covered && !editing
-    val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly)
+    // The video layer's rotate button, and "the site's controls" (this layer steps aside): until
+    // the next fullscreen.
+    var videoRotated by remember { mutableStateOf(false) }
+    var siteControls by remember { mutableStateOf(false) }
+    val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly, videoRotated)
+    LaunchedEffect(fullScreen) {
+        if (!fullScreen) {
+            videoRotated = false
+            siteControls = false
+        }
+    }
+    val pipHost by components.pip.collectAsStateWithLifecycle()
+    val noPip = remember { kotlinx.coroutines.flow.MutableStateFlow(false) }
+    val inPip by (pipHost?.inPip ?: noPip).collectAsStateWithLifecycle()
     val heroCard = when (val pick = heroPick) {
         NO_CARD -> null
         null -> currentCard()?.let { (si, i) -> spaces[si].stack[i].id }
@@ -752,6 +768,46 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             swipe = tabSwipe,
         )
         closingShot?.let { ClosingPage(it, closingProgress, toTop = hideStatus) }
+        // A fullscreen video: Koan's own controls over it (not in the PiP window).
+        if (fullScreen && !inPip && !siteControls) {
+            val media by components.store.observeSlice(activeTabId) { st -> activeTabId?.let { st.findTab(it) }?.mediaSessionState }
+            val m = media
+            if (m != null) {
+                var positionAt by remember { mutableStateOf(android.os.SystemClock.uptimeMillis()) }
+                LaunchedEffect(m.positionState) {
+                    positionAt = android.os.SystemClock.uptimeMillis()
+                }
+                VideoControls(
+                    VideoUi(
+                        controller = m.controller,
+                        playing = m.playbackState == mozilla.components.concept.engine.mediasession.MediaSession.PlaybackState.PLAYING,
+                        duration = m.positionState.duration.takeIf { it.isFinite() } ?: 0.0,
+                        position = m.positionState.position,
+                        positionAt = positionAt,
+                        rate = m.positionState.playbackRate,
+                        muted = m.muted,
+                        downloadUrl = downloadableVideo(m.elementMetadata?.source),
+                    ),
+                    onExit = { activeTabId?.let { components.sessionUseCases.exitFullscreen(it) } },
+                    onRotate = { videoRotated = !videoRotated },
+                    onDownload = { url ->
+                        activeTabId?.let { id ->
+                            val page = components.store.state.findTab(id)?.content?.url
+                            components.store.dispatch(
+                                mozilla.components.browser.state.action.ContentAction.UpdateDownloadAction(
+                                    id, mozilla.components.browser.state.state.content.DownloadState(url, skipConfirmation = true, referrerUrl = page),
+                                ),
+                            )
+                            toasts.show(Toast("Downloading the video"))
+                        }
+                    },
+                    onSiteControls = {
+                        siteControls = true
+                        toasts.show(Toast("The site's controls", detail = "Koan's come back next time the video goes fullscreen"))
+                    },
+                )
+            }
+        }
         // "Hide status bar", with the status bar back over the page (search sheet, menus): a strip
         // of the page view's colour fades in behind it, so its icons never sit on the page. Under
         // the sheets' scrim, so it dims with the page.
