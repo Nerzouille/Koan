@@ -1,7 +1,8 @@
 package dev.nerzouille.koan.ui.kit
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animate
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.Job
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
@@ -58,26 +59,46 @@ fun SwipeRow(
 ) {
     val palette = KoanTheme.colors
     val scope = rememberCoroutineScope()
-    val offset = remember { Animatable(0f) }
-    var raw by remember { mutableFloatStateOf(0f) }
+    // One owner for the offset: the drag writes it, the settle animation writes it, nothing else.
+    // Read only in layer / draw lambdas, so dragging never recomposes.
+    var offset by remember { mutableFloatStateOf(0f) }
+    val gesture = remember { Gesture() }
     var width by remember { mutableIntStateOf(0) }
     val nudge = with(LocalDensity.current) { SwipeTokens.Nudge.toPx() }
     val delete by rememberUpdatedState(onDelete)
     val hide by rememberUpdatedState(onHide)
 
+    fun free(r: Float) = if (r < 0) delete != null else hide != null
+
     // A side without an action: the drag is damped and never goes past [nudge].
     fun shown(r: Float): Float {
-        val free = if (r < 0) delete != null else hide != null
-        if (free) return r
+        if (free(r)) return r
         val a = abs(r)
-        return (nudge * a / (a + nudge)) * (if (r < 0) -1f else 1f)
+        return nudge * a / (a + nudge) * (if (r < 0) -1f else 1f)
+    }
+
+    // The drag that gives [d] on screen (a new drag picks up where the row is).
+    fun rawFor(d: Float): Float {
+        if (free(d)) return d
+        val a = abs(d).coerceAtMost(nudge * 0.99f)
+        return nudge * a / (nudge - a) * (if (d < 0) -1f else 1f)
+    }
+
+    fun settle(to: Float, then: (suspend () -> Unit)? = null) {
+        gesture.settle?.cancel()
+        gesture.settle = scope.launch {
+            animate(offset, to, animationSpec = if (to == 0f) SwipeTokens.Back else tween(SwipeTokens.OUT_MS)) { v, _ -> offset = v }
+            then?.invoke()
+        }
     }
 
     val drag = rememberDraggableState { delta ->
-        raw += delta
-        val target = shown(raw)
-        scope.launch { offset.snapTo(target) }
+        gesture.raw += delta
+        offset = shown(gesture.raw)
     }
+
+    // Selection mode began (or the row was turned off) mid-swipe: back in place.
+    LaunchedEffect(enabled) { if (!enabled && offset != 0f) settle(0f) }
 
     Box(
         modifier
@@ -90,7 +111,7 @@ fun SwipeRow(
             Modifier
                 .matchParentSize()
                 // Only the part the row uncovers: rows on the page background are see-through.
-                .drawWithContent { val o = offset.value; if (o < 0f) clipRect(left = size.width + o) { this@drawWithContent.drawContent() } }
+                .drawWithContent { val o = offset; if (o < 0f) clipRect(left = size.width + o) { this@drawWithContent.drawContent() } }
                 .background(if (onDelete != null) palette.Destructive else palette.Glass)
                 .padding(horizontal = SettingsTokens.Padding),
             contentAlignment = Alignment.CenterEnd,
@@ -100,7 +121,7 @@ fun SwipeRow(
         Box(
             Modifier
                 .matchParentSize()
-                .drawWithContent { val o = offset.value; if (o > 0f) clipRect(right = o) { this@drawWithContent.drawContent() } }
+                .drawWithContent { val o = offset; if (o > 0f) clipRect(right = o) { this@drawWithContent.drawContent() } }
                 .background(palette.Glass)
                 .padding(horizontal = SettingsTokens.Padding),
             contentAlignment = Alignment.CenterStart,
@@ -109,26 +130,38 @@ fun SwipeRow(
         }
         Box(
             Modifier
-                .graphicsLayer { translationX = offset.value }
+                .graphicsLayer { translationX = offset }
                 .draggable(
                     drag,
                     Orientation.Horizontal,
                     enabled = enabled,
+                    onDragStarted = {
+                        gesture.settle?.cancel()
+                        gesture.raw = rawFor(offset)
+                    },
+                    // Also called when the gesture is cancelled: the row always settles.
                     onDragStopped = { velocity ->
-                        val r = raw
-                        raw = 0f
+                        val r = gesture.raw
+                        gesture.raw = 0f
                         val action = if (r < 0) delete else hide
                         val far = abs(r) > width * SwipeTokens.COMMIT
                         val flung = abs(velocity) > SwipeTokens.FLING && (velocity < 0) == (r < 0)
-                        if (action != null && r != 0f && (far || flung)) {
-                            offset.animateTo(if (r < 0) -width.toFloat() else width.toFloat(), tween(SwipeTokens.OUT_MS))
-                            action()
-                            if (springBack) offset.animateTo(0f, SwipeTokens.Back)
+                        if (action != null && r != 0f && width > 0 && (far || flung)) {
+                            settle(if (r < 0) -width.toFloat() else width.toFloat()) {
+                                action()
+                                if (springBack) settle(0f)
+                            }
                         } else {
-                            offset.animateTo(0f, SwipeTokens.Back)
+                            settle(0f)
                         }
                     },
                 ),
         ) { content() }
     }
+}
+
+/** A row's gesture bookkeeping (not state: nothing draws from it). */
+private class Gesture {
+    var raw = 0f
+    var settle: Job? = null
 }

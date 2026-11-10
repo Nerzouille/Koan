@@ -937,6 +937,8 @@ object SettingsTokens {
     val TitleBottom = 12.dp
     /** The large title fades out over the first part of the collapse, the compact one in over the rest. */
     const val BAR_TITLE_FROM = 0.6f
+    /** The large title starts fading only past this share of its height scrolled. */
+    const val TITLE_FADE_FROM = 0.25f
     /** The bar's bottom hairline fades in over this much scroll once the title is gone. */
     val BarHairlineFade = 12.dp
     val SectionTop = 22.dp
@@ -1015,6 +1017,8 @@ object PasswordTokens {
     const val GREY_CONTRAST = 0.8f
     /** Grey to colour once unlocked, and back when it locks. */
     const val COLOUR_MS = 220
+    /** An opaque square icon keeps its square, with corners this share of its size. */
+    const val TILE_RADIUS = 0.24f
 }
 
 /** The library pages' selection mode (ui/kit/Selection): header, check marks, the bottom action bar. */

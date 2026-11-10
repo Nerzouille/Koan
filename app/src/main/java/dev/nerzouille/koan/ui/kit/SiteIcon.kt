@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.kit
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -22,49 +21,49 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
-import dev.nerzouille.koan.favicon.IconStore
+import dev.nerzouille.koan.favicon.SiteGlyph
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.PasswordTokens
 
 /**
- * A site's real favicon, bare (no tile, no backing), in greyscale with a little less contrast so it
- * sits with plain glyphs; [colour] true crossfades it to its own colours. No favicon (or not loaded
- * yet): [fallback], drawn like a row glyph. Never a letter tile.
+ * A site's favicon as the Passwords pages show it: only one already on the phone (never fetched,
+ * [SiteGlyph]), cut to its drawing so every icon fills the same [size] box, in greyscale with a
+ * little less contrast so it sits with plain glyphs; an opaque tile keeps its square, with rounded
+ * corners. [colour] true crossfades it to its own colours. No usable icon (none on the phone, or
+ * one that can't be seen on this page): [fallback], drawn like a row glyph. Never a letter tile.
  */
 @Composable
 fun SiteIcon(url: String, size: Dp, fallback: ImageVector, colour: Boolean = false, modifier: Modifier = Modifier) {
-    val key = remember(url) { IconStore.keyFor(url, null) }
-    var icon by remember(key) { mutableStateOf(key?.let { IconStore.cached(it) }) }
-    val reveal = remember(key) { Animatable(if (icon != null) 1f else 0f) }
-    if (icon == null && key != null) {
-        LaunchedEffect(key) {
-            IconStore.load(url, null)?.let {
-                icon = it
-                reveal.animateTo(1f, tween(PasswordTokens.COLOUR_MS))
-            }
-        }
-    }
+    var glyph by remember(url) { mutableStateOf(SiteGlyph.cached(url)) }
+    LaunchedEffect(url) { if (glyph == null) glyph = SiteGlyph.load(url) }
     val tint by animateFloatAsState(if (colour) 1f else 0f, tween(PasswordTokens.COLOUR_MS), label = "colour")
+    val dark = KoanTheme.colors.isDark
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
-        val loaded = icon
-        if (loaded == null) {
+        val g = glyph?.takeIf { if (dark) it.seenOnDark else it.seenOnLight }
+        if (g == null) {
             Icon(fallback, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(size))
             return@Box
         }
-        // Grey underneath, colour over it: the crossfade is a layer's alpha, never a recomposition.
-        Image(
-            loaded.image, null,
-            contentScale = ContentScale.Fit,
-            filterQuality = FilterQuality.Medium,
-            colorFilter = GREY,
-            modifier = Modifier.size(size).graphicsLayer { alpha = reveal.value * (1f - tint) },
-        )
-        Image(
-            loaded.image, null,
-            contentScale = ContentScale.Fit,
-            filterQuality = FilterQuality.Medium,
-            modifier = Modifier.size(size).graphicsLayer { alpha = reveal.value * tint },
-        )
+        val painter = remember(g) { BitmapPainter(g.image, g.src, g.size, FilterQuality.Medium) }
+        val shape = if (g.tile) RoundedCornerShape(size * PasswordTokens.TILE_RADIUS) else RectangleShape
+        Box(Modifier.size(size).clip(shape), contentAlignment = Alignment.Center) {
+            // Grey underneath, colour over it: the crossfade is a layer's alpha, never a recomposition.
+            Image(
+                painter, null,
+                contentScale = if (g.tile) ContentScale.Crop else ContentScale.Fit,
+                colorFilter = GREY,
+                modifier = Modifier.size(size).graphicsLayer { alpha = 1f - tint },
+            )
+            Image(
+                painter, null,
+                contentScale = if (g.tile) ContentScale.Crop else ContentScale.Fit,
+                modifier = Modifier.size(size).graphicsLayer { alpha = tint },
+            )
+        }
     }
 }
 

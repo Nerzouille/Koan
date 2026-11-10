@@ -82,6 +82,18 @@ object FaviconLoader {
 
     fun cached(cacheKey: String): Bitmap? = memoryCache.get(cacheKey)
 
+    /**
+     * Koan: only an icon already on the phone (in memory, or on disk for a site seen before, from
+     * tabs, History or Essentials). Never the network, never a logo service: the Passwords list
+     * must not tell anyone which sites have a saved login.
+     */
+    fun cachedOnly(pageURL: String): Bitmap? {
+        val key = FaviconResolver.cacheKey(pageURL, null, null) ?: return null
+        cached(key)?.let { return it }
+        val known = remembered(key) ?: return null
+        return diskCachedBitmap(known)
+    }
+
     suspend fun image(pageURL: String, directURL: String?, dataURL: String? = null): Bitmap? {
         val key = FaviconResolver.cacheKey(pageURL, directURL, dataURL) ?: return null
         cached(key)?.let { return it }
