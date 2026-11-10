@@ -1,5 +1,11 @@
 package dev.nerzouille.koan.ui
 
+import dev.nerzouille.koan.ui.theme.PageTokens
+import dev.nerzouille.koan.ui.browser.ClosingPage
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.runtime.mutableStateSetOf
 import dev.nerzouille.koan.ui.overview.LocalCardHero
 import dev.nerzouille.koan.ui.overview.PageHeroLayer
@@ -258,6 +264,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // The card the overview flies to or from: the current tab's, unless a tap just picked another
     // (until the current tab follows) or a tab with no card (NO_CARD).
     var heroPick by remember { mutableStateOf<String?>(null) }
+
+    /** Back closing a tab: its page on its way out (ClosingPage), over the next tab coming up. */
+    var closingShot by remember { mutableStateOf<ImageBitmap?>(null) }
+    val closingProgress = remember { Animatable(0f) }
     LaunchedEffect(activeTabId) { heroPick = null }
     // Tabs closed in the overview that the spaces may still list for a moment (Room is async):
     // never opened again unless Undo brings them back.
@@ -662,6 +672,20 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         val stack = spaces[si].stack
         val next = stack.getOrNull(i + 1)?.first ?: stack.getOrNull(i - 1)?.first
         scope.launch {
+            // Onto another tab: the page shrinks and slides away first (the overview and another
+            // app have their own motion).
+            if (opener !is Opener.App && (parent != null || next != null)) {
+                val shot = tabs.grabScreen(id, PageTokens.CLOSE_GRAB_MS)?.asImageBitmap()
+                    ?: tab.thumbnailKey?.let { ThumbnailStore.cached(it) ?: ThumbnailStore.load(it) }
+                if (shot != null) {
+                    closingShot = shot
+                    closingProgress.snapTo(0f)
+                    launch {
+                        closingProgress.animateTo(1f, tween(PageTokens.CLOSE_MS, easing = FastOutSlowInEasing))
+                        closingShot = null
+                    }
+                }
+            }
             when {
                 opener is Opener.App -> {
                     // Coming back to Koan later shows the tab next to it.
@@ -724,6 +748,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             toTop = hideStatus,
             swipe = tabSwipe,
         )
+        closingShot?.let { ClosingPage(it, closingProgress, toTop = hideStatus) }
         // "Hide status bar", with the status bar back over the page (search sheet, menus): a strip
         // of the page view's colour fades in behind it, so its icons never sit on the page. Under
         // the sheets' scrim, so it dims with the page.

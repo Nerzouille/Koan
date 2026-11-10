@@ -1183,6 +1183,10 @@ object ThumbTokens {
 
 /** Page view: the cover over the engine while a tab comes up, and the dock hiding on scroll. */
 object PageTokens {
+    /** Back closing a tab: the page shrinking and sliding away (ClosingPage), and the most its grab may wait. */
+    const val CLOSE_MS = 380
+    const val CLOSE_GRAB_MS = 150L
+
     /** The cover fades out once the live page has painted. */
     const val COVER_FADE_MS = 140
 
