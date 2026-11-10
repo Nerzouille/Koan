@@ -287,6 +287,8 @@ object ToggleTokens {
 /** Primary (black / white) and destructive (red text) buttons. */
 object ButtonTokens {
     val Height = 50.dp
+    /** Between a card's two choices side by side. */
+    val ChoiceGap = 10.dp
     val PaddingH = 28.dp
     val TextSize = 16.sp
     val IconGap = 10.dp
@@ -1011,6 +1013,10 @@ object ToastTokens {
 
 /** Settings › Passwords: site icons on the list and a site's page. */
 object PasswordTokens {
+    /** The round + that adds one by hand, floating at the bottom right. */
+    val AddButton = 56.dp
+    val AddMargin = 20.dp
+    val AddShadow = 6.dp
     /** The bare favicon in place of the key glyph (SettingsTokens.RowGlyph). */
     val Favicon = 20.dp
     /** Greyscale icons sit with the key glyphs: contrast scaled down around mid-grey. */

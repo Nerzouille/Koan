@@ -31,7 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.PrimaryButton
-import dev.nerzouille.koan.ui.kit.QuietButton
+import dev.nerzouille.koan.ui.kit.CardChoices
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
@@ -125,8 +125,7 @@ fun LoginSheet(origin: String, logins: List<Login>, interactive: Boolean, onUse:
                 }
             }
         }
-        PrimaryButton("Use", onClick = { if (interactive) chosen?.let(onUse) }, modifier = Modifier.fillMaxWidth())
-        QuietButton("Not now", onClick = { if (interactive) onNotNow() }, modifier = Modifier.fillMaxWidth())
+        CardChoices("Use", interactive, onAction = { chosen?.let(onUse) }, onCancel = onNotNow, cancel = "Not now")
     }
 }
 
@@ -150,8 +149,7 @@ fun SaveLoginCard(origin: String, username: String, update: Boolean, interactive
             "Kept encrypted on this phone only; it isn't added to your Mozilla account.",
             color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize,
         )
-        PrimaryButton("Save in Koan", onClick = { if (interactive) onSave() }, modifier = Modifier.fillMaxWidth())
-        QuietButton("Not now", onClick = { if (interactive) onNotNow() }, modifier = Modifier.fillMaxWidth())
+        CardChoices("Save in Koan", interactive, onAction = onSave, onCancel = onNotNow, cancel = "Not now")
     }
 }
 

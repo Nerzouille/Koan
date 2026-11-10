@@ -355,6 +355,14 @@ private fun Buttons(
     third: Pair<String, () -> Unit>? = null,
 ) {
     Spacer(Modifier.height(SheetTokens.Gap * 2))
+    // Two choices: side by side, the way out on the left (one rule for every card).
+    if (secondary != null && third == null) {
+        Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
+            SecondaryButton(secondary.first, interactive, secondary.second, Modifier.weight(1f))
+            PrimaryButton(primary.first, onClick = { if (interactive) primary.second() }, modifier = Modifier.weight(1f))
+        }
+        return
+    }
     val others = listOfNotNull(secondary, third)
     if (others.isNotEmpty()) {
         Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
