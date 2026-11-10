@@ -162,6 +162,7 @@ conflict is handled without data loss.
 **Media**
 - ~~**Background audio**: audio/video keeps playing with the screen off or Koan in the background, with media controls in the notification.~~ Done in v0.2.0.
 - **Picture-in-picture** for video when leaving Koan.
+- **Video mini-player** (docs/VIDEO_PLAYER.md §6, built once on 2026-11-11 and set aside; a copy of that version is in `reference/mini-player-2026-11-11/`, local only): minimise a fullscreen web video to a card above the dock, visible all over Koan. Dropped for now because the page's own player kept playing in place under the card (Commons' modal player): it needs the page's player hidden or paused while minimised, and a live thumbnail (pages from another origin never give frames).
 
 **Phone → PC**
 - **Send to PC now**: use Firefox Accounts "Send Tab to Device" (Koan registers as a device on the Mozilla account) so the page opens immediately on Zen desktop. Needs verification that Zen receives sent tabs (it's Firefox-based, so it should).

@@ -235,6 +235,83 @@ object KoanIcons {
             arcTo(1.4f, 1.4f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 8f, y1 = 12.8f); lineTo(9f, 14f)
         }
     }
+    val Fullscreen: ImageVector by lazy {
+        stroked("fullscreen") {
+            moveTo(4f, 9f); lineTo(4f, 4f); lineTo(9f, 4f)
+            moveTo(15f, 4f); lineTo(20f, 4f); lineTo(20f, 9f)
+            moveTo(4f, 15f); lineTo(4f, 20f); lineTo(9f, 20f)
+            moveTo(20f, 15f); lineTo(20f, 20f); lineTo(15f, 20f)
+        }
+    }
+    val VolumeOff: ImageVector by lazy {
+        stroked("volume-off") {
+            moveTo(4f, 9.5f); lineTo(7.5f, 9.5f); lineTo(12f, 5.5f); lineTo(12f, 18.5f); lineTo(7.5f, 14.5f); lineTo(4f, 14.5f); close()
+            moveTo(15.5f, 9.5f); lineTo(20.5f, 14.5f); moveTo(20.5f, 9.5f); lineTo(15.5f, 14.5f)
+        }
+    }
+    /** Picture-in-picture: a screen with a small window in its corner. */
+    val Pip: ImageVector by lazy {
+        stroked("pip") {
+            moveTo(20f, 11f); lineTo(20f, 6f); lineTo(4f, 6f); lineTo(4f, 18f); lineTo(10f, 18f)
+            moveTo(13f, 14f); lineTo(20f, 14f); lineTo(20f, 19f); lineTo(13f, 19f); close()
+        }
+    }
+    val Unlock: ImageVector by lazy {
+        stroked("unlock") {
+            moveTo(6f, 11f); lineTo(18f, 11f); lineTo(18f, 20f); lineTo(6f, 20f); close()
+            moveTo(9f, 11f); lineTo(9f, 7.5f)
+            arcTo(3f, 3f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 14.8f, y1 = 6.4f)
+        }
+    }
+    /** Speed: a double chevron (the 2× badge). */
+    val Speed: ImageVector by lazy {
+        stroked("speed") { moveTo(6f, 7f); lineTo(11f, 12f); lineTo(6f, 17f); moveTo(13f, 7f); lineTo(18f, 12f); lineTo(13f, 17f) }
+    }
+    // ---- the video player's primary controls: filled (docs/VIDEO_PLAYER.md feedback) ----
+    /** Play, filled, with softly rounded corners; centred by its bounds (the player adds the optical shift). */
+    val PlayFilled: ImageVector by lazy {
+        solid("play-filled") { moveTo(6.75f, 5.5f); lineTo(17.25f, 12f); lineTo(6.75f, 18.5f); close() }
+    }
+    /** Pause, two filled bars. */
+    val PauseFilled: ImageVector by lazy {
+        solid("pause-filled") {
+            moveTo(7f, 5.5f); lineTo(9.5f, 5.5f); lineTo(9.5f, 18.5f); lineTo(7f, 18.5f); close()
+            moveTo(14.5f, 5.5f); lineTo(17f, 5.5f); lineTo(17f, 18.5f); lineTo(14.5f, 18.5f); close()
+        }
+    }
+    /** The ring of replay-10, bolder, with a solid arrow head (the "10" is drawn over it). */
+    val SkipBackFilled: ImageVector by lazy {
+        ring("replay-10-filled", start = 8.5f, positive = false) { moveTo(14.4f, 1.2f); lineTo(10.6f, 4f); lineTo(14.4f, 6.8f); close() }
+    }
+    val SkipAheadFilled: ImageVector by lazy {
+        ring("forward-10-filled", start = 15.5f, positive = true) { moveTo(9.6f, 1.2f); lineTo(13.4f, 4f); lineTo(9.6f, 6.8f); close() }
+    }
+    /** Replay: the reload arc, bolder, with a solid arrow head. */
+    val ReplayFilled: ImageVector by lazy {
+        ImageVector.Builder("replay-filled", 24.dp, 24.dp, 24f, 24f).apply {
+            path(stroke = SolidColor(Color.White), strokeLineWidth = 2.6f, strokeLineCap = StrokeCap.Round) {
+                moveTo(19f, 12f)
+                arcTo(7f, 7f, 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 16.2f, y1 = 6.4f)
+            }
+            path(fill = SolidColor(Color.White), stroke = SolidColor(Color.White), strokeLineWidth = 1.2f, strokeLineJoin = StrokeJoin.Round) {
+                moveTo(19.6f, 3.6f); lineTo(19.6f, 9.4f); lineTo(13.8f, 9.4f); close()
+            }
+        }.build()
+    }
+    /** Headphones (audio only). */
+    val Headphones: ImageVector by lazy {
+        ImageVector.Builder("headphones", 24.dp, 24.dp, 24f, 24f).apply {
+            path(stroke = SolidColor(Color.White), strokeLineWidth = 2f, strokeLineCap = StrokeCap.Round) {
+                moveTo(4.5f, 15f); lineTo(4.5f, 12f)
+                arcTo(7.5f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 19.5f, y1 = 12f)
+                lineTo(19.5f, 15f)
+            }
+            path(fill = SolidColor(Color.White)) {
+                moveTo(4f, 14f); lineTo(8f, 14f); lineTo(8f, 20f); lineTo(4f, 20f); close()
+                moveTo(16f, 14f); lineTo(20f, 14f); lineTo(20f, 20f); lineTo(16f, 20f); close()
+            }
+        }.build()
+    }
     val Play: ImageVector by lazy { stroked("play") { moveTo(8f, 5f); lineTo(19f, 12f); lineTo(8f, 19f); close() } }
     val File: ImageVector by lazy {
         stroked("file") {
@@ -344,6 +421,28 @@ object KoanIcons {
             fill = SolidColor(Color.White),
         ).build()
     }
+
+    /** A filled shape, its outline stroked round too so its corners are soft. */
+    private fun solid(name: String, block: PathBuilder.() -> Unit): ImageVector =
+        ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {
+            path(
+                fill = SolidColor(Color.White),
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.5f,
+                strokeLineJoin = StrokeJoin.Round,
+                pathBuilder = block,
+            )
+        }.build()
+
+    /** A ±10 ring (r 8 around the centre) from [start] to the top, and its solid [head]. */
+    private fun ring(name: String, start: Float, positive: Boolean, head: PathBuilder.() -> Unit): ImageVector =
+        ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {
+            path(stroke = SolidColor(Color.White), strokeLineWidth = 2.6f, strokeLineCap = StrokeCap.Round) {
+                moveTo(start, 4.9f)
+                arcTo(8f, 8f, 0f, isMoreThanHalf = true, isPositiveArc = positive, x1 = 12f, y1 = 4f)
+            }
+            path(fill = SolidColor(Color.White), stroke = SolidColor(Color.White), strokeLineWidth = 1.2f, strokeLineJoin = StrokeJoin.Round, pathBuilder = head)
+        }.build()
 
     private fun stroked(name: String, block: PathBuilder.() -> Unit): ImageVector =
         ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {

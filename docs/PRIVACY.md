@@ -44,6 +44,13 @@ Apart from the sites you open, Koan only connects to these:
 | GitHub (`github.com`) | Each time you open Settings › About Koan | A request for Koan's public releases feed, to tell you whether an update exists. Never in the background. |
 | Mozilla Add-ons (`addons.mozilla.org`) | On first start, to install uBlock Origin, and for its updates | A normal download request. |
 
+A link to a video file (`…/clip.mp4`) that another app opens with Koan first gets a short `HEAD`
+request to that same address, to ask whether it really is a video (Koan's player) or a page (a
+tab). It goes to the site you opened, nowhere else.
+
+For the media notification, the poster image a page gives its video (when the page sets no
+artwork of its own) is downloaded once from the address the page names, like the page would.
+
 uBlock Origin then downloads its filter lists from its own sources, as it does in any browser.
 
 GeckoView, Firefox's engine that Koan runs on, also uses Firefox's standard protection services,

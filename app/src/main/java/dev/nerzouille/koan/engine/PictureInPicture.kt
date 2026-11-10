@@ -38,13 +38,63 @@ class PictureInPicture(private val activity: Activity, private val store: Browse
     val inPip = MutableStateFlow(false)
 
     @Volatile private var eligible = false
+    @Volatile private var webEligible = false
+    @Volatile private var webMedia: mozilla.components.browser.state.state.MediaSessionState? = null
+    @Volatile private var standaloneOn = false
+    @Volatile private var standalonePlaying = false
+    @Volatile private var standaloneShape: Pair<Int, Int>? = null
+    @Volatile private var enabled = true
+
+    /** Koan's standalone player (ui/player): open, playing, its video's size. */
+    fun setStandalone(open: Boolean, playing: Boolean, shape: Pair<Int, Int>?) {
+        standaloneOn = open
+        standalonePlaying = playing
+        standaloneShape = shape
+        refresh()
+    }
+
+    private fun refresh() {
+        eligible = enabled && ((standaloneOn && standalonePlaying) || (!standaloneOn && webEligible))
+        update(webMedia)
+    }
+
+    /** The player's PiP button: into the window now. */
+    fun enterNow() {
+        eligible = true
+        update(webMedia)
+        val p = params ?: return
+        runCatching { activity.enterPictureInPictureMode(p) }
+        refresh()
+    }
     @Volatile private var params: PictureInPictureParams? = null
+
+    /**
+     * "Audio only" (headphones, web videos): the PiP window closes, the video leaves fullscreen and
+     * its sound keeps playing in the background with the media notification (MainActivity sets it).
+     */
+    @Volatile var audioOnly: (() -> Unit)? = null
+
+    /** The standalone player's buttons, for the PiP window's actions while it is open. */
+    @Volatile var standaloneControls: dev.nerzouille.koan.ui.player.PlayerControls? = null
+    @Volatile var standaloneState: (() -> dev.nerzouille.koan.ui.player.PlayerState)? = null
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            val sc = standaloneControls
+            val ss = standaloneState?.invoke()
+            if (standaloneOn && sc != null && ss != null) {
+                val t = ss.positionAt()
+                when (intent.getIntExtra(EXTRA, 0)) {
+                    PLAY_PAUSE -> if (ss.playing) sc.pause() else sc.play()
+                    BACK -> sc.seek((t - 10).coerceAtLeast(0.0))
+                    AHEAD -> sc.seek(if (ss.duration > 0) (t + 10).coerceAtMost(ss.duration) else t + 10)
+                }
+                return
+            }
             val media = store.state.selectedTab?.mediaSessionState ?: return
             val c = media.controller
             when (intent.getIntExtra(EXTRA, 0)) {
+                AUDIO -> audioOnly?.invoke()
                 PLAY_PAUSE -> if (media.playbackState == MediaSession.PlaybackState.PLAYING) c.pause() else c.play()
                 BACK -> media.positionState.let { c.seekTo((it.position - 10).coerceAtLeast(0.0), false) }
                 AHEAD -> media.positionState.let { p -> c.seekTo(if (p.duration > 0) (p.position + 10).coerceAtMost(p.duration) else p.position + 10, false) }
@@ -60,8 +110,10 @@ class PictureInPicture(private val activity: Activity, private val store: Browse
                     val media = tab?.mediaSessionState
                     val video = media?.elementMetadata?.let { it.width > 0 && it.height > 0 } == true
                     val playing = media?.playbackState == MediaSession.PlaybackState.PLAYING
-                    eligible = on && tab?.content?.fullScreen == true && video && playing
-                    update(media)
+                    enabled = on
+                    webEligible = tab?.content?.fullScreen == true && video && playing
+                    webMedia = media
+                    refresh()
                 }
         }
     }
@@ -70,23 +122,35 @@ class PictureInPicture(private val activity: Activity, private val store: Browse
 
     private fun update(media: mozilla.components.browser.state.state.MediaSessionState?) {
         val meta = media?.elementMetadata
-        val ratio = meta?.takeIf { it.width > 0 && it.height > 0 }?.let { clampRatio(it.width.toInt(), it.height.toInt()) } ?: Rational(16, 9)
-        val playing = media?.playbackState == MediaSession.PlaybackState.PLAYING
-        val key = "$eligible|$ratio|$playing"
+        val shape = standaloneShape
+        val ratio = when {
+            standaloneOn && shape != null -> clampRatio(shape.first, shape.second)
+            else -> meta?.takeIf { it.width > 0 && it.height > 0 }?.let { clampRatio(it.width.toInt(), it.height.toInt()) } ?: Rational(16, 9)
+        }
+        val playing = if (standaloneOn) standalonePlaying else media?.playbackState == MediaSession.PlaybackState.PLAYING
+        val key = "$eligible|$ratio|$playing|$standaloneOn"
         if (key == last) return
         last = key
         val builder = PictureInPictureParams.Builder()
             .setAspectRatio(ratio)
-            .setActions(
-                listOf(
-                    action(BACK, R.drawable.pip_back10, "Back 10 seconds"),
-                    if (playing) action(PLAY_PAUSE, R.drawable.pip_pause, "Pause") else action(PLAY_PAUSE, R.drawable.pip_play, "Play"),
-                    action(AHEAD, R.drawable.pip_ahead10, "Ahead 10 seconds"),
-                ),
-            )
+            .setActions(actions(playing))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) builder.setAutoEnterEnabled(eligible).setSeamlessResizeEnabled(true)
         params = builder.build()
         activity.runOnUiThread { runCatching { activity.setPictureInPictureParams(params!!) } }
+    }
+
+    /**
+     * 10 s back, play/pause, 10 s ahead, and for a web video "Audio only". A phone shows 3 actions
+     * at most on some systems: then audio only, play/pause and 10 s ahead.
+     */
+    private fun actions(playing: Boolean): List<RemoteAction> {
+        val play = if (playing) action(PLAY_PAUSE, R.drawable.pip_pause, "Pause") else action(PLAY_PAUSE, R.drawable.pip_play, "Play")
+        val back = action(BACK, R.drawable.pip_back10, "Back 10 seconds")
+        val ahead = action(AHEAD, R.drawable.pip_ahead10, "Ahead 10 seconds")
+        if (standaloneOn) return listOf(back, play, ahead)
+        val audio = action(AUDIO, R.drawable.pip_audio, "Audio only")
+        val max = runCatching { activity.maxNumPictureInPictureActions }.getOrDefault(3)
+        return if (max >= 4) listOf(back, play, ahead, audio) else listOf(audio, play, ahead)
     }
 
     /** Android 11 has no auto-enter: the home gesture lands here first. */
@@ -114,6 +178,7 @@ class PictureInPicture(private val activity: Activity, private val store: Browse
         const val PLAY_PAUSE = 1
         const val BACK = 2
         const val AHEAD = 3
+        const val AUDIO = 4
 
         /** Android refuses ratios beyond 2.39:1 either way. */
         fun clampRatio(w: Int, h: Int): Rational {

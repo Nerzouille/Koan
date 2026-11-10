@@ -29,6 +29,10 @@ class Downloads(
     fun open(download: DownloadState): Boolean =
         files.openFile(download.fileName, download.directoryPath, download.contentType)
 
+    /** The finished file's content:// address, for Koan's player; null if it is gone. */
+    fun uri(download: DownloadState): String? =
+        files.findShareableDownloadFileUri(download.fileName, download.directoryPath)?.toString()
+
     fun share(download: DownloadState): Boolean {
         val uri = files.findShareableDownloadFileUri(download.fileName, download.directoryPath) ?: return false
         val send = Intent(Intent.ACTION_SEND)

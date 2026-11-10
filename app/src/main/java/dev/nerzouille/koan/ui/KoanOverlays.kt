@@ -785,6 +785,10 @@ fun KoanOverlays(
                                 openBackground = { url -> actionCard.animateTo(Detent.Closed); onOpenNew(url, false, true) },
                                 copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast); actionCard.animateTo(Detent.Closed) },
                                 share = { url -> actionCard.animateTo(Detent.Closed); share(url, "") },
+                                playVideo = { url, label ->
+                                    actionCard.animateTo(Detent.Closed)
+                                    components.player.open(dev.nerzouille.koan.ui.player.videoOfLink(url, label, page.url))
+                                },
                                 saveImage = { url ->
                                     // Goes through the same downloads as a page's: no dialog, the toast says when
                                     // it's saved; a file already there turns this card into the duplicate card.
@@ -1100,6 +1104,11 @@ fun KoanOverlays(
             onCopyLink = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
             onConfirm = overlays::ask,
             modifier = Modifier.graphicsLayer { translationY = (1f - downloadsSlide.value) * size.height },
+            onPlayVideo = { d ->
+                val video = dev.nerzouille.koan.ui.player.videoOfDownload(d, components.downloads)
+                if (video != null) components.player.open(video)
+                video != null
+            },
         )
     }
     val clearCard = overlays.clearDownloadsCard

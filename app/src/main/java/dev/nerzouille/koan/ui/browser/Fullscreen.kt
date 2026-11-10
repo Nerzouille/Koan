@@ -39,10 +39,14 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
             else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         }
     }
-    LaunchedEffect(fullScreen, hideStatus) {
+    // Again after each rotation: HyperOS brings the bars back (grey, with their contrast scrim)
+    // when a fullscreen video turns the screen.
+    val orientation = androidx.compose.ui.platform.LocalConfiguration.current.orientation
+    LaunchedEffect(fullScreen, hideStatus, orientation) {
         val window = activity?.window ?: return@LaunchedEffect
         val bars = WindowCompat.getInsetsController(window, window.decorView)
         bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        dev.nerzouille.koan.ui.player.immersive(window, fullScreen)
         if (fullScreen) {
             bars.hide(WindowInsetsCompat.Type.systemBars())
         } else {
@@ -54,6 +58,7 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
     DisposableEffect(activity) {
         onDispose {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            activity?.window?.let { dev.nerzouille.koan.ui.player.immersive(it, false) }
             activity?.window?.let { WindowCompat.getInsetsController(it, it.decorView).show(WindowInsetsCompat.Type.systemBars()) }
         }
     }

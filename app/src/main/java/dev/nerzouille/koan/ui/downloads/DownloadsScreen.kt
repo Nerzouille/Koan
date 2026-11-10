@@ -82,6 +82,8 @@ fun DownloadsScreen(
     /** Asks first (deleting several files): title, text, the confirm button, what it does. */
     onConfirm: (title: String, text: String, confirm: String, action: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
+    /** A finished video: Koan's player (false = not a video, or it can't). */
+    onPlayVideo: (DownloadState) -> Boolean = { false },
 ) {
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
@@ -95,6 +97,7 @@ fun DownloadsScreen(
     SideEffect { selection.keepOnly(done.mapTo(HashSet()) { it.id }) }
     val checked = done.filter { it.id in selection }
     fun open(d: DownloadState) {
+        if (onPlayVideo(d)) return
         if (!actions.open(d)) onToast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
     }
     fun share(list: List<DownloadState>) {

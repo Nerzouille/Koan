@@ -7,9 +7,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.ImageBitmap
 import dev.nerzouille.koan.ui.browser.TranslateOfferHost
-import dev.nerzouille.koan.ui.browser.downloadableVideo
-import dev.nerzouille.koan.ui.browser.VideoUi
-import dev.nerzouille.koan.ui.browser.VideoControls
+import dev.nerzouille.koan.ui.player.WebPlayerLayer
+import dev.nerzouille.koan.ui.player.downloadVideo
 import androidx.compose.runtime.mutableStateSetOf
 import dev.nerzouille.koan.ui.overview.LocalCardHero
 import dev.nerzouille.koan.ui.overview.PageHeroLayer
@@ -21,6 +20,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -728,17 +730,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // overview, the menu and other sheets, Settings, the tour…) brings the status bar back. The
     // page keeps its size meanwhile (BrowserScreen's toTop): the bar draws over its top row.
     val pageOnly = !overviewVisible && !covered && !editing
-    // The video layer's rotate button, and "the site's controls" (this layer steps aside): until
-    // the next fullscreen.
-    var videoRotated by remember { mutableStateOf(false) }
-    var siteControls by remember { mutableStateOf(false) }
-    val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly, videoRotated)
-    LaunchedEffect(fullScreen) {
-        videoRotated = false
-        // A site whose fullscreen player draws its own controls over the video: its controls,
-        // not Koan's (the two would sit on top of each other). PiP still works there.
-        siteControls = fullScreen && ownPlayer(activeTabId?.let(::tabById)?.url ?: components.store.state.findTab(activeTabId.orEmpty())?.content?.url)
-    }
+    val fullScreen = rememberFullscreen(components, activeTabId, hideStatus && pageOnly)
     val pipHost by components.pip.collectAsStateWithLifecycle()
     val noPip = remember { kotlinx.coroutines.flow.MutableStateFlow(false) }
     val inPip by (pipHost?.inPip ?: noPip).collectAsStateWithLifecycle()
@@ -768,47 +760,20 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             swipe = tabSwipe,
         )
         closingShot?.let { ClosingPage(it, closingProgress, toTop = hideStatus) }
-        // A fullscreen video: Koan's own controls over it (not in the PiP window).
-        if (fullScreen && !inPip && !siteControls) {
-            val media by components.store.observeSlice(activeTabId) { st -> activeTabId?.let { st.findTab(it) }?.mediaSessionState }
-            val m = media
-            if (m != null) {
-                var positionAt by remember { mutableStateOf(android.os.SystemClock.uptimeMillis()) }
-                LaunchedEffect(m.positionState) {
-                    positionAt = android.os.SystemClock.uptimeMillis()
-                }
-                VideoControls(
-                    VideoUi(
-                        controller = m.controller,
-                        playing = m.playbackState == mozilla.components.concept.engine.mediasession.MediaSession.PlaybackState.PLAYING,
-                        duration = m.positionState.duration.takeIf { it.isFinite() } ?: 0.0,
-                        position = m.positionState.position,
-                        positionAt = positionAt,
-                        rate = m.positionState.playbackRate,
-                        muted = m.muted,
-                        downloadUrl = downloadableVideo(m.elementMetadata?.source),
-                    ),
-                    onExit = { activeTabId?.let { components.sessionUseCases.exitFullscreen(it) } },
-                    onRotate = { videoRotated = !videoRotated },
-                    onDownload = { url ->
-                        activeTabId?.let { id ->
-                            // Its cards (already downloaded?) show over the page, not over a fullscreen video.
-                            components.sessionUseCases.exitFullscreen(id)
-                            val page = components.store.state.findTab(id)?.content?.url
-                            components.store.dispatch(
-                                mozilla.components.browser.state.action.ContentAction.UpdateDownloadAction(
-                                    id, mozilla.components.browser.state.state.content.DownloadState(url, skipConfirmation = true, referrerUrl = page),
-                                ),
-                            )
-                            toasts.show(Toast("Downloading the video"))
-                        }
-                    },
-                    onSiteControls = {
-                        siteControls = true
-                        toasts.show(Toast("The site's controls", detail = "Koan's come back next time the video goes fullscreen"))
-                    },
-                )
-            }
+        // A fullscreen video: Koan's own player in place of the site's (ui/player); YouTube keeps
+        // its own (the extension leaves it out).
+        if (fullScreen && !ownPlayer(activeTab?.url ?: components.store.state.findTab(activeTabId.orEmpty())?.content?.url)) {
+            WebPlayerLayer(
+                components = components,
+                tabId = activeTabId,
+                fullScreen = fullScreen,
+                inPip = inPip,
+                onDownload = { url ->
+                    downloadVideo(components, activeTabId, url)
+                    toasts.show(Toast("Downloading the video"))
+                },
+                onToast = { title, detail -> toasts.show(Toast(title, detail = detail)) },
+            )
         }
         // "Hide status bar", with the status bar back over the page (search sheet, menus): a strip
         // of the page view's colour fades in behind it, so its icons never sit on the page. Under
@@ -1086,6 +1051,25 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             allowed = !overviewVisible && !editing && !covered && !fullScreen,
             onToast = toasts::show,
         )
+        // ---- Koan's own video player (Downloads, "Play video", files from other apps) ----
+        val player = components.player
+        player.standalone?.let { video ->
+            val pipNow = components.pip.collectAsStateWithLifecycle().value
+            dev.nerzouille.koan.ui.player.StandalonePlayer(
+                video = video,
+                actions = standaloneActions(components, androidx.compose.ui.platform.LocalContext.current, video, activeTabId, toasts::show),
+                inPip = inPip,
+                onClosed = {
+                    player.standalone = null
+                    pipNow?.setStandalone(false, false, null)
+                },
+                onPlaying = { playing, shape -> pipNow?.setStandalone(true, playing, shape) },
+                onControls = { c, st ->
+                    pipNow?.standaloneControls = c
+                    pipNow?.standaloneState = st
+                },
+            )
+        }
         KoanToastHost(toasts, bottom = barZone(overviewOpen), modifier = Modifier.align(Alignment.BottomCenter))
 
         // Sign-in slides up over everything and back down when done.
@@ -1143,3 +1127,58 @@ private fun ownPlayer(url: String?): Boolean {
 }
 
 private val OWN_PLAYER_SITES = listOf("youtube.com", "youtube-nocookie.com")
+
+/** The standalone player's ⋯ menu, outside the player: share, open with, delete, download. */
+private fun standaloneActions(
+    components: Components,
+    context: android.content.Context,
+    video: dev.nerzouille.koan.ui.player.StandaloneVideo,
+    activeTabId: String?,
+    toast: (Toast) -> Unit,
+): dev.nerzouille.koan.ui.player.StandaloneActions {
+    val download = video.download
+    return dev.nerzouille.koan.ui.player.StandaloneActions(
+        share = {
+            val ok = if (download != null) components.downloads.share(download) else runCatching {
+                val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("video/*")
+                    .putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse(video.uri))
+                    .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            }.isSuccess
+            if (!ok) toast(Toast("Couldn't share this file"))
+        },
+        openWith = {
+            val ok = if (download != null) components.downloads.open(download) else runCatching {
+                val view = android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(android.net.Uri.parse(video.uri), "video/*")
+                    .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                context.startActivity(android.content.Intent.createChooser(view, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            }.isSuccess
+            if (!ok) toast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
+        },
+        delete = {
+            if (download != null) {
+                components.downloads.delete(download)
+                toast(Toast("File deleted"))
+            }
+        },
+        download = {
+            val url = video.uri
+            val tab = activeTabId
+            if (tab != null) {
+                downloadVideo(components, tab, url)
+            } else {
+                components.store.dispatch(
+                    mozilla.components.browser.state.action.DownloadAction.AddDownloadAction(
+                        mozilla.components.browser.state.state.content.DownloadState(url, skipConfirmation = true, referrerUrl = video.pageUrl),
+                    ),
+                )
+            }
+            toast(Toast("Downloading the video"))
+        },
+        shareLink = {
+            val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, video.uri)
+            context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        },
+        pip = { components.pip.value?.enterNow() },
+    )
+}

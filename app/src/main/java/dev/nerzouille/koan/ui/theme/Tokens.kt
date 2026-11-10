@@ -1074,31 +1074,6 @@ object TranslateTokens {
     const val RECENT = 3
 }
 
-/** Koan's fullscreen video layer (ui/browser/VideoControls). */
-object VideoTokens {
-    const val HIDE_MS = 3_000L
-    const val IN_MS = 260
-    const val OUT_MS = 420
-    const val TICK_MS = 500L
-    const val FLASH_MS = 520
-    const val SKIP_S = 10.0
-    /** The mist: how blurred and how much bigger the controls are before they settle. */
-    val MistBlur = 22.dp
-    const val MIST_SCALE = 0.04f
-    val Edge = 20.dp
-    val Gap = 12.dp
-    val CentreGap = 36.dp
-    val Button = 44.dp
-    val SkipButton = 56.dp
-    val PlayButton = 76.dp
-    val SeekTouch = 28.dp
-    val SeekTrack = 3.dp
-    val SeekActive = 6.dp
-    val Knob = 6.dp
-    val KnobActive = 9.dp
-    val SwipeExit = 120.dp
-}
-
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
 object DownloadTokens {
     val FileTile = 40.dp

@@ -204,7 +204,8 @@ fun BrowserScreen(
     Box(
         Modifier
             .fillMaxSize()
-            .background(KoanTheme.colors.Base)
+            // A fullscreen video: black edge to edge, never Koan's background in a band.
+            .background(if (fullScreen) androidx.compose.ui.graphics.Color.Black else KoanTheme.colors.Base)
             .then(if (fullScreen || toTop) Modifier else Modifier.statusBarsPadding())
             .then(if (fullScreen) Modifier else Modifier.padding(bottom = with(density) { maxOf(navPx, keyboardPx).toDp() }))
             .then(if (findOpen && !fullScreen) Modifier.padding(bottom = barZone(overview = false)) else Modifier)
@@ -241,6 +242,13 @@ fun BrowserScreen(
         Box(
             Modifier.fillMaxSize().graphicsLayer {
                 translationX = if (swipe.active) (swipe.live - swipe.pos) * swipe.pageWidthPx else 0f
+                // A fullscreen video follows the player's swipe down and flies to the mini-player.
+                if (fullScreen) {
+                    val p = components.player
+                    translationY = p.webDragY.floatValue
+                    scaleX = p.webScale.floatValue
+                    scaleY = p.webScale.floatValue
+                }
             },
         ) {
             AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())

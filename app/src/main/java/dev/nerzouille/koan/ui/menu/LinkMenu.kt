@@ -57,7 +57,7 @@ data class LinkTarget(val link: String?, val image: String?, val label: String, 
             is HitResult.IMAGE_SRC -> LinkTarget(hit.uri.takeIf(::isWeb), hit.src.takeIf(::isWeb), "")
             is HitResult.IMAGE -> hit.src.takeIf(::isWeb)?.let { LinkTarget(null, it, hit.title ?: "") }
             // A video: only a plain file (mp4, webm) has a menu (download, open, copy); a stream has none.
-            is HitResult.VIDEO -> dev.nerzouille.koan.ui.browser.downloadableVideo(hit.src)?.let { LinkTarget(null, null, hit.title ?: "", video = it) }
+            is HitResult.VIDEO -> dev.nerzouille.koan.ui.player.downloadableVideo(hit.src)?.let { LinkTarget(null, null, hit.title ?: "", video = it) }
             else -> null
         }
 
@@ -84,6 +84,8 @@ class LinkActions(
     val copy: (String) -> Unit,
     val share: (String) -> Unit,
     val saveImage: (String) -> Unit,
+    /** Koan's own player over the page (a video file, or a link to one). */
+    val playVideo: (url: String, title: String) -> Unit = { _, _ -> },
 )
 
 /** The long-press menu, on a floating card: the link (or image) on top, then what to do with it. */
@@ -111,6 +113,12 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions, ima
                 Text(shown, color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
+        // A link straight to a video file: Koan's player first.
+        target.link?.let { dev.nerzouille.koan.ui.player.downloadableVideo(it) }?.let { video ->
+            SheetGroup {
+                SheetRow(KoanIcons.Play, "Play video", interactive, onClick = { actions.playVideo(video, target.label) })
+            }
+        }
         target.link?.let { link ->
             SheetGroup {
                 SheetRow(KoanIcons.Plus, "Open in new tab", interactive, onClick = { actions.openNew(link) })
@@ -124,6 +132,8 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions, ima
         }
         target.video?.let { video ->
             SheetGroup {
+                SheetRow(KoanIcons.Play, "Play video", interactive, onClick = { actions.playVideo(video, target.label) })
+                SheetDivider()
                 SheetRow(KoanIcons.Download, "Download video", interactive, onClick = { actions.saveImage(video) })
                 SheetDivider()
                 SheetRow(KoanIcons.Plus, "Open video in new tab", interactive, onClick = { actions.openNew(video) })
