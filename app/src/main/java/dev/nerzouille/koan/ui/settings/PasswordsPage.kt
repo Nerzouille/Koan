@@ -84,6 +84,8 @@ class PasswordsUi(
     val summaries: List<LoginSummary>,
     val unlocked: Map<String, Login>?,
     val onUnlock: (site: String?, first: List<String>) -> Unit,
+    /** Asks for the fingerprint or PIN, then runs [then] (selection mode on a locked list). */
+    val onUnlockThen: (then: () -> Unit) -> Unit = {},
     /** Something was copied ("Password"): confirms it where Android doesn't. */
     val onCopied: (what: String) -> Unit,
     /** Deleted (after its confirmation card): the phone's logins deleted, the account's hidden (Undo in the toast). */
@@ -103,7 +105,8 @@ class PasswordsUi(
  * at the end), the site's favicon in grey (else the key), searchable, with the library rules
  * (ui/kit/LibraryRow): a tap opens the site's accounts (after the fingerprint or the device PIN,
  * once per visit), a swipe right to left deletes, a long press enters selection mode (Visit,
- * Delete). A delete always asks first; then Undo. The round + next to the search adds one by hand.
+ * Delete). A delete always asks first; then Undo. Locked, nothing can be deleted: a swipe only
+ * gives, a long press asks to unlock first. The round + next to the search adds one by hand.
  */
 @Composable
 internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpenSite: (String) -> Unit, onAdd: () -> Unit) {
@@ -161,7 +164,8 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
                     val single = logins.singleOrNull()
                     // Locked: the fingerprint first, then straight to the site's accounts.
                     val open = { if (unlocked == null) ui.onUnlock(site, logins.map { it.guid }) else onOpenSite(site) }
-                    SwipeRow(onDelete = { askDelete(listOf(site to logins)) }, enabled = on && !selecting, springBack = true) {
+                    // Locked: nothing is deleted or selected; a swipe only gives, a long press asks to unlock.
+                    SwipeRow(onDelete = if (unlocked != null) ({ askDelete(listOf(site to logins)) }) else null, enabled = on && !selecting, springBack = true) {
                         SiteRow(
                             origin = logins.first().origin,
                             site = site,
@@ -171,7 +175,13 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
                             checked = if (selecting) site in selection else null,
                             on = on,
                             onTap = { if (selecting) selection.toggle(site) else open() },
-                            onLong = { if (selecting) selection.toggle(site) else selection.start(site) },
+                            onLong = {
+                                when {
+                                    unlocked == null -> ui.onUnlockThen { selection.start(site) }
+                                    selecting -> selection.toggle(site)
+                                    else -> selection.start(site)
+                                }
+                            },
                         )
                     }
                 }
