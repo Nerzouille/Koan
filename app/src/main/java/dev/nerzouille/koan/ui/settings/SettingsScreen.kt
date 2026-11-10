@@ -56,6 +56,7 @@ sealed interface SettingsPage {
     data object About : SettingsPage
     data object DownloadFolder : SettingsPage
     data object Passwords : SettingsPage
+    data object Translation : SettingsPage
     data class PasswordSite(val site: String) : SettingsPage
 }
 
@@ -104,6 +105,7 @@ class SettingsUi(
     val onDefaultDownloadFolder: () -> Unit,
     val onShowDownloads: () -> Unit,
     val passwords: PasswordsUi,
+    val translation: TranslationSettings = TranslationSettings(),
     /** uBlock Origin: null = not installed. */
     val ublock: UBlockUi?,
     /** Requests it blocked over the last 7 days. */
@@ -147,6 +149,7 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.Account -> AccountPage(ui, interactive, back)
                         SettingsPage.About -> AboutPage(ui, interactive, back)
                         SettingsPage.DownloadFolder -> FolderPage(ui, interactive, back)
+                        SettingsPage.Translation -> TranslationPage(ui.translation, interactive, back)
                         SettingsPage.Passwords -> PasswordsPage(
                             ui.passwords, interactive, back,
                             onOpenSite = { nav.push(SettingsPage.PasswordSite(it)) },
@@ -176,6 +179,13 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
         SettingsRow(KoanIcons.Essentials, "Start page", on, subtitle = "When Koan comes back after this long unused")
         Segmented(StartPageAfter.entries.map { it to it.label }, ui.startPageAfter, on, ui.onStartPageAfter)
         Spacer(Modifier.height(SettingsTokens.Divider * 10))
+        SettingsDivider()
+        SettingsRow(
+            KoanIcons.Translate, "Translation", on,
+            subtitle = "Always or never, by language and site",
+            chevron = true,
+            onClick = { push(SettingsPage.Translation) },
+        )
         SettingsDivider()
         SettingsRow(
             KoanIcons.Globe, "Default browser", on,

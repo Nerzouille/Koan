@@ -38,6 +38,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.PrimaryButton
+import dev.nerzouille.koan.ui.kit.KoanField
+import androidx.activity.compose.BackHandler
+import mozilla.components.concept.engine.translate.ModelState
 import dev.nerzouille.koan.ui.kit.SecondaryButton
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
@@ -72,6 +75,15 @@ data class TranslateUi(
     val neverSite: Boolean,
     /** Gecko can't translate on this phone at all. */
     val unsupported: Boolean,
+    /** Pages in this page's language are translated on their own. */
+    val alwaysLanguage: Boolean = false,
+    /** Languages whose models are on the phone already. */
+    val downloaded: Set<String> = emptySet(),
+    /** Each language's model download, in bytes, when Gecko said. */
+    val modelBytes: Map<String, Long> = emptyMap(),
+    /** The last languages picked on each side, newest first. */
+    val recentFrom: List<String> = emptyList(),
+    val recentTo: List<String> = emptyList(),
 )
 
 @Immutable
@@ -82,6 +94,9 @@ class TranslateActions(
     val neverSite: (Boolean) -> Unit,
     /** The pair changed: ask Gecko how much it would download. */
     val pairChanged: (from: String, to: String) -> Unit,
+    val alwaysLanguage: (Boolean) -> Unit = {},
+    /** A language picked in a list ("from" or "to"): it goes to that side's Recent. */
+    val picked: (side: String, code: String) -> Unit = { _, _ -> },
 )
 
 /** A language code as a name, in English ("zh" → "Chinese"), for when Gecko gave none. */
@@ -117,18 +132,23 @@ fun TranslatePage(ui: TranslateUi, target: String, actions: TranslateActions, sc
         }
         val choosing = picking
         if (choosing != null) {
-            val list = if (choosing == "from") ui.from else ui.to
-            SheetGroup {
-                list.forEachIndexed { i, lang ->
-                    if (i > 0) SheetDivider()
-                    val selected = lang.code == (if (choosing == "from") from else to)
-                    SheetRow(null, lang.name, on, onClick = {
-                        if (choosing == "from") from = lang.code else to = lang.code
-                        picking = null
-                        actions.pairChanged(from, to)
-                    }) { if (selected) Icon(KoanIcons.Check, null, tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.RowGlyph)) }
-                }
-            }
+            BackHandler { picking = null }
+            LanguagePicker(
+                title = if (choosing == "from") "Translate from" else "Translate to",
+                languages = if (choosing == "from") ui.from else ui.to,
+                current = if (choosing == "from") from else to,
+                recent = if (choosing == "from") ui.recentFrom else ui.recentTo,
+                downloaded = ui.downloaded,
+                sizes = ui.modelBytes,
+                interactive = on,
+                onBack = { picking = null },
+                onPick = { code ->
+                    if (choosing == "from") from = code else to = code
+                    actions.picked(choosing, code)
+                    picking = null
+                    actions.pairChanged(from, to)
+                },
+            )
             return@Column
         }
         SheetGroup {
@@ -156,12 +176,76 @@ fun TranslatePage(ui: TranslateUi, target: String, actions: TranslateActions, sc
             )
         }
         SheetGroup {
+            SheetRow(null, "Always translate ${name(from, ui.from)}", on, onClick = { actions.alwaysLanguage(!ui.alwaysLanguage) }) {
+                dev.nerzouille.koan.ui.kit.KoanToggle(ui.alwaysLanguage, if (on) actions.alwaysLanguage else null)
+            }
+            SheetDivider()
             SheetRow(null, "Never translate ${name(from, ui.from)}", on, onClick = { actions.neverLanguage(!ui.neverLanguage) }) {
                 dev.nerzouille.koan.ui.kit.KoanToggle(ui.neverLanguage, if (on) actions.neverLanguage else null)
             }
             SheetDivider()
             SheetRow(null, "Never translate this site", on, onClick = { actions.neverSite(!ui.neverSite) }) {
                 dev.nerzouille.koan.ui.kit.KoanToggle(ui.neverSite, if (on) actions.neverSite else null)
+            }
+        }
+    }
+}
+
+/**
+ * A From / To list: ‹ back to the Translate page, a search field, then the languages in sections,
+ * each one once, in the first that fits: Recent (the last 3 picked on that side), On this phone
+ * (models already downloaded), All languages (A–Z, with the download size when Gecko said). While
+ * searching, only the matches, without sections.
+ */
+@Composable
+private fun LanguagePicker(
+    title: String,
+    languages: List<TranslateLanguage>,
+    current: String,
+    recent: List<String>,
+    downloaded: Set<String>,
+    sizes: Map<String, Long>,
+    interactive: Boolean,
+    onBack: () -> Unit,
+    onPick: (String) -> Unit,
+) {
+    val palette = KoanTheme.colors
+    var query by remember { mutableStateOf("") }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.size(TranslateTokens.Close).clip(CircleShape).clickable(enabled = interactive, onClick = onBack),
+            contentAlignment = Alignment.Center,
+        ) { Icon(KoanIcons.Back, "Back", tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.RowGlyph)) }
+        Spacer(Modifier.width(SheetTokens.Gap / 2))
+        Text(title, color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize))
+    }
+    KoanField(query, { query = it }, "Search languages", Modifier.fillMaxWidth(), search = true)
+    val byCode = languages.associateBy { it.code }
+    val q = query.trim()
+    val sections: List<Pair<String?, List<TranslateLanguage>>> = if (q.isNotEmpty()) {
+        listOf(null to languages.filter { it.name.contains(q, ignoreCase = true) || it.code.equals(q, ignoreCase = true) })
+    } else {
+        val recents = recent.mapNotNull(byCode::get).take(TranslateTokens.RECENT)
+        val onPhone = languages.filter { it.code in downloaded && it !in recents }
+        val rest = languages.filter { it !in recents && it !in onPhone }
+        listOf("Recent" to recents, "On this phone" to onPhone, "All languages" to rest).filter { it.second.isNotEmpty() }
+    }
+    if (sections.all { it.second.isEmpty() }) {
+        Text("No language matches “$q”.", color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize)
+    }
+    sections.forEach { (heading, list) ->
+        if (list.isEmpty()) return@forEach
+        if (heading != null) Text(heading, color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize, fontWeight = FontWeight.SemiBold)
+        SheetGroup {
+            list.forEachIndexed { i, lang ->
+                if (i > 0) SheetDivider()
+                SheetRow(null, lang.name, interactive, onClick = { onPick(lang.code) }) {
+                    when {
+                        lang.code == current -> Icon(KoanIcons.Check, null, tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.RowGlyph))
+                        lang.code in downloaded -> RowValue("On phone")
+                        else -> sizes[lang.code]?.takeIf { it > 0 }?.let { RowValue(sizeLabel(it)) }
+                    }
+                }
             }
         }
     }
@@ -197,10 +281,19 @@ private fun Working(downloadBytes: Long?) {
 
 /**
  * A page in another language: the small offer above the dock. "Translate to French", ✕, and a
- * quiet "Never for Chinese" / "Never for this site".
+ * quiet "Always for Chinese" / "Never for Chinese" / "Never for this site".
  */
 @Composable
-fun TranslateOffer(pageLanguage: String, target: String, onTranslate: () -> Unit, onDismiss: () -> Unit, onNeverLanguage: () -> Unit, onNeverSite: () -> Unit, modifier: Modifier = Modifier) {
+fun TranslateOffer(
+    pageLanguage: String,
+    target: String,
+    onTranslate: () -> Unit,
+    onDismiss: () -> Unit,
+    onNeverLanguage: () -> Unit,
+    onNeverSite: () -> Unit,
+    modifier: Modifier = Modifier,
+    onAlwaysLanguage: () -> Unit = {},
+) {
     val palette = KoanTheme.colors
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap / 2)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -222,6 +315,7 @@ fun TranslateOffer(pageLanguage: String, target: String, onTranslate: () -> Unit
         }
         PrimaryButton("Translate to ${languageName(target)}", onClick = onTranslate, modifier = Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            QuietLink("Always for ${languageName(pageLanguage)}", onAlwaysLanguage)
             QuietLink("Never for ${languageName(pageLanguage)}", onNeverLanguage)
             QuietLink("Never for this site", onNeverSite)
         }
@@ -257,12 +351,31 @@ fun translateUiOf(
         pageLanguage = detected?.documentLangTag?.takeIf { detected.supportedDocumentLang == true },
         from = list(support?.fromLanguages),
         to = list(support?.toLanguages),
-        translated = t.isTranslated,
-        working = t.isTranslateProcessing || t.isRestoreProcessing,
+        translated = translatedNow(t.isTranslated, t.translationEngineState?.let { it.requestedTranslationPair != null }),
+        working = workingNow(t.isTranslated, t.translationEngineState?.let { it.requestedTranslationPair != null }, t.isTranslateProcessing, t.isRestoreProcessing),
         downloadBytes = t.translationDownloadSize?.size,
         error = error,
         neverLanguage = t.pageSettings?.neverTranslateLanguage == true,
         neverSite = t.pageSettings?.neverTranslateSite == true,
         unsupported = engine.isEngineSupported == false,
+        alwaysLanguage = t.pageSettings?.alwaysTranslateLanguage == true,
+        downloaded = engine.languageModels.orEmpty().filter { it.status == ModelState.DOWNLOADED }.mapNotNullTo(HashSet()) { it.language?.code },
+        modelBytes = engine.languageModels.orEmpty().mapNotNull { m -> m.language?.code?.let { code -> m.size?.let { code to it } } }.toMap(),
     )
+}
+
+/**
+ * The page shows a translation. [hasPair]: whether Gecko's own state for the page holds the pair it
+ * translated to (null before Gecko said anything): that is what the page is, whatever the flags.
+ */
+internal fun translatedNow(isTranslated: Boolean, hasPair: Boolean?) = hasPair ?: isTranslated
+
+/**
+ * Gecko is still at it. Its processing flags can stay up once the page is done (Show original,
+ * then Translate again, left "translating" stuck): a translation counts as running only until
+ * the page is translated, a restore only while it still is.
+ */
+internal fun workingNow(isTranslated: Boolean, hasPair: Boolean?, translating: Boolean, restoring: Boolean): Boolean {
+    val translated = translatedNow(isTranslated, hasPair)
+    return (translating && !translated) || (restoring && translated)
 }

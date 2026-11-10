@@ -1014,6 +1014,10 @@ object TranslateTokens {
     val Close = 32.dp
     /** The offer leaves on its own after this long. */
     const val OFFER_MS = 20_000L
+    /** "Always translate": Koan starts the translation itself if Gecko hasn't after this long. */
+    const val AUTO_WAIT_MS = 1_500L
+    /** A language list's Recent section. */
+    const val RECENT = 3
 }
 
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */

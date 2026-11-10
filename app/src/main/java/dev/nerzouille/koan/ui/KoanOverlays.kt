@@ -1,5 +1,8 @@
 package dev.nerzouille.koan.ui
 
+import dev.nerzouille.koan.ui.settings.TranslationSettings
+import mozilla.components.concept.engine.translate.LanguageSetting
+import dev.nerzouille.koan.ui.menu.languageName
 import dev.nerzouille.koan.ui.menu.translateUiOf
 import dev.nerzouille.koan.ui.menu.TranslateActions
 import dev.nerzouille.koan.ui.menu.TranslateUi
@@ -297,7 +300,12 @@ fun KoanOverlays(
     val tabTranslations by components.store.observeSlice(activeTabId) { s -> activeTabId?.let { s.findTab(it) }?.translationsState }
     val translateEngine by components.store.observeSlice(Unit) { s -> s.translationEngine }
     val phoneLanguage = remember { java.util.Locale.getDefault().language }
-    val translateUi = tabTranslations?.let { t -> translateUiOf(t, translateEngine) }
+    // The last languages picked on each side (Recent in the lists), on the phone only.
+    val translatePrefs = remember { context.getSharedPreferences("translate", Context.MODE_PRIVATE) }
+    fun recentOf(side: String) = translatePrefs.getString("recent_$side", null)?.split(',')?.filter { it.isNotBlank() }.orEmpty()
+    var recentFrom by remember { mutableStateOf(recentOf("from")) }
+    var recentTo by remember { mutableStateOf(recentOf("to")) }
+    val translateUi = tabTranslations?.let { t -> translateUiOf(t, translateEngine).copy(recentFrom = recentFrom, recentTo = recentTo) }
     fun dispatchTranslate(action: mozilla.components.browser.state.action.BrowserAction) = components.store.dispatch(action)
     val translateActions = TranslateActions(
         translate = { from, to ->
@@ -306,6 +314,12 @@ fun KoanOverlays(
         showOriginal = { activeTabId?.let { dispatchTranslate(TranslationsAction.TranslateRestoreAction(it)) } },
         neverLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_LANGUAGE, on)) } },
         neverSite = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_SITE, on)) } },
+        alwaysLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_ALWAYS_TRANSLATE_LANGUAGE, on)) } },
+        picked = { side, code ->
+            val list = (listOf(code) + recentOf(side).filter { it != code }).take(dev.nerzouille.koan.ui.theme.TranslateTokens.RECENT)
+            translatePrefs.edit().putString("recent_$side", list.joinToString(",")).apply()
+            if (side == "from") recentFrom = list else recentTo = list
+        },
         pairChanged = { from, to ->
             activeTabId?.let { if (from.isNotEmpty() && from != to) dispatchTranslate(TranslationsAction.FetchTranslationDownloadSizeAction(it, Language(from), Language(to))) }
         },
@@ -394,6 +408,7 @@ fun KoanOverlays(
                         activeTabId?.let { id ->
                             dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_PAGE_SETTINGS))
                             dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_SUPPORTED_LANGUAGES))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_LANGUAGE_MODELS))
                             translateUi?.pageLanguage?.let { from -> translateActions.pairChanged(from, phoneLanguage) }
                         }
                         overlays.menuNav.push(MenuPage.Translate)
@@ -766,6 +781,22 @@ fun KoanOverlays(
                 ublockWeek = blockedWeek.values.sum(),
                 onUblock = components.ublock::setEnabled,
                 onInstallUblock = components.ublock::install,
+                translation = TranslationSettings(
+                    always = translateEngine.languageSettings.orEmpty().filterValues { it == LanguageSetting.ALWAYS }.keys.map { it to languageName(it) }.sortedBy { it.second },
+                    never = translateEngine.languageSettings.orEmpty().filterValues { it == LanguageSetting.NEVER }.keys.map { it to languageName(it) }.sortedBy { it.second },
+                    neverSites = translateEngine.neverTranslateSites.orEmpty(),
+                    onRemoveLanguage = { code ->
+                        dispatchTranslate(TranslationsAction.UpdateLanguageSettingsAction(code, LanguageSetting.OFFER))
+                        (activeTabId ?: components.store.state.selectedTabId)?.let { dispatchTranslate(TranslationsAction.OperationRequestedAction(it, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS)) }
+                    },
+                    onRemoveSite = { origin -> dispatchTranslate(TranslationsAction.RemoveNeverTranslateSiteAction(origin)) },
+                    onOpen = {
+                        (activeTabId ?: components.store.state.selectedTabId)?.let { id ->
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_NEVER_TRANSLATE_SITES))
+                        }
+                    },
+                ),
                 passwords = PasswordsUi(
                     summaries = loginSummaries,
                     unlocked = unlockedLogins,
