@@ -869,6 +869,20 @@ fun KoanOverlays(
                             }
                         }
                     },
+                    onUnlockThen = { then ->
+                        (context as? FragmentActivity)?.let { activity ->
+                            authenticate(activity, "Unlock your passwords") {
+                                unlockedLogins = emptyMap()
+                                then()
+                                scope.launch {
+                                    components.logins.openAll { logins ->
+                                        val current = unlockedLogins ?: return@openAll
+                                        unlockedLogins = current + logins.associateBy { it.guid }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     onCopied = { what -> copiedToast(what)?.let(onToast) },
                     onRemove = { guids ->
                         scope.launch {
