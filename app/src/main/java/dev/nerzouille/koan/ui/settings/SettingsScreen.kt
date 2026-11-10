@@ -57,6 +57,7 @@ sealed interface SettingsPage {
     data object DownloadFolder : SettingsPage
     data object Passwords : SettingsPage
     data class PasswordSite(val site: String) : SettingsPage
+    data object AddPassword : SettingsPage
 }
 
 /** Everything Settings shows and does. [email] null = signed out. */
@@ -150,7 +151,9 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.Passwords -> PasswordsPage(
                             ui.passwords, interactive, back,
                             onOpenSite = { nav.push(SettingsPage.PasswordSite(it)) },
+                            onAdd = { nav.push(SettingsPage.AddPassword) },
                         )
+                        SettingsPage.AddPassword -> AddPasswordPage(ui.passwords, interactive, back)
                         is SettingsPage.PasswordSite -> PasswordSitePage(ui.passwords, page.site, interactive, back)
                     }
                 }

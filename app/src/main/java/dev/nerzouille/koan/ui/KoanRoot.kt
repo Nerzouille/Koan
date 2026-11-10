@@ -970,14 +970,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     onBack = { session.goBack(activeTabId) },
                     onTabs = { if (overviewOpen) dismissOverview() else openOverview() },
                     onMenu = { overlays.menu.animateTo(Detent.Compact) },
-                    onHistory = {
-                        overlays.historyShowsClosed = false
-                        overlays.historyOpen = true
-                    },
-                    onRecentlyClosed = {
-                        overlays.historyShowsClosed = true
-                        overlays.historyOpen = true
-                    },
+                    onHistory = { overlays.openHistory(fromPage = !overviewOpen && activeTabId != null) },
+                    onRecentlyClosed = { overlays.openHistory(fromPage = !overviewOpen && activeTabId != null, allClosed = true) },
                     onSettings = { overlays.settingsOpen = true },
                     onTabsMenu = { overlays.tabMenuOpen = true },
                     onBackMenu = { overlays.backMenuOpen = true },
