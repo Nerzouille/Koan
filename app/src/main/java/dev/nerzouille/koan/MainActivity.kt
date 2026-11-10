@@ -1,5 +1,7 @@
 package dev.nerzouille.koan
 
+import dev.nerzouille.koan.engine.PictureInPicture
+import androidx.lifecycle.lifecycleScope
 import android.app.SearchManager
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,6 +43,7 @@ import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.feature.tabs.WindowFeature
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import mozilla.components.browser.state.selector.findTab
 
 class MainActivity : FragmentActivity() {
     private val refresh = RefreshBooster(this)
@@ -71,9 +74,25 @@ class MainActivity : FragmentActivity() {
         components.pageTools.start()
         components.pageEngines.start()
         components.pageImages.start()
+        components.pageVideo.start()
         components.startExtensions()
         components.startMedia()
         components.watchDownloadLocation()
+        pip = PictureInPicture(this, components.store, components.settings, lifecycleScope).also { p ->
+            components.pip.value = p
+            p.audioOnly = {
+                runOnUiThread {
+                    // The video leaves fullscreen, then the PiP window closes (a PiP window can't be
+                    // sent to the back): the engine, the tab and the media notification stay, the
+                    // sound keeps playing, and Koan opens as usual from the notification or its icon.
+                    components.store.state.selectedTabId?.let { id ->
+                        components.pageVideo.release(id)
+                        components.sessionUseCases.exitFullscreen(id)
+                    }
+                    finish()
+                }
+            }
+        }
         startDownloads(components)
         // A fresh start from a link (default browser, share); a recreated activity already had it.
         if (savedInstanceState == null) handleIntent(intent)
@@ -184,6 +203,37 @@ class MainActivity : FragmentActivity() {
             (application as KoanApp).components.pairLink.value = link
             return
         }
+        // A video another app opened (a file, or a link straight to a video file): Koan's player
+        // over the current screen, never a tab.
+        if (intent?.action == Intent.ACTION_VIEW) {
+            val data = intent.data
+            val player = (application as KoanApp).components.player
+            when {
+                data != null && (data.scheme == "content" || data.scheme == "file") && intent.type.orEmpty().startsWith("video/") -> {
+                    openedFromLink = true
+                    val name = runCatching {
+                        contentResolver.query(data, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+                    }.getOrNull()
+                    player.open(dev.nerzouille.koan.ui.player.videoOfFile(data.toString(), name))
+                    return
+                }
+                dev.nerzouille.koan.ui.player.downloadableVideo(intent.dataString) != null -> {
+                    // Looks like a video file: the player if the server says so, else a tab as usual.
+                    openedFromLink = true
+                    val url = intent.dataString!!
+                    val from = referrer?.takeIf { it.scheme == "android-app" }?.host?.takeIf { it != packageName }
+                    val components = (application as KoanApp).components
+                    lifecycleScope.launch {
+                        if (dev.nerzouille.koan.ui.player.isVideoFile(url)) {
+                            player.open(dev.nerzouille.koan.ui.player.videoOfLink(url))
+                        } else {
+                            components.incoming.value = Incoming(url, Incoming.Kind.Url, referrer = from)
+                        }
+                    }
+                    return
+                }
+            }
+        }
         val incoming = when (intent?.action) {
             // Custom Tabs links too: a VIEW with a session extra, opened like any other link.
             Intent.ACTION_VIEW -> intent.dataString?.let { Incoming(it, Incoming.Kind.Url) }
@@ -222,6 +272,31 @@ class MainActivity : FragmentActivity() {
             val after = components.settings.startPageAfter.first().millis ?: return@launch
             if (System.currentTimeMillis() - at >= after) components.startPage.value = true
         }
+    }
+
+    private var pip: PictureInPicture? = null
+
+    /** Back in focus during a fullscreen video (a dialog, the shade, a rotation): bars away again. */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        val components = (application as KoanApp).components
+        val fullscreen = components.store.state.selectedTabId?.let { components.store.state.findTab(it) }?.content?.fullScreen == true
+        if (hasFocus && (fullscreen || components.player.standalone != null)) dev.nerzouille.koan.ui.player.hideBars(window)
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        pip?.onUserLeaveHint()
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        pip?.onModeChanged(isInPictureInPictureMode)
+    }
+
+    override fun onDestroy() {
+        pip?.release()
+        super.onDestroy()
     }
 
     // High refresh only while the user interacts (and the animations that follow); see RefreshBooster.

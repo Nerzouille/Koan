@@ -313,6 +313,7 @@ fun KoanOverlays(
     val syncBack by components.settings.syncBack.collectAsStateWithLifecycle(SyncBackChoice())
     val syncBackEdits by components.settings.syncBackPasswordEdits.collectAsStateWithLifecycle(false)
     val syncWriteStatus by components.syncWrite.status.collectAsStateWithLifecycle()
+    val pictureInPicture by components.settings.pictureInPicture.collectAsStateWithLifecycle(true)
     val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
     // uBlock Origin on this page: on or off, and its badge (the tab's own, else the default).
     val ublockUi by components.store.observeSlice(activeTabId) { s ->
@@ -784,6 +785,10 @@ fun KoanOverlays(
                                 openBackground = { url -> actionCard.animateTo(Detent.Closed); onOpenNew(url, false, true) },
                                 copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast); actionCard.animateTo(Detent.Closed) },
                                 share = { url -> actionCard.animateTo(Detent.Closed); share(url, "") },
+                                playVideo = { url, label ->
+                                    actionCard.animateTo(Detent.Closed)
+                                    components.player.open(dev.nerzouille.koan.ui.player.videoOfLink(url, label, page.url))
+                                },
                                 saveImage = { url ->
                                     // Goes through the same downloads as a page's: no dialog, the toast says when
                                     // it's saved; a file already there turns this card into the duplicate card.
@@ -958,6 +963,8 @@ fun KoanOverlays(
                 syncWriteStatus = syncWriteStatus,
                 hideStatusBar = hideStatusBar,
                 onHideStatusBar = { on -> scope.launch { components.settings.setHideStatusBar(on) } },
+                pictureInPicture = pictureInPicture,
+                onPictureInPicture = { on -> scope.launch { components.settings.setPictureInPicture(on) } },
                 email = signedIn?.email,
                 status = drawerStatus,
                 onSyncNow = { components.sync.syncNow() },
@@ -1097,6 +1104,11 @@ fun KoanOverlays(
             onCopyLink = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
             onConfirm = overlays::ask,
             modifier = Modifier.graphicsLayer { translationY = (1f - downloadsSlide.value) * size.height },
+            onPlayVideo = { d ->
+                val video = dev.nerzouille.koan.ui.player.videoOfDownload(d, components.downloads)
+                if (video != null) components.player.open(video)
+                video != null
+            },
         )
     }
     val clearCard = overlays.clearDownloadsCard
