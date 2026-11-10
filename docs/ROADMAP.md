@@ -23,7 +23,7 @@ Latest release **v0.4.0** (pre-release, 2026-10-30). Branches and how to build/t
 | Android 11+ (minSdk 30) | Done | v0.3.0 | — |
 | Releases v0.3.0, v0.4.0 | Done | tags on `main` | 0.4.0: owner decides whether to mark it a normal release (`/releases/latest` 404s, see HANDOFF) |
 | M4 Motion polish | **Partly done**, no branch | `dev` | Owner picks the next M4 item. Done: card flies page ↔ stack both ways (`ui/overview/CardHero.kt`, v0.4.0), long-press lift, swipe-to-close by distance or fling, Undo toast after a close. Not started: stack compression / elastic trailing, new-tab grow, close collapse, baseline profile, JankStats, search backdrop retry. |
-| M6 Write-back | **In progress** | branch `sync-back` | Owner creates a test Mozilla account + Zen test profile; then rebase `sync-back` on `dev` and turn the passwords dry run into a real upload on the staging copy only (`docs/SYNC_WRITE.md` test plan). Spaces writes come last, behind `writeBackEnabled`. |
+| M6 Write-back | **In progress** | `dev` | Passwords (add; edits and deletions behind their own switch, off) and history (both ways) done and running on the owner's account since 2026-11-10 (`docs/HANDOFF.md` "Two-way sync"). Bookmarks and Zen Spaces not written yet; Spaces writes come last, behind `writeBackEnabled`. |
 | M7 Delights | **Partly done** | `dev` | Done: `@engine` shortcuts, custom engines, Undo close, Reopen closed tab (last tab only), background audio. Dropped: status bar hidden while scrolling (branch `statusbar`, not merged). Not started: everything else below. |
 | Open items after v0.2.0 | Not started | — | **Long screenshots** first: bump to GeckoView / android-components 160 (released 2026-11-10) on a branch from `dev`, then retest HyperOS scroll screenshots. The other items wait for the owner's choice. |
 
@@ -113,7 +113,7 @@ losing data, and the owner has approved and published the release.
 - Retry search backdrop: old dim + subtle blur behind the suggestion cards only.
 **Done when:** owner signs off on the feel. Expect several rounds of tweaks.
 
-## M6 — Write-back to Zen (≈ 1 week, careful) — in progress on branch `sync-back` (dry run only)
+## M6 — Write-back to Zen (≈ 1 week, careful) — in progress: passwords and history on `dev`; bookmarks and Spaces next
 - `writeBackEnabled` setting (off by default), undo journal, conditional writes per spec §7.2.
 - Operations in the order listed in `SYNC.md`.
 - Test against a throwaway Mozilla account / throwaway Space first.

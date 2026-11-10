@@ -1,6 +1,6 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-10** (night).
+State of Koan for a session that starts with no context. Last updated **2026-11-11**.
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
@@ -8,29 +8,55 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 - **Latest release: v0.4.0** ("Koan 0.4 (beta)"), tagged on `main` at `d4f3a2e`, published on
   2026-10-30 as a GitHub **pre-release**. versionName `0.4.0`, versionCode `9`: the next release
   needs versionCode **≥ 10**.
-- `main` and `dev` point at the same commit (plus this handoff on `dev`). Nothing unreleased on
-  `dev` except docs.
+- **`dev` is ahead of `main`** with the night batch of 2026-11-10, reviewed item by item with the
+  owner and merged on 2026-11-11 (`CHANGELOG.md` "Unreleased"; specs and verdicts in
+  `docs/REVIEW_NIGHT.md`, what was built and how it was tested in `docs/NIGHT_REPORT.md`):
+  library pages (selection mode, swipes, Passwords look, add a password), two-way sync for
+  passwords and history (**M6**, see below), page translation, "Open in app" cards, the duplicate
+  download card and the morphing action card, Back close animation, toast hand-over, Zia icons,
+  targeted package queries instead of `QUERY_ALL_PACKAGES`, full image on Google Images.
 - Engine: android-components / GeckoView **157** (`gradle/libs.versions.toml`, the two versions
-  move together). GeckoView 160 is due on 2026-11-10 (see "Next steps").
-- Milestones done and tagged: `m0`, `m1`, `m2`, `m3`, `m5`. M4 partly done (no tag), M6 started on
-  a branch, M7 partly done. Details per item in `docs/ROADMAP.md`.
-- Unit tests: ~230 JVM tests, green at v0.4.0 (`./gradlew testDebugUnitTest`).
+  move together). 160 was still not released on 2026-11-11 (betas only on maven.mozilla.org).
+- Milestones done and tagged: `m0`, `m1`, `m2`, `m3`, `m5`. M4 partly done (no tag), M6 passwords
+  + history done on `dev` (Spaces, tabs, bookmarks never written), M7 partly done. Details per
+  item in `docs/ROADMAP.md`.
+- Unit tests: 269 JVM tests, green on `dev` (`./gradlew testDebugUnitTest`). R8 release of `dev`
+  built and launched on the POCO without a crash (2026-11-11).
 
 ## Open branches
 
 | Branch | Base | What it contains | Tested | Status |
 |---|---|---|---|---|
-| `dev` | — | Working branch. v0.4.0 + docs + **design-audit fixes (2026-11-10, uncommitted)**: contrast tokens, collapsing page header (`ui/kit/PageHeader`), one field (`ui/kit/KoanField`), one destructive button, menu icon tiles in dock popups, one favicon letter tile + `m.` hosts share icons, brand-gradient rule fixes, typography (`ui/theme/Type.kt`), find-in-page colours per Koan's theme (`FindCurrent`/`FindMatch`, set live via GeckoView `GeckoPreferenceController` in `engine/GeckoPrefs.kt`). | 235 JVM tests green; staging (R8) checked on the Xiaomi and the POCO in light and dark, Settings scroll 0.45% jank at 120 Hz. Login radio not seen live (Gecko offers no saved logins on a local http page). | Active, waiting for the owner's commit |
+| `dev` | — | Working branch, everything below merged except `video`. | See above. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | — | Release only |
-| `sync-back` | dev (behind it by ~20 commits) | **M6 step 1:** sync-back **dry run** for passwords, history and bookmarks. `sync/SyncBackPlan.kt` (what would be uploaded: `LoginUpload`, `HistoryUpload`, `BookmarkUpload`, `WriteGuard`), `data/SyncBack.kt` (dry run only: logs counts and field names, never values, **has no send path**), opt-in setting `Settings.syncBack` (off), DAO queries for phone-only visits and bookmarks, `SyncClient.metaGlobal`, switches on the Account page. Tests `SyncBackPlanTest`, `SyncBackTest` (fake data). | JVM tests green when made (2026-10-27). **Never run against a real account**, never on the phone. Needs a rebase on `dev` before more work. | Waiting for the owner's test Mozilla account + Zen test profile |
-| `statusbar` | dev (behind it by ~16 commits) | Prototype: **hide the status bar only while scrolling** (`DockState.statusHidden` / `statusShift`, `PageTokens.STATUS_SETTLE_FRAMES`). | Checked frame by frame on a release build (2026-10-28): works, but a fixed bottom bar can still be off by one frame (Gecko's redraw timing varies; `CompositorController.addDrawCallback` never fires in GV 157 release). | **Dropped** by the owner; kept for reference. Don't merge. Revisit only if GeckoView adds a draw callback or top-toolbar support (ROADMAP M7 "Display"). |
+| `video` | dev (night of 2026-11-10) | First video player: Koan's own fullscreen controls, picture-in-picture on Home (`engine/PictureInPicture.kt`, `ui/browser/VideoControls.kt`, `KoanRoot.ownPlayer` keeps YouTube's own). | On a local mp4 page and YouTube. | **Not merged:** the owner is getting a full design from Claude Design; rebuild the player from it (fix list in `docs/REVIEW_NIGHT.md` item 13). PiP on Home and the YouTube fallback are kept. |
+| `library`, `sync-two-way`, `app-links`, `download-dup`, `translate`, `toast-swap`, `back-close`, `zen-icons` | dev | The night batch items, merged into `dev`. `download-dup` and `sync-two-way` contain `library`. | Retested by the owner on the POCO. | Merged; can be deleted. |
+| `nightly` | dev | The batch's test branch (all items + video). Local only, never pushed (its doc history has personal phone details). | — | Delete once `video` is redone. |
+| `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | Frame by frame, 2026-10-28. | **Dropped** by the owner; kept for reference. Don't merge. |
+
+## Two-way sync (M6), as it runs
+
+- Switches in Settings › Mozilla account: **Passwords saved on this phone** (add only), **Change
+  and delete passwords** (off by default; edits by site + username, tombstones for account logins
+  deleted on the phone), **History, both ways** (visits up, phone deletions as tombstones).
+- `data/SyncWrite.kt`, `sync/SyncWritePlan.kt`, `data/HistoryDeletions.kt`: one encrypted backup
+  per collection before the first write, `WriteGuard` checks meta/global (engine versions
+  passwords 1, history 1; sync ids unchanged), a first batch of 3 read back, then batches of 50
+  with X-If-Unmodified-Since. Any error stops that collection and turns its switch off.
+- Never written: bookmarks, tabs, Spaces, prefs, keys, meta/global (CLAUDE.md rule 4 still holds
+  for `spaces`).
+- Run on the owner's real account since 2026-11-10. Phone-made logins use plain UUID ids (no
+  braces); Firefox read them back, desktop editing of one not tried.
 
 ## Untested / unverified
 
-- **sync-back:** nothing has been sent anywhere, by design. The upload formats in
-  `SyncBackPlan.kt` follow `docs/SYNC_WRITE.md` but have never been checked by a real Firefox/Zen
-  client.
-- **Writes to the Zen `spaces` collection:** not written at all yet (CLAUDE.md rule 4).
+- **Change and delete passwords:** unit-tested only, never run on the account.
+- **"Open in app"** for apps other than YouTube (Instagram, LinkedIn, maps, WeChat…), and the
+  "another app" path for a scheme outside the manifest's `<queries>`: not tested on a phone that
+  has those apps.
+- **Full image on Google Images** (`engine/PageImages.kt`, `assets/extensions/pageimage`): works
+  but the owner calls it "not perfect, but better": revisit what it picks and how the wait feels
+  (ask the owner what's off).
 - **Long screenshots** (HyperOS scroll screenshot) on GeckoView 160: not tried yet.
 - Two rare bugs seen once and never reproduced (ROADMAP "Open items after v0.2.0"): page painted
   only down to where the keyboard was; dock ignoring taps after the phone sat idle.
@@ -43,28 +69,19 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
    card ("See the full changelog", `LATEST_RELEASE_URL` in `ui/tour/TourContent.kt`) opens that
    URL, so it is broken in the installed 0.4.0. Options: mark v0.4.0 as a normal (latest) release
    on GitHub (fixes it with no new build), or point the link at `/releases` in the next release.
-   The release checklist says releases are normal, not pre-releases.
-2. **Release step 7 for 0.4.0** (short Discord update post for the owner's thread): not known to
-   be done. Ask.
-3. **M6 start:** the owner creates a throwaway Mozilla account and a separate Zen profile and says
-   when the phone is free. Decisions already made: writes use the QR sign-in token; history =
-   phone visits only; bookmarks go to "Mobile Bookmarks"; defaults after testing: passwords +
-   history on, bookmarks off at first, tabs/Spaces off. Order: passwords → history + bookmarks →
-   Zen Spaces (`docs/SYNC_WRITE.md`).
-4. **What comes next** after GeckoView 160: M4 (motion polish), M6 (write-back) or M7 items. The
-   owner picks; don't start a milestone unasked.
-5. `.gitignore` has an uncommitted local line (`design-export/`, a local design-system export).
-   The owner commits it or not.
+2. **Release step 7 for 0.4.0** (short Discord update post): not known to be done. Ask.
+3. **The video player design** (Claude Design): when it arrives, rebuild on `video`.
+4. **Next release (0.5):** when to cut it from `dev`, and its What's new / tour review
+   (CLAUDE.md release checklist).
+5. `.gitignore` has an uncommitted local line (`design-export/`). The owner commits it or not.
 
 ## Next concrete steps
 
-1. Ask the owner about pending decisions 1–2.
-2. **GeckoView / android-components 160** (released 2026-11-10): bump both in
-   `gradle/libs.versions.toml` on a branch from `dev` (`gv-160`), check maven.mozilla.org for the
-   exact matching GeckoView build, fix API breaks, full test suite, R8 release on the phone, then
-   retest: HyperOS long screenshot (GV 160 adds `ScrollCaptureCallback`), the status-bar draw
-   callback question, and the rare bugs above. Size of the APK (`README.md`) may change.
-3. Then whichever milestone the owner chooses (ROADMAP lists the next step for each).
+1. Ask the owner about pending decisions 1, 2 and 4.
+2. **GeckoView / android-components 160** when it's released: bump both in
+   `gradle/libs.versions.toml` on a branch from `dev` (`gv-160`), fix API breaks, full test suite,
+   R8 release on the phone, then retest the HyperOS long screenshot and the rare bugs above.
+3. The video player from the owner's design.
 
 ## Build
 
@@ -163,4 +180,4 @@ is ever committed (CLAUDE.md "Public repo").
 5. About shows "About" then "Koan": start that page collapsed, or drop its large title.
 6. Tour clips (cards 2 and 5) show real data: re-record before a public release.
 
-The old POCO X4 GT (serial `JJV87TVGTOCAAYPR`, 1080×2460, one display, its VPN can drop) is available for unattended tests; its Koan runs the dev build of this batch over old 0.2.2 data, Koan Test there was cleared.
+The old POCO X4 GT (1080×2460, one display, its VPN can drop) is available for unattended tests; its Koan runs the R8 release of `dev` (2026-11-11).

@@ -1,5 +1,52 @@
 # Changelog
 
+## Unreleased (on `dev`)
+
+### New
+
+- **Two-way sync, if you want it** (Settings › Mozilla account › Send to your Mozilla account):
+  passwords saved on the phone go to your account, and History goes both ways (pages you visit,
+  and pages you remove). Editing and deleting your account's passwords has its own switch, off by
+  default. Before its first change, Koan keeps an encrypted copy of what your account had; any
+  surprise stops it and turns the switch off. Spaces, tabs and bookmarks are never written.
+- **Translate pages on the phone** (Firefox Translations, nothing sent anywhere): an offer card on a
+  page in another language, ⋯ › **Translate page** (From / To with search, Recent and On this phone,
+  Show original), **Always translate** a language, and **Settings › Translation** for your Always
+  and Never lists and the languages on the phone.
+- **"Open in app" asks first:** a page's "Open app" button shows a card with the app's name and
+  icon (Open / Cancel, Always for this site), and ⋯ shows **Open in [app]** on a site that has one.
+- **Same file twice:** downloading a file that's already there asks: Open, Replace, Keep both
+  ("name (1).ext") or Cancel, with its thumbnail; tap the name to rename it.
+- **Selection mode** on History, Downloads and Passwords: long-press a row, check others, act from
+  the bar at the bottom (Select all, ✕ or Back to leave).
+- **Add a password by hand:** Settings › Passwords › the round **+**.
+- Space icons picked with Zen's **Zia** mod show on the phone too.
+
+### Improved
+
+- **History from a page** (⋯ › History): a tap opens the entry in that tab; the overview still opens
+  a new one. ⋯ › History and the overview's History are the same page.
+- **Swipes on library pages:** right to left deletes (History, Passwords, Downloads' file), left to
+  right hides a download from the list (the file stays). A side with no action gives a little and
+  springs back; a swipe never stays stuck. Deleting a file waits until its Undo is gone.
+- **Passwords:** a flat list with the sites' icons in grey (only icons Koan already has, never
+  fetched for this list), a delete that always asks and says whether it affects your account, Delete
+  on each account of a site's page, and nothing deletable before the fingerprint.
+- **Back closing a tab:** the page shrinks into a card and slides away over the tab underneath.
+- **A toast replacing another** lets the old one sink away while the new one rises.
+- **Cards:** two choices sit side by side (Cancel on the left); a card leading to another one (Save
+  image → already downloaded) changes into it instead of closing and opening.
+- **Save image on Google Images** before the full picture has loaded waits for it and saves the full
+  image, not the small preview.
+- **Settings pages:** the large title stays solid until you really scroll.
+- Koan no longer asks Android for the list of every installed app: it only looks for the apps
+  behind web links and the app links sites use.
+
+### Known limitations
+
+- The full-image wait on Google Images can still pick the wrong moment; it will get another look.
+- The new video player isn't in this build yet.
+
 ## 0.4.0 — 2026-10-30 (beta)
 
 Installs over 0.3.x and keeps your data. Full guide: [`docs/FEATURES.md`](docs/FEATURES.md). For
