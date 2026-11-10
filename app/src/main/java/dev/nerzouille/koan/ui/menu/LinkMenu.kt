@@ -60,6 +60,17 @@ data class LinkTarget(val link: String?, val image: String?, val label: String) 
         }
 
         private fun isWeb(url: String) = url.startsWith("http://") || url.startsWith("https://")
+
+        /**
+         * Google's small preview of an image (encrypted-tbn0.gstatic.com/images?q=tbn:…), shown
+         * while the full one loads (Google Images): saving it would save the preview, under
+         * another name and size. The full image's address isn't in what the press returns.
+         */
+        fun isPreview(url: String): Boolean {
+            val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+            val host = uri.host?.lowercase().orEmpty()
+            return host.endsWith(".gstatic.com") && host.contains("tbn") && uri.rawQuery.orEmpty().contains("tbn")
+        }
     }
 }
 
@@ -111,7 +122,14 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions, ima
         }
         target.image?.let { image ->
             SheetGroup {
-                SheetRow(KoanIcons.Download, "Save image", interactive, onClick = { actions.saveImage(image) })
+                // Only the real image: a press on Google's small preview says to wait for the full one.
+                val preview = LinkTarget.isPreview(image)
+                SheetRow(
+                    KoanIcons.Download, "Save image", interactive,
+                    subtitle = if (preview) "Small preview: long-press again once it's sharp" else null,
+                    titleColor = if (preview) KoanTheme.colors.TextDisabled else androidx.compose.ui.graphics.Color.Unspecified,
+                    onClick = if (preview) null else ({ actions.saveImage(image) }),
+                )
                 SheetDivider()
                 SheetRow(KoanIcons.Plus, "Open image in new tab", interactive, onClick = { actions.openNew(image) })
                 SheetDivider()
