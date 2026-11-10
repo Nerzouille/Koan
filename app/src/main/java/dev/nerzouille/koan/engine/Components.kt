@@ -1,9 +1,12 @@
 package dev.nerzouille.koan.engine
 
+import dev.nerzouille.koan.data.SyncWrite
+import dev.nerzouille.koan.data.HistoryDeletions
 import android.content.Context
 import dev.nerzouille.koan.data.AccountStore
 import dev.nerzouille.koan.data.Bookmarks
 import dev.nerzouille.koan.data.LibrarySync
+import kotlinx.coroutines.flow.first
 import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.data.HiddenLogins
 import dev.nerzouille.koan.data.DataStoreBlob
@@ -189,9 +192,17 @@ class Components(context: Context) {
     val spaces by lazy { SpacesRepository(database.dao(), appScope) }
     val accounts by lazy { AccountStore(DataStoreBlob(appContext), KeystoreBox()) }
     /** Saved logins, sealed with their own Keystore key. */
-    val logins by lazy { LoginStore(database.dao(), KeystoreBox("koan_logins"), HiddenLogins(appContext)) }
+    val hiddenLogins by lazy { HiddenLogins(appContext) }
+    val logins by lazy { LoginStore(database.dao(), KeystoreBox("koan_logins"), hiddenLogins) }
+
+    /** History removed on the phone, waiting to be deleted from the account (two-way sync). */
+    val historyDeletions by lazy { HistoryDeletions(appContext) }
+
+    /** Two-way sync: what the phone sends to the Mozilla account, for the switches turned on. */
+    val syncWrite by lazy { SyncWrite(appContext, settings, database.dao(), logins, hiddenLogins, historyDeletions) }
     val sync by lazy {
-        SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }, library = LibrarySync(database.dao(), logins))
+        SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }, library = LibrarySync(database.dao(), logins, historyDeletions),
+            syncWrite = syncWrite)
     }
     val lastPlace by lazy { LastPlace(appContext) }
     val settings by lazy { Settings(appContext) }

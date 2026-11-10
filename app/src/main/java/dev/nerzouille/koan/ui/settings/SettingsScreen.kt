@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.data.StartPageAfter
 import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.search.EngineDraft
+import dev.nerzouille.koan.data.SyncBackChoice
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.bar.label
@@ -77,6 +78,13 @@ class SettingsUi(
     /** Suggestions from the search engine while typing. */
     val suggestions: Boolean,
     val onSuggestions: (Boolean) -> Unit,
+    /** Two-way sync, dry run only: which collections Koan would send. */
+    val syncBack: SyncBackChoice,
+    val onSyncBack: (SyncBackChoice) -> Unit,
+    val syncBackPasswordEdits: Boolean = false,
+    val onSyncBackPasswordEdits: (Boolean) -> Unit = {},
+    /** The last two-way sync outcome per collection (no content). */
+    val syncWriteStatus: Map<String, String> = emptyMap(),
     /** The status bar stays hidden in the page and the overview. */
     val hideStatusBar: Boolean,
     val onHideStatusBar: (Boolean) -> Unit,
@@ -317,6 +325,13 @@ private fun FolderPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
 }
 
 @Composable
+private fun SyncBackRow(title: String, checked: Boolean, on: Boolean, onChange: (Boolean) -> Unit) {
+    SettingsRow(null, title, on, subtitle = "Off by default", onClick = { onChange(!checked) }) {
+        KoanToggle(checked = checked, onCheckedChange = if (on) onChange else null)
+    }
+}
+
+@Composable
 private fun AccountPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
     SettingsPageFrame("Mozilla account", on, onBack) {
         SettingsRow(null, ui.email.orEmpty(), on, subtitle = ui.status.label()?.first?.substringBefore(" · Sync now"))
@@ -324,5 +339,27 @@ private fun AccountPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
         SettingsRow(null, "Sync now", on, onClick = ui.onSyncNow)
         SettingsDivider()
         SettingsRow(null, "Sign out", on, titleColor = KoanTheme.colors.Destructive, onClick = ui.onSignOut)
+
+        // Two-way sync (docs/SYNC_WRITE.md): off by default; any surprise turns a switch off again.
+        SettingsSection("Send to your Mozilla account")
+        val choice = ui.syncBack
+        SettingsRow(
+            null, "Passwords saved on this phone", on,
+            subtitle = ui.syncWriteStatus["passwords"] ?: "New ones only, added to the account",
+            onClick = { ui.onSyncBack(choice.copy(passwords = !choice.passwords)) },
+        ) { KoanToggle(checked = choice.passwords, onCheckedChange = if (on) ({ ui.onSyncBack(choice.copy(passwords = it)) }) else null) }
+        SettingsDivider()
+        SettingsRow(
+            null, "Change and delete passwords", on,
+            subtitle = "Edits and deletions made here change the account too",
+            onClick = { ui.onSyncBackPasswordEdits(!ui.syncBackPasswordEdits) },
+        ) { KoanToggle(checked = ui.syncBackPasswordEdits, onCheckedChange = if (on) ui.onSyncBackPasswordEdits else null) }
+        SettingsDivider()
+        SettingsRow(
+            null, "History, both ways", on,
+            subtitle = ui.syncWriteStatus["history"] ?: "Pages visited here; pages removed here are removed there too",
+            onClick = { ui.onSyncBack(choice.copy(history = !choice.history)) },
+        ) { KoanToggle(checked = choice.history, onCheckedChange = if (on) ({ ui.onSyncBack(choice.copy(history = it)) }) else null) }
+        SettingsRow(null, "Before the first change, Koan keeps a copy of each collection on this phone.", false)
     }
 }
