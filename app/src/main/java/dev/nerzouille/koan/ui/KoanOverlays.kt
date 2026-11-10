@@ -138,6 +138,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val linkCard = SheetState(scope, splineBasedDecay(density))
     var link by mutableStateOf<LinkTarget?>(null)
     val signOutCard = SheetState(scope, splineBasedDecay(density))
+    /** Deleting a downloaded translation language asks first. */
+    val languageDeleteCard = SheetState(scope, splineBasedDecay(density))
+    var languageToDelete by mutableStateOf<String?>(null)
 
     /** The tab counter's long-press menu: New tab, Close tab. */
     var tabMenuOpen by mutableStateOf(false)
@@ -314,6 +317,10 @@ fun KoanOverlays(
         showOriginal = { activeTabId?.let { dispatchTranslate(TranslationsAction.TranslateRestoreAction(it)) } },
         neverLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_LANGUAGE, on)) } },
         neverSite = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_SITE, on)) } },
+        deleteLanguage = { code ->
+            overlays.languageToDelete = code
+            overlays.languageDeleteCard.animateTo(Detent.Compact)
+        },
         alwaysLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_ALWAYS_TRANSLATE_LANGUAGE, on)) } },
         picked = { side, code ->
             val list = (listOf(code) + recentOf(side).filter { it != code }).take(dev.nerzouille.koan.ui.theme.TranslateTokens.RECENT)
@@ -790,8 +797,14 @@ fun KoanOverlays(
                         (activeTabId ?: components.store.state.selectedTabId)?.let { dispatchTranslate(TranslationsAction.OperationRequestedAction(it, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS)) }
                     },
                     onRemoveSite = { origin -> dispatchTranslate(TranslationsAction.RemoveNeverTranslateSiteAction(origin)) },
+                    onPhone = translateEngine.languageModels.orEmpty()
+                        .filter { it.status == mozilla.components.concept.engine.translate.ModelState.DOWNLOADED }
+                        .mapNotNull { m -> m.language?.let { Triple(it.code, it.localizedDisplayName?.ifBlank { null } ?: languageName(it.code), m.size) } }
+                        .sortedBy { it.second },
+                    onDeleteLanguage = translateActions.deleteLanguage,
                     onOpen = {
                         (activeTabId ?: components.store.state.selectedTabId)?.let { id ->
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_LANGUAGE_MODELS))
                             dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS))
                             dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_NEVER_TRANSLATE_SITES))
                         }
@@ -896,6 +909,37 @@ fun KoanOverlays(
                 }
             },
             onCancel = { clearData.animateTo(Detent.Closed) },
+        )
+    }
+
+    // ---- deleting a downloaded translation language asks first ----
+    val languageDeleteCard = overlays.languageDeleteCard
+    KoanCard(languageDeleteCard) { interactive ->
+        val code = overlays.languageToDelete ?: return@KoanCard
+        val name = languageName(code)
+        val bytes = translateEngine.languageModels.orEmpty().firstOrNull { it.language?.code == code }?.size
+        Confirm(
+            title = "Delete $name?",
+            text = listOfNotNull(
+                bytes?.let { "Frees %.0f MB on this phone.".format(it / (1L shl 20).toDouble()) },
+                "It downloads again the next time you translate $name.",
+            ).joinToString(" "),
+            confirm = "Delete",
+            interactive = interactive,
+            onConfirm = {
+                languageDeleteCard.animateTo(Detent.Closed)
+                components.store.dispatch(
+                    TranslationsAction.ManageLanguageModelsAction(
+                        mozilla.components.concept.engine.translate.ModelManagementOptions(
+                            code,
+                            mozilla.components.concept.engine.translate.ModelOperation.DELETE,
+                            mozilla.components.concept.engine.translate.OperationLevel.LANGUAGE,
+                        ),
+                    ),
+                )
+                onToast(Toast("$name deleted from this phone"))
+            },
+            onCancel = { languageDeleteCard.animateTo(Detent.Closed) },
         )
     }
 

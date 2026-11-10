@@ -16,6 +16,10 @@ class TranslationSettings(
     val always: List<Pair<String, String>> = emptyList(),
     val never: List<Pair<String, String>> = emptyList(),
     val neverSites: List<String> = emptyList(),
+    /** Languages downloaded on the phone: code, name, size in bytes (null unknown). */
+    val onPhone: List<Triple<String, String, Long?>> = emptyList(),
+    /** Asks, then deletes a downloaded language. */
+    val onDeleteLanguage: (String) -> Unit = {},
     /** Back to "offer" for that language. */
     val onRemoveLanguage: (String) -> Unit = {},
     val onRemoveSite: (String) -> Unit = {},
@@ -25,7 +29,7 @@ class TranslationSettings(
 
 /**
  * Settings › Translation: the languages always translated, the languages and the sites never
- * offered, each with Remove. Pages are translated on the phone (Firefox Translations).
+ * offered, each with Remove, and the languages downloaded on the phone, each with Delete. Pages are translated on the phone (Firefox Translations).
  */
 @Composable
 internal fun TranslationPage(t: TranslationSettings, on: Boolean, onBack: () -> Unit) {
@@ -39,6 +43,16 @@ internal fun TranslationPage(t: TranslationSettings, on: Boolean, onBack: () -> 
         )
         Section("Always translate", t.always.map { it.second to { t.onRemoveLanguage(it.first) } }, "No language yet. Turn it on from ⋯ › Translate page.", on)
         Section("Never translate", t.never.map { it.second to { t.onRemoveLanguage(it.first) } }, "No language.", on)
+        SettingsSection("On this phone")
+        if (t.onPhone.isEmpty()) {
+            Text("No language downloaded yet.", color = palette.TextSecondary, fontSize = SettingsTokens.RowValueSize, modifier = Modifier.padding(vertical = SettingsTokens.Divider * 4))
+        }
+        t.onPhone.forEachIndexed { i, (code, name, bytes) ->
+            if (i > 0) SettingsDivider()
+            SettingsRow(null, name, on, subtitle = bytes?.let { "%.0f MB".format(it / (1L shl 20).toDouble()) }) {
+                RowAction("Delete") { if (on) t.onDeleteLanguage(code) }
+            }
+        }
         Section("Never translate these sites", t.neverSites.map { site -> site.removePrefix("https://").removePrefix("http://") to { t.onRemoveSite(site) } }, "No site.", on)
     }
 }

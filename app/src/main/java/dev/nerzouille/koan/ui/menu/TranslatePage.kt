@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -97,6 +98,8 @@ class TranslateActions(
     val alwaysLanguage: (Boolean) -> Unit = {},
     /** A language picked in a list ("from" or "to"): it goes to that side's Recent. */
     val picked: (side: String, code: String) -> Unit = { _, _ -> },
+    /** Long press on a downloaded language: asks, then deletes its model from the phone. */
+    val deleteLanguage: (code: String) -> Unit = {},
 )
 
 /** A language code as a name, in English ("zh" → "Chinese"), for when Gecko gave none. */
@@ -141,6 +144,7 @@ fun TranslatePage(ui: TranslateUi, target: String, actions: TranslateActions, sc
                 downloaded = ui.downloaded,
                 sizes = ui.modelBytes,
                 interactive = on,
+                onDelete = actions.deleteLanguage,
                 onBack = { picking = null },
                 onPick = { code ->
                     if (choosing == "from") from = code else to = code
@@ -194,9 +198,10 @@ fun TranslatePage(ui: TranslateUi, target: String, actions: TranslateActions, sc
 /**
  * A From / To list: ‹ back to the Translate page, a search field, then the languages in sections,
  * each one once, in the first that fits: Recent (the last 3 picked on that side), On this phone
- * (models already downloaded), All languages (A–Z, with the download size when Gecko said). While
- * searching, only the matches, without sections.
+ * (models already downloaded; a long press deletes one), All languages (A–Z, with the download
+ * size when Gecko said). While searching, only the matches, without sections.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun LanguagePicker(
     title: String,
@@ -208,6 +213,7 @@ private fun LanguagePicker(
     interactive: Boolean,
     onBack: () -> Unit,
     onPick: (String) -> Unit,
+    onDelete: (String) -> Unit = {},
 ) {
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
@@ -239,7 +245,12 @@ private fun LanguagePicker(
         SheetGroup {
             list.forEachIndexed { i, lang ->
                 if (i > 0) SheetDivider()
-                SheetRow(null, lang.name, interactive, onClick = { onPick(lang.code) }) {
+                // A downloaded language: a long press offers to delete it from the phone.
+                val onPhone = lang.code in downloaded
+                SheetRow(
+                    null, lang.name, interactive,
+                    modifier = if (interactive) Modifier.combinedClickable(onClick = { onPick(lang.code) }, onLongClick = if (onPhone) ({ onDelete(lang.code) }) else null) else Modifier,
+                ) {
                     when {
                         lang.code == current -> Icon(KoanIcons.Check, null, tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.RowGlyph))
                         lang.code in downloaded -> RowValue("On phone")
