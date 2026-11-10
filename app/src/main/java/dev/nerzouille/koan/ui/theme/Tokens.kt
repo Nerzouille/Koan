@@ -1007,10 +1007,41 @@ object ToastTokens {
     val Rise = 16.dp
 }
 
-/** Settings › Passwords: the round + that adds one by hand. */
+/** Settings › Passwords: site icons on the list and a site's page. */
 object PasswordTokens {
-    val AddButton = 56.dp
-    val AddMargin = 20.dp
+    /** The bare favicon in place of the key glyph (SettingsTokens.RowGlyph). */
+    val Favicon = 20.dp
+    /** Greyscale icons sit with the key glyphs: contrast scaled down around mid-grey. */
+    const val GREY_CONTRAST = 0.8f
+    /** Grey to colour once unlocked, and back when it locks. */
+    const val COLOUR_MS = 220
+}
+
+/** The library pages' selection mode (ui/kit/Selection): header, check marks, the bottom action bar. */
+object SelectionTokens {
+    val BarHeight = 64.dp
+    val BarRadius = 20.dp
+    val BarInset = 4.dp
+    val Glyph = 22.dp
+    val LabelSize = 12.sp
+    val LabelGap = 3.dp
+    val Check = 22.dp
+    val CheckGlyph = 14.dp
+    val CheckRing = 1.5.dp
+    val SelectAllPadH = 10.dp
+    val SelectAllPadV = 8.dp
+}
+
+/** A library row's swipes (ui/kit/SwipeRow). */
+object SwipeTokens {
+    /** How far a side without an action gives before it springs back. */
+    val Nudge = 36.dp
+    /** Past this share of the row's width, the swipe acts on release. */
+    const val COMMIT = 0.4f
+    /** px/s: a fling this fast acts even when short. */
+    const val FLING = 1800f
+    const val OUT_MS = 160
+    val Back: SpringSpec<Float> = spring(dampingRatio = 0.62f, stiffness = 520f)
 }
 
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */

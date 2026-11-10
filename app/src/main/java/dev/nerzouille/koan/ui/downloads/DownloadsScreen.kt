@@ -41,9 +41,14 @@ import dev.nerzouille.koan.ui.kit.ListPage
 import dev.nerzouille.koan.ui.kit.LibraryRowFrame
 import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
 import dev.nerzouille.koan.ui.kit.LibraryRowTitle
-import dev.nerzouille.koan.ui.kit.RowMenu
-import dev.nerzouille.koan.ui.kit.RowMenuItem
-import dev.nerzouille.koan.ui.kit.SwipeToDelete
+import dev.nerzouille.koan.ui.kit.SelectionAction
+import dev.nerzouille.koan.ui.kit.SelectionBar
+import dev.nerzouille.koan.ui.kit.SelectionHeader
+import dev.nerzouille.koan.ui.kit.SwipeRow
+import dev.nerzouille.koan.ui.kit.dayRowShape
+import dev.nerzouille.koan.ui.kit.rememberSelection
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.SideEffect
 import dev.nerzouille.koan.ui.kit.Toast
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.key
@@ -59,9 +64,10 @@ import mozilla.components.browser.state.state.content.DownloadState.Status
 
 /**
  * Downloads (design 7i): what is downloading (gradient progress, pause / resume, cancel), then
- * the finished ones by day, with the library rules (ui/kit/LibraryRow): a tap opens the file, a
- * swipe either way takes it off the list (the file stays; Undo), a long press opens its menu
- * (Open, Share, Copy link, Delete file). Search and Clear sit at the bottom, in thumb reach.
+ * the finished ones by day, with the library rules (ui/kit/LibraryRow): a tap opens the file; a
+ * swipe left to right hides it from the list (the file stays), right to left deletes the file
+ * (both with Undo: the file is only deleted once the toast is gone); a long press enters
+ * selection mode (Open, Share, Hide, Delete). Search and Clear sit at the bottom, in thumb reach.
  * [folder] names where files go ("Download", or the picked folder).
  */
 @Composable
@@ -72,8 +78,9 @@ fun DownloadsScreen(
     onClear: () -> Unit,
     onClose: () -> Unit,
     onToast: (Toast) -> Unit,
-    onMenu: (RowMenu) -> Unit,
     onCopyLink: (String) -> Unit,
+    /** Asks first (deleting several files): title, text, the confirm button, what it does. */
+    onConfirm: (title: String, text: String, confirm: String, action: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = KoanTheme.colors
@@ -84,6 +91,61 @@ fun DownloadsScreen(
         .filter { query.isBlank() || it.fileName.orEmpty().contains(query.trim(), ignoreCase = true) }
         .sortedByDescending { it.createdTime }
     val (running, done) = shown.partition { it.status in RUNNING }
+    val selection = rememberSelection<String>()
+    SideEffect { selection.keepOnly(done.mapTo(HashSet()) { it.id }) }
+    val checked = done.filter { it.id in selection }
+    // Share with one file checked: a small choice in the bar.
+    var shareChoice by remember { mutableStateOf(false) }
+    if (checked.size != 1) shareChoice = false
+
+    fun open(d: DownloadState) {
+        if (!actions.open(d)) onToast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
+    }
+    fun share(list: List<DownloadState>) {
+        val ok = if (list.size == 1) actions.share(list[0]) else actions.shareAll(list)
+        if (!ok) onToast(Toast(if (list.size == 1) "Couldn't share this file" else "Couldn't share these files"))
+    }
+    fun hide(list: List<DownloadState>) {
+        list.forEach { actions.removeLater(it, deleteFile = false) }
+        val what = if (list.size == 1) "Hidden from the list" else "${list.size} hidden from the list"
+        val detail = if (list.size == 1) "The file stays in $folder" else "The files stay in $folder"
+        onToast(Toast(what, "Undo", detail = detail) { list.forEach(actions::restore) })
+    }
+    fun delete(list: List<DownloadState>) {
+        list.forEach { actions.removeLater(it, deleteFile = true) }
+        onToast(Toast(if (list.size == 1) "File deleted" else "${list.size} files deleted", "Undo") { list.forEach(actions::restore) })
+    }
+    fun act(run: () -> Unit) = { selection.clear(); run() }
+    val bar: List<SelectionAction> = when {
+        checked.size == 1 && shareChoice -> {
+            val d = checked[0]
+            listOf(
+                SelectionAction(KoanIcons.Back, "Back") { shareChoice = false },
+                SelectionAction(KoanIcons.Share, "Share file", onClick = act { share(listOf(d)) }),
+                SelectionAction(KoanIcons.Link, "Copy download link", onClick = act { onCopyLink(d.url) }),
+            )
+        }
+        checked.size == 1 -> {
+            val d = checked[0]
+            listOf(
+                SelectionAction(KoanIcons.Open, "Open", onClick = act { open(d) }),
+                SelectionAction(KoanIcons.Share, "Share") { shareChoice = true },
+                SelectionAction(KoanIcons.Close, "Hide", onClick = act { hide(listOf(d)) }),
+                SelectionAction(KoanIcons.Trash, "Delete", destructive = true, onClick = act { delete(listOf(d)) }),
+            )
+        }
+        else -> listOf(
+            SelectionAction(KoanIcons.Share, "Share", onClick = act { share(checked) }),
+            SelectionAction(KoanIcons.Close, "Hide", onClick = act { hide(checked) }),
+            SelectionAction(KoanIcons.Trash, "Delete", destructive = true) {
+                val list = checked
+                onConfirm("Delete ${list.size} files?", "They're deleted from $folder.", "Delete") {
+                    selection.clear()
+                    delete(list)
+                }
+            },
+        )
+    }
 
     ListPage(
         title = "Downloads",
@@ -108,7 +170,15 @@ fun DownloadsScreen(
                 Text(folder, color = palette.TextSecondary, fontSize = DownloadTokens.ChipTextSize, maxLines = 1)
             }
         },
+        selectionHeader = if (!selection.active) null else {
+            { SelectionHeader(checked.size, interactive = true, onCancel = selection::clear, onSelectAll = { selection.set(done.mapTo(HashSet()) { it.id }) }) }
+        },
+        selectionBar = if (!selection.active) null else {
+            { SelectionBar(bar, interactive = true) }
+        },
     ) {
+        BackHandler(enabled = selection.active) { if (shareChoice) shareChoice = false else selection.clear() }
+        val selecting = selection.active
         Column(
             Modifier
                 .weight(1f)
@@ -128,44 +198,22 @@ fun DownloadsScreen(
                 DayCard { running.forEachIndexed { i, d -> if (i > 0) SettingsDivider(); RunningRow(d, actions) } }
             }
             // One card per day, newest first.
-            fun open(d: DownloadState) {
-                if (!actions.open(d)) onToast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
-            }
-            fun share(d: DownloadState) {
-                if (!actions.share(d)) onToast(Toast("Couldn't share this file"))
-            }
-            fun remove(d: DownloadState) {
-                actions.removeFromList(d)
-                onToast(Toast("Removed from the list", "Undo", detail = "The file is still in $folder") { actions.restore(d) })
-            }
             byDay(done, { it.createdTime }).forEach { (day, items) ->
                 SettingsSection(day)
                 items.forEachIndexed { i, d ->
                     key(d.id) {
-                        SwipeToDelete(first = i == 0, last = i == items.lastIndex, onRemove = { remove(d) }) {
-                            DoneRow(d, first = i == 0, onOpen = { open(d) }) {
-                                onMenu(
-                                    RowMenu(
-                                        title = d.fileName.orEmpty(),
-                                        subtitle = listOfNotNull((d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · "),
-                                        iconUrl = null,
-                                        groups = listOf(
-                                            listOf(
-                                                RowMenuItem(KoanIcons.Open, "Open") { open(d) },
-                                                RowMenuItem(KoanIcons.Share, "Share") { share(d) },
-                                                RowMenuItem(KoanIcons.Link, "Copy download link") { onCopyLink(d.url) },
-                                            ),
-                                            listOf(
-                                                RowMenuItem(KoanIcons.Close, "Remove from the list") { remove(d) },
-                                                RowMenuItem(KoanIcons.Trash, "Delete file", destructive = true) {
-                                                    actions.delete(d)
-                                                    onToast(Toast("File deleted"))
-                                                },
-                                            ),
-                                        ),
-                                    ),
-                                )
-                            }
+                        SwipeRow(
+                            onDelete = { delete(listOf(d)) },
+                            onHide = { hide(listOf(d)) },
+                            enabled = !selecting,
+                            shape = dayRowShape(first = i == 0, last = i == items.lastIndex),
+                        ) {
+                            DoneRow(
+                                d, first = i == 0,
+                                checked = if (selecting) d.id in selection else null,
+                                onTap = { if (selecting) selection.toggle(d.id) else open(d) },
+                                onLong = { if (selecting) selection.toggle(d.id) else selection.start(d.id) },
+                            )
                         }
                     }
                 }
@@ -229,8 +277,8 @@ private fun RunningRow(d: DownloadState, actions: Downloads) {
 }
 
 @Composable
-private fun DoneRow(d: DownloadState, first: Boolean, onOpen: () -> Unit, onLong: () -> Unit) {
-    LibraryRowFrame(first, onClick = onOpen, onLongClick = onLong) {
+private fun DoneRow(d: DownloadState, first: Boolean, checked: Boolean?, onTap: () -> Unit, onLong: () -> Unit) {
+    LibraryRowFrame(first, onClick = onTap, onLongClick = onLong, checked = checked) {
         FileTile(d)
         Spacer(Modifier.width(DownloadTokens.RowGap))
         Column(Modifier.weight(1f)) {

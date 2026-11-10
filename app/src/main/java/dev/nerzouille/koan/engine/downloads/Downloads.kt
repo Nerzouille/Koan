@@ -46,19 +46,32 @@ class Downloads(
     }
 
     /**
-     * Swiped away: gone from the list at once, the file stays. Really dropped from the store only
-     * once its Undo had its chance ([restore] in time keeps it), so Undo never has to re-add a
-     * download (which would start it again).
+     * Hidden or deleted from the page: gone from the list at once. Only once its Undo had its
+     * chance ([restore] in time keeps it untouched) is it dropped from the store, and with
+     * [deleteFile] its file deleted, so Undo never has to re-add a download (which would start it
+     * again) or bring a file back. If Koan is killed meanwhile, nothing happens: the file stays.
      */
-    fun removeFromList(download: DownloadState) {
+    fun removeLater(download: DownloadState, deleteFile: Boolean) {
         pending[download.id]?.cancel()
         _hidden.value = _hidden.value + download.id
         pending[download.id] = scope.launch {
             delay(UNDO_WINDOW_MS)
-            useCases.removeDownload(download.id)
+            if (deleteFile) delete(download) else useCases.removeDownload(download.id)
             pending.remove(download.id)
             _hidden.value = _hidden.value - download.id
         }
+    }
+
+    /** Several files at once, in one share sheet. False when none of them can be found. */
+    fun shareAll(downloads: List<DownloadState>): Boolean {
+        val uris = downloads.mapNotNullTo(ArrayList()) { files.findShareableDownloadFileUri(it.fileName, it.directoryPath) }
+        if (uris.isEmpty()) return false
+        val send = Intent(Intent.ACTION_SEND_MULTIPLE)
+            .setType("*/*")
+            .putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        return true
     }
 
     fun restore(download: DownloadState) {
@@ -66,7 +79,7 @@ class Downloads(
         _hidden.value = _hidden.value - download.id
     }
 
-    /** Downloads swiped away, waiting for their Undo window to pass. */
+    /** Downloads hidden or deleted, waiting for their Undo window to pass. */
     val hidden: StateFlow<Set<String>> get() = _hidden
     private val _hidden = MutableStateFlow(emptySet<String>())
     private val pending = mutableMapOf<String, Job>()
