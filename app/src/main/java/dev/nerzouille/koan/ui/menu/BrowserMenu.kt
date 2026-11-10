@@ -45,6 +45,7 @@ sealed interface MenuPage {
     data object Root : MenuPage
     data object SiteSettings : MenuPage
     data object UBlock : MenuPage
+    data object Translate : MenuPage
 }
 
 /** What "Add to Essentials" can do for the current tab. */
@@ -64,6 +65,8 @@ data class MenuState(
     val searchEngine: EngineDraft? = null,
     /** An installed app that opens this page's site (YouTube for youtube.com): "Open in YouTube". */
     val openInApp: AppTarget? = null,
+    /** "Translate page" / "Show original"; null on a page Gecko can't translate (or no page). */
+    val translate: String? = null,
 )
 
 /** What the menu's root page does. Rows without an action yet show as "Soon". */
@@ -91,6 +94,7 @@ class MenuActions(
     val ublockInstall: () -> Unit,
     val addSearchEngine: () -> Unit,
     val openInApp: () -> Unit = {},
+    val translate: () -> Unit = {},
 )
 
 /**
@@ -135,6 +139,10 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
                 KoanIcons.Reader, if (state.readerActive) "Leave reader view" else "Reader view", on,
                 onClick = if (state.readerAvailable || state.readerActive) actions.reader else null,
             ) { RowValue(if (state.readerActive) "On" else if (state.readerAvailable) "Available" else "Not available") }
+            state.translate?.let { label ->
+                SheetDivider()
+                SheetRow(KoanIcons.Translate, label, on, onClick = actions.translate) { RowChevron() }
+            }
             SheetDivider()
             when (state.essentials) {
                 EssentialsAction.Add -> SheetRow(KoanIcons.Essentials, "Add to Essentials", on, onClick = actions.essentials)

@@ -124,6 +124,15 @@ object KoanIcons {
             moveTo(14f, 7f); lineTo(17f, 10f)
         }
     }
+    /** Translate page: a Latin "A" and strokes of another script. */
+    val Translate: ImageVector by lazy {
+        stroked("translate") {
+            moveTo(3f, 20f); lineTo(7.5f, 8f); lineTo(12f, 20f)
+            moveTo(4.8f, 16f); lineTo(10.2f, 16f)
+            moveTo(13f, 5f); lineTo(21f, 5f); moveTo(17f, 3f); lineTo(17f, 5f)
+            moveTo(19.5f, 5f); lineTo(14f, 12f); moveTo(15.5f, 8f); lineTo(21f, 12f)
+        }
+    }
     val Reader: ImageVector by lazy {
         stroked("reader") {
             moveTo(5f, 6f); lineTo(19f, 6f); moveTo(5f, 10f); lineTo(19f, 10f)

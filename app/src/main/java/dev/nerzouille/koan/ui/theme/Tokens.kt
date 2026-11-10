@@ -1061,6 +1061,19 @@ object SwipeTokens {
     val Back: SpringSpec<Float> = spring(dampingRatio = 0.62f, stiffness = 520f)
 }
 
+/** Translate page (⋯ menu) and the offer above the dock. */
+object TranslateTokens {
+    const val SWEEP_MS = 1100
+    val Track = 4.dp
+    val Close = 32.dp
+    /** The offer leaves on its own after this long. */
+    const val OFFER_MS = 20_000L
+    /** "Always translate": Koan starts the translation itself if Gecko hasn't after this long. */
+    const val AUTO_WAIT_MS = 1_500L
+    /** A language list's Recent section. */
+    const val RECENT = 3
+}
+
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
 object DownloadTokens {
     val FileTile = 40.dp

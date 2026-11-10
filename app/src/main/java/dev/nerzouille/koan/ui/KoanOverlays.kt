@@ -23,6 +23,18 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.ImageBitmap
 import dev.nerzouille.koan.engine.downloads.DuplicateDownloads
 import dev.nerzouille.koan.ui.menu.DuplicateDownloadPrompt
+import dev.nerzouille.koan.ui.settings.TranslationSettings
+import mozilla.components.concept.engine.translate.LanguageSetting
+import dev.nerzouille.koan.ui.menu.languageName
+import dev.nerzouille.koan.ui.menu.translateUiOf
+import dev.nerzouille.koan.ui.menu.TranslateActions
+import dev.nerzouille.koan.ui.menu.TranslateUi
+import dev.nerzouille.koan.ui.menu.TranslatePage
+import mozilla.components.concept.engine.translate.Language
+import mozilla.components.concept.engine.translate.TranslationOperation
+import mozilla.components.concept.engine.translate.TranslationPageSettingOperation
+import mozilla.components.concept.engine.translate.TranslationOptions
+import mozilla.components.browser.state.action.TranslationsAction
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
@@ -151,6 +163,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val linkCard = SheetState(scope, splineBasedDecay(density))
     var link by mutableStateOf<LinkTarget?>(null)
     val signOutCard = SheetState(scope, splineBasedDecay(density))
+    /** Deleting a downloaded translation language asks first. */
+    val languageDeleteCard = SheetState(scope, splineBasedDecay(density))
+    var languageToDelete by mutableStateOf<String?>(null)
 
     /** The tab counter's long-press menu: New tab, Close tab. */
     var tabMenuOpen by mutableStateOf(false)
@@ -344,6 +359,39 @@ fun KoanOverlays(
     }
     fun close() = menu.animateTo(Detent.Closed)
 
+    // ---- Firefox Translations, per tab (engine: TranslationsMiddleware) ----
+    val tabTranslations by components.store.observeSlice(activeTabId) { s -> activeTabId?.let { s.findTab(it) }?.translationsState }
+    val translateEngine by components.store.observeSlice(Unit) { s -> s.translationEngine }
+    val phoneLanguage = remember { java.util.Locale.getDefault().language }
+    // The last languages picked on each side (Recent in the lists), on the phone only.
+    val translatePrefs = remember { context.getSharedPreferences("translate", Context.MODE_PRIVATE) }
+    fun recentOf(side: String) = translatePrefs.getString("recent_$side", null)?.split(',')?.filter { it.isNotBlank() }.orEmpty()
+    var recentFrom by remember { mutableStateOf(recentOf("from")) }
+    var recentTo by remember { mutableStateOf(recentOf("to")) }
+    val translateUi = tabTranslations?.let { t -> translateUiOf(t, translateEngine).copy(recentFrom = recentFrom, recentTo = recentTo) }
+    fun dispatchTranslate(action: mozilla.components.browser.state.action.BrowserAction) = components.store.dispatch(action)
+    val translateActions = TranslateActions(
+        translate = { from, to ->
+            activeTabId?.let { dispatchTranslate(TranslationsAction.TranslateAction(it, from, to, TranslationOptions(downloadModel = true))) }
+        },
+        showOriginal = { activeTabId?.let { dispatchTranslate(TranslationsAction.TranslateRestoreAction(it)) } },
+        neverLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_LANGUAGE, on)) } },
+        neverSite = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_SITE, on)) } },
+        deleteLanguage = { code ->
+            overlays.languageToDelete = code
+            overlays.languageDeleteCard.animateTo(Detent.Compact)
+        },
+        alwaysLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_ALWAYS_TRANSLATE_LANGUAGE, on)) } },
+        picked = { side, code ->
+            val list = (listOf(code) + recentOf(side).filter { it != code }).take(dev.nerzouille.koan.ui.theme.TranslateTokens.RECENT)
+            translatePrefs.edit().putString("recent_$side", list.joinToString(",")).apply()
+            if (side == "from") recentFrom = list else recentTo = list
+        },
+        pairChanged = { from, to ->
+            activeTabId?.let { if (from.isNotEmpty() && from != to) dispatchTranslate(TranslationsAction.FetchTranslationDownloadSizeAction(it, Language(from), Language(to))) }
+        },
+    )
+
     // ---- the ⋯ menu ----
     val state = MenuState(
         bookmarked = page.url in bookmarks,
@@ -360,6 +408,13 @@ fun KoanOverlays(
         ublock = ublockUi,
         searchEngine = newEngine,
         openInApp = openInApp,
+        translate = translateUi?.takeIf { page.url.isNotEmpty() && (it.pageLanguage != null || it.translated) }?.let {
+            when {
+                it.translated -> "Translated · show original"
+                it.working -> "Translating…"
+                else -> "Translate page"
+            }
+        },
     )
     KoanSheet(menu, overlays.menuNav) { p, pageScope ->
         when (p) {
@@ -423,6 +478,15 @@ fun KoanOverlays(
                             if (!components.externalLinks.openIn(app, page.url)) onToast(Toast("Couldn't open ${app.label}"))
                         }
                     },
+                    translate = {
+                        activeTabId?.let { id ->
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_PAGE_SETTINGS))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_SUPPORTED_LANGUAGES))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_LANGUAGE_MODELS))
+                            translateUi?.pageLanguage?.let { from -> translateActions.pairChanged(from, phoneLanguage) }
+                        }
+                        overlays.menuNav.push(MenuPage.Translate)
+                    },
                     addSearchEngine = {
                         val draft = newEngine
                         close()
@@ -439,6 +503,12 @@ fun KoanOverlays(
                 components.store.state.extensions[UBlock.ID]?.popupSession?.close()
                 components.store.dispatch(WebExtensionAction.UpdatePopupSessionAction(UBlock.ID, popupSession = null))
             }
+            MenuPage.Translate -> TranslatePage(
+                translateUi ?: TranslateUi(null, emptyList(), emptyList(), false, false, null, null, false, false, unsupported = false),
+                target = phoneLanguage,
+                actions = translateActions,
+                scope = pageScope,
+            )
             MenuPage.SiteSettings -> SiteSettingsPage(
                 SiteSettingsUi(
                     url = page.url,
@@ -916,6 +986,28 @@ fun KoanOverlays(
                 ublockWeek = blockedWeek.values.sum(),
                 onUblock = components.ublock::setEnabled,
                 onInstallUblock = components.ublock::install,
+                translation = TranslationSettings(
+                    always = translateEngine.languageSettings.orEmpty().filterValues { it == LanguageSetting.ALWAYS }.keys.map { it to languageName(it) }.sortedBy { it.second },
+                    never = translateEngine.languageSettings.orEmpty().filterValues { it == LanguageSetting.NEVER }.keys.map { it to languageName(it) }.sortedBy { it.second },
+                    neverSites = translateEngine.neverTranslateSites.orEmpty(),
+                    onRemoveLanguage = { code ->
+                        dispatchTranslate(TranslationsAction.UpdateLanguageSettingsAction(code, LanguageSetting.OFFER))
+                        (activeTabId ?: components.store.state.selectedTabId)?.let { dispatchTranslate(TranslationsAction.OperationRequestedAction(it, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS)) }
+                    },
+                    onRemoveSite = { origin -> dispatchTranslate(TranslationsAction.RemoveNeverTranslateSiteAction(origin)) },
+                    onPhone = translateEngine.languageModels.orEmpty()
+                        .filter { it.status == mozilla.components.concept.engine.translate.ModelState.DOWNLOADED }
+                        .mapNotNull { m -> m.language?.let { Triple(it.code, it.localizedDisplayName?.ifBlank { null } ?: languageName(it.code), m.size) } }
+                        .sortedBy { it.second },
+                    onDeleteLanguage = translateActions.deleteLanguage,
+                    onOpen = {
+                        (activeTabId ?: components.store.state.selectedTabId)?.let { id ->
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_LANGUAGE_MODELS))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_NEVER_TRANSLATE_SITES))
+                        }
+                    },
+                ),
                 passwords = PasswordsUi(
                     summaries = loginSummaries,
                     unlocked = unlockedLogins,
@@ -1097,6 +1189,37 @@ fun KoanOverlays(
                 ask.action()
             },
             onCancel = { askCard.animateTo(Detent.Closed) },
+        )
+    }
+
+    // ---- deleting a downloaded translation language asks first ----
+    val languageDeleteCard = overlays.languageDeleteCard
+    KoanCard(languageDeleteCard) { interactive ->
+        val code = overlays.languageToDelete ?: return@KoanCard
+        val name = languageName(code)
+        val bytes = translateEngine.languageModels.orEmpty().firstOrNull { it.language?.code == code }?.size
+        Confirm(
+            title = "Delete $name?",
+            text = listOfNotNull(
+                bytes?.let { "Frees %.0f MB on this phone.".format(it / (1L shl 20).toDouble()) },
+                "It downloads again the next time you translate $name.",
+            ).joinToString(" "),
+            confirm = "Delete",
+            interactive = interactive,
+            onConfirm = {
+                languageDeleteCard.animateTo(Detent.Closed)
+                components.store.dispatch(
+                    TranslationsAction.ManageLanguageModelsAction(
+                        mozilla.components.concept.engine.translate.ModelManagementOptions(
+                            code,
+                            mozilla.components.concept.engine.translate.ModelOperation.DELETE,
+                            mozilla.components.concept.engine.translate.OperationLevel.LANGUAGE,
+                        ),
+                    ),
+                )
+                onToast(Toast("$name deleted from this phone"))
+            },
+            onCancel = { languageDeleteCard.animateTo(Detent.Closed) },
         )
     }
 
