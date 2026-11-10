@@ -71,9 +71,11 @@ class ExternalLinks(context: Context, private val pageUrl: () -> String?) : Requ
             ?: return InterceptionResponse.Deny
         intent.addCategory(Intent.CATEGORY_BROWSABLE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val tapped = hasUserGesture || isDirectNavigation
-        val app = resolve(intent)
+        val fallback = intent.getStringExtra(FALLBACK_URL)?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
+        // An app Koan can't see (a scheme outside the manifest's <queries>) may still be there:
+        // the card asks for "another app", and Android says at the tap whether it exists.
+        val app = resolve(intent) ?: if (fallback == null && mayBeHidden(intent)) HIDDEN else null
         if (app == null) {
-            val fallback = intent.getStringExtra(FALLBACK_URL)?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
             log("no app; fallback=${fallback != null}")
             if (fallback != null && !isSubframeRequest) return InterceptionResponse.Url(fallback)
             if (tapped) messages.tryEmit(if (scheme in SYSTEM_SCHEMES) "No app can open this link" else "The app for this link isn't installed")
@@ -108,11 +110,11 @@ class ExternalLinks(context: Context, private val pageUrl: () -> String?) : Requ
         log("typed scheme=$scheme")
         val intent = (if (scheme == "intent") parseIntent(uri) else Intent(Intent.ACTION_VIEW, Uri.parse(uri))) ?: return null
         intent.addCategory(Intent.CATEGORY_BROWSABLE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (resolve(intent) != null) {
+        val fallback = intent.getStringExtra(FALLBACK_URL)?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
+        if (resolve(intent) != null || (fallback == null && mayBeHidden(intent))) {
             launch(intent)
             return null
         }
-        val fallback = intent.getStringExtra(FALLBACK_URL)?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
         if (fallback == null) messages.tryEmit(if (scheme in SYSTEM_SCHEMES) "No app can open this link" else "The app for this link isn't installed")
         return fallback
     }
@@ -150,6 +152,16 @@ class ExternalLinks(context: Context, private val pageUrl: () -> String?) : Requ
         log("pinned app can't open it: ${pinned != null}; handled by another app")
         intent.setPackage(pkg)
         return target(pkg)
+    }
+
+    /**
+     * Whether an app Koan can't see might open [intent]: its scheme isn't one the manifest
+     * declares (<queries>), so an installed app for it would be hidden from Koan. Web links and
+     * declared schemes are fully visible: no app found there means none installed.
+     */
+    private fun mayBeHidden(intent: Intent): Boolean {
+        val scheme = intent.data?.scheme?.lowercase() ?: return intent.`package` != null
+        return scheme !in VISIBLE_SCHEMES
     }
 
     private fun target(pkg: String): AppTarget? = runCatching {
@@ -190,6 +202,18 @@ class ExternalLinks(context: Context, private val pageUrl: () -> String?) : Requ
     private fun log(event: String) = Log.i("KoanLinks", event)
 
     private companion object {
+        /** An app that may exist but that Koan can't see or name (package visibility). */
+        val HIDDEN = AppTarget("", "another app", null)
+
+        /** Schemes whose apps Koan can see: keep in step with the manifest's <queries>. */
+        val VISIBLE_SCHEMES = setOf(
+            "http", "https", "weixin", "alipays", "alipay", "snssdk1128", "snssdk1233", "snssdk143", "aweme", "tiktok",
+            "instagram", "linkedin", "fb", "fb-messenger", "twitter", "x", "whatsapp", "tg", "spotify", "zhihu", "taobao",
+            "tbopen", "tmall", "openapp.jdmobile", "imeituan", "baiduboxapp", "bdapp", "amapuri", "androidamap", "iosamap",
+            "baidumap", "bilibili", "vnd.youtube", "youtube", "discord", "reddit", "slack", "zoomus", "msteams", "market",
+            "geo", "sms", "smsto", "mailto", "tel",
+        )
+
         val ENGINE_SCHEMES = setOf("http", "https", "about", "data", "blob", "file", "javascript", "moz-extension", "resource", "chrome", "view-source", "")
         val SYSTEM_SCHEMES = setOf("tel", "mailto", "sms", "smsto", "mms", "geo", "market")
         const val FALLBACK_URL = "browser_fallback_url"
