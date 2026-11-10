@@ -783,6 +783,8 @@ fun KoanOverlays(
                         }
                     },
                     onConfirm = overlays::ask,
+                    // Deleting an account login sends its tombstone only with both switches on.
+                    deletesReachAccount = syncBack.passwords && syncBackEdits,
                     onOpenUrl = { url ->
                         overlays.settingsOpen = false
                         onOpenNew(url, true, false)
