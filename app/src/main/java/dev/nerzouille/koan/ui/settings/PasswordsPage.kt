@@ -105,8 +105,8 @@ class PasswordsUi(
  * at the end), the site's favicon in grey (else the key), searchable, with the library rules
  * (ui/kit/LibraryRow): a tap opens the site's accounts (after the fingerprint or the device PIN,
  * once per visit), a swipe right to left deletes, a long press enters selection mode (Visit,
- * Delete). A delete always asks first; then Undo. Locked, nothing can be deleted: a swipe only
- * gives, a long press asks to unlock first. The round + next to the search adds one by hand.
+ * Delete). A delete always asks first; then Undo. Locked, a swipe or a long press asks for the
+ * fingerprint or PIN first. The round + next to the search adds one by hand.
  */
 @Composable
 internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpenSite: (String) -> Unit, onAdd: () -> Unit) {
@@ -164,8 +164,15 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
                     val single = logins.singleOrNull()
                     // Locked: the fingerprint first, then straight to the site's accounts.
                     val open = { if (unlocked == null) ui.onUnlock(site, logins.map { it.guid }) else onOpenSite(site) }
-                    // Locked: nothing is deleted or selected; a swipe only gives, a long press asks to unlock.
-                    SwipeRow(onDelete = if (unlocked != null) ({ askDelete(listOf(site to logins)) }) else null, enabled = on && !selecting, springBack = true) {
+                    // Locked: nothing is deleted or selected before the fingerprint or PIN; then the
+                    // swipe's delete card, or selection mode for a long press.
+                    SwipeRow(
+                        onDelete = {
+                            if (unlocked != null) askDelete(listOf(site to logins)) else ui.onUnlockThen { askDelete(listOf(site to logins)) }
+                        },
+                        enabled = on && !selecting,
+                        springBack = true,
+                    ) {
                         SiteRow(
                             origin = logins.first().origin,
                             site = site,
