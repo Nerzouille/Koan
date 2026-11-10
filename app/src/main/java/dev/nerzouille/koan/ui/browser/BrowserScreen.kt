@@ -86,9 +86,8 @@ fun BrowserScreen(
 
     val engineView = remember {
         GeckoEngineView(context).apply {
-            // Logins are Koan's (its cards and chips): Android's autofill service (e.g. Google
-            // Password Manager) would offer to save the same login a second time.
-            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+            // Let GeckoView expose page fields to Android's selected autofill service.
+            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_AUTO
             // window.print() goes through Android's print dialog, which needs the activity (held weakly).
             setActivityContext(context)
         }

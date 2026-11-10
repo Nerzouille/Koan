@@ -38,11 +38,13 @@ import dev.nerzouille.koan.ui.tour.dueSheet
 import dev.nerzouille.koan.ui.tour.featureVersion
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.feature.tabs.WindowFeature
+import mozilla.components.feature.webauthn.WebAuthnFeature
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     private val refresh = RefreshBooster(this)
+    private var webAuthnFeature: WebAuthnFeature? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -55,6 +57,12 @@ class MainActivity : FragmentActivity() {
         val app = application as KoanApp
         val components = app.components
         app.componentsReady = true
+        webAuthnFeature = WebAuthnFeature(
+            engine = components.engine,
+            activity = this,
+            exitFullScreen = { tabId -> components.sessionUseCases.exitFullscreen(tabId) },
+            currentTab = { components.store.state.selectedTabId },
+        )
         IconStore.initialize(this)
         ThumbnailStore.initialize(this)
         BakedBlur.initialize(this)
@@ -234,7 +242,14 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
+        webAuthnFeature?.start()
         (application as KoanApp).components.sync.onForeground()
+    }
+
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (webAuthnFeature?.onActivityResult(requestCode, data, resultCode) == true) return
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onResume() {
@@ -243,6 +258,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onStop() {
+        webAuthnFeature?.stop()
         val components = (application as KoanApp).components
         // Not for a rotation: the activity comes straight back.
         if (!isChangingConfigurations) {

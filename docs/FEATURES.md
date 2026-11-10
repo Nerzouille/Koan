@@ -433,8 +433,8 @@ with Koan in the background or the screen off.
 - **Saving a new login:** after you sign in somewhere new, a card offers **Save in Koan**. It's
   kept encrypted on the phone only and isn't added to your Mozilla account. The next visit offers
   it like the others. Saving the same site and username again updates it.
-- Android's own autofill service (for example Google Password Manager) is kept out of pages, so a
-  login isn't offered to be saved twice.
+- Android's selected autofill service is allowed in page fields. Its suggestions may appear
+  alongside Koan's own login chips; availability depends on the autofill provider.
 - **Settings › Passwords:**
   - One row per site, with a search field. A site with several accounts says how many ("3
     accounts"); once unlocked, a site with one account shows its username.
