@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -120,28 +121,11 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
     val selecting = selection.active
 
     /** The confirmation card, then the delete. */
-    fun askDelete(picked: List<Pair<String, List<LoginSummary>>>) {
-        val logins = picked.flatMap { it.second }
-        if (logins.isEmpty()) return
-        val reaches = ui.deletesReachAccount && logins.any { !it.local }
-        val effect = if (reaches) "Removed from this phone and your Mozilla account." else "Removed from this phone."
-        val one = logins.singleOrNull()
-        val title = if (one != null) "Delete this password?" else "Delete ${logins.size} passwords?"
-        val who = when {
-            one != null -> listOfNotNull(siteOf(one), unlocked?.get(one.guid)?.username?.ifEmpty { null }).joinToString(" · ")
-            picked.size == 1 -> "${picked[0].first} · ${logins.size} accounts"
-            else -> picked.map { it.first }.let { names ->
-                if (names.size <= 3) names.joinToString(", ") else names.take(3).joinToString(", ") + " and ${names.size - 3} more"
-            }
-        }
-        ui.onConfirm(title, "$who\n$effect", "Delete") {
-            selection.clear()
-            ui.onRemove(logins.map { it.guid })
-        }
-    }
+    fun askDelete(picked: List<Pair<String, List<LoginSummary>>>) =
+        confirmDelete(ui, picked) { selection.clear() }
 
     Box(Modifier.fillMaxSize()) {
-        SettingsPageFrame("Passwords", on, onBack) {
+        SettingsPageFrame("Passwords", on, onBack, titleHidden = selecting) {
             BackHandler(enabled = selecting, onBack = selection::clear)
             if (ui.summaries.isEmpty()) {
                 Spacer(Modifier.height(SettingsTokens.SectionTop))
@@ -156,20 +140,7 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
                 PrimaryButton("Add a password", onClick = { if (on) onAdd() }, modifier = Modifier.fillMaxWidth())
                 return@SettingsPageFrame
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                KoanField(query, { query = it }, "Search passwords", Modifier.weight(1f), search = true)
-                Spacer(Modifier.width(DownloadTokens.ActionGap))
-                Box(
-                    Modifier
-                        .size(ButtonTokens.Height)
-                        .clip(CircleShape)
-                        .background(palette.Card)
-                        .clickable(enabled = on, onClick = onAdd),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(KoanIcons.Plus, "Add a password", tint = palette.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))
-                }
-            }
+            KoanField(query, { query = it }, "Search passwords", Modifier.fillMaxWidth(), search = true)
             Spacer(Modifier.height(SettingsTokens.RowInset))
             if (unlocked == null) {
                 Text(
@@ -205,8 +176,24 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
                     }
                 }
             }
-            // Room for the selection bar over the last rows.
-            if (selecting) Spacer(Modifier.height(SelectionTokens.BarHeight + SettingsTokens.SectionTop))
+            // Room for the selection bar, or the floating +, over the last rows.
+            Spacer(Modifier.height(if (selecting) SelectionTokens.BarHeight + SettingsTokens.SectionTop else PasswordTokens.AddButton + PasswordTokens.AddMargin))
+        }
+        if (!selecting && ui.summaries.isNotEmpty()) {
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(PasswordTokens.AddMargin)
+                    .size(PasswordTokens.AddButton)
+                    .shadow(PasswordTokens.AddShadow, CircleShape)
+                    .clip(CircleShape)
+                    .background(palette.Primary)
+                    .clickable(enabled = on, onClick = onAdd),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(KoanIcons.Plus, "Add a password", tint = palette.OnPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))
+            }
         }
         if (selecting) {
             val picked = sites.filterKeys { it in selection }.toList()
@@ -238,6 +225,32 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
                     .padding(horizontal = SettingsTokens.Padding, vertical = DownloadTokens.BottomGap),
             )
         }
+    }
+}
+
+/**
+ * Deleting [picked] (site → its logins) asks first, on a card: who (site · username, or the
+ * sites), what it affects (this phone only, or the Mozilla account too), Cancel / Delete. Then the
+ * delete ([PasswordsUi.onRemove]: an Undo toast) and [after].
+ */
+internal fun confirmDelete(ui: PasswordsUi, picked: List<Pair<String, List<LoginSummary>>>, after: () -> Unit = {}) {
+    val logins = picked.flatMap { it.second }
+    if (logins.isEmpty()) return
+    val unlocked = ui.unlocked
+    val reaches = ui.deletesReachAccount && logins.any { !it.local }
+    val effect = if (reaches) "Removed from this phone and your Mozilla account." else "Removed from this phone."
+    val one = logins.singleOrNull()
+    val title = if (one != null) "Delete this password?" else "Delete ${logins.size} passwords?"
+    val who = when {
+        one != null -> listOfNotNull(siteOf(one), unlocked?.get(one.guid)?.username?.ifEmpty { null }).joinToString(" · ")
+        picked.size == 1 -> "${picked[0].first} · ${logins.size} accounts"
+        else -> picked.map { it.first }.let { names ->
+            if (names.size <= 3) names.joinToString(", ") else names.take(3).joinToString(", ") + " and ${names.size - 3} more"
+        }
+    }
+    ui.onConfirm(title, "$who\n$effect", "Delete") {
+        after()
+        ui.onRemove(logins.map { it.guid })
     }
 }
 
@@ -344,7 +357,11 @@ internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack
             // Keyed: the accounts open one by one, each one's rows change as it does.
             key(s.guid) {
                 if (i > 0) Spacer(Modifier.height(SettingsTokens.SectionTop))
-                Account(s, unlocked?.get(s.guid), open = unlocked != null, on, ui.onCopied)
+                Account(
+                    s, unlocked?.get(s.guid), open = unlocked != null, on, ui.onCopied,
+                    // The site's last account: back to the list once it's gone.
+                    onDelete = { confirmDelete(ui, listOf(site to listOf(s))) { if (accounts.size == 1) onBack() } },
+                )
             }
         }
         Spacer(Modifier.height(SettingsTokens.SectionTop))
@@ -361,9 +378,9 @@ internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack
     }
 }
 
-/** One account of a site: where it comes from, then (once [open]) its username and password ([login] null = still opening). */
+/** One account of a site: where it comes from, then (once [open]) its username, its password and Delete ([login] null = still opening). */
 @Composable
-private fun Account(s: LoginSummary, login: Login?, open: Boolean, on: Boolean, onCopied: (String) -> Unit) {
+private fun Account(s: LoginSummary, login: Login?, open: Boolean, on: Boolean, onCopied: (String) -> Unit, onDelete: () -> Unit) {
     val context = LocalContext.current
     var shown by remember { mutableStateOf(false) }
     SettingsRow(
@@ -384,6 +401,8 @@ private fun Account(s: LoginSummary, login: Login?, open: Boolean, on: Boolean, 
         SettingsRow(null, if (shown) login.password else "••••••••••", on, subtitle = "Password", onClick = { copy(context, "Password", login.password, sensitive = true, onCopied) }) {
             RowAction(if (shown) "Hide" else "Reveal") { if (on) shown = !shown }
         }
+        SettingsDivider()
+        SettingsRow(null, "Delete password", on, titleColor = KoanTheme.colors.Destructive, onClick = onDelete)
     }
 }
 

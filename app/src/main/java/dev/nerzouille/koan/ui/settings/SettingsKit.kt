@@ -1,6 +1,9 @@
 package dev.nerzouille.koan.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import dev.nerzouille.koan.ui.kit.SELECTION_FADE_MS
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,8 +78,16 @@ fun Modifier.settingsWash(dark: Boolean): Modifier = drawBehind {
  * [interactive]: only the page on top takes taps.
  */
 @Composable
-fun SettingsPageFrame(title: String, interactive: Boolean, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+fun SettingsPageFrame(
+    title: String,
+    interactive: Boolean,
+    onBack: () -> Unit,
+    /** Selection mode's header is up: the large title fades out under it. */
+    titleHidden: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     val scroll = rememberScrollState()
+    val hide by animateFloatAsState(if (titleHidden) 1f else 0f, tween(SELECTION_FADE_MS), label = "title")
     var largeTitle by remember { mutableIntStateOf(0) }
     Box(Modifier.fillMaxSize()) {
         Column(
@@ -104,7 +115,7 @@ fun SettingsPageFrame(title: String, interactive: Boolean, onBack: () -> Unit, c
                         val h = largeTitle.coerceAtLeast(1)
                         val from = h * SettingsTokens.TITLE_FADE_FROM
                         val to = h * SettingsTokens.BAR_TITLE_FROM
-                        alpha = 1f - ((scroll.value - from) / (to - from)).coerceIn(0f, 1f)
+                        alpha = (1f - ((scroll.value - from) / (to - from)).coerceIn(0f, 1f)) * (1f - hide)
                     }
                     .padding(bottom = SettingsTokens.TitleBottom),
             )
