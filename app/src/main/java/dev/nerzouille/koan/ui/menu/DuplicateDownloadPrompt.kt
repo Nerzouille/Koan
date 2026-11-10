@@ -31,8 +31,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.kit.KoanField
-import dev.nerzouille.koan.ui.kit.QuietButton
+import dev.nerzouille.koan.ui.kit.CardCancel
+import dev.nerzouille.koan.ui.downloads.fileOpenLook
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.sheet.SheetRow
@@ -42,8 +51,11 @@ import dev.nerzouille.koan.ui.theme.SheetTokens
 
 /**
  * A download of a file that is already there: the same card as the download confirmation. The
- * file's thumbnail (or its type), its name (the pencil edits it), the folder, then Open (the file
- * already there), Replace, Keep both ("name (1).ext"), Cancel. [size]: the new download's size.
+ * file's thumbnail (or its type), its name (a tap on it or on the pencil edits it in place: the
+ * extension kept, the base name selected; Done or a choice confirms), the folder, then Open (the
+ * file already there; its glyph by type), Replace, Keep both ("name (1).ext"), and Cancel under the
+ * list. [size]: the new download's size. [thumbModifier]: the thumbnail's shared bounds when the
+ * card morphs from the image card.
  */
 @Composable
 fun DuplicateDownloadPrompt(
@@ -57,15 +69,25 @@ fun DuplicateDownloadPrompt(
     onReplace: (String) -> Unit,
     onKeepBoth: (String) -> Unit,
     onCancel: () -> Unit,
+    contentType: String? = null,
+    thumbModifier: Modifier = Modifier,
 ) {
     val palette = KoanTheme.colors
-    var edited by remember(name) { mutableStateOf(name) }
+    val base = remember(name) { name.substringBeforeLast('.', name).length }
+    var field by remember(name) { mutableStateOf(TextFieldValue(name, TextRange(0, base))) }
     var editing by remember(name) { mutableStateOf(false) }
-    val finalName = edited.trim().ifEmpty { name }
+    val finalName = field.text.trim().ifEmpty { name }
+    fun startEditing() {
+        if (!interactive) return
+        // Only the name before the extension is selected: typing replaces it, the extension stays.
+        val b = field.text.substringBeforeLast('.', field.text).length
+        field = field.copy(selection = TextRange(0, b))
+        editing = true
+    }
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier
+                thumbModifier
                     .size(SheetTokens.RowIconBox + SheetTokens.Gap * 2)
                     .clip(RoundedCornerShape(SheetTokens.RowIconRadius))
                     .background(palette.GroupedRow),
@@ -84,31 +106,50 @@ fun DuplicateDownloadPrompt(
             Spacer(Modifier.width(SheetTokens.RowPadding))
             Column(Modifier.weight(1f)) {
                 Text("Already downloaded", color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize)
-                if (!editing) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(finalName, color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize), maxLines = 1, overflow = TextOverflow.MiddleEllipsis, modifier = Modifier.weight(1f, fill = false))
-                        Spacer(Modifier.width(SheetTokens.Gap / 2))
-                        Box(
-                            Modifier.size(SheetTokens.RowIconBox).clip(CircleShape).clickable(enabled = interactive) { editing = true },
-                            contentAlignment = Alignment.Center,
-                        ) { Icon(KoanIcons.Edit, "Rename", tint = palette.TextSecondary, modifier = Modifier.size(SheetTokens.RowGlyph * 0.8f)) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val style = KoanType.headline(SheetTokens.CardTitleSize).copy(color = palette.TextPrimary)
+                    if (editing) {
+                        val focus = remember { FocusRequester() }
+                        BasicTextField(
+                            field, { field = it },
+                            textStyle = style,
+                            singleLine = true,
+                            cursorBrush = SolidColor(palette.TextPrimary),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { editing = false }),
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(focus)
+                                .drawBehind {
+                                    val box = drawContext.size
+                                    val y = box.height + SheetTokens.Divider.toPx() * 2
+                                    drawLine(palette.TextSecondary, Offset(0f, y), Offset(box.width, y), SheetTokens.Divider.toPx())
+                                },
+                        )
+                        LaunchedEffect(Unit) { focus.requestFocus() }
+                    } else {
+                        Text(
+                            finalName, color = palette.TextPrimary, style = style, maxLines = 1, overflow = TextOverflow.MiddleEllipsis,
+                            modifier = Modifier.weight(1f, fill = false).clickable(enabled = interactive, onClick = ::startEditing),
+                        )
                     }
+                    // The pencil: a real tap target next to the name.
+                    Box(
+                        Modifier.size(SheetTokens.EditTarget).clip(CircleShape).clickable(enabled = interactive) { if (editing) editing = false else startEditing() },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(if (editing) KoanIcons.Check else KoanIcons.Edit, if (editing) "Done" else "Rename", tint = palette.TextSecondary, modifier = Modifier.size(SheetTokens.EditGlyph)) }
                 }
                 Text("In $folder", color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        if (editing) {
-            val focus = remember { FocusRequester() }
-            KoanField(edited, { edited = it }, "File name", Modifier.fillMaxWidth(), inputModifier = Modifier.focusRequester(focus))
-            LaunchedEffect(Unit) { focus.requestFocus() }
-        }
+        val (openIcon, openLabel) = fileOpenLook(name, contentType)
         SheetGroup {
-            SheetRow(KoanIcons.Open, "Open", interactive, subtitle = "The file already there", onClick = onOpen)
+            SheetRow(openIcon, openLabel, interactive, subtitle = "The file already there", onClick = onOpen)
             SheetDivider()
-            SheetRow(KoanIcons.Download, "Replace", interactive, subtitle = listOfNotNull("Downloads it again over the old one", size).joinToString(" · "), onClick = { onReplace(finalName) })
+            SheetRow(KoanIcons.Download, "Replace", interactive, subtitle = listOfNotNull("Downloads it again over the old one", size).joinToString(" · "), onClick = { editing = false; onReplace(finalName) })
             SheetDivider()
-            SheetRow(KoanIcons.Plus, "Keep both", interactive, subtitle = listOfNotNull("Saves as ${keepBothName(finalName)}", size).joinToString(" · "), onClick = { onKeepBoth(finalName) })
+            SheetRow(KoanIcons.Plus, "Keep both", interactive, subtitle = listOfNotNull("Saves as ${keepBothName(finalName)}", size).joinToString(" · "), onClick = { editing = false; onKeepBoth(finalName) })
         }
-        QuietButton("Cancel", onClick = { if (interactive) onCancel() }, modifier = Modifier.fillMaxWidth())
+        CardCancel(interactive, onCancel)
     }
 }

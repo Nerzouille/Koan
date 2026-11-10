@@ -75,12 +75,12 @@ class LinkActions(
 
 /** The long-press menu, on a floating card: the link (or image) on top, then what to do with it. */
 @Composable
-fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions) {
+fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions, imageModifier: Modifier = Modifier) {
     val palette = KoanTheme.colors
     val shown = target.link ?: target.image.orEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
         // What was pressed: the image itself, then the link's site icon, title and address.
-        target.image?.let { LinkImage(it) }
+        target.image?.let { LinkImage(it, imageModifier) }
         Row(Modifier.padding(horizontal = SheetTokens.RowPadding / 2), verticalAlignment = Alignment.CenterVertically) {
             if (target.link != null) {
                 Favicon(target.link, SheetTokens.RowIconBox)
@@ -126,12 +126,12 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions) {
  * first frame, so the card never changes size; the image fades in inside it once it's loaded.
  */
 @Composable
-private fun LinkImage(url: String) {
+private fun LinkImage(url: String, modifier: Modifier) {
     val image by produceState<ImageBitmap?>(null, url) { value = withContext(Dispatchers.IO) { loadPreview(url) } }
     val shown = remember(url) { Animatable(0f) }
     LaunchedEffect(image) { if (image != null) shown.animateTo(1f, tween(SheetTokens.IMAGE_FADE_MS)) }
     Box(
-        Modifier
+        modifier
             .fillMaxWidth()
             .height(SheetTokens.LinkImageHeight)
             .clip(RoundedCornerShape(SheetTokens.GroupRadius))
