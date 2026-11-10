@@ -13,9 +13,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import dev.nerzouille.koan.ui.kit.DestructiveButton
+import dev.nerzouille.koan.ui.kit.CardChoices
 import dev.nerzouille.koan.ui.kit.KoanToggle
-import dev.nerzouille.koan.ui.kit.QuietButton
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.sheet.SheetRow
@@ -51,11 +50,11 @@ fun ClearDataCard(interactive: Boolean, onClear: (ClearChoice) -> Unit, onCancel
             }
         }
         Spacer(Modifier.height(SheetTokens.Gap / 2))
-        DestructiveButton(
-            "Clear",
-            onClick = { if (interactive && (history || cookies || cache)) onClear(ClearChoice(history, cookies, cache)) },
-            modifier = Modifier.fillMaxWidth(),
+        CardChoices(
+            "Clear", interactive,
+            onAction = { if (history || cookies || cache) onClear(ClearChoice(history, cookies, cache)) },
+            onCancel = onCancel,
+            destructive = true,
         )
-        QuietButton("Cancel", onClick = { if (interactive) onCancel() }, modifier = Modifier.fillMaxWidth())
     }
 }

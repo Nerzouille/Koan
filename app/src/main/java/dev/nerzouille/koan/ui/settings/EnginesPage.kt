@@ -116,13 +116,14 @@ internal fun EngineEditPage(ui: SettingsUi, page: SettingsPage.EditEngine, on: B
 
 /** A labelled text field, its [error] (or [help]) under it. */
 @Composable
-private fun Field(
+internal fun Field(
     label: String,
     value: String,
     hint: String,
     error: String?,
     help: String? = null,
     keyboard: KeyboardType = KeyboardType.Text,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
     onChange: (String) -> Unit,
 ) {
     val palette = KoanTheme.colors
@@ -132,6 +133,7 @@ private fun Field(
         KoanField(
             value, onChange, hint, Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = keyboard, autoCorrectEnabled = false),
+            visualTransformation = visualTransformation,
         )
         val note = error ?: help
         if (note != null) {

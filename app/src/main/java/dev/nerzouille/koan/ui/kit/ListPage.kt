@@ -1,6 +1,8 @@
 package dev.nerzouille.koan.ui.kit
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,10 +50,20 @@ fun ListPage(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     headerTrailing: @Composable RowScope.() -> Unit = {},
+    /** Selection mode (ui/kit/Selection): its header in place of the page bar… */
+    selectionHeader: (@Composable () -> Unit)? = null,
+    /** …and its action bar in place of the search field. */
+    selectionBar: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BackHandler(onBack = onClose)
     val palette = KoanTheme.colors
+    // The last header and bar stay for their fade out.
+    // (Plain holders, not state: writing state here would recompose again on every pass.)
+    val lastHeader = remember { Last<@Composable () -> Unit>() }
+    val lastBar = remember { Last<@Composable () -> Unit>() }
+    if (selectionHeader != null) lastHeader.value = selectionHeader
+    if (selectionBar != null) lastBar.value = selectionBar
     Column(
         modifier
             .fillMaxSize()
@@ -60,22 +73,35 @@ fun ListPage(
             .navigationBarsPadding()
             .imePadding(),
     ) {
-        PageBar(title, interactive = true, onBack = onClose, trailing = headerTrailing)
+        Crossfade(selectionHeader != null, animationSpec = tween(SELECTION_FADE_MS), label = "header") { selecting ->
+            val header = lastHeader.value
+            if (selecting && header != null) header() else PageBar(title, interactive = true, onBack = onClose, trailing = headerTrailing)
+        }
 
         Column(Modifier.weight(1f).fillMaxWidth(), content = content)
 
-        Row(
-            Modifier.padding(horizontal = SettingsTokens.Padding, vertical = DownloadTokens.BottomGap),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            KoanField(query, onQuery, searchHint, Modifier.weight(1f), search = true)
-            if (onClear != null) {
-                Spacer(Modifier.width(DownloadTokens.ActionGap))
-                DestructiveButton("Clear", onClick = onClear, surface = palette.Card)
+        Crossfade(selectionBar != null, animationSpec = tween(SELECTION_FADE_MS), label = "bottom") { selecting ->
+            val bar = lastBar.value.takeIf { selecting }
+            Row(
+                Modifier.padding(horizontal = SettingsTokens.Padding, vertical = DownloadTokens.BottomGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (bar != null) {
+                    bar()
+                } else {
+                    KoanField(query, onQuery, searchHint, Modifier.weight(1f), search = true)
+                    if (onClear != null) {
+                        Spacer(Modifier.width(DownloadTokens.ActionGap))
+                        DestructiveButton("Clear", onClick = onClear, surface = palette.Card)
+                    }
+                }
             }
         }
     }
 }
+
+/** Into and out of selection mode: the header and the bottom bar crossfade. */
+const val SELECTION_FADE_MS = 180
 
 /** One day's card in a list page: rounded, the rows inside separated by hairlines. */
 @Composable
@@ -122,3 +148,7 @@ fun dayLabel(date: LocalDate, today: LocalDate): String = when {
 
 private val DAY = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH)
 private val DAY_YEAR = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH)
+
+private class Last<T> {
+    var value: T? = null
+}

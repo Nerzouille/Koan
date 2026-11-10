@@ -287,6 +287,8 @@ object ToggleTokens {
 /** Primary (black / white) and destructive (red text) buttons. */
 object ButtonTokens {
     val Height = 50.dp
+    /** Between a card's two choices side by side. */
+    val ChoiceGap = 10.dp
     val PaddingH = 28.dp
     val TextSize = 16.sp
     val IconGap = 10.dp
@@ -937,6 +939,8 @@ object SettingsTokens {
     val TitleBottom = 12.dp
     /** The large title fades out over the first part of the collapse, the compact one in over the rest. */
     const val BAR_TITLE_FROM = 0.6f
+    /** The large title starts fading only past this share of its height scrolled. */
+    const val TITLE_FADE_FROM = 0.25f
     /** The bar's bottom hairline fades in over this much scroll once the title is gone. */
     val BarHairlineFade = 12.dp
     val SectionTop = 22.dp
@@ -1005,6 +1009,49 @@ object ToastTokens {
 
     /** Slides up this far as it appears. */
     val Rise = 16.dp
+}
+
+/** Settings › Passwords: site icons on the list and a site's page. */
+object PasswordTokens {
+    /** The round + that adds one by hand, floating at the bottom right. */
+    val AddButton = 56.dp
+    val AddMargin = 20.dp
+    val AddShadow = 6.dp
+    /** The bare favicon in place of the key glyph (SettingsTokens.RowGlyph). */
+    val Favicon = 20.dp
+    /** Greyscale icons sit with the key glyphs: contrast scaled down around mid-grey. */
+    const val GREY_CONTRAST = 0.8f
+    /** Grey to colour once unlocked, and back when it locks. */
+    const val COLOUR_MS = 220
+    /** An opaque square icon keeps its square, with corners this share of its size. */
+    const val TILE_RADIUS = 0.24f
+}
+
+/** The library pages' selection mode (ui/kit/Selection): header, check marks, the bottom action bar. */
+object SelectionTokens {
+    val BarHeight = 64.dp
+    val BarRadius = 20.dp
+    val BarInset = 4.dp
+    val Glyph = 22.dp
+    val LabelSize = 12.sp
+    val LabelGap = 3.dp
+    val Check = 22.dp
+    val CheckGlyph = 14.dp
+    val CheckRing = 1.5.dp
+    val SelectAllPadH = 10.dp
+    val SelectAllPadV = 8.dp
+}
+
+/** A library row's swipes (ui/kit/SwipeRow). */
+object SwipeTokens {
+    /** How far a side without an action gives before it springs back. */
+    val Nudge = 36.dp
+    /** Past this share of the row's width, the swipe acts on release. */
+    const val COMMIT = 0.4f
+    /** px/s: a fling this fast acts even when short. */
+    const val FLING = 1800f
+    const val OUT_MS = 160
+    val Back: SpringSpec<Float> = spring(dampingRatio = 0.62f, stiffness = 520f)
 }
 
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
