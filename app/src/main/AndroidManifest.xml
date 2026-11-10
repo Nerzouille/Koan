@@ -14,6 +14,9 @@
     <!-- Which app opens a link (the "Open in YouTube?" card, the menu's "Open in …"), its name and
          icon. A sideloaded single-user app: no store policy to meet. -->
 
+    <!-- android-components (support-utils) asks for every app on the phone; the queries below are enough. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:node="remove" />
+
     <!--
       Which apps Koan may see (Android 11+ package visibility), instead of QUERY_ALL_PACKAGES:
       the camera apps a page's file field can offer; apps that open web links (http/https: an
