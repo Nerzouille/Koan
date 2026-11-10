@@ -2,6 +2,10 @@ package dev.nerzouille.koan.ui
 
 import kotlinx.coroutines.flow.first
 import dev.nerzouille.koan.data.SyncBackChoice
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import dev.nerzouille.koan.ui.menu.AppLinkPrompt
+import dev.nerzouille.koan.engine.AppTarget
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
@@ -175,6 +179,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val permissionCard = SheetState(scope, splineBasedDecay(density))
     var permission by mutableStateOf<Pair<PermissionRequest, SiteAsk>?>(null)
 
+    /** A page wants an app: "Open in YouTube?" ([ExternalLinks.ask]). */
+    val appLinkCard = SheetState(scope, splineBasedDecay(density))
+
     /** A download Koan didn't see a tap for: "Download" or "Cancel" ([Components.downloadAsk]). */
     val downloadCard = SheetState(scope, splineBasedDecay(density))
 
@@ -199,7 +206,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
             historyOpen || askCard.open || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
-            saveLoginCard.open || permissionCard.open || downloadCard.open || promptCard.open || tourOpen
+            saveLoginCard.open || permissionCard.open || appLinkCard.open || downloadCard.open || promptCard.open || tourOpen
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
     fun dismissAll() {
@@ -290,6 +297,10 @@ fun KoanOverlays(
             else -> content?.url?.startsWith("https://") == true
         }
     }
+    // "Open in YouTube": looked up when the menu opens on a page (installed apps can change).
+    val openInApp by produceState<AppTarget?>(null, menu.open, page.url) {
+        value = if (menu.open && page.url.isNotEmpty()) withContext(Dispatchers.Default) { components.externalLinks.appFor(page.url) } else null
+    }
     // Site settings' list: loaded when the page shows, again after each change.
     var decisionsVersion by remember { mutableStateOf(0) }
     val showingSite = overlays.menuNav.depth > 0
@@ -327,6 +338,7 @@ fun KoanOverlays(
         secure = secure,
         ublock = ublockUi,
         searchEngine = newEngine,
+        openInApp = openInApp,
     )
     KoanSheet(menu, overlays.menuNav) { p, pageScope ->
         when (p) {
@@ -384,6 +396,12 @@ fun KoanOverlays(
                         (tabAction ?: s.extensions[UBlock.ID]?.browserAction)?.onClick?.invoke()
                     },
                     ublockInstall = components.ublock::install,
+                    openInApp = {
+                        close()
+                        openInApp?.let { app ->
+                            if (!components.externalLinks.openIn(app, page.url)) onToast(Toast("Couldn't open ${app.label}"))
+                        }
+                    },
                     addSearchEngine = {
                         val draft = newEngine
                         close()
@@ -490,6 +508,27 @@ fun KoanOverlays(
             onOnce = { answer(allow = true, always = false) },
         )
     }
+    // ---- a page wants an app: "Open in YouTube?" ----
+    val appAsk by components.externalLinks.ask.collectAsStateWithLifecycle()
+    val appLinkCard = overlays.appLinkCard
+    LaunchedEffect(appAsk) { if (appAsk != null) appLinkCard.animateTo(Detent.Compact) }
+    LaunchedEffect(appLinkCard.open) { if (!appLinkCard.open) components.externalLinks.ask.value = null }
+    LaunchedEffect(Unit) { components.externalLinks.messages.collect { onToast(Toast(it)) } }
+    KoanCard(appLinkCard) { interactive ->
+        val ask = appAsk ?: return@KoanCard
+        AppLinkPrompt(
+            app = ask.app.label,
+            icon = ask.app.icon,
+            site = ask.site,
+            interactive = interactive,
+            onCancel = { appLinkCard.animateTo(Detent.Closed) },
+            onOpen = { always ->
+                appLinkCard.animateTo(Detent.Closed)
+                ask.open(always)
+            },
+        )
+    }
+
     // ---- a download the page started on its own: Download / Cancel ----
     val downloadAsk by components.downloadAsk.collectAsStateWithLifecycle()
     val downloadCard = overlays.downloadCard

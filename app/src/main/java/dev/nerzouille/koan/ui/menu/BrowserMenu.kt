@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.menu
 
+import dev.nerzouille.koan.engine.AppTarget
 import dev.nerzouille.koan.search.EngineDraft
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -61,6 +62,8 @@ data class MenuState(
     val ublock: UBlockUi? = null,
     /** A search engine the page declares and Koan doesn't have yet ("Add this search engine"). */
     val searchEngine: EngineDraft? = null,
+    /** An installed app that opens this page's site (YouTube for youtube.com): "Open in YouTube". */
+    val openInApp: AppTarget? = null,
 )
 
 /** What the menu's root page does. Rows without an action yet show as "Soon". */
@@ -87,6 +90,7 @@ class MenuActions(
     val ublockOpen: () -> Unit,
     val ublockInstall: () -> Unit,
     val addSearchEngine: () -> Unit,
+    val openInApp: () -> Unit = {},
 )
 
 /**
@@ -115,6 +119,7 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
             SheetTile(KoanIcons.Share, "Share", on, enabled = hasPage, onClick = actions.share)
             SheetTile(KoanIcons.Search, "Find", on, enabled = hasPage, onClick = actions.find)
         }
+        state.openInApp?.let { app -> OpenInAppRow(app, on, actions.openInApp) }
         SheetGroup {
             SheetRow(
                 KoanIcons.Lock, "Site settings", on,
@@ -210,5 +215,26 @@ private fun NavIcon(icon: ImageVector, enabled: Boolean, interactive: Boolean, o
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, null, tint = if (enabled) KoanTheme.colors.Icon else KoanTheme.colors.TextDisabled, modifier = Modifier.size(BarTokens.Icon))
+    }
+}
+
+/** "Open in YouTube": the app's own icon and name, on its own group above the page rows. */
+@Composable
+private fun OpenInAppRow(app: AppTarget, on: Boolean, onClick: () -> Unit) {
+    val palette = KoanTheme.colors
+    SheetGroup {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(SheetTokens.RowHeight)
+                .then(if (on) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(horizontal = SheetTokens.RowPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppIcon(app.icon, SheetTokens.RowIconBox)
+            Spacer(Modifier.width(SheetTokens.RowPadding))
+            Text("Open in ${app.label}", color = palette.TextPrimary, fontSize = SheetTokens.RowTitleSize, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            RowChevron()
+        }
     }
 }

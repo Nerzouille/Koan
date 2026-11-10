@@ -46,4 +46,10 @@ class UrlInputTest {
         assertEquals("", displayHost("about:blank"))
         assertEquals("about:config", displayHost("about:config"))
     }
+
+    @Test fun `an app's own link is an address, not a search`() {
+        assertEquals("weixin://dl/scan", resolveInput("weixin://dl/scan"))
+        assertEquals("intent://example.com#Intent;scheme=example;end", resolveInput("intent://example.com#Intent;scheme=example;end"))
+        assertEquals("https://duckduckgo.com/?q=a%3A%2F%2F", resolveInput("a://"))
+    }
 }
