@@ -212,9 +212,12 @@ fun DownloadsScreen(
 }
 
 /** What opening [d] does, by its type: play a video or a song, view a picture, install an app, else read it. */
-private fun openLook(d: DownloadState): Pair<ImageVector, String> {
-    val type = d.contentType.orEmpty().lowercase()
-    val ext = d.fileName.orEmpty().substringAfterLast('.', "").lowercase()
+private fun openLook(d: DownloadState): Pair<ImageVector, String> = fileOpenLook(d.fileName.orEmpty(), d.contentType)
+
+/** Same, from a file's name and type (the duplicate card's Open row too). */
+fun fileOpenLook(fileName: String, contentType: String?): Pair<ImageVector, String> {
+    val type = contentType.orEmpty().lowercase()
+    val ext = fileName.substringAfterLast('.', "").lowercase()
     return when {
         type.startsWith("video/") || type.startsWith("audio/") || ext in MEDIA -> KoanIcons.Play to "Open"
         type.startsWith("image/") || ext in IMAGES -> KoanIcons.Image to "Open"

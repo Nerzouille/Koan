@@ -6,6 +6,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import dev.nerzouille.koan.ui.menu.AppLinkPrompt
 import dev.nerzouille.koan.engine.AppTarget
+import androidx.compose.animation.core.tween
+import dev.nerzouille.koan.ui.theme.SheetTokens
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.SideEffect
+import kotlinx.coroutines.delay
+import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import dev.nerzouille.koan.engine.downloads.DuplicateDownloads
+import dev.nerzouille.koan.ui.menu.DuplicateDownloadPrompt
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
@@ -182,8 +199,11 @@ class Overlays(scope: CoroutineScope, density: Density) {
     /** A page wants an app: "Open in YouTube?" ([ExternalLinks.ask]). */
     val appLinkCard = SheetState(scope, splineBasedDecay(density))
 
-    /** A download Koan didn't see a tap for: "Download" or "Cancel" ([Components.downloadAsk]). */
-    val downloadCard = SheetState(scope, splineBasedDecay(density))
+    /** The link card is also asking about a download (KoanOverlays): a tab change doesn't close it. */
+    var actionBusy by mutableStateOf(false)
+
+    /** Save image on a small preview: waiting for the page's full image. */
+    var imageWaiting by mutableStateOf(false)
 
     /** What the page asks on the card: a <select>, a date, alert/confirm, HTTP sign-in… */
     val promptCard = SheetState(scope, splineBasedDecay(density))
@@ -206,12 +226,12 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
             historyOpen || askCard.open || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
-            saveLoginCard.open || permissionCard.open || appLinkCard.open || downloadCard.open || promptCard.open || tourOpen
+            saveLoginCard.open || permissionCard.open || appLinkCard.open || promptCard.open || tourOpen
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
     fun dismissAll() {
         menu.snapClosed()
-        linkCard.snapClosed()
+        if (!actionBusy) linkCard.snapClosed()
         signOutCard.snapClosed()
         tabMenuOpen = false
         backMenuOpen = false
@@ -224,6 +244,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
  * The overlays, drawn over the page view and the bar. [onOpenNew]: a url as a new tab of the
  * current space ([select] = shown now, next to the current tab when [nextToCurrent]).
  */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun KoanOverlays(
     components: Components,
@@ -529,31 +550,6 @@ fun KoanOverlays(
         )
     }
 
-    // ---- a download the page started on its own: Download / Cancel ----
-    val downloadAsk by components.downloadAsk.collectAsStateWithLifecycle()
-    val downloadCard = overlays.downloadCard
-    LaunchedEffect(downloadAsk) { if (downloadAsk != null) downloadCard.animateTo(Detent.Compact) }
-    fun answerDownload(start: Boolean) {
-        val ask = components.downloadAsk.value ?: return
-        components.downloadAsk.value = null
-        downloadCard.animateTo(Detent.Closed)
-        if (start) ask.start() else ask.cancel()
-    }
-    // Dismissed (tap outside, Back): cancelled.
-    LaunchedEffect(downloadCard.open) { if (!downloadCard.open && components.downloadAsk.value != null) answerDownload(start = false) }
-    KoanCard(downloadCard) { interactive ->
-        val ask = downloadAsk ?: return@KoanCard
-        val d = ask.download
-        val site = components.store.state.findTab(d.sessionId.orEmpty())?.content?.url?.let(::displayHost)?.ifBlank { null } ?: host(d)
-        DownloadPrompt(
-            name = d.fileName?.ifBlank { null } ?: "File",
-            detail = listOfNotNull(d.contentLength?.takeIf { it > 0 }?.let(::sizeText), site).joinToString(" · "),
-            interactive = interactive,
-            onCancel = { answerDownload(start = false) },
-            onDownload = { answerDownload(start = true) },
-        )
-    }
-
     // Gecko needs Android's own permission too (location, camera, microphone); it asks for it itself.
     var pendingApp by remember { mutableStateOf<PermissionRequest?>(null) }
     val askAndroid = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
@@ -655,27 +651,157 @@ fun KoanOverlays(
         overlays.link = target
         overlays.linkCard.animateTo(Detent.Compact)
     }
-    val linkCard = overlays.linkCard
-    KoanCard(linkCard) { interactive ->
-        val target = overlays.link ?: return@KoanCard
-        LinkMenu(
-            target, interactive,
-            LinkActions(
-                openNew = { url -> linkCard.animateTo(Detent.Closed); onOpenNew(url, true, true) },
-                openBackground = { url -> linkCard.animateTo(Detent.Closed); onOpenNew(url, false, true) },
-                copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast); linkCard.animateTo(Detent.Closed) },
-                share = { url -> linkCard.animateTo(Detent.Closed); share(url, "") },
-                saveImage = { url ->
-                    linkCard.animateTo(Detent.Closed)
-                    // Goes through the same downloads as a page's: no dialog, the toast says when it's saved.
-                    activeTabId?.let { id ->
-                        components.store.dispatch(
-                            ContentAction.UpdateDownloadAction(id, DownloadState(url, skipConfirmation = true, referrerUrl = page.url)),
+    // ---- one floating card for a pressed link or image, a download to confirm, a download of a
+    // file already there: when one leads to the next (Save image → already downloaded), the same
+    // card morphs: its height springs to the new size, the image shrinks into the thumbnail, the
+    // content crossfades. ----
+    val actionCard = overlays.linkCard
+    val downloadAsk by components.downloadAsk.collectAsStateWithLifecycle()
+    val dupAsk by components.duplicateAsk.collectAsStateWithLifecycle()
+    LaunchedEffect(downloadAsk) { if (downloadAsk != null) actionCard.animateTo(Detent.Compact) }
+    LaunchedEffect(dupAsk) { if (dupAsk != null) actionCard.animateTo(Detent.Compact) }
+    SideEffect { overlays.actionBusy = downloadAsk != null || dupAsk != null }
+    /** A step that may lead to the duplicate card: the card stays a moment, then closes if nothing came. */
+    fun closeUnlessNext() {
+        scope.launch {
+            delay(SheetTokens.CARD_NEXT_WAIT_MS)
+            if (components.duplicateAsk.value == null && components.downloadAsk.value == null) actionCard.animateTo(Detent.Closed)
+        }
+    }
+    fun answerDownload(start: Boolean) {
+        val ask = components.downloadAsk.value ?: return
+        components.downloadAsk.value = null
+        if (start) {
+            ask.start()
+            closeUnlessNext()
+        } else {
+            ask.cancel()
+            actionCard.animateTo(Detent.Closed)
+        }
+    }
+    fun answerDuplicate(start: DownloadState?) {
+        val ask = components.duplicateAsk.value ?: return
+        components.duplicateAsk.value = null
+        actionCard.animateTo(Detent.Closed)
+        if (start != null) ask.start(start) else ask.cancel()
+    }
+    // Dismissed (tap outside, Back): what it was asking is cancelled.
+    LaunchedEffect(actionCard.open) {
+        if (actionCard.open) return@LaunchedEffect
+        if (components.duplicateAsk.value != null) answerDuplicate(null)
+        if (components.downloadAsk.value != null) answerDownload(start = false)
+    }
+    KoanCard(actionCard) { interactive ->
+        val cardPage: ActionPage? = dupAsk?.let { ActionPage.Duplicate } ?: downloadAsk?.let { ActionPage.Download } ?: overlays.link?.let { ActionPage.Link }
+        SharedTransitionLayout {
+            AnimatedContent(
+                cardPage,
+                transitionSpec = {
+                    (fadeIn(tween(SheetTokens.CARD_MORPH_MS)) togetherWith fadeOut(tween(SheetTokens.CARD_MORPH_MS / 2)))
+                        .using(SizeTransform(clip = false) { _, _ -> spring(dampingRatio = 0.85f, stiffness = 420f) })
+                },
+                label = "card",
+            ) { shown ->
+                // The pressed image and the duplicate's thumbnail are one element across the morph.
+                val image = Modifier.sharedBounds(rememberSharedContentState("card-image"), this@AnimatedContent)
+                when (shown) {
+                    ActionPage.Link -> {
+                        val target = overlays.link ?: return@AnimatedContent
+                        LinkMenu(
+                            target, interactive,
+                            LinkActions(
+                                openNew = { url -> actionCard.animateTo(Detent.Closed); onOpenNew(url, true, true) },
+                                openBackground = { url -> actionCard.animateTo(Detent.Closed); onOpenNew(url, false, true) },
+                                copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast); actionCard.animateTo(Detent.Closed) },
+                                share = { url -> actionCard.animateTo(Detent.Closed); share(url, "") },
+                                saveImage = { url ->
+                                    // Goes through the same downloads as a page's: no dialog, the toast says when
+                                    // it's saved; a file already there turns this card into the duplicate card.
+                                    val tab = activeTabId
+                                    fun save(src: String) {
+                                        tab ?: return
+                                        components.store.dispatch(
+                                            ContentAction.UpdateDownloadAction(tab, DownloadState(src, skipConfirmation = true, referrerUrl = page.url)),
+                                        )
+                                        closeUnlessNext()
+                                    }
+                                    if (tab != null && LinkTarget.isPreview(url)) {
+                                        // Google's small preview: the page says which full image is there, once loaded.
+                                        overlays.imageWaiting = true
+                                        scope.launch {
+                                            val full = components.pageImages.fullImage(tab)
+                                            overlays.imageWaiting = false
+                                            when {
+                                                !actionCard.open -> Unit
+                                                full != null -> save(full)
+                                                else -> {
+                                                    actionCard.animateTo(Detent.Closed)
+                                                    onToast(Toast("The full image didn't load", detail = "Try again once it shows"))
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        save(url)
+                                    }
+                                },
+                            ),
+                            imageModifier = image,
+                            waiting = overlays.imageWaiting,
                         )
                     }
-                },
-            ),
-        )
+                    ActionPage.Download -> {
+                        val ask = downloadAsk ?: return@AnimatedContent
+                        val d = ask.download
+                        val site = components.store.state.findTab(d.sessionId.orEmpty())?.content?.url?.let(::displayHost)?.ifBlank { null } ?: host(d)
+                        DownloadPrompt(
+                            name = d.fileName?.ifBlank { null } ?: "File",
+                            detail = listOfNotNull(d.contentLength?.takeIf { it > 0 }?.let(::sizeText), site).joinToString(" · "),
+                            interactive = interactive,
+                            onCancel = { answerDownload(start = false) },
+                            onDownload = { answerDownload(start = true) },
+                        )
+                    }
+                    ActionPage.Duplicate -> {
+                        val ask = dupAsk ?: return@AnimatedContent
+                val dup = ask.dup
+                val files = components.downloadFiles
+                val thumb by produceState<ImageBitmap?>(null, dup.existingName, dup.existingFolder) {
+                    value = withContext(Dispatchers.IO) { fileThumbnail(context, files, dup.existingName, dup.existingFolder, dup.download.contentType) }
+                }
+                val folder = dup.existingFolder.takeIf { it.startsWith("content://") }?.let(::folderLabel) ?: dup.existingFolder.substringAfterLast('/').ifEmpty { "Download" }
+                DuplicateDownloadPrompt(
+                    name = dup.existingName,
+                    // A new name nobody has is kept as it is; else the first free "name (1).ext".
+                    keepBothName = { n -> if (!files.fileExists(dup.existingFolder, n)) n else DuplicateDownloads.keepBothName(n) { files.fileExists(dup.existingFolder, it) } },
+                    folder = folder,
+                    thumbnail = thumb,
+                    contentType = dup.download.contentType,
+                    thumbModifier = image,
+                    size = dup.download.contentLength?.takeIf { it > 0 }?.let(::sizeText),
+                    interactive = interactive,
+                    onOpen = {
+                        val opened = files.openFile(dup.existingName, dup.existingFolder, dup.earlier?.contentType ?: dup.download.contentType)
+                        if (!opened) onToast(Toast("Couldn't open the file"))
+                        answerDuplicate(null)
+                    },
+                    onReplace = { n ->
+                        // The old file goes (and its row), then the new one takes its name.
+                        files.deleteMediaFile(context.contentResolver, dup.existingName, dup.existingFolder)
+                        dup.earlier?.let { components.downloadsUseCases.removeDownload(it.id) }
+                        if (n != dup.existingName && files.fileExists(dup.existingFolder, n)) files.deleteMediaFile(context.contentResolver, n, dup.existingFolder)
+                        answerDuplicate(dup.download.copy(fileName = n))
+                    },
+                    onKeepBoth = { n ->
+                        val name = if (files.fileExists(dup.existingFolder, n)) DuplicateDownloads.keepBothName(n) { files.fileExists(dup.existingFolder, it) } else n
+                        answerDuplicate(dup.download.copy(fileName = name))
+                    },
+                    onCancel = { answerDuplicate(null) },
+                )
+                    }
+                    null -> Unit
+                }
+            }
+        }
     }
 
     // ---- the tab counter's long-press menu ----
@@ -1035,6 +1161,35 @@ fun rememberFindUi(components: Components, overlays: Overlays, activeTabId: Stri
 /** Downloads still going (for the menu's "2 active"). */
 private val ACTIVE = setOf(DownloadState.Status.INITIATED, DownloadState.Status.DOWNLOADING, DownloadState.Status.PAUSED)
 
+/**
+ * A small picture of a file already downloaded: the image itself (scaled down), an APK's app icon,
+ * else null (the card shows the file's type).
+ */
+private fun fileThumbnail(context: Context, files: mozilla.components.support.utils.DownloadFileUtils, name: String, folder: String, type: String?): ImageBitmap? = runCatching {
+    val uri = files.findDownloadFileUri(name, folder) ?: return null
+    val lower = name.lowercase()
+    when {
+        type?.startsWith("image/") == true || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp") || lower.endsWith(".gif") -> {
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, bounds) }
+            val sample = generateSequence(1) { it * 2 }.first { maxOf(bounds.outWidth, bounds.outHeight) / it <= 256 }
+            context.contentResolver.openInputStream(uri)?.use {
+                android.graphics.BitmapFactory.decodeStream(it, null, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+            }?.asImageBitmap()
+        }
+        lower.endsWith(".apk") -> {
+            // The package manager reads an archive from a path: the folder's own (not a picked tree).
+            val path = (if (uri.scheme == "file") uri.path else java.io.File(folder, name).takeIf { folder.startsWith("/") && it.canRead() }?.path) ?: return null
+            val pm = context.packageManager
+            val info = pm.getPackageArchiveInfo(path, 0)?.applicationInfo ?: return null
+            info.sourceDir = path
+            info.publicSourceDir = path
+            pm.getApplicationIcon(info).toBitmap(128, 128).asImageBitmap()
+        }
+        else -> null
+    }
+}.getOrNull()
+
 /** A picked folder's name, from its tree uri ("primary:Documents/Books" → "Books"). */
 private fun folderLabel(uri: String): String =
     runCatching { DocumentsContract.getTreeDocumentId(Uri.parse(uri)) }.getOrNull()
@@ -1049,3 +1204,6 @@ private fun androidPermissions(p: Permission): List<String> = when (p) {
     is Permission.AppAudio -> listOf(Manifest.permission.RECORD_AUDIO)
     else -> emptyList()
 }
+
+/** What the one action card shows (KoanOverlays): a pressed link / image, a download to confirm, a duplicate. */
+private enum class ActionPage { Link, Download, Duplicate }

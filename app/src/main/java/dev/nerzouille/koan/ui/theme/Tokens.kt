@@ -827,6 +827,13 @@ object DrawerTokens {
  * engine, so they all move and settle the same way.
  */
 object SheetTokens {
+    /** A card leading to another (Save image → duplicate): how long it waits for the next one before closing. */
+    const val CARD_NEXT_WAIT_MS = 450L
+    /** The duplicate card's rename pencil: a 20dp glyph in a 44dp tap target. */
+    val EditGlyph = 20.dp
+    val EditTarget = 44.dp
+    /** Card to card: the content's crossfade (the height springs). */
+    const val CARD_MORPH_MS = 220
     /** Compact detent: the whole sheet (with the bar, for the drawer) takes at most this share of the screen. */
     const val COMPACT_MAX_FRACTION = 0.55f
 

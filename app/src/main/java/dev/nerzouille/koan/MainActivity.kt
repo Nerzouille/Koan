@@ -70,6 +70,7 @@ class MainActivity : FragmentActivity() {
         components.sync.start()
         components.pageTools.start()
         components.pageEngines.start()
+        components.pageImages.start()
         components.startExtensions()
         components.startMedia()
         components.watchDownloadLocation()

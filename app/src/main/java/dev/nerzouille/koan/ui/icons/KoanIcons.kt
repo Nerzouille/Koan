@@ -117,6 +117,13 @@ object KoanIcons {
             moveTo(7f, 7f); lineTo(17f, 7f)
         }
     }
+    /** Rename: a pencil. */
+    val Edit: ImageVector by lazy {
+        stroked("edit") {
+            moveTo(4f, 20f); lineTo(8f, 19f); lineTo(19f, 8f); lineTo(16f, 5f); lineTo(5f, 16f); close()
+            moveTo(14f, 7f); lineTo(17f, 10f)
+        }
+    }
     val Reader: ImageVector by lazy {
         stroked("reader") {
             moveTo(5f, 6f); lineTo(19f, 6f); moveTo(5f, 10f); lineTo(19f, 10f)
