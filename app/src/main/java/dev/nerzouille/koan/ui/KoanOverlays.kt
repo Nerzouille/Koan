@@ -41,9 +41,7 @@ import android.provider.DocumentsContract
 import dev.nerzouille.koan.ui.downloads.DownloadsScreen
 import dev.nerzouille.koan.ui.history.ClearDataCard
 import dev.nerzouille.koan.ui.history.HistoryScreen
-import dev.nerzouille.koan.ui.history.HistoryMenus
-import dev.nerzouille.koan.ui.kit.RowMenu
-import dev.nerzouille.koan.ui.kit.RowMenuContent
+import dev.nerzouille.koan.ui.history.HistoryActions
 import dev.nerzouille.koan.data.VisitEntity
 import dev.nerzouille.koan.ui.menu.FilePrompt
 import dev.nerzouille.koan.ui.menu.PagePrompts
@@ -153,14 +151,16 @@ class Overlays(scope: CoroutineScope, density: Density) {
         historyOpen = true
     }
 
-    /** A library row's long-press menu (History, Downloads, Passwords), on its floating card. */
-    val rowMenuCard = SheetState(scope, splineBasedDecay(density))
-    var rowMenu by mutableStateOf<RowMenu?>(null)
+    /** A library page asks first (deleting passwords, several files), on its floating card. */
+    val askCard = SheetState(scope, splineBasedDecay(density))
+    var ask by mutableStateOf<Ask?>(null)
 
-    fun showRowMenu(menu: RowMenu) {
-        rowMenu = menu
-        rowMenuCard.animateTo(Detent.Compact)
+    fun ask(title: String, text: String, confirm: String, action: () -> Unit) {
+        ask = Ask(title, text, confirm, action)
+        askCard.animateTo(Detent.Compact)
     }
+
+    class Ask(val title: String, val text: String, val confirm: String, val action: () -> Unit)
     val clearDataCard = SheetState(scope, splineBasedDecay(density))
     val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
     val clearSiteCard = SheetState(scope, splineBasedDecay(density))
@@ -196,7 +196,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
     /** Something covers the page or the overview (a sheet, a card, a full page): toasts make way. */
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
-            historyOpen || rowMenuCard.open || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
+            historyOpen || askCard.open || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
             saveLoginCard.open || permissionCard.open || downloadCard.open || promptCard.open || tourOpen
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
@@ -772,7 +772,7 @@ fun KoanOverlays(
                             onToast(Toast(what, "Undo", detail = detail) { scope.launch { components.logins.restore(removed) } })
                         }
                     },
-                    onMenu = overlays::showRowMenu,
+                    onConfirm = overlays::ask,
                     onOpenUrl = { url ->
                         overlays.settingsOpen = false
                         onOpenNew(url, true, false)
@@ -811,8 +811,8 @@ fun KoanOverlays(
             onClear = { overlays.clearDownloadsCard.animateTo(Detent.Compact) },
             onClose = { overlays.downloadsOpen = false },
             onToast = onToast,
-            onMenu = overlays::showRowMenu,
             onCopyLink = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
+            onConfirm = overlays::ask,
             modifier = Modifier.graphicsLayer { translationY = (1f - downloadsSlide.value) * size.height },
         )
     }
@@ -857,11 +857,10 @@ fun KoanOverlays(
                 overlays.historyOpen = false
                 onRestoreClosed(id)
             },
-            onMenu = overlays::showRowMenu,
-            menus = HistoryMenus(
+            actions = HistoryActions(
                 openNew = { url -> overlays.historyOpen = false; onOpenNew(url, true, false) },
                 copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
-                share = { url -> share(url, "") },
+                share = { text -> share(text, "") },
                 remove = removeVisits,
                 restore = { id -> overlays.historyOpen = false; onRestoreClosed(id) },
             ),
@@ -885,11 +884,21 @@ fun KoanOverlays(
         )
     }
 
-    // ---- a library row's long-press menu (History, Downloads, Passwords), over those pages ----
-    val rowMenuCard = overlays.rowMenuCard
-    KoanCard(rowMenuCard) { interactive ->
-        val rowMenu = overlays.rowMenu ?: return@KoanCard
-        RowMenuContent(rowMenu, interactive, onPick = { rowMenuCard.animateTo(Detent.Closed) })
+    // ---- a library page asks first (History, Downloads, Passwords), over those pages ----
+    val askCard = overlays.askCard
+    KoanCard(askCard) { interactive ->
+        val ask = overlays.ask ?: return@KoanCard
+        Confirm(
+            title = ask.title,
+            text = ask.text,
+            confirm = ask.confirm,
+            interactive = interactive,
+            onConfirm = {
+                askCard.animateTo(Detent.Closed)
+                ask.action()
+            },
+            onCancel = { askCard.animateTo(Detent.Closed) },
+        )
     }
 
     // ---- sign out asks first ----
