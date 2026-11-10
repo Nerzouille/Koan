@@ -30,7 +30,7 @@ internal fun HistoryActions.forChecked(checked: List<Checkable>, done: () -> Uni
     val one = checked.singleOrNull()
     return when (one) {
         is Checkable.Page -> listOf(
-            SelectionAction(KoanIcons.Plus, "New tab", onClick = act { openNew(one.visit.url) }),
+            SelectionAction(KoanIcons.Open, "New tab", onClick = act { openNew(one.visit.url) }),
             SelectionAction(KoanIcons.Link, "Copy link", onClick = act { copy(one.visit.url) }),
             SelectionAction(KoanIcons.Share, "Share link", onClick = act { share(one.visit.url) }),
             SelectionAction(KoanIcons.Trash, "Remove", destructive = true, onClick = act { remove(one.all) }),
@@ -40,7 +40,7 @@ internal fun HistoryActions.forChecked(checked: List<Checkable>, done: () -> Uni
         )
         is Checkable.Closed -> listOf(
             SelectionAction(KoanIcons.Retry, "Reopen", onClick = act { restore(one.tab.koanTabId) }),
-            SelectionAction(KoanIcons.Plus, "New tab", onClick = act { openNew(one.tab.tab.url) }),
+            SelectionAction(KoanIcons.Open, "New tab", onClick = act { openNew(one.tab.tab.url) }),
             SelectionAction(KoanIcons.Link, "Copy link", onClick = act { copy(one.tab.tab.url) }),
             SelectionAction(KoanIcons.Share, "Share link", onClick = act { share(one.tab.tab.url) }),
         )

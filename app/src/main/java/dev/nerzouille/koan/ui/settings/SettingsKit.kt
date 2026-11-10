@@ -100,8 +100,11 @@ fun SettingsPageFrame(title: String, interactive: Boolean, onBack: () -> Unit, c
                     .onSizeChanged { largeTitle = it.height }
                     // Gone before the compact title appears: the two never show at once.
                     .graphicsLayer {
+                        // Fully opaque through the first bit of scroll (a nudge doesn't grey it).
                         val h = largeTitle.coerceAtLeast(1)
-                        alpha = 1f - (scroll.value / (h * SettingsTokens.BAR_TITLE_FROM)).coerceIn(0f, 1f)
+                        val from = h * SettingsTokens.TITLE_FADE_FROM
+                        val to = h * SettingsTokens.BAR_TITLE_FROM
+                        alpha = 1f - ((scroll.value - from) / (to - from)).coerceIn(0f, 1f)
                     }
                     .padding(bottom = SettingsTokens.TitleBottom),
             )

@@ -94,10 +94,6 @@ fun DownloadsScreen(
     val selection = rememberSelection<String>()
     SideEffect { selection.keepOnly(done.mapTo(HashSet()) { it.id }) }
     val checked = done.filter { it.id in selection }
-    // Share with one file checked: a small choice in the bar.
-    var shareChoice by remember { mutableStateOf(false) }
-    if (checked.size != 1) shareChoice = false
-
     fun open(d: DownloadState) {
         if (!actions.open(d)) onToast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
     }
@@ -116,27 +112,19 @@ fun DownloadsScreen(
         onToast(Toast(if (list.size == 1) "File deleted" else "${list.size} files deleted", "Undo") { list.forEach(actions::restore) })
     }
     fun act(run: () -> Unit) = { selection.clear(); run() }
-    val bar: List<SelectionAction> = when {
-        checked.size == 1 && shareChoice -> {
-            val d = checked[0]
-            listOf(
-                SelectionAction(KoanIcons.Back, "Back") { shareChoice = false },
-                SelectionAction(KoanIcons.Share, "Share file", onClick = act { share(listOf(d)) }),
-                SelectionAction(KoanIcons.Link, "Copy download link", onClick = act { onCopyLink(d.url) }),
-            )
-        }
-        checked.size == 1 -> {
-            val d = checked[0]
-            listOf(
-                SelectionAction(KoanIcons.Open, "Open", onClick = act { open(d) }),
-                SelectionAction(KoanIcons.Share, "Share") { shareChoice = true },
-                SelectionAction(KoanIcons.Close, "Hide", onClick = act { hide(listOf(d)) }),
-                SelectionAction(KoanIcons.Trash, "Delete", destructive = true, onClick = act { delete(listOf(d)) }),
-            )
-        }
-        else -> listOf(
+    // Hide is a swipe only (left to right); the bar keeps what a tap can't do.
+    val bar: List<SelectionAction> = if (checked.size == 1) {
+        val d = checked[0]
+        val (icon, label) = openLook(d)
+        listOf(
+            SelectionAction(icon, label, onClick = act { open(d) }),
+            SelectionAction(KoanIcons.Link, "Copy link", onClick = act { onCopyLink(d.url) }),
+            SelectionAction(KoanIcons.Share, "Share", onClick = act { share(listOf(d)) }),
+            SelectionAction(KoanIcons.Trash, "Delete", destructive = true, onClick = act { delete(listOf(d)) }),
+        )
+    } else {
+        listOf(
             SelectionAction(KoanIcons.Share, "Share", onClick = act { share(checked) }),
-            SelectionAction(KoanIcons.Close, "Hide", onClick = act { hide(checked) }),
             SelectionAction(KoanIcons.Trash, "Delete", destructive = true) {
                 val list = checked
                 onConfirm("Delete ${list.size} files?", "They're deleted from $folder.", "Delete") {
@@ -177,7 +165,7 @@ fun DownloadsScreen(
             { SelectionBar(bar, interactive = true) }
         },
     ) {
-        BackHandler(enabled = selection.active) { if (shareChoice) shareChoice = false else selection.clear() }
+        BackHandler(enabled = selection.active, onBack = selection::clear)
         val selecting = selection.active
         Column(
             Modifier
@@ -222,6 +210,21 @@ fun DownloadsScreen(
         }
     }
 }
+
+/** What opening [d] does, by its type: play a video or a song, view a picture, install an app, else read it. */
+private fun openLook(d: DownloadState): Pair<ImageVector, String> {
+    val type = d.contentType.orEmpty().lowercase()
+    val ext = d.fileName.orEmpty().substringAfterLast('.', "").lowercase()
+    return when {
+        type.startsWith("video/") || type.startsWith("audio/") || ext in MEDIA -> KoanIcons.Play to "Open"
+        type.startsWith("image/") || ext in IMAGES -> KoanIcons.Image to "Open"
+        type == "application/vnd.android.package-archive" || ext == "apk" -> KoanIcons.Install to "Install"
+        else -> KoanIcons.File to "Open"
+    }
+}
+
+private val MEDIA = setOf("mp4", "mkv", "webm", "mov", "avi", "m4v", "mp3", "m4a", "aac", "ogg", "opus", "flac", "wav")
+private val IMAGES = setOf("jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "avif", "bmp", "svg")
 
 private val RUNNING = setOf(Status.INITIATED, Status.DOWNLOADING, Status.PAUSED, Status.FAILED)
 

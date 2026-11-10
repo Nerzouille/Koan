@@ -208,6 +208,22 @@ object KoanIcons {
         }
     }
     val Retry: ImageVector get() = Reload
+    /** A picture: a frame, a sun and a hill (Downloads › Open for an image). */
+    val Image: ImageVector by lazy {
+        stroked("image") {
+            moveTo(4f, 5f); lineTo(20f, 5f); lineTo(20f, 19f); lineTo(4f, 19f); close()
+            circle(9f, 10f, 1.5f)
+            moveTo(4f, 17f); lineTo(10f, 12.5f); lineTo(14f, 15.5f); lineTo(16.5f, 13.5f); lineTo(20f, 16.5f)
+        }
+    }
+    /** A phone with an arrow down into it (Downloads › Install for an APK). */
+    val Install: ImageVector by lazy {
+        stroked("install") {
+            moveTo(9f, 3f); lineTo(7f, 3f); lineTo(7f, 21f); lineTo(17f, 21f); lineTo(17f, 3f); lineTo(15f, 3f)
+            moveTo(12f, 3f); lineTo(12f, 13f); moveTo(9f, 10f); lineTo(12f, 13f); lineTo(15f, 10f)
+            moveTo(11f, 18f); lineTo(13f, 18f)
+        }
+    }
     val Info: ImageVector by lazy {
         stroked("info") {
             circle(12f, 12f, 8.5f)
