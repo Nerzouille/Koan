@@ -64,7 +64,7 @@ data class LinkTarget(val link: String?, val image: String?, val label: String) 
         /**
          * Google's small preview of an image (encrypted-tbn0.gstatic.com/images?q=tbn:…), shown
          * while the full one loads (Google Images): saving it would save the preview, under
-         * another name and size. The full image's address isn't in what the press returns.
+         * another name and size. Koan asks the page for the full one instead (PageImages).
          */
         fun isPreview(url: String): Boolean {
             val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
@@ -86,7 +86,7 @@ class LinkActions(
 
 /** The long-press menu, on a floating card: the link (or image) on top, then what to do with it. */
 @Composable
-fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions, imageModifier: Modifier = Modifier) {
+fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions, imageModifier: Modifier = Modifier, waiting: Boolean = false) {
     val palette = KoanTheme.colors
     val shown = target.link ?: target.image.orEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
@@ -122,13 +122,11 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions, ima
         }
         target.image?.let { image ->
             SheetGroup {
-                // Only the real image: a press on Google's small preview says to wait for the full one.
-                val preview = LinkTarget.isPreview(image)
+                // A press on Google's small preview: Save waits for the full image at that spot.
                 SheetRow(
                     KoanIcons.Download, "Save image", interactive,
-                    subtitle = if (preview) "Small preview: long-press again once it's sharp" else null,
-                    titleColor = if (preview) KoanTheme.colors.TextDisabled else androidx.compose.ui.graphics.Color.Unspecified,
-                    onClick = if (preview) null else ({ actions.saveImage(image) }),
+                    subtitle = if (waiting) "Waiting for the full image…" else null,
+                    onClick = if (waiting) null else ({ actions.saveImage(image) }),
                 )
                 SheetDivider()
                 SheetRow(KoanIcons.Plus, "Open image in new tab", interactive, onClick = { actions.openNew(image) })

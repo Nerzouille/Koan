@@ -198,6 +198,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     /** The link card is also asking about a download (KoanOverlays): a tab change doesn't close it. */
     var actionBusy by mutableStateOf(false)
 
+    /** Save image on a small preview: waiting for the page's full image. */
+    var imageWaiting by mutableStateOf(false)
+
     /** What the page asks on the card: a <select>, a date, alert/confirm, HTTP sign-in… */
     val promptCard = SheetState(scope, splineBasedDecay(density))
     val settingsNav = SheetNav<SettingsPage>(scope, SettingsPage.Root)
@@ -675,15 +678,36 @@ fun KoanOverlays(
                                 saveImage = { url ->
                                     // Goes through the same downloads as a page's: no dialog, the toast says when
                                     // it's saved; a file already there turns this card into the duplicate card.
-                                    activeTabId?.let { id ->
+                                    val tab = activeTabId
+                                    fun save(src: String) {
+                                        tab ?: return
                                         components.store.dispatch(
-                                            ContentAction.UpdateDownloadAction(id, DownloadState(url, skipConfirmation = true, referrerUrl = page.url)),
+                                            ContentAction.UpdateDownloadAction(tab, DownloadState(src, skipConfirmation = true, referrerUrl = page.url)),
                                         )
+                                        closeUnlessNext()
                                     }
-                                    closeUnlessNext()
+                                    if (tab != null && LinkTarget.isPreview(url)) {
+                                        // Google's small preview: the page says which full image is there, once loaded.
+                                        overlays.imageWaiting = true
+                                        scope.launch {
+                                            val full = components.pageImages.fullImage(tab)
+                                            overlays.imageWaiting = false
+                                            when {
+                                                !actionCard.open -> Unit
+                                                full != null -> save(full)
+                                                else -> {
+                                                    actionCard.animateTo(Detent.Closed)
+                                                    onToast(Toast("The full image didn't load", detail = "Try again once it shows"))
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        save(url)
+                                    }
                                 },
                             ),
                             imageModifier = image,
+                            waiting = overlays.imageWaiting,
                         )
                     }
                     ActionPage.Download -> {
