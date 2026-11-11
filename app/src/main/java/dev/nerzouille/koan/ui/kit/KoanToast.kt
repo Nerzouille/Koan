@@ -64,6 +64,10 @@ class Toast(
     val onAction: (() -> Unit)? = null,
 )
 
+/** "… · Undo": [onUndo] puts it back; [onGone] runs when the toast leaves without it. */
+fun undoToast(message: String, detail: String? = null, onGone: (() -> Unit)? = null, onUndo: () -> Unit) =
+    Toast(message, "Undo", detail = detail, onGone = onGone, onAction = onUndo)
+
 /**
  * Confirms a copy to the clipboard. Android 13+ shows its own confirmation; below it nothing would,
  * so Koan says "[what] copied" itself.

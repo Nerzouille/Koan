@@ -2,6 +2,7 @@ package dev.nerzouille.koan.ui.root
 
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.kit.undoToast
 import dev.nerzouille.koan.ui.player.downloadVideo
 
 /** Sites whose fullscreen player keeps its own controls over the video (checked on the phone). */
@@ -41,8 +42,9 @@ internal fun standaloneActions(
         },
         delete = {
             if (download != null) {
-                components.downloads.delete(download)
-                toast(Toast("File deleted"))
+                // As in Downloads: hidden at once, deleted once the Undo toast is gone.
+                components.downloads.removeLater(download, deleteFile = true)
+                toast(undoToast("File deleted", onGone = { components.downloads.commit(listOf(download)) }) { components.downloads.restore(download) })
             }
         },
         download = {
