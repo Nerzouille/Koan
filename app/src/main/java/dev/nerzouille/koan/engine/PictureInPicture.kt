@@ -33,7 +33,14 @@ import dev.nerzouille.koan.data.Settings
  * Android 12+ enters on its own as the home gesture starts (setAutoEnterEnabled, the smooth
  * animation); Android 11 enters from onUserLeaveHint ([onUserLeaveHint]).
  */
-class PictureInPicture(private val activity: Activity, private val store: BrowserStore, private val settings: Settings, scope: CoroutineScope) {
+class PictureInPicture(
+    private val activity: Activity,
+    private val store: BrowserStore,
+    private val settings: Settings,
+    scope: CoroutineScope,
+    /** The page videos as Koan's player sees them (engine/PageVideo): their size and play state when Gecko's media session has none. */
+    private val videos: kotlinx.coroutines.flow.Flow<Map<String, WebVideo>> = kotlinx.coroutines.flow.flowOf(emptyMap()),
+) {
     /** Koan is in its PiP window: the page view shows the video only (no controls, no dock). */
     val inPip = MutableStateFlow(false)
 
@@ -44,6 +51,7 @@ class PictureInPicture(private val activity: Activity, private val store: Browse
     @Volatile private var standalonePlaying = false
     @Volatile private var standaloneShape: Pair<Int, Int>? = null
     @Volatile private var enabled = true
+    @Volatile private var pageShape: Pair<Int, Int>? = null
 
     /** Koan's standalone player (ui/player): open, playing, its video's size. */
     fun setStandalone(open: Boolean, playing: Boolean, shape: Pair<Int, Int>?) {
@@ -105,14 +113,18 @@ class PictureInPicture(private val activity: Activity, private val store: Browse
     init {
         ContextCompat.registerReceiver(activity, receiver, IntentFilter(ACTION), ContextCompat.RECEIVER_NOT_EXPORTED)
         scope.launch {
-            combine(store.flow(), settings.pictureInPicture) { s, on -> on to s.selectedTab }
-                .collect { (on, tab) ->
+            combine(store.flow(), settings.pictureInPicture, videos) { s, on, v -> Triple(on, s.selectedTab, s.selectedTab?.id?.let { v[it] }) }
+                .collect { (on, tab, page) ->
                     val media = tab?.mediaSessionState
-                    val video = media?.elementMetadata?.let { it.width > 0 && it.height > 0 } == true
-                    val playing = media?.playbackState == MediaSession.PlaybackState.PLAYING
                     enabled = on
-                    webEligible = tab?.content?.fullScreen == true && video && playing
+                    webEligible = webPipEligible(
+                        fullScreen = tab?.content?.fullScreen == true,
+                        mediaSized = media?.elementMetadata?.let { it.width > 0 && it.height > 0 } == true,
+                        mediaPlaying = media?.playbackState == MediaSession.PlaybackState.PLAYING,
+                        page = page,
+                    )
                     webMedia = media
+                    pageShape = page?.takeIf { it.width > 0 && it.height > 0 }?.let { it.width to it.height }
                     refresh()
                 }
         }
@@ -125,9 +137,11 @@ class PictureInPicture(private val activity: Activity, private val store: Browse
         val shape = standaloneShape
         val ratio = when {
             standaloneOn && shape != null -> clampRatio(shape.first, shape.second)
-            else -> meta?.takeIf { it.width > 0 && it.height > 0 }?.let { clampRatio(it.width.toInt(), it.height.toInt()) } ?: Rational(16, 9)
+            else -> meta?.takeIf { it.width > 0 && it.height > 0 }?.let { clampRatio(it.width.toInt(), it.height.toInt()) }
+                ?: pageShape?.let { clampRatio(it.first, it.second) }
+                ?: Rational(16, 9)
         }
-        val playing = if (standaloneOn) standalonePlaying else media?.playbackState == MediaSession.PlaybackState.PLAYING
+        val playing = if (standaloneOn) standalonePlaying else media?.playbackState == MediaSession.PlaybackState.PLAYING || webEligible
         val key = "$eligible|$ratio|$playing|$standaloneOn"
         if (key == last) return
         last = key
@@ -190,4 +204,16 @@ class PictureInPicture(private val activity: Activity, private val store: Browse
             }
         }
     }
+}
+
+/**
+ * A fullscreen web video goes to PiP on leaving Koan only while it plays (owner, 2026-11-12: never
+ * a paused one). Gecko's media session sometimes has no size or play state for a page's video
+ * (fixes F5): then Koan's own view of it ([page], the video extension) counts too.
+ */
+internal fun webPipEligible(fullScreen: Boolean, mediaSized: Boolean, mediaPlaying: Boolean, page: WebVideo?): Boolean {
+    if (!fullScreen) return false
+    val sized = mediaSized || page != null && page.width > 0 && page.height > 0
+    val playing = mediaPlaying || page != null && page.fullscreen && !page.paused && !page.ended
+    return sized && playing
 }

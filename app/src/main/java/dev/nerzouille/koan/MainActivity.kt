@@ -88,7 +88,7 @@ class MainActivity : FragmentActivity() {
         components.startExtensions()
         components.startMedia()
         components.watchDownloadLocation()
-        pip = PictureInPicture(this, components.store, components.settings, lifecycleScope).also { p ->
+        pip = PictureInPicture(this, components.store, components.settings, lifecycleScope, components.pageVideo.videos).also { p ->
             components.pip.value = p
             p.audioOnly = {
                 runOnUiThread {

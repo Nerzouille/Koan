@@ -54,6 +54,8 @@ class StandaloneActions(
     val download: () -> Unit,
     val shareLink: () -> Unit,
     val pip: () -> Unit,
+    /** Settings › Picture-in-picture, from the ⋯ menu. */
+    val setPipOnLeave: (Boolean) -> Unit = {},
 )
 
 /**
@@ -62,7 +64,7 @@ class StandaloneActions(
  * the screen under it as it was. Grows from [StandaloneVideo.from] (or the centre) and goes back.
  */
 @Composable
-fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: Boolean, onClosed: () -> Unit, onPlaying: (Boolean, Pair<Int, Int>?) -> Unit, onControls: (PlayerControls?, (() -> PlayerState)?) -> Unit) {
+fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: Boolean, pipOnLeave: Boolean = true, onClosed: () -> Unit, onPlaying: (Boolean, Pair<Int, Int>?) -> Unit, onControls: (PlayerControls?, (() -> PlayerState)?) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val native = remember(video.uri) { NativeVideo(context.applicationContext, video.uri) }
@@ -173,7 +175,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 modifier = Modifier.align(Alignment.Center),
             )
         }
-        val rows = remember(video.mode, video.download, actions, native) { when (video.mode) {
+        val rows = remember(video.mode, video.download, actions, native, pipOnLeave) { listOf(pipOnLeaveRow(pipOnLeave, actions.setPipOnLeave)) + when (video.mode) {
             PlayerMode.File -> listOf(
                 MenuRow(KoanIcons.Share, "Share") { actions.share() },
                 MenuRow(KoanIcons.Open, "Open with another app") { native.pause(); actions.openWith() },

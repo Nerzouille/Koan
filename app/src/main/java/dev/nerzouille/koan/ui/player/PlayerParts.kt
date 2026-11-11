@@ -207,8 +207,14 @@ class MenuRow(
     /** False: greyed out, a tap does nothing ([subtitle] says why). */
     val enabled: Boolean = true,
     val subtitle: String? = null,
+    /** A switch row: "On" / "Off" at the end (null = an action). */
+    val on: Boolean? = null,
     val onClick: () -> Unit,
 )
+
+/** The ⋯ row for Settings › Picture-in-picture (the same setting): leaving Koan in fullscreen opens PiP. */
+fun pipOnLeaveRow(on: Boolean, onChange: (Boolean) -> Unit) =
+    MenuRow(dev.nerzouille.koan.ui.icons.KoanIcons.Pip, "Picture-in-picture on leave", on = on) { onChange(!on) }
 
 /** §2 ⋯ menu: the speed row and its chips, then [rows]. */
 @Composable
@@ -271,10 +277,11 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
             ) {
                 PlayerIcon(row.icon, 18.dp, tint = color)
                 Spacer(Modifier.width(12.dp))
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(row.label, style = playerText(15.sp, FontWeight.Medium, color), maxLines = 1)
                     row.subtitle?.let { Text(it, style = playerText(12.sp, FontWeight.Normal, PlayerTokens.TextSecondary), maxLines = 1) }
                 }
+                row.on?.let { Text(if (it) "On" else "Off", style = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary)) }
             }
         }
     }

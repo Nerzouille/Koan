@@ -1132,6 +1132,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 video = video,
                 actions = standaloneActions(components, androidx.compose.ui.platform.LocalContext.current, video, activeTabId, toasts::show),
                 inPip = inPip,
+                pipOnLeave = components.settings.pictureInPicture.collectAsStateWithLifecycle(true).value,
                 onClosed = {
                     player.standalone = null
                     pipNow?.setStandalone(false, false, null)

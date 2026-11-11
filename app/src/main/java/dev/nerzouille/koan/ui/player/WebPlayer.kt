@@ -57,7 +57,9 @@ fun WebPlayerLayer(
 
     val save = videoSave(video.src, video.drm, video.kind, video.live)
     val saveScope = rememberCoroutineScope()
+    val pipOnLeave by components.settings.pictureInPicture.collectAsStateWithLifecycle(true)
     val rows = buildList {
+        add(pipOnLeaveRow(pipOnLeave) { on -> saveScope.launch { components.settings.setPictureInPicture(on) } })
         // Always there (F6): greyed out, with why, when the video isn't a file Koan can save.
         add(
             when (save) {
