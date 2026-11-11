@@ -40,7 +40,7 @@ Checks:
 2. A paused fullscreen video, then home: **no** PiP (your rule).
 3. ⋯ › **Picture-in-picture on leave** → Off. Home: no PiP. Settings › Picture-in-picture shows Off;
    turn it back on there and the ⋯ row says On.
-4. A private video in PiP for over 1 min (`cefcff4`, `the PiP lock commit`):
+4. A private video in PiP for over 1 min (`5f6b4ab`):
    - Tap the window back to full screen: the lock cover comes up at once, in portrait, with no
      video over it, and the fingerprint is asked.
    - Under 1 min: no lock.
