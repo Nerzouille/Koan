@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * GeckoView 157 uses GMS for isUVPAA even when authentication uses Android Credential Manager.
+ * GeckoView 160 uses GMS for isUVPAA even when authentication uses Android Credential Manager.
  * Add the platform check before its GMS fallback, and fail promptly if that service is absent.
  * No website APIs, origin validation, or Credential Manager signing flows are replaced.
  * Remove each compatibility behavior when GeckoView implements it natively.

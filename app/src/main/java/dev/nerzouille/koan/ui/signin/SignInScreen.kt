@@ -58,6 +58,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
+import dev.nerzouille.koan.data.AccountStore
 import dev.nerzouille.koan.sync.SyncError
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -84,7 +85,8 @@ private sealed interface SignInMode {
  * Two ways in: Mozilla's page with email and password ([onLogin]: fetches the keys, stores the
  * session), or from a computer, by scanning its "Connect another device" code ([onPairing]: swaps
  * the code for tokens and the Sync key). Both throw on failure. [pairLink]: a pairing link Koan
- * was opened with (the system camera): goes straight to it.
+ * was opened with (the system camera): goes straight to it. [replacing]: the signed-in account
+ * (masked), when there is one: a warning says another account replaces it.
  */
 @Composable
 fun SignInScreen(
@@ -93,6 +95,7 @@ fun SignInScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     pairLink: String? = null,
+    replacing: String? = null,
 ) {
     val scope = rememberCoroutineScope()
     var finishing by remember { mutableStateOf(false) }
@@ -133,6 +136,7 @@ fun SignInScreen(
     fun failure(e: Throwable) = when (e) {
         is IOException -> "No connection. Check it and try again."
         is SyncError.StorageUnavailable -> "Couldn't store the session securely on this phone."
+        is AccountStore.OtherAccount -> "Koan is signed in with another Mozilla account. Sign out first to use this one."
         else -> "Mozilla didn't accept the sign-in. Try again."
     }
 
@@ -261,6 +265,20 @@ fun SignInScreen(
         if (outdated != null) {
             OutdatedWebView(outdated, Modifier.weight(1f).fillMaxWidth())
             return@Column
+        }
+        // Already signed in: signing in with another account replaces that one on this phone.
+        if (replacing != null && !finishing) {
+            Text(
+                "Koan is signed in as $replacing. Signing in with another Mozilla account replaces it on this phone.",
+                color = KoanTheme.colors.TextPrimary,
+                fontSize = SignInTokens.NoticeSize,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(SignInTokens.NoticeMargin)
+                    .clip(RoundedCornerShape(SignInTokens.NoticeRadius))
+                    .background(KoanTheme.colors.Notice)
+                    .padding(SignInTokens.NoticePadding),
+            )
         }
         val current = mode
         Box(Modifier.weight(1f).fillMaxWidth().imePadding()) {

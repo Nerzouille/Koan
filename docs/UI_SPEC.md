@@ -24,7 +24,10 @@ outside the repo; the interaction rules below always apply.
    search field focused, instead of the last tab. Not a tab: one only exists once a search or an essential
    opens something. Back, swipe down or the field's ✕ return to the last tab, leaving nothing
    behind. Never shown when a link or a share from another app brought Koan up.
-6. **Settings.** Plain list: account, sync, search engine, write-back toggle, add-ons, about.
+6. **Settings.** Plain list: the Mozilla account card on top, then General (search engine,
+   search suggestions, start page, translation, default browser), Display (theme, hide status
+   bar, picture-in-picture), Privacy (passwords, uBlock Origin), Private browsing, All tabs, Koan
+   (downloads, download folder, about).
    Every full page (Settings and its pages, History, Downloads) uses the one page header (see
    "Page header").
 7. **Sign-in.** Mozilla accounts web login (see `docs/SYNC.md`).
@@ -48,7 +51,7 @@ outside the repo; the interaction rules below always apply.
 └──────────────────────────────┘
 ```
 
-- Background: see "Themes". Plain neutral in both themes (light `#F5F5F7`, dark `#1C1C1E`): no
+- Background: see "Themes". Plain neutral in both themes (light `#F5F5F7`, dark `#121214`): no
   space-colour wash anywhere.
 - Essentials and pinned tabs live in the **drawer** (see below), not in the overview itself.
 - The card stack: folders (a labelled group that can collapse to a single "deck"
@@ -117,14 +120,17 @@ fling, nested scroll only in full, same spring. Up = expand, down = compact then
 - **Find in page** takes the address row's place in the dock (query, "2/7", ↑ ↓ ✕); the dock
   stays shown while it is open, and the page ends above it (so a match on the last line shows
   above the find bar); Back or ✕ closes it.
-- **Long press** on a link or an image opens the link menu on a floating card: open in new tab,
-  open in background (next to the current card), copy link, share link.
+- **Long press** on a link, an image or a video opens the link menu on a floating card. Link: Open in
+  new tab, Open in background (next to the current card), Copy link, Share link; a link straight to
+  a video file adds Play video on top. Image: Save image, Open image in new tab, Copy image link
+  (on a small preview, Save image says "Waiting for the full image…" and saves the full one once
+  it has loaded). Video: Play video, Download video, Open video in new tab, Copy video link.
 - **Settings** (design 7n / 7o) is a full-screen page sliding up over everything, its own pages
   pushed from the right like a sheet's; opened from the menu's Settings row.
 
 ## Cards
 
-- Width: screen width − 2×12dp. Corner radius 28dp (continuous/squircle-like if possible).
+- Width: screen width − 2×14dp (`CardSideMargin`). Corner radius 28dp (continuous/squircle-like if possible).
 - Card height: see "Depth stack" below (a fraction of the stack viewport). How much of each card
   is visible depends on its depth.
 - Thumbnail fills the card, top-aligned, cropped (not letterboxed). Header and placeholder rules:
@@ -146,14 +152,14 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
 - **Vertical layout (top → bottom):** ~28dp of breathing room under the header (`PileTopGap`
   22dp + the pile's fade), the pile, the focused card, then the card in front peeking 60dp above
   the viewport bottom (just above the bar). The focused card gets all the remaining height (≈ 72%
-  of the viewport on the POCO): it's clearly THE card on screen.
+  of the viewport on the Xiaomi): it's clearly THE card on screen.
 - **Pile (d > 0):** bunched tightly just above the focused card's top, converging fast:
   `offsetY(d) = −A·(1 − rᵈ)` with r = 0.45 and A = 28% of the focused card's height (first gap
   ≈ 15% of it); `scale(d) = sMin + (1 − sMin)·r_sᵈ`
   with sMin = 0.58, r_s = 0.52 → .80 · .69 · .64 · .61. Thumbnail darkness (brightness 1 → .84 →
   .72 → .62 …) and blur (σ 0, 0, .5, 1, 1.6, 2.2, 2.8 dp) increase with depth, keyframes joined
   linearly; cards fade out from d ≈ 5 and are gone by d = 8. In Light the "darkness" is a haze
-  towards the neutral background (`#F5F5F7`) instead (1.25× the dim, at most 85%).
+  towards the neutral background (`#F5F5F7`) instead (1.25× the dim, at most 60%; dark dims towards black, at most 80%).
 - **Card in front (d = −1):** closer to the viewer, so slightly **bigger** (scale 1.05) and drawn
   over the focused card: it overlaps the focused card's bottom by 40dp, no gap between them. Only
   its header strip and a hint of thumbnail show (60dp); the bottom fade is 16dp so it stays crisp. Cards past it
@@ -170,15 +176,15 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
     (0.3–2.2s). Touching the stack during a fling stops it (that touch never opens a card).
 - Every card keeps the same shadow (prototype): it is what layers the pile. Depth comes from
   position, scale, brightness and blur, never from borders or tilt. Per theme: dark 20dp black
-  elevation; light a light 8dp one. On top, each card casts a **contact shadow** on the card
-  behind it: a 14dp gradient just above its top edge (light: 10% ink, dark: 22% black), shorter
+  elevation; light 12dp. On top, each card casts a **contact shadow** on the card
+  behind it: a gradient just above its top edge (light: 16dp, 18% ink; dark: 18dp, 65% black), shorter
   where only a sliver of the card behind shows, fading as the card is swiped away. Never a big grey
   fog over the bottom of the focused card (light-mode rule from the owner).
 - Rubber-band overscroll at both ends (the prototype clamps hard; Android users expect the stretch).
 - **Only the thumbnail layer** gets darkened/blurred. The header strip (favicon + title) stays
   legible deep in the pile (dimmed to 80% at most), so you always know what's in the stack.
 - All of this lives in `Modifier.graphicsLayer { }` reading the scroll state — zero recomposition
-  per frame. If live blur ever drops frames on the POCO, switch to the pre-blurred thumbnail
+  per frame. If live blur ever drops frames on the Xiaomi, switch to the pre-blurred thumbnail
   fallback (`ARCHITECTURE.md`, "Blur strategy").
 
 ### Visual restraint (avoid the "AI-generated" look)
@@ -187,10 +193,12 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
   never-opened Zen tabs: the neutral card surface (light `#FFFFFF`, dark `#2C2C2E`) with a large
   centered favicon and the domain in secondary text, plus a very faint tint (8%) of the favicon
   colour. Nothing else.
-- Card header: a strip over the thumbnail in the card colour (light white 94%, dark `#2C2C2E`
-  95%), favicon 22dp, title 15sp medium, ✕ only on the focused card. No colored header bars.
-- One 1dp outline all around each card (light `#E4E4EA`, dark white 8%), nothing else. Corner
-  radius 28dp.
+- Card header: a 44dp strip over the thumbnail in the card colour (light white 94%, dark
+  `#2C2C2E` 95%), favicon 24dp, two lines: the title 14.5sp SemiBold over the site's host 11.5sp
+  in secondary text; ✕ only on the focused card. No colored header bars.
+- One 1dp hairline all around each card (`CardHairline`: light `#1C1C30` at 10%, dark white at
+  12%), plus in dark a 1dp light rim along the top edge, inside (`CardRim`, white 10%). Nothing
+  else. Corner radius 28dp.
 - The space colour is only a small accent (see "Themes"); cards stay neutral so the thumbnails are
   the color.
 
@@ -200,8 +208,8 @@ pure function of its distance `d` (in card slots, fractional) from the focus: `d
   The viewport runs on 24dp under the dock (its rounded top corners), so cards show right up to
   the dock's edge and the opaque dock simply covers them. No fade band, no empty strip between
   the cards and the dock. (Still never a translucent bar with cards visible through it, v1.)
-- The bar is **the dock**: its own opaque surface (light `#FFFFFF`, dark `#252527`) with a soft
-  upward shadow (28dp; light `rgba(60,40,30,.07)`, dark black 35%) attached to its top edge, no
+- The bar is **the dock**: its own opaque surface (light `#FFFFFF`, dark `#232326`) with a soft
+  upward shadow (28dp; light `rgba(60,40,30,.07)`, dark black 45%) attached to its top edge, no
   hairline between them. The same shadow falls on the page (page view) and on the cards
   (overview). Square under a page, 24dp top corners in the overview, 28dp as the drawer.
 
@@ -245,13 +253,13 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
 | Gesture | Where | Result |
 |---|---|---|
 | Vertical drag | card area | scroll the stack |
-| Horizontal swipe | card area | swipe-to-close **the focused card**: follows the finger with a slight tilt and fade; past 100dp it flies off (180ms, 8°) while the gap closes at once: the card on the side last scrolled towards comes into focus (behind if not scrolled since the overview opened; the other side at an end). Nothing waits for the fly-off. "Tab closed · Undo" toast |
+| Horizontal swipe | card area | swipe-to-close **the focused card**: follows the finger with a slight tilt and fade; released past 35% of the card's width, or flung sideways faster than 800dp/s, it flies off (180ms, 8°) while the gap closes at once: the card on the side last scrolled towards comes into focus (behind if not scrolled since the overview opened; the other side at an end). Nothing waits for the fly-off. "Tab closed · Undo" toast |
 | Tap focused card | card | open tab (zoom morph) |
 | Tap a pile or peek card | card | bring it into focus |
-| Long-press card | card | lift (scale 1.03 + shadow), then drag to reorder; drop on the workspace bar to move tab to another space |
+| Long-press card | card | lift (scale 1.03 + shadow), then drag to reorder within the space (dropping on the workspace bar to move the tab to another space: later) |
 | Tap ✕ | focused card | close (same fly-off as swipe-close, to the right) |
 | Mouse wheel / two-finger trackpad | card area | scrolls the stack like a finger drag, settles on a card when the scroll stops |
-| Tap space name in header | header | space menu (rename, icon, theme, new folder) |
+| Tap space name in header | header | space menu (rename, icon, theme, new folder): later, needs M6 |
 | Swipe down on overview header | header | dismiss overview back to the current tab |
 
 Rule: **horizontal swipes in the card area never switch spaces.** Switching spaces only happens on
@@ -299,7 +307,7 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
   with too many spaces the active pill stays centred.
 - **Switching is a simple pager**, driven by horizontal drags anywhere on the bar:
   - The whole space follows the finger 1:1 (header and stack move as one unit; the stack trails
-    slightly with parallax 0.85× and scale 0.96 → 1).
+    slightly: 0.8× speed and scale 0.94 → 1).
   - The switcher pill interpolates between the two spaces by drag fraction.
   - Release: dragged past **25% of the width**, or flung in the drag direction, commits to the
     neighbour; otherwise it springs back.
@@ -316,14 +324,15 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 - **Open:** tapped card becomes the page. Shared-element morph: card bounds → full screen,
   corner radius 28dp → 0 (or device corner radius), header row fades out during the first 40%,
   other cards drift down and fade slightly, the toolbar slides up from the bottom.
-  Use a spring (no fixed duration): damping ratio ≈ 0.85, stiffness ≈ 380. Should feel ~350ms.
-- **Close (back to overview):** reverse morph into the card's slot; the card lands with a tiny
-  overshoot. If the card's slot is off-screen, the stack pre-scrolls so the slot is visible first.
+  Use a spring (no fixed duration): `Motion.Overview`, damping ratio 1, stiffness 600, no
+  overshoot.
+- **Close (back to overview):** reverse morph into the card's slot, same spring, no overshoot. If the card's slot is off-screen, the stack pre-scrolls so the slot is visible first.
 - During the morph, show the cached thumbnail, then swap to the live GeckoView once its first
   frame is ready (never show a blank white page during the morph).
-- **New tab:** a new card grows from the address field into the stack bottom, then immediately
-  morphs open with the address sheet focused.
-- **Never a double image (0.3.1):** the overview is opaque throughout; only the flying card
+- **New tab** (M4, not built): a new card grows from the address field into the stack bottom,
+  then immediately morphs open with the address sheet focused. Today a new tab uses the
+  no-card fallback below.
+- **Never a double image (0.4.0):** the overview is opaque throughout; only the flying card
   (`ui/overview/CardHero.kt`, the card's own header + the tab's screenshot) moves over it, and the
   real card hides while it flies. The header slides in from above the screen edge as the corners
   round. No card to fly to (a new tab, a link from another app): the page shrinks towards the
@@ -331,14 +340,14 @@ One bar serves both screens (Arc Search–sized, easy to hit with the thumb). Va
 
 ## Themes
 
-Source: `docs/reference/design/Koan Essentials.html` section 7 ("M5 · Browser essentials — brand
+Source (local only, not in the repo): `docs/reference/design/Koan Essentials.html` section 7 ("M5 · Browser essentials — brand
 gradient"). It supersedes the theme sections of `Koan Screens.dc.html` (the "soft wash" light theme
 is gone). Setting: Light / Dark / Follow system (default). Web pages follow it too
 (`prefers-color-scheme`).
 
 - **Light, fully neutral:** base `#F5F5F7`, white surfaces (cards, dock, sheets), grey grouped
   rows, black text. No space-colour wash anywhere.
-- **Dark:** base `#1C1C1E`, surfaces `#2C2C2E`, dock `#252527`.
+- **Dark:** base `#121214`, surfaces `#2C2C2E`, dock `#232326`.
 - **Space colours stay only on tiny space indicators:** space icons and the active space pill in
   the switcher (accent from the Zen gradient's first colour: hue kept, saturation ≥ 55%, lightness
   45–62% light / 62–74% dark; pill tint 14% / 18%; ink text 38% / 80%; grey or missing theme uses
@@ -351,7 +360,8 @@ Pink → violet → blue (`#FF5FA2` → `#B46BFF` → `#4F8DFF`, `BrandTokens`, 
 your focus**, used only for:
 
 - the page loading line; the download completion moment; download progress bars in the list;
-- the syncing indicator (a small turning gradient arc);
+- the syncing indicator (a small turning gradient arc: the drawer's sync row, Settings,
+  pull-to-refresh; not in the overview header, which shows only the amber sync dot);
 - toggles ON; the "@" search mode (ring + cursor);
 - Settings' aurora glow (also behind About), the account card outline (**not** while it says
   "Couldn't sync": a failure is not an active moment), and the first-run "Connect your Zen
@@ -375,13 +385,14 @@ One component for every full page (`ui/kit/PageHeader`), iOS style:
 - **The bar** (`PageBar`): 56dp, fixed at the top under the status bar, 20dp side padding: a 56dp
   back target with the 24dp ‹, the title in 22sp Bold (`KoanType.title`), one line, ellipsized,
   then an optional trailing slot (Downloads' folder chip).
-- **Settings pages** (Settings, About, Passwords and a site's passwords, Search engine, Add/Edit
-  search engine, Mozilla account, Save downloads to; `SettingsPageFrame`) also show a **large
+- **Settings pages** (Settings, About, Passwords, a site's passwords and Add a password, Search
+  engine, Add/Edit search engine, Mozilla account, Translation, Save downloads to; `SettingsPageFrame`) also show a **large
   title** under the bar: 34sp Bold (`KoanType.largeTitle`), up to 2 lines, on the page's aurora
   glow. It scrolls with the content and **collapses into the bar**, driven by the scroll offset
   (layer properties only, no recomposition): over the large title's height the bar's surface
   (the page's own base and glow, drawn at the same origin, so it is seamless) fades in; the large
-  title fades out over the first 60%, the compact title fades in over the last 40%, so the two
+  title stays fully opaque for the first 25% (a nudge doesn't grey it) and fades out by 60%,
+  the compact title fades in over the last 40%, so the two
   never show together; once the content passes under the bar, a 1dp hairline fades in over 12dp.
   Collapsed, the bar stays fixed. A long title wraps on 2 lines when large and ellipsizes in the
   bar.
@@ -402,7 +413,8 @@ One component for every full page (`ui/kit/PageHeader`), iOS style:
   text in dark, 50dp tall. **One destructive button** (`DestructiveButton`): red SemiBold text on
   a neutral pill, 50dp, never a red fill: History/Downloads' Clear, Clear site data, Delete
   engine, the confirm cards. A destructive *row* ("Sign out") is a row with a red title. The one
-  red fill is History's swipe-to-remove background (it shows what the gesture does).
+  red fill is the delete swipe's background on the library pages (History, Downloads,
+  Passwords: it shows what the gesture does).
 - **Fields** (`ui/kit/KoanField`): one style for every field outside the dock: 50dp (a button's
   height), pill, Glass fill, 16sp text and hint, an optional search glyph and a ✕ that empties a
   search. History, Downloads and Passwords search, the search-engine form, page prompts. The
@@ -410,10 +422,12 @@ One component for every full page (`ui/kit/PageHeader`), iOS style:
 - **Rows, one style per role:** settings rows (full pages: 54dp, 62dp with a subtitle, bare
   20dp glyph); menu rows (sheet menus, link menu, site settings: 50dp / 58dp, the glyph on a
   30dp tile); dock popup rows (tab menu, back menu: 48dp, the same tile, or a favicon); item rows
-  (history, downloads: a 40dp tile holding the favicon or file type).
+  (history, downloads: a 40dp tile holding the favicon or file type; passwords: the bare 20dp
+  site icon, see "Library pages").
 - **Menu icons:** always on a tile (`MenuIconTile`, 30dp, 9dp corners, 18dp glyph): Dock fill on
   a grouped row, GroupedRow fill on a dock popup.
-- **Favicons:** one letter tile everywhere, the @ picker included: the site's first letter,
+- **Favicons:** one letter tile everywhere (except the Passwords pages, see "Library pages"),
+  the @ picker included: the site's first letter,
   white, on a muted tone picked by host. `m.`, `mobile.` and `www.` hosts share the site's icon
   and tile.
 - **Search field:** docked right above the keyboard (the bar follows the IME), search glyph on the
@@ -426,6 +440,196 @@ One component for every full page (`ui/kit/PageHeader`), iOS style:
   oscillations (±14° over 3.1s, ±10° over 4.7s), never mechanical. Only the shader moves, only
   while "@" mode is on, and not at all when the system removes animations.
 
+## Library pages (History, Downloads, Passwords)
+
+One set of rules for the three pages (`ui/kit/Selection.kt`, `ui/kit/SwipeRow.kt`,
+`ui/kit/LibraryRow.kt`).
+
+**Tap.** History: opens the page in the tab History was opened from; from the overview (no tab
+behind it), in a new tab. A Recently closed row reopens that tab in its space and place.
+Downloads: opens the file (a video in Koan's player). Passwords: the site's accounts, after the
+fingerprint or PIN.
+
+**Long press = selection mode.**
+- A long press checks that row (haptic). In selection mode a tap checks or unchecks a row, it
+  never opens it. Rows have no ⋯ button.
+- Header: "N selected", **Select all** and **✕**. It replaces the page title cleanly: the large
+  title hides while selecting, the header never sits on top of it.
+- A bottom action bar (thumb zone, 64dp, radius 20) holds the actions for what is checked.
+- Back, ✕ or unchecking the last row leaves selection mode.
+
+| Page | One row | Several rows |
+|---|---|---|
+| History | New tab, Copy link, Share link, Remove (a group row alone: "Remove N visits" only) | Share (one link per line, every page of a checked group), Remove |
+| History, Recently closed | Reopen, New tab, Copy link, Share link (one closed tab at a time, never with pages) | — |
+| Downloads | Open (glyph and label by type, below), Copy link, Share (the file), Delete | Share, Delete |
+| Passwords | Visit (the site in a new tab), Delete | Delete |
+
+- "New tab" has the open-in-new-tab glyph (arrow out of a box).
+- File-type glyph (Downloads' Open, the duplicate card's Open row): video or audio = play, image =
+  picture, APK = install (label "Install"), anything else = document.
+- Passwords: no copy action in the list. A username or password is copied only on the site's
+  page, after biometrics.
+
+**Swipes.**
+- History and Passwords: right to left = delete. Left to right does nothing but give a little
+  (36dp) over grey and spring back.
+- Downloads: left to right = hide from the list (the file stays, grey background); right to left =
+  delete the file (red background). Hide is a swipe only.
+- Recently closed rows have no swipe.
+- A swipe acts past 40% of the row's width or on a fling; otherwise the row always springs back,
+  also when the gesture is cancelled. One row never blocks another.
+
+**Confirmations and Undo.**
+- History: Undo toast, no confirmation.
+- Downloads: Undo toast; the file is deleted for real only once the toast is gone, and Undo
+  restores it untouched. No confirmation for one file; several files from selection mode ask
+  first: "Delete N files?", Cancel / Delete.
+- Passwords: **always** a confirmation card before deleting (`KoanCard`): "Delete this password?"
+  (or "Delete N passwords?"), site · username, what it affects ("Removed from this phone.", or
+  "Removed from this phone and your Mozilla account." only when a synced login is among them and
+  "Change and delete passwords" is on), Cancel / Delete (red). Then an Undo toast.
+
+**Passwords page.**
+- A flat list on the page background (no card container), hairline dividers, "N accounts" (or
+  "This phone") and a chevron at the end.
+- Site icons: only icons already on the phone (tabs, History, Essentials), **never fetched** for
+  these pages (privacy rule; no favicon or logo service either). Each is cut to its drawing and
+  fills the same 20dp box, greyscale at a little less contrast, bare (no tile); an opaque square
+  icon keeps its square with rounded corners. No icon, or one that can't be seen in grey on the
+  page: the key glyph (the globe on a site's page). Never a letter tile.
+- Add: a round 56dp "+" floating at the bottom right (20dp margin, shadow, Primary fill) over the
+  list, which ends with room for it. Hidden while selecting. The empty state has its own "Add a
+  password" button.
+- A site's page: the icon is grey while locked and crossfades (220ms) to full colour once
+  unlocked, back to grey when it locks again. Locked, each account's site row shows above Unlock.
+  Unlocked, a red "Delete password" row under each account opens the same confirmation card,
+  then Undo; deleting the site's last account goes back to the list.
+- **Locked:** nothing is deleted or selected before the fingerprint or PIN. A swipe shows the red
+  delete as usual, then asks to unlock, then shows the delete card; a long press asks to unlock,
+  then starts selection mode on that row.
+- No screenshots, screen recordings or Recents preview of the Passwords pages (`SecureWindow`).
+
+## Floating cards that answer an action
+
+**Cancel, on every card: one rule, no text-only Cancel anywhere** (`ui/kit/Buttons.kt`).
+- Two choices (delete confirmations, "Delete N files?", Sign out, Clear browsing data, the
+  save-password prompt, "Open in [app]?"): `CardChoices`, Cancel and the action side by side, same
+  size; Cancel neutral on the left, the action on the right (red text when destructive).
+- A list of choices (the duplicate card, permissions…): `CardCancel`, a full-width neutral button
+  under the list, same height and radius as the other buttons, normal text colour.
+
+**Card to card = one card that morphs.** When a card leads to another (the image long-press card
+→ the duplicate card; the download confirmation → the duplicate card), the card is not closed and
+another opened: the same card stays, its height and corners spring to the new size (0.85 / 420),
+the big image preview shrinks into the small thumbnail at the top (shared element), and the
+content crossfades (220ms). The link card, the download confirmation and the duplicate card are
+floating cards (they answer an action), never drawers.
+
+**Duplicate download** (`ui/menu/DuplicateDownloadPrompt.kt`): every download passes the check
+first, also the ones that skip the confirmation (Save image, a PDF viewer's Download). Shown when
+the same address was downloaded and the file is still there, or a file of that name is in the
+folder. Thumbnail (or type), file name, folder, then Open (type glyph), Replace, Keep both
+("name (1).ext"), and Cancel under the list. Rename: a tap on the name or on the pencil (20dp
+glyph in a 44dp target, next to the name) turns the name into a text field in place, extension
+kept, only the base name selected, keyboard up; Done or a choice (Replace, Keep both) confirms it.
+
+**App links** (`ui/menu/AppLinkPrompt.kt`): a link to an app (an "Open app" button, `intent://`, an
+app's own scheme) asks first: "Open in [app]?" with the app's icon, the site, an "Always for this
+site" switch, Cancel / Open. A page that tries on its own (timer, redirect, hidden frame) gets
+the card at most once per page. Plain https links never get the card. No app installed: the
+link's web fallback if it has one, else a toast. The ⋯ menu shows "Open in [app]" for a site an
+installed app opens.
+
+## Page translation
+
+On the phone (Firefox Translations in Gecko). Code: `ui/browser/TranslateOfferHost.kt`,
+`ui/menu/TranslatePage.kt`, `ui/settings/TranslationPage.kt`.
+- **Offer card:** a small floating card for a page in another language than the phone's, once per
+  page; it leaves on its own after 20 s, with ✕ or a tap outside. Quiet links: "Always for
+  [language]", "Never for [language]", "Never for this site". A page with too little text gets
+  no offer.
+- **⋯ › Translate page:** From / To pickers, Translate, Show original once translated, and the
+  switches "Always translate [language]", Never for this language, Never for this site. Once a
+  translation or a restore has finished, the page always shows the finished state (Show original
+  / Translate again), however many times it goes back and forth.
+- **Language lists (From, To):** a ‹ back to the Translate page (as Back); a search field at the
+  top (while searching the sections hide, only matches show); sections, each language once, in
+  the first it fits: **Recent** (last 3 picked on that side, the current one checked), **On this
+  phone** (downloaded, marked "On phone"), **All languages** (A–Z, with download size when
+  known). A long press on a downloaded language: "Delete [language]?" card (frees N MB; downloads
+  again next time), Cancel / Delete.
+- **Always translate:** every page in that language is translated to the To language on its own
+  (no offer card); a toast says "Translated from [language]" with Show original.
+- **Settings › Translation:** Always translate (languages), Never translate (languages), On this
+  phone (each downloaded language with its size and Delete, same card), Never translate these
+  sites; each removable there.
+
+## Back closes a tab
+
+Back on a tab's first page closes it (`ui/browser/ClosingPage.kt`): the page's last pixels shrink
+into a card that slides off to the left, like a card swiped off the overview, while the next tab
+comes up under it (380ms, `FastOutSlowIn`, layer only). No animation when Back returns to the app
+that opened the link, or when there is no other tab to land on.
+
+## Toasts
+
+One bottom toast (`ui/kit/KoanToast.kt`): a short message, at most one action ("Undo", "Switch",
+"Open", "Show original"), an optional quiet second line; 3 s, then it sinks away; a swipe sends it
+away. A download's completion gets the brand-gradient outline (a moment).
+- **Hand-over:** a new toast while one shows never just swaps its text: the old one sinks further
+  down (1.5× the rise), shrinks a little and fades, from where it was dragged, while the new one
+  rises in its place.
+- **Toasts make way** for a sheet, a card or a full page (see "One sheet everywhere").
+
+## Private mode
+
+Spec: `docs/design/OVERVIEW_PRIVATE.md` (design hand-over), as built in `docs/DESIGN_SYSTEM.md`
+"Private mode". Code: `ui/privacy/`, `privacy/`.
+- A mode of the overview, not a space: never in the space switcher. Private tabs are one set
+  apart from the spaces; turning Private off keeps them.
+- Toggle (`PrivateToggle`) at the end of the overview header: 56×48 touch, 56×32 track, mask in
+  the knob; `CLOCK_TICK`; taps ignored during the flip. Its own colours (the other toggles keep
+  `ToggleOff`).
+- Palettes: **Dusk** (light, base `#DEDAF0`) and **Night** (dark, base `#110F24`), with stars and
+  glows behind the stack (static at rest). Settings, History, Downloads and the ⋯ sheet keep the
+  normal palette.
+- Header: "Private" + "Not saved" chip + toggle, no space icon. Dock: one centred "Private" pill
+  instead of the switcher; address pill "Search privately" (overview) or the host (page), with the
+  mask. The tab count counts private tabs.
+- Flip: Private is a page beside the current space; on / off is the space pager's own motion
+  (into Private from the right, back from the left), stars appearing right to left. Reduced
+  motion: a 150ms slide.
+- Search sheet: a notice first, then Bookmarks and "Switch to private tab" only (no history, no
+  normal tabs).
+- Empty state: mask, "No private tabs", four facts, "New private tab".
+- Locked (after 1 min away or the screen off, when private tabs exist): only **Unlock** and
+  **Back to normal tabs**.
+- No screenshots or Recents preview while Private shows (unless allowed in Settings). Private
+  tabs' favicons are cache-only (never fetched) and their screenshots never written to disk.
+
+## Video player
+
+Spec: `docs/VIDEO_PLAYER.md` (design hand-over with an "As built" list; the code,
+`ui/player/PlayerTokens.kt`, wins). Code: `ui/player/`.
+- One player, two modes. **In a page:** a fullscreen video gets Koan's controls in place, in the
+  same tab (YouTube keeps its own). **Standalone:** a video from Downloads, "Play video" in the
+  link menu, or a video file opened from another app plays in an overlay above the current
+  screen, never a new tab; closing returns to the same screen.
+- Controls: a tap shows / hides them at once (on release); auto-hide after 3 s while playing,
+  never while paused, ended, the menu open or the bar pressed. At the end, Koan's controls stay
+  with Replay. Readable on bright video (scrims, 72% panels over a blur).
+- Gestures, zones left 35% · centre 30% · right 35%: double tap a side = ∓10 s (each extra tap
+  within 700ms adds 10 s); long press 400ms = 2× while held; vertical swipe left = brightness,
+  right = volume (system volume, full range 0.35 × screen height); swipe down = leave
+  fullscreen (page) or close (standalone), never the page's pull-to-refresh; a lock.
+- ⋯ menu: speed (0.5–2×); in a page "Download video" (when the file can be downloaded) and "Use
+  the site's controls"; standalone (file): Share, Open with another app, Delete (a download);
+  standalone (link): Download video, Share link.
+- Picture-in-picture on Home (Settings › Display › Picture-in-picture): 10 s back, play/pause,
+  10 s ahead, and "Audio only" for a web video.
+- Not built: the mini-player and minimise (M7).
+
 ## Visual tokens (starting point, tweak freely)
 
 All values live in `ui/theme/Tokens.kt`: one `KoanPalette` per theme (colours), plus the shared
@@ -434,7 +638,7 @@ size/motion objects.
 - Light: base `#F5F5F7`, cards/dock/sheets `#FFFFFF`, small surfaces `#EBEBEF`, grouped rows
   `#F2F2F5`, field `#F1F1F4`, text `#1C1C1E`, secondary and hints `#66666B`, icons `#6E6E73`,
   toggle OFF `#848489`, destructive `#C42A20`, attention (amber) `#8A5C00`.
-- Dark: base `#1C1C1E`, cards `#2C2C2E`, dock `#252527`, small surfaces and field `white @ 8%`,
+- Dark: base `#121214`, cards `#2C2C2E`, dock `#232326`, small surfaces and field `white @ 8%`,
   grouped rows `white @ 7%`, text `#FFFFFF`, secondary `white @ 62%`, icons `#98989D`, hints
   `white @ 60%`, toggle OFF `#8E8E93`, destructive `#FF8077`, attention `#E8B45A`.
 - Contrast: text ≥ 4.5:1 and controls ≥ 3:1 against every surface they sit on, in both themes

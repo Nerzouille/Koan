@@ -48,8 +48,15 @@ fun KoanPrivateTheme(private: Boolean, content: @Composable () -> Unit) {
     val current = LocalKoanPalette.current
     val normal = if (current.isDark) KoanPalette.Dark else KoanPalette.Light
     val palette = if (!private) normal else if (normal.isDark) KoanPalette.Night else KoanPalette.Dusk
-    CompositionLocalProvider(LocalKoanPalette provides palette, content = content)
+    CompositionLocalProvider(LocalKoanPalette provides palette, LocalPrivateBrowsing provides private, content = content)
 }
+
+/**
+ * True while private mode is shown: icons are then only taken from what the phone already has
+ * (IconStore.load), so a private site is never fetched or recorded. Stays true in the normal-looking
+ * pages opened from private mode (KoanNormalTheme only changes colours).
+ */
+val LocalPrivateBrowsing = staticCompositionLocalOf { false }
 
 /** The normal palette again inside private mode (Settings, History, Downloads, ⋯ pages). */
 @Composable

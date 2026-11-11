@@ -1,5 +1,10 @@
 # Audit: lowering minSdk below 34
 
+> **Historical record.** Implemented for API 30 on 2026-10-23 and shipped in v0.3.0 (`minSdk = 30`,
+> `DeviceProfile.kt`); the API 29 section was not done. File and line numbers below are from
+> 2026-10-20 and have moved since (e.g. the live-session cap is now `DeviceProfile.tier.liveSessions`
+> in `engine/TabManager.kt`, and `onTrimMemory` also handles RUNNING_LOW / CRITICAL).
+
 Audit only, nothing changed. Method: lint (`NewApi`/`InlinedApi`) with `minSdk = 29` set temporarily,
 plus a code read for what lint can't see (silent no-ops, behaviour changes). Lint at 29 found 10
 `NewApi` errors and 4 `InlinedApi` warnings, all listed below.

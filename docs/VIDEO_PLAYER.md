@@ -1,8 +1,19 @@
-# Koan · Fullscreen video player — implementation spec (final)
+# Koan · Fullscreen video player — design hand-over
 
 Hand-over for Claude Code, from the owner's design canvas (boards: Landscape, Portrait, Standalone, Transition, Mini-player, Minimise, Final spec).
 
-> Status 2026-11-11: built on `video` without the mini-player (§6) and the minimise transition, which wait (docs/ROADMAP.md, M7). The owner's feedback changed a few points: no ⌄ in the title pill (web: a swipe down leaves fullscreen), symmetric safe-area insets, filled primary icons, level indicator track = the swipe's full range.
+> Status: built and merged into `dev` (`000d4a1`) without the mini-player (§6) and the minimise transition, which wait (docs/ROADMAP.md, M7). This file is the design hand-over; where it and the code disagree, the code (`ui/player/PlayerTokens.kt`) wins.
+
+### As built (differences from this spec)
+
+- **No minimise, no mini-player.** No ⌄ in the title pill; on a web video a swipe down (or the fullscreen button, or Back) leaves fullscreen and the video keeps playing in the page. §6 and every "Minimised" / "minimise" row below are not built.
+- Symmetric safe-area insets: `PlayerTokens.Inset = 20.dp` from the screen edges (not 16dp), the cutout only on the side where it is.
+- Play glyph optical offset: `PlayOptical = 1.75.dp` (72dp disc), `PlayOpticalSmall = 1.25.dp` (44dp button), not +3dp.
+- Brightness / volume swipe: full range = `LEVEL_RANGE = 0.35` × screen height (not 0.6); the level indicator's track = that full range.
+- Filled primary icons (play, pause, …).
+- Picture-in-picture with 10 s back, play/pause, 10 s ahead and, for a web video, **Audio only** (the PiP window closes and the sound keeps playing; `engine/PictureInPicture.kt`). Switch: Settings › Display › **Picture-in-picture**.
+- The media notification shows the video's position, length and poster (`engine/PageVideo.kt`; the timeline is on by default since AC 160).
+- YouTube keeps its own controls: Koan's player is not used there.
 
 Conventions
 - Units: dp for sizes, sp for text. On the canvas 1dp = 1px (reference phone 403 × 875dp, landscape 875 × 403dp).
@@ -45,14 +56,14 @@ Blur: `RenderEffect.createBlurEffect(24dp, 24dp, CLAMP)` on a snapshot layer of 
 ## 2. Layout
 
 ### Insets
-- `player.inset.side` = 16dp from the screen edges + display cutout.
+- `player.inset.side` = 16dp from the screen edges + display cutout. *(As built: 20dp, see above.)*
 - Landscape: top 16dp, bottom 16dp.
 - Portrait: top = status bar + 12dp (44dp on the reference), bottom = nav bar + 12dp (28dp on the reference).
 - Video: fit (letterbox) centred. Landscape reference 716 × 403, portrait 403 × 227.
 
 ### Title pill (top left)
 - 44dp tall, radius 22, padding 0 / 16 / 0 / 0 (left padding comes from the button).
-- Leading button 44dp: **⌄ Minimise** (web, glyph `chevron-down` 24) or **✕ Close** (standalone, glyph `close` 22).
+- Leading button 44dp: **⌄ Minimise** (web, glyph `chevron-down` 24; *not built: no button on the web*) or **✕ Close** (standalone, glyph `close` 22).
 - Two lines: title 15sp SemiBold / 18 line, site or file line 12sp Regular / 15 line `player.text.secondary`. One line each, ellipsis (standalone file name: ellipsis in the middle).
 - Max width: landscape 45% of the screen width (394dp). Portrait: all the space up to 8dp before the right-hand pills = screen width − 16 − 16 − 8 − width of the right group (3 × 44 + 2 × 8 = 148dp, plus the "1.5×" pill and its 8dp gap when shown) → 215dp on the reference, 149dp with the speed pill. Only then ellipsis. Measure the right group at layout time, not with constants.
 
@@ -63,7 +74,7 @@ Blur: `RenderEffect.createBlurEffect(24dp, 24dp, CLAMP)` on a snapshot layer of 
 ### Centre group
 - Centred on the video rect.
 - ⏪10 / 10⏩: 56dp discs, glyph 26 (`replay-10`, `forward-10`).
-- Play / Pause: 72dp disc, glyph 32 (play glyph offset +3dp x for optical centring).
+- Play / Pause: 72dp disc, glyph 32 (play glyph offset +3dp x for optical centring; *as built 1.75dp*).
 - Gap 40dp landscape / 28dp portrait.
 - Replay (ended): 56dp pill, padding 0 / 24 / 0 / 18, glyph `reload` 24 + 10dp gap, "Replay" 16sp SemiBold.
 - Buffering: the spinner (32dp) replaces the whole group.
@@ -141,7 +152,7 @@ Mute · elapsed "5:58" (min width 36dp) · progress bar (flex 1, 44dp touch) · 
 | Brightness / volume | — | — | — | level indicator |
 | Locked | Unlock only | — | — | Unlock visible 3 s after a tap |
 | Hidden | — | — | — | tap shows |
-| Minimised | — | — | — | mini-player card in the app |
+| Minimised *(not built)* | — | — | — | mini-player card in the app |
 
 ---
 
@@ -154,8 +165,8 @@ Zones across the width: **left 35% · centre 30% · right 35%**.
 | Tap | Toggle controls on ACTION_UP. A 2nd tap within 250ms in a side zone turns the pair into a seek and reverts the toggle (controls out 120ms). |
 | Double tap side | Left −10 s, right +10 s. Each extra tap within 700ms adds 10 s ("+20 s"). Haptic `CLOCK_TICK` per step. Works with controls hidden. Centre zone: nothing. |
 | Long press | 400ms on the video, playing only → 2× while held, previous speed on release. Haptic `LONG_PRESS`. Speed badge. |
-| Vertical swipe | Starts after 12dp with \|dy\| > 1.5 \|dx\|. Left zone = window brightness, right zone = media volume. Full range = 0.6 × screen height. `CLOCK_TICK` at 0 and 100%. |
-| Swipe down (centre) | Video follows 1:1, scale 1 → 0.9 over 0.4 × height. Release past 0.2 × height or ≥ 800dp/s → **minimise** (web) / **close** (standalone); otherwise spring back `spring(1.0, 600)`. |
+| Vertical swipe | Starts after 12dp with \|dy\| > 1.5 \|dx\|. Left zone = window brightness, right zone = media volume. Full range = 0.6 × screen height (*as built 0.35*). `CLOCK_TICK` at 0 and 100%. |
+| Swipe down (centre) | Video follows 1:1, scale 1 → 0.9 over 0.4 × height. Release past 0.2 × height or ≥ 800dp/s → **minimise** (web; *not built: leaves fullscreen*) / **close** (standalone); otherwise spring back `spring(1.0, 600)`. |
 | Progress drag | Press: track grows, bubble shows, centre group hides. Seeks live, throttled to 80ms. Tap on the track = jump. |
 | Locked | Everything off; a tap shows Unlock for 3000ms. |
 | Back | Menu open → close it · web → exit fullscreen (keeps playing in the page) · standalone → close. |
@@ -181,7 +192,9 @@ Zones across the width: **left 35% · centre 30% · right 35%**.
 
 ---
 
-## 6. Mini-player
+## 6. Mini-player (not built)
+
+> Not built: waits for ROADMAP M7. Nothing in this section is in the app.
 
 Appears when the user minimises a web video (⌄ or swipe down). Keeps playing.
 
@@ -254,8 +267,8 @@ The "10" in `replay-10` / `forward-10` is 7.5 units, Bold, centred at y 15.6. `b
 
 | | Web fullscreen | Standalone |
 |---|---|---|
-| Leading button | ⌄ Minimise | ✕ Close |
-| Swipe down | minimise to the mini-player | close |
+| Leading button | ⌄ Minimise *(not built: none)* | ✕ Close |
+| Swipe down | minimise to the mini-player *(not built: exit fullscreen)* | close |
 | Fullscreen toggle | exit fullscreen | fit ↔ fill |
 | ⋯ menu | Speed · Download video · Use the site's controls | see §7 |
 | Back | exit fullscreen | close |
@@ -282,7 +295,7 @@ object PlayerTokens {
     val Blur = 24.dp
 
     // layout
-    val Inset = 16.dp
+    val Inset = 16.dp                       // as built: 20.dp
     val PillHeight = 44.dp
     val RoundPill = 44.dp
     val BottomPillHeightLandscape = 56.dp; val BottomPillHeightPortrait = 92.dp; val BottomPillRadius = 28.dp

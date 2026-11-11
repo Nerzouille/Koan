@@ -56,7 +56,12 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
     then; if it was refused for good, "Allow the camera" opens Koan's app settings) and point it
     at the code, then confirm on the computer. **Paste the link instead**
     works too if you copied the code's link (Google Lens…), and when Koan is the default
-    browser, scanning the code with the phone's own camera opens it in Koan directly.
+    browser, scanning the code with the phone's own camera opens it in Koan directly. When a
+    sign-in link comes from another app, Koan asks first (**Sign in from another app?**, or
+    **Replace your Mozilla account?** when you are already signed in); continue only if you just
+    scanned the code on your own computer.
+  - **Already signed in:** the sign-in page shows the current account (email partly hidden) and
+    warns that signing in with another account replaces it on this phone.
 - The session (email and password) or the long-lived token (from a computer) and the sync key are
   stored on the phone, encrypted with an Android Keystore key. Signing out revokes the token.
   There is no Koan server, no analytics, no telemetry.
@@ -312,9 +317,13 @@ Tap **⋯** in a page. It opens as a sheet at half height; swipe up for all of i
 
 - **Top row:** back, forward, the address (tap to edit it), copy link, reload / stop.
 - **New tab**, **Bookmark** (saved on the phone; the star fills), **Share**, **Find**.
-- **Site settings** (see below), **Desktop site** (toggle), **Reader view**, **Add to Essentials**,
-  **Add this search engine** (only on a page that offers one, see Search engines), **History**,
-  **Downloads**, **Settings**, and the **uBlock Origin** card.
+- **Site settings** (see below), **Desktop site** (toggle), **Reader view**, **Translate page**
+  (see [Translate a page](#translate-a-page)), **Protections** (private tabs only, see
+  [Private browsing](#14-private-browsing)), **Add to Essentials**, **Add this search engine**
+  (only on a page that offers one, see Search engines), **History**, **Downloads**, **Settings**,
+  and the **uBlock Origin** card.
+- **Open in [app]**, with its icon, on a site that has an app on the phone (see
+  [Links to other apps](#links-to-other-apps)).
 
 ### Find in page
 
@@ -390,6 +399,9 @@ address):
 
 - **Link:** Open in new tab, **Open in background** (a toast "Opened in background · Switch"; tap
   Switch within 3 seconds to go to it), Copy link, Share link.
+- **Video link** (a link straight to a video file, `….mp4`, `….webm`…): **Play video** first, in
+  Koan's own player (see [Video player](#video-player)). A long-pressed video also offers Download
+  video, Open video in new tab and Copy video link.
 - **Image:** Save image, Open image in new tab, Copy image link. On a picture still showing a small
   preview (Google Images while the full image loads), Save image waits for the full image and saves
   that one ("Waiting for the full image…").
@@ -443,13 +455,50 @@ Each language is downloaded once (about 20–30 MB) the first time you use it.
 
 When a video goes full screen, the status bar, navigation bar and dock hide, and the screen turns
 to the video's orientation (landscape, or portrait for a portrait video). Swipe from an edge to
-see the system bars for a moment. Back leaves full screen.
+see the system bars for a moment. Koan's own player then takes over from the site's controls: see
+[Video player](#video-player). YouTube keeps its own controls.
+
+### Video player
+
+Koan's player, always dark, over a page's full-screen video and for videos Koan plays itself.
+
+- **Tap** shows or hides the controls; they hide on their own while the video plays. Play/pause,
+  10 s back and ahead, the timeline (press and slide to move), mute, picture-in-picture, lock and
+  ⋯.
+- **Double-tap** the left or right side: 10 s back or ahead; each more tap on that side adds 10 s.
+- **Long press** while it plays: 2× speed while you hold (a "2×" badge shows).
+- **Swipe up or down** on the left half for brightness, on the right half for volume.
+- **Lock:** the controls and gestures stop until you tap **Unlock** (a tap shows it for 3 s).
+- **⋯:** **Playback speed** (0.5×, 0.75×, Normal, 1.25×, 1.5×, 2×), and, on a page,
+  **Download video** (when the video is a plain file) and **Use the site's controls** (Koan's come
+  back the next time the video goes full screen).
+- **Swipe down** from the middle, the exit-full-screen button or Back leave full screen; the page
+  is where it was and the video keeps playing there.
+- **YouTube** keeps its own controls.
+
+**Picture-in-picture:** go home while a full-screen video plays, and it keeps playing in a small
+window, with 10 s back, play/pause and 10 s ahead. Tap the window to come back. On a page's video
+the window also has **Audio only**: the window closes, the video leaves full screen and its sound
+keeps playing in the background with the media notification. (On phones that show only three
+buttons: Audio only, play/pause and 10 s ahead.) Settings › Display › **Picture-in-picture**, on
+by default.
+
+**Koan's own player** (not a tab: closing it leaves the screen as it was) opens for:
+
+- a video in **Downloads**;
+- **Play video** on a long-pressed video link;
+- a video file another app opens with Koan (from a file manager, or a link to a `.mp4`).
+
+Its ✕ closes it, and a swipe down from the middle too. Its ⋯ has **Share**, **Open with another
+app** and, for a download, **Delete** (it asks first); for a video link, **Download video** and
+**Share link**. A video it can't play says "Koan can't play this video".
 
 ### Audio and video in the background
 
 A page playing sound shows a media notification, also on the lock screen: the page's title and
-icon, play/pause, and next/previous when the site offers them (YouTube does). Playback keeps going
-with Koan in the background or the screen off.
+icon, play/pause, and next/previous when the site offers them (YouTube does), with the video's
+position on a timeline. When the page gives no artwork, the video's poster image is shown.
+Playback keeps going with Koan in the background or the screen off.
 
 ---
 
@@ -487,8 +536,9 @@ with Koan in the background or the screen off.
 
 ## 8. Passwords and autofill
 
-- Passwords from your Mozilla account are copied to the phone, read-only. Usernames and passwords
-  are encrypted with an Android Keystore key; only the site is stored in the clear.
+- Passwords from your Mozilla account are copied to the phone; what goes back is up to you (see
+  [Two-way sync](#two-way-sync)). Usernames and passwords are encrypted with an Android Keystore
+  key; only the site is stored in the clear.
 - **Filling a login:** tap a login field on a site you have logins for. Your accounts for that site
   appear as chips above the keyboard (usernames partly hidden). Tap one to fill. The key at the
   start of the strip opens the full list: pick one, then **Use** (or **Not now**).
@@ -505,7 +555,8 @@ with Koan in the background or the screen off.
 - Credential providers can restrict which browsers they trust. Sideloading Koan does not bypass
   those restrictions. GeckoView on Android does not currently implement conditional passkey
   suggestions in username fields; this is separate from ordinary password autofill.
-- **Settings › Passwords:**
+- **Settings › Passwords:** screenshots, screen recordings and the recent-apps preview are blocked
+  on these pages.
   - One row per site, with a search field and the site's icon when Koan already has it (never
     fetched for this list; otherwise a key). A site with several accounts says how many ("3
     accounts"); once unlocked, a site with one account shows its username.
@@ -579,21 +630,22 @@ closes it).
 
 | Setting | What it does |
 |---|---|
-| Account card | Connect (signed out), or open the account page: **Sync now**, **Sign out** |
-| Search engine | DuckDuckGo, Google, Brave Search, Startpage, Baidu |
+| Account card | Connect (signed out), or open the account page: **Sync now**, **Sign out**, and the **Send to your Mozilla account** switches (see [Two-way sync](#two-way-sync)) |
+| Search engine | DuckDuckGo, Google, Brave Search, Startpage, Baidu, and engines you added (**Add a search engine**; Edit on yours): see [Search engines](#search-engines) |
 | Search suggestions | On by default; off = no suggestions at all |
 | Start page | After how long unused Koan opens on the [start page](#the-start-page): 30 min, 1 h (default), 4 h, Never |
+| Translation | Always / Never languages and sites, and the languages on the phone: see [Translate a page](#translate-a-page) |
 | Default browser | Opens Android's choice to make Koan the default browser |
 | Theme (Display) | Light, Dark, Follow system (pages follow it too) |
 | Hide status bar (Display) | Off by default. On: pages use the whole screen up to the camera; swipe down from the top edge to see the status bar for a moment. The search sheet, the overview, menus, Settings and the other pages still show it |
-| Translation | Always / Never languages and sites, and the languages on the phone: see [Translate a page](#translate-a-page) |
+| Picture-in-picture (Display) | On by default: a full-screen video keeps playing in a small window when you leave Koan (see [Video player](#video-player)) |
 | Passwords | See [Passwords and autofill](#8-passwords-and-autofill) |
 | uBlock Origin | On/off, blocked this week, or Install |
+| Private browsing | Lock private tabs, Allow screenshots, Search suggestions, Refuse cookie banners: see [Private browsing](#14-private-browsing) |
+| All tabs | Bounce-tracking protection (on), Skip Google AMP pages (off), DNS over HTTPS (off): see [Private browsing](#14-private-browsing) |
 | Downloads | The Downloads page |
 | Save downloads to | The phone's Download folder, or a folder you pick |
 | About Koan | Version, update check, **Take the tour**, links to the changelog, the privacy notice and the open-source licences |
-| Private browsing | Lock private tabs, Allow screenshots, Search suggestions, Refuse cookie banners: see [Private browsing](#14-private-browsing) |
-| All tabs | Bounce-tracking protection (on), Skip Google AMP pages (off), DNS over HTTPS (off): see [Private browsing](#14-private-browsing) |
 
 **As the default browser:** links you open in other apps, web searches, and text or links shared to
 Koan open as a new tab in your current space. So do links apps open "in the app" (Custom Tabs, as
@@ -628,8 +680,8 @@ the background. If the check fails (no network), tap the chip to try again.
   space, no editing folders. Card reordering works within a space only.
 - **Unofficial sign-in:** see [Signing in](#signing-in-with-a-mozilla-account).
 - **Android 11+ and arm64 only:** tested on Android 14 and 17; 11–13 are supported but less tested.
-- **Long screenshots:** HyperOS's scrolling screenshot doesn't scroll Koan's pages yet (a GeckoView
-  update after 10 November should help).
+- **Long screenshots:** HyperOS's scrolling screenshot doesn't scroll Koan's pages yet (the next
+  GeckoView update should help).
 - **Old WebView warning on sign-in:** shown when Android System WebView is older than 92 (it can't
   load Mozilla's sign-in page), with a Play Store button; not yet tested on such a phone.
 - **APK size (~206 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
@@ -637,9 +689,8 @@ the background. If the check fails (no network), tap the chip to try again.
   keeping a second, unpacked copy.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
   the page itself) may reload when you pull down at the top of the list.
-- **Not there yet:** web notifications, a bookmarks screen, other add-ons
-  than uBlock Origin, picture-in-picture, adding a page to the home screen. Opening
-  and closing a tab is a simple crossfade (the motion polish comes later).
+- **Not there yet:** web notifications, a bookmarks screen, other add-ons than uBlock Origin,
+  adding a page to the home screen.
 - **Not affiliated** with Zen Browser or Mozilla. Zen is an independent project; "Firefox" and
   "Mozilla" are trademarks of the Mozilla Foundation.
 

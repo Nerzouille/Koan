@@ -3,13 +3,14 @@
 # Koan
 
 A personal Android web browser built on **GeckoView** (Firefox's engine): a card stack of tabs
-with depth, one-handed gestures, and workspaces that are your **Zen Browser Spaces**, synced
-read-only from your Mozilla account: the same spaces, icons, colours, essentials, pinned tabs and
-folders you have on the desktop.
+with depth, one-handed gestures, and workspaces that are your **Zen Browser Spaces**, read from
+your Mozilla account: the same spaces, icons, colours, essentials, pinned tabs and folders you have
+on the desktop.
 
 > Not affiliated with, endorsed by or connected to Zen Browser or Mozilla.
 
-**Beta: daily-driver ready, sync is read-only.**
+**Beta: daily-driver ready. Spaces are read-only; passwords and history can sync both ways if you
+turn it on.**
 
 - **What it can do, and how:** [`docs/FEATURES.md`](docs/FEATURES.md), the user guide.
 - **What it sends, and to whom:** [`docs/PRIVACY.md`](docs/PRIVACY.md).
@@ -31,6 +32,12 @@ folders you have on the desktop.
   prompts, site sign-in, pop-ups, printing.
 - **Pages fit around the dock and the keyboard:** a page's bottom bar (chat field, cookie banner)
   sits on the dock and follows it as it hides; a field you type in shows right above the keyboard.
+- **Private browsing:** a separate set of private tabs with its own look, locked behind your
+  fingerprint, tracking protection and nothing kept in history.
+- **Video player:** Koan's own controls for full-screen video (double-tap to seek, swipes for
+  brightness and volume, speed), picture-in-picture with "Audio only".
+- **Translation on the phone** (Firefox Translations): pages are translated without their text
+  leaving the phone.
 - Search with suggestions and `@` shortcuts, history and bookmarks from your account, passwords
   and autofill, downloads, find in page, reader view, uBlock Origin. Details:
   [`docs/FEATURES.md`](docs/FEATURES.md).
@@ -83,9 +90,11 @@ Android when you sign in from your computer). This is unofficial:
 it can break whenever Mozilla changes something, and it may go against Mozilla's terms of service.
 **Use it at your own risk**, ideally not with an account you can't afford to have trouble with.
 
-Koan only reads: your Spaces, and your passwords, bookmarks and history. Writing back to Zen is
-planned behind a setting that will be **off by default**, because a bad write could scramble your
-desktop Spaces.
+Koan reads your Spaces, passwords, bookmarks and history. It sends back only what you turn on in
+Settings › Mozilla account › **Send to your Mozilla account**: passwords saved on the phone,
+changes and deletions of passwords, and history (all off until you choose). Spaces, tabs and
+bookmarks are never written. Writing Spaces back to Zen is planned behind a setting that will be
+**off by default**, because a bad write could scramble your desktop Spaces.
 
 ## Building
 
@@ -100,7 +109,7 @@ cd Koan
 ### Tests
 
 ```sh
-./gradlew test
+./gradlew testDebugUnitTest
 ```
 
 The sync layer is checked against Z-Sync's golden contract fixtures, which are read in place from a
@@ -109,7 +118,7 @@ them:
 
 ```sh
 git clone --depth 1 https://github.com/Kjell6/Z-Sync.git reference/Z-Sync
-./gradlew test
+./gradlew testDebugUnitTest
 ```
 
 ### Release build
@@ -135,6 +144,8 @@ with the debug key so that it still installs.
   possible.
 - [Zen Browser](https://github.com/zen-browser/desktop): the Spaces concept, and the space/folder
   icons (MPL 2.0, most of them [Ionicons](https://ionic.io/ionicons) glyphs).
+- [Tabler Icons](https://tabler.io/icons) (MIT) and the [Zia](https://github.com/z1n-k/zia) mod
+  (MIT): the icons, and Zia's Phosphor-to-Tabler table, for space icons picked with Zia.
 - [GeckoView and Mozilla Android Components](https://github.com/mozilla-firefox/firefox) (MPL 2.0).
 
 Full notices: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

@@ -146,10 +146,17 @@ object ThumbnailStore {
         BakedBlur.forget(key)
     }
 
-    /** Every private screenshot goes (the last private tab closed). */
+    /**
+     * Every private screenshot goes (the last private tab closed), with every blurred copy of it and
+     * of the private cards' placeholders, also those no longer in this cache.
+     */
     fun forgetAllInMemory() {
         memory.snapshot().keys.filter { it.startsWith(MEMORY_PREFIX) }.forEach(::forgetMemory)
+        BakedBlur.forgetAll(listOf(MEMORY_PREFIX, PRIVATE_PLACEHOLDER_PREFIX))
     }
+
+    /** Baked placeholders of private cards start with this (memory only; wiped with them). */
+    const val PRIVATE_PLACEHOLDER_PREFIX = "private-placeholder:"
 
     /** Keys of [keepInMemory] screenshots start with this; they never have a file. */
     const val MEMORY_PREFIX = "mem-"

@@ -26,13 +26,16 @@ fun SignOutConfirm(interactive: Boolean, onSignOut: () -> Unit, onCancel: () -> 
     )
 }
 
-/** A small confirmation on a floating card: what happens, then Cancel and the (red) action side by side. */
+/**
+ * A small confirmation on a floating card: what happens, then Cancel and the action side by side
+ * (red when [destructive], else the primary button).
+ */
 @Composable
-fun Confirm(title: String, text: String, confirm: String, interactive: Boolean, onConfirm: () -> Unit, onCancel: () -> Unit) {
+fun Confirm(title: String, text: String, confirm: String, interactive: Boolean, onConfirm: () -> Unit, onCancel: () -> Unit, destructive: Boolean = true) {
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
         Text(title, color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize))
         Text(text, color = KoanTheme.colors.TextSecondary, fontSize = SheetTokens.CardTextSize)
         Spacer(Modifier.height(SheetTokens.Gap / 2))
-        CardChoices(confirm, interactive, onAction = onConfirm, onCancel = onCancel, destructive = true)
+        CardChoices(confirm, interactive, onAction = onConfirm, onCancel = onCancel, destructive = destructive)
     }
 }

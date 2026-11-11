@@ -47,9 +47,9 @@ Android permissions, the Activity bridge and Autofill are host-app responsibilit
 compatibility changes are confined to `build-logic` and the small `engine/auth` helpers; tab,
 workspace, gesture, password-storage and sync code do not depend on this adapter.
 
-## GeckoView 157 compatibility adapter
+## GeckoView 160 compatibility adapter
 
-The pinned GeckoView `157.0.20261005135250` can authenticate through Credential Manager but its
+The pinned GeckoView `160.0.20261104181552` can authenticate through Credential Manager but its
 `isUserVerifyingPlatformAuthenticatorAvailable()` probe still calls Google FIDO. That can return
 false on a working Credential Manager device. Its legacy FIDO fallback can also wait on an
 absent/disabled Google service.
@@ -92,9 +92,9 @@ check the platform route, legacy route, missing-service errors and signature mis
 Original source and MPL notice: [third-party notices](../THIRD_PARTY_NOTICES.md).
 
 GeckoView 160's published `WebAuthnTokenManager.java` and `WebAuthnCredentialManager.java` were
-compared with the pinned 157 sources on 2026-11-11 and are identical. Upgrading only for these
-fixes would not remove the compatibility work, so this PR keeps the existing matched engine
-and Android Components versions.
+compared with the former 157 sources on 2026-11-11 and are identical. This branch follows
+upstream's matched GeckoView 160 / Android Components 160 upgrade, with the compatibility
+guard re-pinned to the exact reviewed engine version. Upgrading alone does not fix these paths.
 
 ## Limits
 

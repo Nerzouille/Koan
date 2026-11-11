@@ -17,37 +17,44 @@ workspaces **are** your Zen desktop Spaces.
 ## Core idea
 
 1. **Spaces from Zen.** Sign in with the Mozilla account → every Zen Space appears on the phone,
-   with its name, icon, gradient theme, essentials, pinned tabs, folders and (if enabled in Zen)
-   normal tabs.
+   with its name, icon, colour, essentials, pinned tabs, folders and (if enabled in Zen) normal
+   tabs. The theme stays neutral; the space's colour only tints its pill in the switcher.
 2. **Tabs as vertical cards.** Inside a space, tabs are tall rounded cards stacked vertically with
    overlap (like Safari's old card view / Arc iPhone): each card shows
    its header (favicon, title, close button) and a live thumbnail. Opening and closing a card uses
    a fluid, spring-driven zoom morph like iOS's current tab animation.
-3. **Workspace bar.** A horizontal bar under the cards. Swiping left/right on it moves between
-   spaces; the cards above slide/parallax with it and the background gradient blends to the next
-   space's Zen theme.
+3. **The dock.** One bar at the bottom, the same in a page and in the overview. Swiping left/right
+   on it moves between spaces; the cards above slide with it.
 4. **Real browser underneath.** GeckoView: same engine as Zen, full web compatibility, WebExtensions
    (uBlock Origin), downloads, permissions, passwords autofill from the Firefox account.
 
 ## "Better than Arc" list (in priority order)
 
-1. Zen Spaces sync (read in M2, write-back in M6).
-2. Passwords + history + bookmarks from the Firefox account.
-3. uBlock Origin.
-4. Essentials grid per space (Zen essentials, synced), in the drawer that grows out of the bottom bar.
+(done) = in the app today, (planned) = not built yet.
+
+1. Zen Spaces sync: reading (done, M2); writing back to Spaces (planned, M6).
+2. Passwords + history + bookmarks from the Firefox account (done). Passwords and history also go
+   back to the account, each behind its own switch (done); bookmarks stay read-only.
+3. uBlock Origin (done).
+4. Essentials grid per space (Zen essentials, synced), in the drawer that grows out of the dock (done).
 5. **Glance**: long-press a link → page opens in a floating sheet over the current tab; swipe up to
-   promote it to a real tab, swipe down to dismiss (Zen's Glance feature, mobile-ised).
+   promote it to a real tab, swipe down to dismiss (Zen's Glance feature, mobile-ised) (planned).
 6. Bottom address bar with a single-thumb flow (Arc-style), search suggestions, `@` to search a
-   specific engine.
-7. Pull-down in a page = new tab in this space; pull-up on the bar = space overview.
-8. Folders shown as collapsible groups of cards; Zen split views shown as one card with a split
-   indicator.
-9. "Open on desktop": send the current page to a Zen Space so it's there on the PC (needs write-back).
-10. **Private browsing** (in scope since 2026-11-11, spec `docs/design/OVERVIEW_PRIVATE.md`): a mode
+   specific engine (done).
+7. Swipe up on the dock in a page = the tab overview (done). Pull-down in a page is pull to refresh
+   (done), not a new tab.
+8. Zen folders as collapsible rows in the drawer, with the pinned tabs (done); Zen split views shown
+   as one card (done).
+9. "Open on desktop": send the current page to a Zen Space so it's there on the PC (planned, needs
+   write-back to Spaces).
+10. **Private browsing** (done; in scope since 2026-11-11, spec `docs/design/OVERVIEW_PRIVATE.md`): a mode
     of the overview with its own set of permanent private tabs (saved encrypted; sites sign you
     out on restart), a fingerprint lock, no screenshots, and the engine's private-only
     protections (HTTPS-only, fingerprinting protection, link cleaning, Global Privacy Control). It
     never claims to hide the IP address: that needs a VPN or Tor Browser.
+11. **Page translation** on the phone with Firefox Translations, nothing sent anywhere (done).
+12. **Video player**: Koan's own fullscreen controls, picture-in-picture with "Audio only", and a
+    player for videos from Downloads or other apps (done; spec `docs/VIDEO_PLAYER.md`).
 
 ## Out of scope (for now, possibly forever)
 
@@ -55,7 +62,7 @@ workspaces **are** your Zen desktop Spaces.
 - Play Store release, onboarding for strangers, localisation.
 - AI features (Arc's "Browse for me"). Maybe later as a toy.
 - Hiding the IP address or location (Tor, a built-in VPN): out of scope, Private says so.
-- Syncing Zen mods, themes beyond the space gradient, containers (Zen doesn't sync containers yet).
+- Syncing Zen mods, themes beyond the space colour, containers (Zen doesn't sync containers yet).
 
 ## Success criteria
 

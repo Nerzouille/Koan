@@ -35,6 +35,7 @@ import dev.nerzouille.koan.data.Login
 import dev.nerzouille.koan.data.LoginSummary
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.SecureWindow
 import dev.nerzouille.koan.ui.kit.KoanField
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.kit.SelectionAction
@@ -110,6 +111,8 @@ class PasswordsUi(
  */
 @Composable
 internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpenSite: (String) -> Unit, onAdd: () -> Unit) {
+    // No screenshot, recording or Recents preview of this page.
+    SecureWindow()
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
     val selection = rememberSelection<String>()
@@ -307,6 +310,8 @@ private fun SiteRow(origin: String, site: String, subtitle: String?, value: Stri
 /** Passwords › +: a login typed in by hand (site, username, password), saved encrypted on the phone. */
 @Composable
 internal fun AddPasswordPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit) {
+    // No screenshot, recording or Recents preview of this page.
+    SecureWindow()
     val palette = KoanTheme.colors
     val scope = rememberCoroutineScope()
     var site by rememberSaveable { mutableStateOf("") }
@@ -367,6 +372,8 @@ internal fun AddPasswordPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit) {
  */
 @Composable
 internal fun PasswordSitePage(ui: PasswordsUi, site: String, on: Boolean, onBack: () -> Unit) {
+    // No screenshot, recording or Recents preview of this page.
+    SecureWindow()
     SettingsPageFrame(site, on, onBack) {
         val accounts = ui.summaries.filter { siteOf(it) == site }
         val unlocked = ui.unlocked

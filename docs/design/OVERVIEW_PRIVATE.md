@@ -1,8 +1,31 @@
 # Koan · Tab overview, deeper dark and Private mode — implementation spec
 
-Hand-over for Claude Code. Design canvas: https://claude.ai/artifact/D8B1t8zrk4ZVoJ3v8jasxB
+Hand-over for Claude Code (the design canvas is kept outside the repo).
 
 Approved: card separation, two-line card headers, amber sync dot, deeper dark base `#121214` everywhere, Private mode with **Dusk** (light theme) and **Night** (dark theme), the toggle at the top right of the overview header, the sequenced transition both ways, the private empty state.
+
+## Deviations as built
+
+The code wins over this hand-over; current values are in `ui/theme/Tokens.kt` and `DESIGN_SYSTEM.md`.
+
+- **Toggle off colour (§1, §4.2):** only the Private toggle uses `#86868B` (light) / `#636366`
+  (dark) (`PrivateTokens.TrackOffLight` / `TrackOffDark`). Every other toggle keeps `ToggleOff`
+  `#848489` (light) / `#8E8E93` (dark).
+- **Sync dot (§3.1):** drawn with its own `SyncDot` token (`#C0841A` light / `#E8B45A` dark), not
+  `Attention` (which is `#8A5C00` in light).
+- **Private tabs after a restart (§4.1):** they come back, saved sealed on the phone
+  (`privacy/PrivateVault.kt`, Keystore key); cookies and site data are not saved, so sites sign you
+  out when Koan restarts.
+- **Private search (§4.6):** the "mask 14 + Private" row chip is not drawn; the group is titled
+  "Switch to private tab".
+- **Empty state (§4.7):** four facts, not three; the second is "Private tabs stay open, but sites
+  sign you out when Koan restarts" (`ui/privacy/PrivateParts.kt`, `PRIVATE_FACTS`).
+- **Stars (§5):** they avoid the card pile's whole area (card side margins, header to dock), not
+  each card's bounds.
+- **Transition (§6):** replaced, see the note at the top of §6.
+- **Not in this spec, built:** the private-tab lock (fingerprint or PIN after 1 min away or the
+  screen off), no screenshots (FLAG_SECURE, with an "Allow screenshots" switch) and the engine
+  protections: see `docs/FEATURES.md` §14 and Settings › Private browsing / All tabs.
 
 Conventions
 - Units: dp / sp. The reference phone is 403 × 875dp.

@@ -149,7 +149,7 @@ Pulled in by Gradle, not copied into this repository:
   availability, and task/cancellation error handling. The two UI-launching methods in
   `WebAuthnCredentialManager` receive an Activity-backed context and lifecycle-aware result
   executor. Original source:
-  https://maven.mozilla.org/maven2/org/mozilla/geckoview/geckoview-omni/157.0.20261005135250/geckoview-omni-157.0.20261005135250-sources.jar.
+  https://maven.mozilla.org/maven2/org/mozilla/geckoview/geckoview-omni/160.0.20261104181552/geckoview-omni-160.0.20261104181552-sources.jar.
   The complete modification and pinned build recipe are in `build-logic/`, with runtime checks
   in `app/src/main/java/dev/nerzouille/koan/engine/auth/PasskeyCapabilities.kt`; see
   `docs/PASSKEYS.md`. These modifications to the MPL-covered classes remain available under MPL 2.0.

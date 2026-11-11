@@ -4,16 +4,23 @@
 
 ### New
 
-- **Private browsing** (the switch at the right of the overview's header; branch `private`, not
-  merged yet): private tabs in their own set, kept until you close them, also after a restart
-  (sites sign you out then). Locked behind your fingerprint after 1 min away, no screenshots, no
-  history, private search with bookmarks only, HTTPS only, tracking and fingerprinting protection,
-  cleaner links, Google AMP links to the article. It doesn't hide your IP address. Details:
-  [Private browsing](docs/FEATURES.md#14-private-browsing).
+- **Private browsing** (the switch at the right of the overview's header): private tabs in their
+  own set, kept until you close them, also after a restart (sites sign you out then). Locked
+  behind your fingerprint after 1 min away, no screenshots, no history, private search with
+  bookmarks only, HTTPS only, tracking and fingerprinting protection, cleaner links, Google AMP
+  links to the article. It doesn't hide your IP address. Details:
+  [Private browsing](docs/FEATURES.md#14-private-browsing). Settings also has a new **All tabs**
+  section: bounce-tracking protection, Skip Google AMP pages, DNS over HTTPS (off).
 - **Tab cards** show the page title over its site, and keep their edges deep in the pile; dark
   theme on a deeper `#121214` base. The overview header shows a small amber dot only when sync
   fails (no more spinner).
-
+- **Koan's own video player** for fullscreen web videos: play / pause, double-tap to skip, hold
+  for 2×, swipe for brightness and volume, lock, playback speed, Download video, and "Use the
+  site's controls" when you'd rather have them (YouTube keeps its own). Swipe down to leave
+  fullscreen. **Picture-in-picture** when you leave Koan during a video, with an "Audio only"
+  button (Settings › Display › Picture-in-picture). Long-press a video link › **Play video**;
+  videos from Downloads or other apps open in the same player (Share, Open with another app,
+  Delete). The media notification shows the timeline and the video's picture.
 - **Two-way sync, if you want it** (Settings › Mozilla account › Send to your Mozilla account):
   passwords saved on the phone go to your account, and History goes both ways (pages you visit,
   and pages you remove). Editing and deleting your account's passwords has its own switch, off by
@@ -33,6 +40,9 @@
 - Space icons picked with Zen's **Zia** mod show on the phone too.
 - **System passkeys:** website create/sign-in prompts can use Android's selected credential
   provider. Providers may require Koan to be on their trusted-browser list.
+- **Safer sign-in links:** a Mozilla pairing link opened from another app (or pasted in the
+  address field) shows a card first: Sign in, or Replace account when you're already signed in.
+  When you're already signed in, the sign-in screen says which account a new sign-in replaces.
 
 ### Improved
 
@@ -53,6 +63,17 @@
 - **Settings pages:** the large title stays solid until you really scroll.
 - Koan no longer asks Android for the list of every installed app: it only looks for the apps
   behind web links and the app links sites use.
+- **Passwords pages** can't be captured in screenshots or the recent-apps preview.
+- After signing in, the sign-in page's cookies and storage are wiped.
+
+- **Engine:** GeckoView 160 (was 157). On Android phones without a maker's own screenshot tool,
+  the system's "Capture more" now takes a long screenshot of a page.
+
+### Fixed
+
+- Space icons picked from Zen's built-in icons were missing in release builds (0.4.0 and before).
+- **Downloads keep the name the site gives them** (for example "report.pdf"), instead of a name
+  made from the link ("download.php").
 
 ### Fixed
 
@@ -72,7 +93,6 @@
 ### Known limitations
 
 - The full-image wait on Google Images can still pick the wrong moment; it will get another look.
-- The new video player isn't in this build yet.
 - Conditional passkey suggestions in username fields are not implemented by GeckoView Android.
   This is separate from explicit passkey buttons and ordinary username/password Autofill.
 

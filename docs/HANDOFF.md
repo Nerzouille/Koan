@@ -8,58 +8,98 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 - **Latest release: v0.4.0** ("Koan 0.4 (beta)"), tagged on `main` at `d4f3a2e`, published on
   2026-10-30 as a GitHub **pre-release**. versionName `0.4.0`, versionCode `9`: the next release
   needs versionCode **≥ 10**.
-- **`dev` is ahead of `main`** with the night batch of 2026-11-10, reviewed item by item with the
-  owner and merged on 2026-11-11 (`CHANGELOG.md` "Unreleased"; specs and verdicts in
-  `docs/REVIEW_NIGHT.md`, what was built and how it was tested in `docs/NIGHT_REPORT.md`):
-  library pages (selection mode, swipes, Passwords look, add a password), two-way sync for
-  passwords and history (**M6**, see below), page translation, "Open in app" cards, the duplicate
-  download card and the morphing action card, Back close animation, toast hand-over, Zia icons,
-  targeted package queries instead of `QUERY_ALL_PACKAGES`, full image on Google Images.
-- Engine: android-components / GeckoView **157** (`gradle/libs.versions.toml`, the two versions
-  move together). 160 was still not released on 2026-11-11 (betas only on maven.mozilla.org).
+- **`dev` is ahead of `main`** (`CHANGELOG.md` "Unreleased") with:
+  - the night batch of 2026-11-10, reviewed with the owner and merged on 2026-11-11: library pages
+    (selection mode, swipes, Passwords look, add a password), two-way sync for passwords and
+    history (**M6**, see below), page translation, "Open in app" cards, the duplicate download card
+    and the morphing action card, Back close animation, toast hand-over, Zia icons, targeted
+    package queries instead of `QUERY_ALL_PACKAGES`, full image on Google Images;
+  - the **video player** (`000d4a1`, spec `docs/VIDEO_PLAYER.md`): own controls, picture-in-picture
+    with Audio only, standalone player for videos from Downloads and other apps;
+  - **private mode** and the overview polish (`06e13d6`, spec `docs/design/OVERVIEW_PRIVATE.md`),
+    see "Private mode" below.
+- **Audit of 2026-11-11:** report in `docs/AUDIT.md` + `docs/audits/2026-11-11/` (both
+  **gitignored** until the owner publishes them, after the security fixes are merged). Fixes come
+  in batches, each on its own branch:
+  1. `audit-fixes` (`79de50d`, merged into `dev`): critical fixes (history
+     deletions only for pages removed on the phone, `zen_*` icons kept in R8 builds, crash and
+     DataStore corruption handlers, private favicons cache-only, pairing-link confirmation card,
+     FLAG_SECURE on Passwords, upload URI filter, sign-in WebView wipe, generic User-Agent, PiP
+     leak, `writeBackEnabled` + `SpacesWriteGate` for the Zen `spaces` collection).
+  2. `audit-docs` (merged into `dev`): every doc brought in line with the code;
+     `docs/ARCHITECTURE.md` rewritten; `NIGHT_REPORT.md` and `REVIEW_NIGHT.md` removed (their
+     rules are in `docs/UI_SPEC.md`).
+  3. `geckoview-160` (merged into `dev`): GeckoView / android-components 160, see "Engine".
+  4. Refactoring, from **`docs/plans/BATCH4_BRIEF.md`** (branch `refactor` from `dev`): **next**,
+     before the release (see "Next concrete steps").
+  5. Tests, CI, baseline profile: after batch 4.
+- Engine: android-components **160.0** / GeckoView **160.0.20261104181552**
+  (`gradle/libs.versions.toml`, the two versions move together), compileSdk **37.2** (AC 160
+  requires it). Bump notes: ARCHITECTURE "Bumping android-components + GeckoView". Tested on the
+  POCO (staging copies): R8 launch, Widevine, downloads + duplicate card, media notification; perf
+  A/B 157 → 160 on the POCO: no regression, starts faster, space switch p90 12 → 17 ms to watch.
+  Android's own scroll screenshot ("Capture more") works on stock Android 14 (emulator); HyperOS's
+  does not (see "Untested / unverified").
 - Milestones done and tagged: `m0`, `m1`, `m2`, `m3`, `m5`. M4 partly done (no tag), M6 passwords
   + history done on `dev` (Spaces, tabs, bookmarks never written), M7 partly done. Details per
   item in `docs/ROADMAP.md`.
-- Unit tests: 269 JVM tests, green on `dev` (`./gradlew testDebugUnitTest`). R8 release of `dev`
-  built and launched on the POCO without a crash (2026-11-11).
+- Unit tests: 301 JVM tests on `dev`, green (`./gradlew testDebugUnitTest`). R8 staging build of
+  `dev` + 160 launched on the POCO without a crash (2026-11-11).
 
 ## Open branches
 
-| Branch | Base | What it contains | Tested | Status |
-|---|---|---|---|---|
-| `dev` | — | Working branch, everything below merged (`video` too, 2026-11-11). | See above. | Active |
-| `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | — | Release only |
-| `fix/system-passkeys` | dev | System WebAuthn permissions, lifecycle-owned per-request AndroidX bridge with retained callbacks and abandoned-result draining, system Autofill. GeckoView 157 compatibility follows actual callback handles rather than generated method numbers; source comparison with 160 found the same Java implementation. Interaction/ownership contract and native follow-up design: `docs/PASSKEYS.md`. Standalone test provider never shipped with the browser. | 289 app JVM + 9 adapter tests, no skips; adapter guards cover renamed/reordered callbacks; 12 Android integration tests include callback loss with queued/late orphan results and destroyed-owner rejection, Activity context lifetime and resume-aware result delivery. Synthetic P-256 registration/assertion, discoverable login, invalid RP/pre-abort, cancellation/retry, unavailable provider, provider errors/malformed responses, password Autofill; normal and bound Custom Tabs entry with GMS disabled. | PR #2; provider trust, conditional mediation and native in-flight sheet cancellation remain external limits. |
-| `video` | dev (rebased 2026-11-11) | **Video player** from `docs/VIDEO_PLAYER.md` plus the owner's feedback of 2026-11-11: `ui/player/*` (one `VideoPlayer`, web and standalone; standalone on MediaPlayer), `engine/PageVideo.kt` + `assets/extensions/video` (hides the site's player in fullscreen, blocks its exit, state + commands, and the media notification's position / poster for every playing video), edge-to-edge black window (`ui/player/Immersive.kt`), symmetric safe-area layout, filled primary icons, level slider = its own track, PiP with Audio only. Notification timeline: feature-media's Nimbus flag switched on by reflection (`Components.enableMediaTimeline`, keep rules in `proguard-rules.pro`). **No mini-player** (ROADMAP M7; old version in `reference/mini-player-2026-11-11/`). | POCO (dev + R8 release): Commons, test-videos.co.uk; glyph centring measured on screenshots. Not yet: YouTube, Reddit, X, dark theme, Android 11 emulator, the Xiaomi (grey bands seen there in landscape; on HyperOS a drag starting within ~80dp of the top edge in landscape is taken by the system bar gesture). | Approved by the owner, merged into `dev` 2026-11-11 (`000d4a1`, pushed). `video` can be deleted. |
-| `library`, `sync-two-way`, `app-links`, `download-dup`, `translate`, `toast-swap`, `back-close`, `zen-icons` | dev | The night batch items, merged into `dev`. `download-dup` and `sync-two-way` contain `library`. | Retested by the owner on the POCO. | Merged; can be deleted. |
-| `nightly` | dev | The batch's test branch (all items + video). Local only, never pushed (its doc history has personal phone details). | — | Delete once `video` is redone. |
-| `private` | dev (2026-11-11) | `docs/design/OVERVIEW_PRIVATE.md` parts 1–3: `#121214` dark base and greys, card separation (hairline over the dim, dark rim, stronger contact and key shadows), two-line card headers (`ui/overview/CardTitle.kt`), amber "sync failed" dot only; Private mode (`privacy/*`: `PrivateTabs` = in-memory Room + a second `TabManager(isPrivate)`, `PrivateVault` sealed with Keystore key `koan_private`, a hidden private `GeckoSession` keeps the private context alive, wiped on last close; `PrivacyEngine` settings and Gecko prefs; `AmpLinks`; `ui/privacy/*`: toggle, flip driver, atmosphere, empty state, lock cover, keyboard flag). Settings › Private browsing / All tabs. | Unit tests (all green, new: `CardTitleTest`, `AmpLinksTest`, `PrivateVaultTest`); tested on the phone (dev build, light + dark, 2026-11-11): toggle on/off, empty state, private search + incognito keyboard, typed link cleaned (utm_/fbclid gone), Google AMP link → article, HTTPS-only (toast), Protections switch (kept), restore after force-stop (tab + Back history, placeholder), lock prompt after restart (cancel stays normal), Undo, FLAG_SECURE, normal history free of private pages; the flip reworked on the owner's feedback: Private is a page beside the current space, toggled with the space pager's own motion (smooth on the R8 build, owner OK), dock "Private" pill on the space pills' line. Not tested: real 1-min/screen-off lock with a fingerprint, Android 11, R8 build on the phone, downloads. | Waiting for the owner's tests. |
-| `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | Frame by frame, 2026-10-28. | **Dropped** by the owner; kept for reference. Don't merge. |
+| Branch | Base | What it contains | Status |
+|---|---|---|---|
+| `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
+| `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
+| `fix/system-passkeys` | dev | System WebAuthn permissions, lifecycle-owned per-request AndroidX bridge, abandoned-result draining and Android Autofill. Credential UI uses the Activity context and outcomes wait for resume. Version-pinned GeckoView 160 adapter follows callback handles, with build-time contract guards. Design and remaining provider/native limits: `docs/PASSKEYS.md`. | PR #2. On merged 160: 308 app + 9 adapter JVM tests (no skips), 12 Android integration tests; final ARM64 R8 build passed synthetic creation/P-256 assertion, discoverable login, pre-abort/invalid RP, user cancellation/retry, unavailable/provider-error/malformed responses, normal default links, bound Custom Tabs and system password Autofill, with GMS disabled. Real-device/provider interoperability remains unverified. |
+| `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
+| `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
+
+The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and the audit branches
+(`audit-fixes`, `audit-docs`, `geckoview-160`) are merged and deleted.
 
 ## Two-way sync (M6), as it runs
 
-- Switches in Settings › Mozilla account: **Passwords saved on this phone** (add only), **Change
-  and delete passwords** (off by default; edits by site + username, tombstones for account logins
-  deleted on the phone), **History, both ways** (visits up, phone deletions as tombstones).
+- Switches in Settings › Mozilla account › Send to your Mozilla account: **Passwords saved on this
+  phone** (add only), **Change and delete passwords** (off by default; edits by site + username,
+  tombstones for account logins deleted on the phone), **History, both ways** (visits up; pages
+  removed on the phone while the switch is on go up as tombstones).
 - `data/SyncWrite.kt`, `sync/SyncWritePlan.kt`, `data/HistoryDeletions.kt`: one encrypted backup
   per collection before the first write, `WriteGuard` checks meta/global (engine versions
   passwords 1, history 1; sync ids unchanged), a first batch of 3 read back, then batches of 50
-  with X-If-Unmodified-Since. Any error stops that collection and turns its switch off.
-- Never written: bookmarks, tabs, Spaces, prefs, keys, meta/global (CLAUDE.md rule 4 still holds
-  for `spaces`).
+  with X-If-Unmodified-Since. Any error stops that collection and turns its switch off (a cancel
+  or a network error keeps it on).
+- Never written: bookmarks, tabs, Spaces, prefs, keys, meta/global. The `spaces` collection is
+  also blocked in `SyncClient` by `sync/SpacesWriteGate.kt` while `Settings.writeBackEnabled` is
+  off (default, not in the UI; CLAUDE.md rule 4). Details: `docs/SYNC_WRITE.md` "As built".
 - Run on the owner's real account since 2026-11-10. Phone-made logins use plain UUID ids (no
   braces); Firefox read them back, desktop editing of one not tried.
 
 ## Untested / unverified
 
+- **Audit batch 1 on the phone (the owner's checks):** only the pairing card is confirmed. Still to check: Passwords
+  screenshots blocked, history removal with History sync on, space icons in the R8 build, private
+  favicons, file upload, sign-in again after the WebView wipe.
 - **Change and delete passwords:** unit-tested only, never run on the account.
+- **Video player:** not yet tried on YouTube, Reddit, X, in dark theme, on Android 11 or on the
+  Xiaomi (grey bands seen there in landscape; on HyperOS a drag starting within ~80dp of the top
+  edge in landscape is taken by the system bar gesture).
+- **Private mode:** not tried: the real 1-min / screen-off lock with a fingerprint, Android 11,
+  downloads.
 - **"Open in app"** for apps other than YouTube (Instagram, LinkedIn, maps, WeChat…), and the
   "another app" path for a scheme outside the manifest's `<queries>`: not tested on a phone that
   has those apps.
 - **Full image on Google Images** (`engine/PageImages.kt`, `assets/extensions/pageimage`): works
   but the owner calls it "not perfect, but better": revisit what it picks and how the wait feels
   (ask the owner what's off).
-- **Long screenshots** (HyperOS scroll screenshot) on GeckoView 160: not tried yet.
+- **Long screenshots on HyperOS:** still greyed out on GeckoView 160. HyperOS doesn't use
+  Android's scroll-capture API (`frameworkSupportLongScreenshot:false`); its own helper gives up
+  ("can not run invoke canScrollVertically on background thread"). Option left: Koan's own
+  full-page screenshot or Save as PDF (ROADMAP).
+- **Vimeo** says "unsupported browser" on a copy where Vimeo's protected-content (DRM) request
+  was once blocked: Gecko then refuses without a card. Widevine plays after "Allow once" on a new
+  site. Check ⋯ › Site settings on Vimeo in the real app.
 - Two rare bugs seen once and never reproduced (ROADMAP "Open items after v0.2.0"): page painted
   only down to where the keyboard was; dock ignoring taps after the phone sat idle.
 - The "black screen" when a link goes Discord → GitHub app → Koan is the GitHub app's own App
@@ -72,18 +112,31 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
    URL, so it is broken in the installed 0.4.0. Options: mark v0.4.0 as a normal (latest) release
    on GitHub (fixes it with no new build), or point the link at `/releases` in the next release.
 2. **Release step 7 for 0.4.0** (short Discord update post): not known to be done. Ask.
-3. **The video player design** (Claude Design): when it arrives, rebuild on `video`.
-4. **Next release (0.5):** when to cut it from `dev`, and its What's new / tour review
+3. **Next release (0.5):** when to cut it from `dev`, and its What's new / tour review
    (CLAUDE.md release checklist).
-5. `.gitignore` has an uncommitted local line (`design-export/`). The owner commits it or not.
+4. **Audit report:** when to commit `docs/AUDIT.md` and `docs/audits/2026-11-11/` (now gitignored).
+5. The audit's other open questions (`docs/AUDIT.md` "Decisions for the owner"): ported Z-Sync
+   files mirror upstream or not, button weight and gap, Robolectric for migration / `TabManager`
+   tests.
+6. The design audit follow-ups below.
 
 ## Next concrete steps
 
-1. Ask the owner about pending decisions 1, 2 and 4.
-2. **GeckoView / android-components 160** when it's released: bump both in
-   `gradle/libs.versions.toml` on a branch from `dev` (`gv-160`), fix API breaks, full test suite,
-   R8 release on the phone, then retest the HyperOS long screenshot and the rare bugs above.
-3. The video player from the owner's design.
+In this order (owner, 2026-11-11, changed the same day):
+
+1. **Batch 4**, refactoring, from `docs/plans/BATCH4_BRIEF.md` (branch `refactor` from `dev`).
+2. **The owner's fixes list** (the owner brings it).
+3. **Release 0.5** (CLAUDE.md release checklist; versionCode ≥ 10). It was planned for Friday
+   2026-11-13, before batch 4 moved ahead of it: confirm the date with the owner. The owner's
+   batch 1 phone checks (list under "Untested / unverified") come before it.
+4. After the release: **two-way Spaces sync**, starting at step 0 of
+   `docs/plans/SPACES_WRITE_PLAN.md` (reading Zen's own sync source, no code). The plan is written
+   and the owner's decisions are in its §9; no code before that step 0.
+
+**Batch 5** (tests, CI, baseline profile) still comes after batch 4; the owner hasn't placed it
+relative to the release and the Spaces sync: ask.
+
+Watch on GeckoView 160 meanwhile: the rare bugs above, the space switch p90.
 
 ## Build
 
@@ -111,10 +164,13 @@ All from the repo root. Gradle has configuration cache, build cache and parallel
 - Sync contract tests run Z-Sync's fixtures from `reference/Z-Sync/shared/contract/fixtures/**`.
   Clone if missing: `git clone --depth 1 https://github.com/Kjell6/Z-Sync.git reference/Z-Sync`.
   Never edit the fixtures.
-- On the phone: the owner's only phone is now the **Xiaomi 18 Pro Max** (Android 17, 120 Hz,
-  1208×2624); the POCO X4 GT is retired. The owner allows testing on it any time, in their real
-  spaces, but follow CLAUDE.md "Driving the phone with adb" (Koan in front + fresh screenshot
-  before any input). It has several displays: `adb shell screencap` needs
+- **Phones:** the **POCO X4 GT** (Android 14, 1080×2460, one display, its VPN can drop) is the
+  **main test phone**: every dev build, check and perf A/B goes there by default (`tools/perf`
+  with `CX=540 DOCK_Y=2306 DOCK_DOWN_Y=2455 STACK_TOP=850 STACK_BOTTOM=1780 EDGE_L=180 EDGE_R=900`).
+  The **Xiaomi 18 Pro Max** (HyperOS, Android 17, 120 Hz, 1208×2624) is the owner's daily phone:
+  mostly the release check and screenshots / recordings. Check `adb devices -l` before installing. The owner allows testing any time, in
+  their real spaces, but follow CLAUDE.md "Driving the phone with adb" (Koan in front + fresh
+  screenshot before any input). The Xiaomi has several displays: `adb shell screencap` needs
   `-d <main display id>` (`adb shell dumpsys SurfaceFlinger --display-id`). Open throwaway test
   tabs with `adb shell am start -a android.intent.action.VIEW -d <url> dev.nerzouille.koan` and
   close them afterwards. Never close or change the owner's tabs. Never describe private content.
@@ -182,9 +238,7 @@ is ever committed (CLAUDE.md "Public repo").
 5. About shows "About" then "Koan": start that page collapsed, or drop its large title.
 6. Tour clips (cards 2 and 5) show real data: re-record before a public release.
 
-The old POCO X4 GT (1080×2460, one display, its VPN can drop) is available for unattended tests; its Koan runs the R8 release of `dev` (2026-11-11).
-
-## Private mode (branch `private`, 2026-11-11)
+## Private mode (merged into `dev`, 2026-11-11)
 
 Decisions (owner, 2026-11-11): real GeckoView private mode; private tabs come back after a restart
 (URL + Back history, sealed), signed out. utm_* and click IDs stripped in Private; cookie-banner
@@ -213,4 +267,6 @@ Not done / open:
   is in the one set).
 - Star placement avoids the card pile's full width, not each back card's narrower shape.
 - No Android 11 emulator image on the dev machine (only `koan34`).
+- Killed while Private is on screen: Koan comes back on the first space and overwrites the saved
+  place (audit 8.3, not fixed yet). Baked blurs surviving the wipe (8.7) are fixed in batch 1.
 

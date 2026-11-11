@@ -17,7 +17,7 @@ public class PasskeyCompatibilityPlugin implements Plugin<Project> {
         project.getPlugins().withId("com.android.application", ignored -> {
             String version = project.getExtensions().getByType(VersionCatalogsExtension.class)
                     .named("libs").findVersion("geckoview").orElseThrow().getRequiredVersion();
-            if (!"157.0.20261005135250".equals(version)) throw new IllegalStateException(
+            if (!"160.0.20261104181552".equals(version)) throw new IllegalStateException(
                     "Review/remove the Credential Manager adapter before upgrading GeckoView");
             AndroidComponentsExtension components = project.getExtensions().getByType(AndroidComponentsExtension.class);
             components.onVariants(components.selector().all(), (Action<Variant>) variant -> {

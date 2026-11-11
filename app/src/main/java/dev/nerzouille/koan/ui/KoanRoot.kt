@@ -501,6 +501,12 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     }
     /** Go on the keyboard: "@wiki koan" searches there, the completed top hit opens, else url or search. */
     fun submitSearch(input: String) {
+        // A "Connect another device" link pasted here: the sign-in, on its pairing page.
+        if (dev.nerzouille.koan.sync.PairingFlow.isPairingLink(input)) {
+            editing = false
+            components.pairLink.value = dev.nerzouille.koan.engine.PairLinkRequest(input.trim(), fromOtherApp = false)
+            return
+        }
         val parsed = parseQuery(input, shortcuts)
         val top = search.results.top
         when {
@@ -1198,31 +1204,75 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         val signIn = remember { Animatable(0f) }
         LaunchedEffect(signingIn) { signIn.animateTo(if (signingIn) 1f else 0f, Motion.Sheet) }
         val signInVisible by remember { derivedStateOf { signingIn || signIn.value > 0f } }
-        // A pairing link from the system camera: the sign-in, straight on the pairing page.
-        val pairLink by components.pairLink.collectAsStateWithLifecycle()
-        LaunchedEffect(pairLink) { if (pairLink != null) signingIn = true }
+        // A pairing link: pasted in the address field, the sign-in opens on its pairing page, as on
+        // first run. Opened by another app, Koan asks first, and says so when it would replace the
+        // signed-in account. The sign-in screen itself warns too (SignInScreen's replacing).
+        val incomingPairLink by components.pairLink.collectAsStateWithLifecycle()
+        var pairLink by rememberSaveable { mutableStateOf<String?>(null) }
+        LaunchedEffect(incomingPairLink) {
+            val request = incomingPairLink ?: return@LaunchedEffect
+            components.pairLink.value = null
+            if (!request.fromOtherApp) {
+                pairLink = request.link
+                signingIn = true
+                return@LaunchedEffect
+            }
+            val signedIn = (components.accounts.state.value as? dev.nerzouille.koan.data.AccountState.SignedIn)?.email
+            val start = {
+                pairLink = request.link
+                signingIn = true
+            }
+            if (signedIn == null) {
+                overlays.ask(
+                    title = "Sign in from another app?",
+                    text = "An app opened a Mozilla sign-in link in Koan. Continue only if you just scanned the " +
+                        "code on your own computer.",
+                    confirm = "Sign in",
+                    destructive = false,
+                    action = start,
+                )
+            } else {
+                overlays.ask(
+                    title = "Replace your Mozilla account?",
+                    text = "An app opened a Mozilla sign-in link in Koan. Koan is signed in as " +
+                        "${dev.nerzouille.koan.data.maskedEmail(signedIn)}: a code for another account replaces it " +
+                        "on this phone. Continue only if you just scanned the code on your own computer.",
+                    confirm = "Replace",
+                    action = start,
+                )
+            }
+        }
         if (signInVisible) {
+            val accountState by components.accounts.state.collectAsStateWithLifecycle()
             SignInScreen(
                 onLogin = { login ->
-                    components.accounts.completeWebLogin(login.email, login.uid, login.sessionToken, login.keyFetchToken, login.unwrapBKey)
+                    // The sign-in screen said it replaces the signed-in account (replacing).
+                    components.accounts.completeWebLogin(login.email, login.uid, login.sessionToken, login.keyFetchToken, login.unwrapBKey, allowReplace = true)
+                    // The session is sealed in Koan now: none of it stays in the sign-in page's storage.
+                    dev.nerzouille.koan.ui.signin.FxAWeb.wipeWebSession()
                     signingIn = false
                     focusZenTop = true
                     components.sync.syncNow()
                     openOverview()
                 },
                 onPairing = { flow, code ->
-                    val sameKey = components.accounts.completePairing(flow, code)
+                    // The sign-in screen said it replaces the signed-in account (replacing).
+                    val sameKey = components.accounts.completePairing(flow, code, allowReplace = true)
                     // Both ways in must open the same Sync data (true/false only, never the keys).
                     if (sameKey != null) android.util.Log.i("KoanSync", "QR sign-in key matches the password sign-in: $sameKey")
-                    components.pairLink.value = null
+                    pairLink = null
+                    dev.nerzouille.koan.ui.signin.FxAWeb.wipeWebSession()
                     signingIn = false
                     focusZenTop = true
                     components.sync.syncNow()
                     openOverview()
                 },
                 pairLink = pairLink,
+                replacing = (accountState as? dev.nerzouille.koan.data.AccountState.SignedIn)?.email?.let { dev.nerzouille.koan.data.maskedEmail(it) },
                 onClose = {
-                    components.pairLink.value = null
+                    pairLink = null
+                    // Left half-way: whatever the page kept goes too.
+                    dev.nerzouille.koan.ui.signin.FxAWeb.wipeWebSession()
                     signingIn = false
                 },
                 modifier = Modifier.graphicsLayer {

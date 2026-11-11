@@ -194,12 +194,13 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val askCard = SheetState(scope, splineBasedDecay(density))
     var ask by mutableStateOf<Ask?>(null)
 
-    fun ask(title: String, text: String, confirm: String, action: () -> Unit) {
-        ask = Ask(title, text, confirm, action)
+    /** [destructive]: the action deletes or loses something (red); otherwise the primary button. */
+    fun ask(title: String, text: String, confirm: String, destructive: Boolean = true, action: () -> Unit) {
+        ask = Ask(title, text, confirm, destructive, action)
         askCard.animateTo(Detent.Compact)
     }
 
-    class Ask(val title: String, val text: String, val confirm: String, val action: () -> Unit)
+    class Ask(val title: String, val text: String, val confirm: String, val destructive: Boolean, val action: () -> Unit)
     val clearDataCard = SheetState(scope, splineBasedDecay(density))
     val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
     val clearSiteCard = SheetState(scope, splineBasedDecay(density))
@@ -1084,7 +1085,7 @@ fun KoanOverlays(
                             onToast(Toast(what, "Undo", detail = detail) { scope.launch { components.logins.restore(removed) } })
                         }
                     },
-                    onConfirm = overlays::ask,
+                    onConfirm = { title, text, confirm, action -> overlays.ask(title, text, confirm, action = action) },
                     // Deleting an account login sends its tombstone only with both switches on.
                     deletesReachAccount = syncBack.passwords && syncBackEdits,
                     onOpenUrl = { url ->
@@ -1126,7 +1127,7 @@ fun KoanOverlays(
             onClose = { overlays.downloadsOpen = false },
             onToast = onToast,
             onCopyLink = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
-            onConfirm = overlays::ask,
+            onConfirm = { title, text, confirm, action -> overlays.ask(title, text, confirm, action = action) },
             modifier = Modifier.graphicsLayer { translationY = (1f - downloadsSlide.value) * size.height },
             onPlayVideo = { d ->
                 val video = dev.nerzouille.koan.ui.player.videoOfDownload(d, components.downloads)
@@ -1220,6 +1221,7 @@ fun KoanOverlays(
             text = ask.text,
             confirm = ask.confirm,
             interactive = interactive,
+            destructive = ask.destructive,
             onConfirm = {
                 askCard.animateTo(Detent.Closed)
                 ask.action()

@@ -4,7 +4,7 @@ import com.google.android.gms.tasks.Task
 import org.mozilla.gecko.util.WebAuthnUtils
 import org.mozilla.geckoview.GeckoResult
 
-/** GeckoView 157's legacy getAssertion task attaches success only. Always settle failures too. */
+/** GeckoView 160's legacy getAssertion task attaches success only. Always settle failures too. */
 object LegacyFidoResult {
     /** Shared by registration and login; successful native response parsing remains unchanged. */
     @JvmStatic

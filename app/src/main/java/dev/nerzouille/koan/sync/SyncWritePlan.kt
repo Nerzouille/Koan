@@ -58,6 +58,30 @@ object HistoryTombstones {
     /** [deletedUrls]: pages removed on the phone. [urlToId]: the account's history ids by page. */
     fun plan(deletedUrls: Set<String>, urlToId: Map<String, String>): List<JSONObject> =
         deletedUrls.mapNotNull { url -> urlToId[url]?.let(::tombstone) }
+
+}
+
+/** One history run: the phone's visits to send, and the account's records to delete. */
+class HistoryWrite(val upload: UploadPlan, val tombstones: List<JSONObject>, val deleted: Set<String>)
+
+object HistoryWritePlan {
+    /**
+     * [explicitDeletions]: pages removed one by one in History while two-way history was on,
+     * recorded at that moment: the only deletions ever sent. A synced page that is only hidden on
+     * the phone ("Clear browsing data", or removed while the switch was off) is deliberately not
+     * an input: it never reaches the account (docs/PRIVACY.md). [accountByUrl]: the account's
+     * records already read; [accountIds]: its history ids by page.
+     */
+    fun plan(
+        phoneVisits: List<PhoneVisit>,
+        explicitDeletions: Set<String>,
+        accountByUrl: Map<String, JSONObject>,
+        accountIds: Map<String, String>,
+    ): HistoryWrite = HistoryWrite(
+        upload = HistoryUpload.plan(phoneVisits.filter { it.url !in explicitDeletions }, accountByUrl),
+        tombstones = HistoryTombstones.plan(explicitDeletions, accountIds),
+        deleted = explicitDeletions,
+    )
 }
 
 /** A deleted record as Firefox writes it: the cleartext `{id, deleted: true}`, encrypted like any other. */

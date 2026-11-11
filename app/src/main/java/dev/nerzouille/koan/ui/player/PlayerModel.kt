@@ -103,11 +103,9 @@ fun downloadableVideo(source: String?): String? {
 /** The server says [url] is a video (a HEAD request, 2 s at most); false when unsure. */
 suspend fun isVideoFile(url: String): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
     runCatching {
-        val c = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+        val c = dev.nerzouille.koan.engine.KoanHttp.open(url, 2000)
         c.requestMethod = "HEAD"
         c.instanceFollowRedirects = true
-        c.connectTimeout = 2000
-        c.readTimeout = 2000
         try {
             c.responseCode in 200..399 && c.contentType.orEmpty().lowercase().let { it.startsWith("video/") || it == "application/octet-stream" && downloadableVideo(url) != null }
         } finally {

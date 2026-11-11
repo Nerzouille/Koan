@@ -1,10 +1,9 @@
 package dev.nerzouille.koan.search
 
+import dev.nerzouille.koan.engine.KoanHttp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import java.net.HttpURLConnection
-import java.net.URL
 
 /**
  * Search suggestions from the engine the search goes to (its OpenSearch-style endpoint). Only
@@ -20,12 +19,13 @@ object Suggestions {
         val q = query.trim()
         if (url == null || q.isEmpty() || looksLikeUrl(q)) return@withContext emptyList()
         runCatching {
-            val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-                connectTimeout = TIMEOUT_MS
-                readTimeout = TIMEOUT_MS
+            val connection = KoanHttp.open(url, TIMEOUT_MS)
+            try {
+                val body = connection.inputStream.bufferedReader().use { it.readText() }
+                parse(body).filterNot { it.equals(q, ignoreCase = true) }.take(MAX)
+            } finally {
+                connection.disconnect()
             }
-            val body = connection.inputStream.bufferedReader().use { it.readText() }
-            parse(body).filterNot { it.equals(q, ignoreCase = true) }.take(MAX)
         }.getOrDefault(emptyList())
     }
 

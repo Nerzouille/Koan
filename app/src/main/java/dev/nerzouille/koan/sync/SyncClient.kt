@@ -5,7 +5,6 @@ package dev.nerzouille.koan.sync
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URL
-import java.security.SecureRandom
 import java.util.Base64
 
 /**
@@ -379,9 +378,9 @@ class SyncClient internal constructor(
     ): Pair<SyncCrypto.KeyBundle, Map<String, SyncCrypto.KeyBundle>> {
         val record = requestJSONObject(creds = creds, method = "GET", path = "/storage/crypto/keys", allowMissing = true)
         if (!record.has("payload")) {
-            // First write on an empty Sync node: create the default collection keys.
-            bootstrapCryptoKeys(creds, syncKeys)
-            return fetchCollectionKeys(creds, syncKeys)
+            // Koan: a read never writes. An account with no collection keys (an empty Sync node)
+            // is an error here; Z-Sync created them, and recursed until they appeared.
+            throw SyncError.Crypto("no crypto/keys on the account")
         }
         val payload = record.optString("payload")
         if (payload.isEmpty()) throw SyncError.Crypto("crypto/keys")
@@ -406,32 +405,6 @@ class SyncClient internal constructor(
             }
         }
         return def to map
-    }
-
-    private fun bootstrapCryptoKeys(creds: TokenServerCreds, syncKeys: SyncCrypto.KeyBundle) {
-        val enc = ByteArray(32).also { SecureRandom().nextBytes(it) }
-        val hmac = ByteArray(32).also { SecureRandom().nextBytes(it) }
-        val objectJson = JSONObject()
-            .put(
-                "default",
-                JSONArray()
-                    .put(Base64.getEncoder().encodeToString(enc))
-                    .put(Base64.getEncoder().encodeToString(hmac)),
-            )
-            .put("collections", JSONObject())
-        val payload = SyncCrypto.encryptBSO(objectJson.toString().toByteArray(Charsets.UTF_8), syncKeys)
-        requestRaw(
-            creds = creds,
-            method = "PUT",
-            path = "/storage/crypto/keys",
-            json = JSONObject().put("payload", payload),
-            allowMissing = false,
-            // Create-if-absent (SPEC §7.2): a 412 means another client won the
-            // bootstrap race; the caller's re-read recursion decrypts the
-            // winner's keys instead of overwriting them.
-            ifUnmodifiedSince = "0",
-            allowPreconditionFailed = true,
-        )
     }
 
     // MARK: - HTTP
@@ -479,6 +452,8 @@ class SyncClient internal constructor(
         ifUnmodifiedSince: String? = null,
         allowPreconditionFailed: Boolean = false,
     ): SyncHttpResponse {
+        // Koan: every request goes through here; none may write Zen spaces while it's off (rule 4).
+        SpacesWriteGate.check(method, path)
         val fullURLString = creds.apiEndpoint.trimEnd('/') + path
         val url = URL(fullURLString)
         // SPEC §7: reject non-HTTPS endpoints before signing or transport.

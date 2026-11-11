@@ -201,6 +201,54 @@ class AccountStoreTest {
         }
     }
 
+    // ---- audit 6.2: never replace a signed-in account without the owner being told ----
+
+    @Test
+    fun qrSignInWithAnotherAccountIsRefusedAndRevoked() = runTest {
+        val flow = PairingFlow(pairLink)
+        val auth = authServer(flow)
+        val blob = MemoryBlob()
+        val store = AccountStore(blob, TestBox(), auth, storageServer())
+        store.save(Account("other@example.com", "uid-other", secretSession, FxACrypto.hex(fakeKb)))
+        try {
+            store.completePairing(flow, "code-1")
+            fail("expected OtherAccount")
+        } catch (e: AccountStore.OtherAccount) {
+            // expected
+        }
+        // The signed-in account stays, and the token just obtained is revoked.
+        assertEquals("uid-other", AccountStore(blob, TestBox(), auth, storageServer()).load()!!.uid)
+        assertEquals("refresh-secret", auth.bodyOf("/oauth/destroy")!!.getString("token"))
+    }
+
+    @Test
+    fun qrSignInReplacesTheAccountOnlyWhenConfirmed() = runTest {
+        val flow = PairingFlow(pairLink)
+        val blob = MemoryBlob()
+        val store = AccountStore(blob, TestBox(), authServer(flow), storageServer())
+        store.save(Account("other@example.com", "uid-other", secretSession, FxACrypto.hex(fakeKb)))
+        store.completePairing(flow, "code-1", allowReplace = true)
+        assertEquals("uid-1", store.load()!!.uid)
+    }
+
+    @Test
+    fun emailsAreMaskedOnScreen() {
+        assertEquals("an*****42@example.com", maskedEmail("annabel42@example.com"))
+        assertEquals("b***@example.com", maskedEmail("bob@example.com"))
+        assertEquals("a***@example.com", maskedEmail("abcd@example.com"))
+        assertEquals("ab**e1@example.com", maskedEmail("abcde1@example.com"))
+        assertEquals("x***", maskedEmail("xyz"))
+    }
+
+    @Test
+    fun signingInAgainWithTheSameAccountNeedsNoConfirmation() = runTest {
+        val flow = PairingFlow(pairLink)
+        val store = AccountStore(MemoryBlob(), TestBox(), authServer(flow), storageServer())
+        store.save(Account("noa@example.com", "uid-1", secretSession, FxACrypto.hex(fakeKb)))
+        store.completePairing(flow, "code-1")
+        assertEquals("uid-1", store.load()!!.uid)
+    }
+
     @Test
     fun signOutRevokesTheRefreshToken() = runTest {
         val flow = PairingFlow(pairLink)
