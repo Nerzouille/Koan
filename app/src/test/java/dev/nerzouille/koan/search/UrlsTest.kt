@@ -20,8 +20,9 @@ class UrlsTest {
         assertEquals("", displayHost("about:blank"))
         assertEquals("about:config", displayHost("about:config"))
         assertEquals("", displayHost("file:///sdcard/a.html"))
-        // Bug 3.28 (c): an IPv6 literal is cut at its first ':'.
-        assertEquals("[", displayHost("http://[::1]:8080/"))
+        // Fixed (3.28 c): an IPv6 literal was cut at its first ':'.
+        assertEquals("[::1]", displayHost("http://[::1]:8080/"))
+        assertEquals("[2001:db8::1]", displayHost("https://[2001:db8::1]/"))
     }
 
     @Test fun siteHostToday() {
