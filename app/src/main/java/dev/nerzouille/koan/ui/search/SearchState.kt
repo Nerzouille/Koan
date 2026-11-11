@@ -78,15 +78,7 @@ fun rememberSearch(
         // Let a burst of typing settle first.
         delay(QUERY_DELAY_MS)
         val q = parsed.rest
-        // The database narrows on the first word; ranking checks every word.
-        val first = q.substringBefore(' ')
-        val visits = if (private) emptyList() else (if (q.isEmpty()) dao.recentVisits(LIMIT) else dao.searchVisits(first, LIMIT))
-            .map { Hit(it.url, it.title, Source.History, visits = it.visitCount, lastUsed = it.lastVisit) }
-        val own = if (!private) emptyList() else PrivateBookmarks.search(latestPrivateMarks, first, LIMIT)
-            .map { Hit(it.url, it.title, Source.Bookmark, lastUsed = it.createdAt) }
-        val marks = (own + (if (q.isEmpty()) dao.recentBookmarks(LIMIT) else dao.searchBookmarks(first, LIMIT))
-            .map { Hit(it.url, it.title, Source.Bookmark, lastUsed = it.createdAt) })
-            .distinctBy { it.url }
+        val (visits, marks) = localHits(dao, q, private, latestPrivateMarks)
         val tabs = latestSpaces.flatMapIndexed { i, s ->
             val model = latestModels.getOrNull(i)
             (s.stack.flatMap { it.tabs } + s.pinnedTabs + s.essentials)
@@ -127,3 +119,20 @@ fun rememberSearch(
 private const val QUERY_DELAY_MS = 40L
 private const val SUGGEST_DELAY_MS = 180L
 private const val LIMIT = 40
+
+/**
+ * History and bookmark hits for [q]. Private reads no history, and its own bookmarks come first;
+ * normal mode never sees Private's bookmarks.
+ */
+internal suspend fun localHits(dao: KoanDao, q: String, private: Boolean, privateMarks: List<PrivateBookmark>): Pair<List<Hit>, List<Hit>> {
+    // The database narrows on the first word; ranking checks every word.
+    val first = q.substringBefore(' ')
+    val visits = if (private) emptyList() else (if (q.isEmpty()) dao.recentVisits(LIMIT) else dao.searchVisits(first, LIMIT))
+        .map { Hit(it.url, it.title, Source.History, visits = it.visitCount, lastUsed = it.lastVisit) }
+    val own = if (!private) emptyList() else PrivateBookmarks.search(privateMarks, first, LIMIT)
+        .map { Hit(it.url, it.title, Source.Bookmark, lastUsed = it.createdAt) }
+    val marks = (own + (if (q.isEmpty()) dao.recentBookmarks(LIMIT) else dao.searchBookmarks(first, LIMIT))
+        .map { Hit(it.url, it.title, Source.Bookmark, lastUsed = it.createdAt) })
+        .distinctBy { it.url }
+    return visits to marks
+}

@@ -189,7 +189,7 @@ class Components(context: Context) {
     fun shownTabs(): TabManager = if (privateMode.on.value) privateTabs.tabs else tabs
 
     /** Private shown or not, and its lock. */
-    val privateMode by lazy { dev.nerzouille.koan.privacy.PrivateMode(settings, privateTabs.count) { privateBookmarks.count() } }
+    val privateMode by lazy { dev.nerzouille.koan.privacy.PrivateMode(settings, privateTabs.count, bookmarks = { privateBookmarks.count() }) }
 
     /** Bookmarks made in private tabs: sealed with their own Keystore key, never in Room, never synced. */
     val privateBookmarks by lazy {

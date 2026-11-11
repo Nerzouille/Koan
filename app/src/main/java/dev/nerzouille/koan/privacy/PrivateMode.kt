@@ -20,6 +20,8 @@ class PrivateMode(
     private val count: StateFlow<Int>,
     /** Private bookmarks (they're kept with no private tab open): the lock covers them too. */
     private val bookmarks: suspend () -> Int = { 0 },
+    /** Time since boot, for the 1 min away (a test passes its own clock). */
+    private val now: () -> Long = SystemClock::elapsedRealtime,
 ) {
     /** Private is shown: the private overview, or a private tab in the page view. */
     val on = MutableStateFlow(false)
@@ -37,11 +39,16 @@ class PrivateMode(
         context.applicationContext.registerReceiver(
             object : BroadcastReceiver() {
                 override fun onReceive(c: Context, intent: Intent) {
-                    if (intent.action == Intent.ACTION_SCREEN_OFF) locked.value = true
+                    if (intent.action == Intent.ACTION_SCREEN_OFF) onScreenOff()
                 }
             },
             IntentFilter(Intent.ACTION_SCREEN_OFF),
         )
+    }
+
+    /** The screen turned off: locked at once, also with a PiP window on screen. */
+    fun onScreenOff() {
+        locked.value = true
     }
 
     /**
@@ -50,14 +57,14 @@ class PrivateMode(
      * Private open, with no timer.
      */
     fun onHidden() {
-        hiddenAt = SystemClock.elapsedRealtime()
+        hiddenAt = now()
     }
 
     /** Koan is back (onStart): locked again if it was away [LOCK_AFTER_MS] or more. */
     fun onShown() {
         val at = hiddenAt ?: return
         hiddenAt = null
-        if (SystemClock.elapsedRealtime() - at >= LOCK_AFTER_MS) locked.value = true
+        if (now() - at >= LOCK_AFTER_MS) locked.value = true
     }
 
     /** Whether showing Private needs the fingerprint first: the lock is on, there are private tabs or bookmarks, locked. */
