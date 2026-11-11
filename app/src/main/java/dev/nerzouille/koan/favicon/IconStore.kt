@@ -46,7 +46,7 @@ object IconStore {
     /** Memory key for a tab icon: the inline key, or the site's key. Null = no icon possible. */
     fun keyFor(url: String, icon: String?): String? =
         icon?.takeIf { it.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX) }
-            ?: FaviconResolver.cacheKey(url, null, null)
+            ?: FaviconResolver.cacheKey(url)
 
     fun cached(key: String): Icon? = memory.get(key)
 
@@ -75,9 +75,9 @@ object IconStore {
             val bitmap = if (key.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX)) {
                 fileFor(key)?.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.path) }
                     // Synced inline icon not on disk (cleared storage): try the site instead.
-                    ?: FaviconLoader.image(url, null, null)?.let(::normalized)
+                    ?: FaviconLoader.image(url)?.let(::normalized)
             } else {
-                FaviconLoader.image(url, null, null)?.let(::normalized)
+                FaviconLoader.image(url)?.let(::normalized)
             }
             bitmap?.let { Icon(it.asImageBitmap(), isDark(it)) }?.also { memory.put(key, it) }
         }

@@ -5,10 +5,7 @@ package dev.nerzouille.koan.favicon
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.LruCache
-import dev.nerzouille.koan.sync.ZenSpaces
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -27,6 +24,8 @@ import org.json.JSONObject
  * cache, a small disk cache, and coalesced in-flight fetches. AsyncImage-style
  * loaders are not used: they cancel in lazy pager pages and do not share
  * results across the duplicate Essentials grids of same-container spaces.
+ * Koan: the prefetch and synced-icon (direct URL, `data:`) paths are removed; [IconStore] handles
+ * inline icons.
  */
 object FaviconLoader {
     private const val DISK_DIR = "zen-favicons"
@@ -51,8 +50,6 @@ object FaviconLoader {
     private val executor: ExecutorService = Executors.newFixedThreadPool(MAX_CONCURRENT) { r ->
         Thread(r, "favicon-loader").apply { isDaemon = true; priority = Thread.MIN_PRIORITY + 1 }
     }
-    /** Runs prefetch independently of [executor], so it cannot starve its own workers. */
-    private val prefetchScope = dev.nerzouille.koan.engine.KoanScopes.guarded("favicons", Dispatchers.IO)
 
     @Volatile
     private var diskDir: File? = null
@@ -86,21 +83,20 @@ object FaviconLoader {
      * must not tell anyone which sites have a saved login.
      */
     fun cachedOnly(pageURL: String): Bitmap? {
-        val key = FaviconResolver.cacheKey(pageURL, null, null) ?: return null
+        val key = FaviconResolver.cacheKey(pageURL) ?: return null
         cached(key)?.let { return it }
         val known = remembered(key) ?: return null
         return diskCachedBitmap(known)
     }
 
-    suspend fun image(pageURL: String, directURL: String?, dataURL: String? = null): Bitmap? {
-        val key = FaviconResolver.cacheKey(pageURL, directURL, dataURL) ?: return null
+    suspend fun image(pageURL: String): Bitmap? {
+        val key = FaviconResolver.cacheKey(pageURL) ?: return null
         cached(key)?.let { return it }
-        return withContext(Dispatchers.IO) { imageBlocking(pageURL, directURL, dataURL, key) }
+        return withContext(Dispatchers.IO) { imageBlocking(pageURL, key) }
     }
 
     /** Blocking fetch used from IO contexts; coalesces concurrent callers. */
-    fun imageBlocking(pageURL: String, directURL: String?, dataURL: String?, cacheKey: String? = null): Bitmap? {
-        val key: String = cacheKey ?: FaviconResolver.cacheKey(pageURL, directURL, dataURL) ?: return null
+    private fun imageBlocking(pageURL: String, key: String): Bitmap? {
         cached(key)?.let { return it }
         failures[key]?.let { when {
             System.currentTimeMillis() - it < FAILED_TTL_MS -> return null
@@ -110,7 +106,7 @@ object FaviconLoader {
             inflight.getOrPut(key) {
                 executor.submit<Bitmap?> {
                     try {
-                        val fetched = load(pageURL, directURL, dataURL, key)
+                        val fetched = load(pageURL, key)
                         if (fetched != null) {
                             memoryCache.put(key, fetched)
                             failures.remove(key)
@@ -127,42 +123,10 @@ object FaviconLoader {
         return runCatching { future.get() }.getOrNull()
     }
 
-    /** Prefetch a bounded 6-wide window over every synced tab that needs an icon. */
-    fun prefetch(snapshot: ZenSpaces.ZenSnapshot) {
-        val requests = FaviconResolver.requests(snapshot)
-        if (requests.isEmpty()) return
-        failures.clear()
-        pruneIndex(requests)
-        prefetchScope.launch {
-            val next = java.util.concurrent.atomic.AtomicInteger(0)
-            coroutineScope {
-                repeat(minOf(MAX_CONCURRENT, requests.size)) {
-                    launch(Dispatchers.IO) {
-                        while (true) {
-                            val index = next.getAndIncrement()
-                            if (index >= requests.size) break
-                            val request = requests[index]
-                            imageBlocking(request.pageURL, request.directURL, request.dataURL, request.cacheKey)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun load(pageURL: String, directURL: String?, dataURL: String?, cacheKey: String): Bitmap? {
-        // A synced data: icon is a real image. Raster payloads (PNG/ICO) decode
-        // in memory: instant, offline. An SVG payload is kept as a last resort
-        // below, because a live network image is usually crisper.
-        val svgData = dataURL?.takeIf { isSvg(it) }
-        if (dataURL != null && svgData == null) {
-            decodeDataURL(dataURL, cacheKey)?.let { return it }
-        }
-        FaviconResolver.url(pageURL, directURL)?.let { direct -> fetchCandidate(direct)?.let { return it } }
+    private fun load(pageURL: String, siteKey: String): Bitmap? {
         val page = FaviconDiscovery.documentURL(pageURL)
         // The persisted index is keyed by site, so the next launch skips the HTML
         // fetch for every tab on that site.
-        val siteKey = FaviconResolver.cacheKey(pageURL, null, null) ?: cacheKey
         if (page != null && !FaviconDiscovery.isLoopback(page)) {
             remembered(siteKey)?.let { known ->
                 // SVG-aware: a remembered .svg URL is rasterized (from its cache).
@@ -180,10 +144,6 @@ object FaviconLoader {
                 remember(siteKey, candidate)
                 return image
             }
-        }
-        // Nothing fetchable: render the synced SVG icon locally.
-        svgData?.let { svg ->
-            decodeDataURL(svg, cacheKey)?.let { return it }
         }
         // Last resort: the site blocks scraping or has no discoverable icon
         // (login redirect, 403, no <link>). Ask a public logo service for the
@@ -267,16 +227,6 @@ object FaviconLoader {
             loadIndex()
             resolved[cacheKey] = iconURL
             writeIndexLocked(dir)
-        }
-    }
-
-    /** Drop index entries for sites no longer present in the snapshot. */
-    private fun pruneIndex(requests: List<FaviconRequest>) {
-        val dir = diskDir ?: return
-        val keep = requests.mapNotNull { FaviconResolver.cacheKey(it.pageURL, null, null) }.toSet()
-        synchronized(this) {
-            loadIndex()
-            if (resolved.keys.retainAll(keep)) writeIndexLocked(dir)
         }
     }
 
@@ -495,13 +445,4 @@ object FaviconLoader {
 
     fun isSvg(dataURL: String): Boolean =
         dataURL.substringBefore(';').substringBefore(',').contains("svg", ignoreCase = true)
-
-    /** Decode a synced `data:image/…` favicon. Raster first, then SVG. */
-    private fun decodeDataURL(dataURL: String, cacheKey: String): Bitmap? {
-        val bytes = dataBytes(dataURL) ?: return null
-        FaviconDecoder.image(bytes)?.let { return it }
-        if (!isSvg(dataURL)) return null
-        val svg = runCatching { String(bytes, Charsets.UTF_8) }.getOrNull() ?: return null
-        return SvgRasterizer.rasterize(svg, size = 128, cacheKey = cacheKey)
-    }
 }
