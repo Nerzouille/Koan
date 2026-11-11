@@ -17,7 +17,7 @@ import com.caverock.androidsvg.SVG
  */
 internal object SvgRasterizer {
     /** Rasterize [svg] into a [size]×[size] bitmap. Null on parse/failure. */
-    fun rasterize(svg: String, size: Int, cacheKey: String): Bitmap? = runCatching {
+    fun rasterize(svg: String, size: Int): Bitmap? = runCatching {
         val parsed = SVG.getFromString(svg)
         // Koan: an SVG with width/height but no viewBox renders at its intrinsic size (often 16 px)
         // in the corner of the canvas. Give it a viewBox so it scales to fill.

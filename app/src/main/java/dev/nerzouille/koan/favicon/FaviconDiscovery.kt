@@ -149,12 +149,6 @@ object FaviconDiscovery {
         return (rich + plain + icos + svgs).map { it.url }
     }
 
-    /** True for a declared `.svg` icon; the loader must rasterize it, not decode it. */
-    fun isSvgIcon(url: String): Boolean {
-        val path = url.substringBefore('?').substringBefore('#').lowercase()
-        return path.endsWith(".svg") || path.contains("favicon.svg")
-    }
-
     private fun rank(icon: Icon, target: Int): Triple<Int, Int, Int> {
         if (icon.width <= 0) return Triple(1, 0, 0)
         return Triple(0, kotlin.math.abs(icon.width - target), -icon.width)

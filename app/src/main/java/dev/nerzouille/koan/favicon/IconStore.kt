@@ -102,7 +102,7 @@ object IconStore {
         for ((key, dataUrl) in icons) {
             val file = fileFor(key) ?: continue
             if (file.exists()) continue
-            val bitmap = decodeDataUrl(dataUrl, key) ?: continue
+            val bitmap = decodeDataUrl(dataUrl) ?: continue
             val tmp = File(folder, file.name + ".tmp")
             runCatching {
                 tmp.outputStream().use { normalized(bitmap).compress(Bitmap.CompressFormat.PNG, 100, it) }
@@ -121,12 +121,12 @@ object IconStore {
         return File(folder, "$hash.$FILE_VERSION.png")
     }
 
-    private fun decodeDataUrl(dataUrl: String, key: String): Bitmap? {
+    private fun decodeDataUrl(dataUrl: String): Bitmap? {
         val bytes = FaviconLoader.dataBytes(dataUrl) ?: return null
         FaviconDecoder.image(bytes)?.let { return it }
         if (!FaviconLoader.isSvg(dataUrl)) return null
         val svg = runCatching { String(bytes, Charsets.UTF_8) }.getOrNull() ?: return null
-        return SvgRasterizer.rasterize(svg, size = MAX_PX, cacheKey = key)
+        return SvgRasterizer.rasterize(svg, size = MAX_PX)
     }
 
     /**

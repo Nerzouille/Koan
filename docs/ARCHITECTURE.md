@@ -372,7 +372,7 @@ Both versions move together (`gradle/libs.versions.toml`). After a bump, check b
 
 In use (`gradle/libs.versions.toml`, `app/build.gradle.kts`): AndroidX core-ktx, activity-compose,
 fragment, lifecycle-runtime(-compose), biometric, browser; Compose BOM (ui, ui-graphics,
-foundation, animation, material3, tooling); Room (KSP); DataStore Preferences;
+foundation, animation, material3); Room (KSP); DataStore Preferences;
 kotlinx.coroutines; GeckoView omni and the AC modules listed under "Engine"; androidsvg (favicons);
 zxing-core (QR sign-in, decoding only). Tests: JUnit, `org.json:json`, kotlinx-coroutines-test.
 

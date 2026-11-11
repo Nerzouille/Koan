@@ -198,7 +198,7 @@ object FaviconLoader {
         if (bytes.looksLikeSvg()) {
             val svg = runCatching { String(bytes, Charsets.UTF_8) }.getOrNull()
             if (svg != null) {
-                val png = SvgRasterizer.rasterize(svg, size = 128, cacheKey = urlString)
+                val png = SvgRasterizer.rasterize(svg, size = 128)
                 if (png != null) {
                     storeDiskPng(urlString, png)
                     return png

@@ -2729,7 +2729,6 @@ Without live blur only the first **3** (`SPARKLES_SIMPLE`).
 | Image, Install | Downloads' Open by type: picture, APK ("Install") `downloads/DownloadsScreen.kt` (22dp in the selection bar) |
 | Private | dock and address pill in private mode `bar/AddressRow.kt`; private parts `privacy/PrivateParts.kt`; Settings `settings/PrivacySettings.kt`; private download mark `downloads/DownloadsScreen.kt` (14dp, `DownloadTokens.PrivateGlyph`) |
 | Video player: Volume, VolumeOff, Fullscreen, ExitFullscreen, Pip, Unlock, Speed, SiteControls, PlayFilled, PauseFilled, SkipBackFilled, SkipAheadFilled, ReplayFilled | `player/VideoPlayer.kt`, `player/PlayerParts.kt`, `player/WebPlayer.kt` (sizes in `PlayerTokens`, see `docs/VIDEO_PLAYER.md`) |
-| Book, Rotate, Headphones | defined (`icons/KoanIcons.kt`) but **not used** anywhere |
 
 Rendered sizes come from: `BarTokens.Icon` 24dp, `SheetTokens.RowGlyph` 18dp, `SheetTokens.TileGlyph` 22dp, `SettingsTokens.RowGlyph` 20dp, `SearchTokens.ChipIcon` 14dp, `TabMenuTokens.Icon` 18dp, and the multipliers noted per row (e.g. `RowGlyph·0.8` = 16dp, `RowGlyph·0.85` = 17dp).
 

@@ -173,9 +173,6 @@ class PhoneVisit(val url: String, val title: String, val lastVisitMs: Long)
 object HistoryUpload {
     const val MAX_VISITS = 20
 
-    /** Firefox's history TTL: 60 days, in seconds (sent as the BSO `ttl`). */
-    const val TTL_SECONDS = 5_184_000
-
     /** Transition "link": the phone doesn't know better. */
     private const val LINK = 1
 

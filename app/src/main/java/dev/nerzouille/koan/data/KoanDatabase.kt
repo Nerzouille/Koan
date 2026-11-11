@@ -49,9 +49,6 @@ interface KoanDao {
     @Query("SELECT * FROM tabs WHERE spaceUuid = :spaceUuid AND NOT pinned AND NOT essential AND NOT closed ORDER BY `order`, koanTabId")
     suspend fun stackTabs(spaceUuid: String): List<TabEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSpaces(spaces: List<SpaceEntity>)
-
     @Upsert
     suspend fun upsertSpaces(spaces: List<SpaceEntity>)
 
@@ -298,9 +295,6 @@ interface KoanDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertBookmarkIfNew(bookmark: BookmarkEntity)
-
-    @Query("SELECT url FROM bookmarks WHERE id LIKE 'sync:%'")
-    fun observeSyncedBookmarkUrls(): Flow<List<String>>
 
     /** Logins pulled from Sync replace the previous pull's; the phone's own stay. */
     @Transaction

@@ -170,7 +170,7 @@ class AccountStore(
      */
     suspend fun completeWebLogin(email: String, uid: String, sessionToken: String, keyFetchToken: String, unwrapBKey: String, allowReplace: Boolean = false) {
         checkReplace(uid, allowReplace)
-        val result = FxAClient(authTransport).completeWebLogin(email, uid, sessionToken, keyFetchToken, unwrapBKey)
+        val result = FxAClient(authTransport).completeWebLogin(uid, sessionToken, keyFetchToken, unwrapBKey)
         checkReplace(result.uid, allowReplace)
         save(Account(email, result.uid, result.session, FxACrypto.hex(result.kB)))
     }

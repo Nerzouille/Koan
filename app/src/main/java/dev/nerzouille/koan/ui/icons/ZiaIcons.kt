@@ -54,7 +54,7 @@ object ZiaIcons {
     }
 
     fun bitmap(context: Context, raw: String, sizePx: Int): Bitmap? =
-        svg(context, raw)?.let { SvgRasterizer.rasterize(it, sizePx, "zia:$raw:$sizePx") }
+        svg(context, raw)?.let { SvgRasterizer.rasterize(it, sizePx) }
 
     /** The closest of [names] to [name] by edit distance (ties: the shorter); null if none is near. */
     fun closest(name: String, names: Collection<String>): String? {

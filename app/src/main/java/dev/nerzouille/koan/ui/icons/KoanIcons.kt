@@ -211,12 +211,6 @@ object KoanIcons {
             moveTo(18f, 6.5f); arcTo(7.5f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 18f, y1 = 17.5f)
         }
     }
-    val Rotate: ImageVector by lazy {
-        stroked("rotate") {
-            moveTo(7f, 4f); lineTo(17f, 4f); lineTo(17f, 20f); lineTo(7f, 20f); close()
-            moveTo(20f, 9f); arcTo(6f, 6f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 20f, y1 = 15f)
-        }
-    }
     val ExitFullscreen: ImageVector by lazy {
         stroked("exit-fullscreen") {
             moveTo(9f, 4f); lineTo(9f, 9f); lineTo(4f, 9f)
@@ -298,20 +292,6 @@ object KoanIcons {
             }
         }.build()
     }
-    /** Headphones (audio only). */
-    val Headphones: ImageVector by lazy {
-        ImageVector.Builder("headphones", 24.dp, 24.dp, 24f, 24f).apply {
-            path(stroke = SolidColor(Color.White), strokeLineWidth = 2f, strokeLineCap = StrokeCap.Round) {
-                moveTo(4.5f, 15f); lineTo(4.5f, 12f)
-                arcTo(7.5f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 19.5f, y1 = 12f)
-                lineTo(19.5f, 15f)
-            }
-            path(fill = SolidColor(Color.White)) {
-                moveTo(4f, 14f); lineTo(8f, 14f); lineTo(8f, 20f); lineTo(4f, 20f); close()
-                moveTo(16f, 14f); lineTo(20f, 14f); lineTo(20f, 20f); lineTo(16f, 20f); close()
-            }
-        }.build()
-    }
     val Play: ImageVector by lazy { stroked("play") { moveTo(8f, 5f); lineTo(19f, 12f); lineTo(8f, 19f); close() } }
     val File: ImageVector by lazy {
         stroked("file") {
@@ -379,12 +359,6 @@ object KoanIcons {
                 close()
             }
         }.build()
-    }
-    val Book: ImageVector by lazy {
-        stroked("book") {
-            moveTo(12f, 6.5f); curveTo(10f, 5f, 7f, 4.5f, 4f, 5f); lineTo(4f, 18.5f); curveTo(7f, 18f, 10f, 18.5f, 12f, 20f)
-            curveTo(14f, 18.5f, 17f, 18f, 20f, 18.5f); lineTo(20f, 5f); curveTo(17f, 4.5f, 14f, 5f, 12f, 6.5f); lineTo(12f, 20f)
-        }
     }
     /** Private mode (OVERVIEW_PRIVATE.md §7): a domino mask with two eye slits. */
     val Private: ImageVector by lazy {
