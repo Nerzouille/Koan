@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.privacy
 
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -40,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.PrivateTokens
@@ -67,7 +67,7 @@ fun PrivateToggle(flip: PrivateFlip, onToggle: () -> Unit, modifier: Modifier = 
             }
             .clickable(remember { MutableInteractionSource() }, indication = null) {
                 if (flip.running) return@clickable
-                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                KoanHaptics.tick(view)
                 onToggle()
             },
         contentAlignment = Alignment.Center,

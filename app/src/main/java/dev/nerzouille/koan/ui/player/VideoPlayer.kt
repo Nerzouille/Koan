@@ -6,7 +6,6 @@ import android.media.AudioManager
 import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
-import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
@@ -84,6 +83,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.kit.animationsOff
 import dev.nerzouille.koan.ui.kit.pressScale
 import dev.nerzouille.koan.ui.kit.rememberPresence
@@ -357,7 +357,7 @@ fun VideoPlayer(
                                 if (mode == 0) {
                                     mode = 3
                                     boost = true
-                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    KoanHaptics.hold(view)
                                     ctl.value.rate(2.0)
                                 }
                             }
@@ -401,7 +401,7 @@ fun VideoPlayer(
                                     levelTarget.floatValue = f
                                     if (levelKind == true) setVolume(f) else setBrightness(f)
                                     val edge = if (f <= 0f) 0 else if (f >= 1f) 1 else -1
-                                    if (edge >= 0 && edge != lastLevelTick) view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    if (edge >= 0 && edge != lastLevelTick) KoanHaptics.tick(view)
                                     lastLevelTick = edge
                                 }
                                 2 -> {
@@ -443,7 +443,7 @@ fun VideoPlayer(
                                         seekSteps++
                                         seekSerial++
                                         lastSeekAt = now
-                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
                                     // The second tap of a pair on a side: a seek, and the first tap's toggle undone.
@@ -455,7 +455,7 @@ fun VideoPlayer(
                                         seekSteps = 1
                                         seekSerial++
                                         lastSeekAt = now
-                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
                                     else -> {

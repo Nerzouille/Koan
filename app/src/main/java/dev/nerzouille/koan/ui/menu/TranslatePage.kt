@@ -35,10 +35,12 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.KoanField
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.kit.SecondaryButton
 import dev.nerzouille.koan.ui.kit.TextLink
@@ -210,6 +212,7 @@ private fun LanguagePicker(
     onPick: (String) -> Unit,
     onDelete: (String) -> Unit = {},
 ) {
+    val view = LocalView.current
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -244,7 +247,7 @@ private fun LanguagePicker(
                 val onPhone = lang.code in downloaded
                 SheetRow(
                     null, lang.name, interactive,
-                    modifier = if (interactive) Modifier.combinedClickable(onClick = { onPick(lang.code) }, onLongClick = if (onPhone) ({ onDelete(lang.code) }) else null) else Modifier,
+                    modifier = if (interactive) Modifier.combinedClickable(onClick = { onPick(lang.code) }, onLongClick = if (onPhone) ({ KoanHaptics.hold(view); onDelete(lang.code) }) else null) else Modifier,
                 ) {
                     when {
                         lang.code == current -> Icon(KoanIcons.Check, null, tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.RowGlyph))

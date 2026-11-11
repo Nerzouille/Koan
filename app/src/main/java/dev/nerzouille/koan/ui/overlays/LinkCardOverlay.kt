@@ -1,7 +1,6 @@
 package dev.nerzouille.koan.ui.overlays
 
 import android.content.Context
-import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -35,6 +34,7 @@ import dev.nerzouille.koan.ui.downloads.host
 import dev.nerzouille.koan.ui.downloads.sizeText
 import dev.nerzouille.koan.ui.folderLabel
 import dev.nerzouille.koan.ui.kit.KoanClipboard
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.kit.Toast
 import dev.nerzouille.koan.ui.kit.copiedToast
 import dev.nerzouille.koan.ui.menu.DownloadPrompt
@@ -82,7 +82,7 @@ internal fun LinkCardOverlay(
         activeTabId?.let(components.pageTools::consumeHitResult)
         val target = LinkTarget.of(result) ?: return@LaunchedEffect
         // A light tick as the card comes up: the press landed.
-        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        KoanHaptics.tick(view)
         overlays.link = target
         overlays.linkCard.animateTo(Detent.Compact)
     }

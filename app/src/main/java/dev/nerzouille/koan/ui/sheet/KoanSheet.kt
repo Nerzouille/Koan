@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.sheet
 
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
@@ -47,6 +46,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Constraints
 import dev.nerzouille.koan.ui.kit.DragHandle
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -306,7 +306,7 @@ private fun Modifier.sheetGestures(state: SheetState, view: View, sheetTop: (Flo
                     change?.consume()
                     released = true
                     val v = if (change == null) 0f else tracker.calculateVelocity().y
-                    if (state.release(v, fling)) view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    if (state.release(v, fling)) KoanHaptics.tick(view)
                     break
                 }
                 tracker.addPosition(change.uptimeMillis, change.position)

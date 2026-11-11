@@ -41,9 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -58,6 +56,7 @@ import dev.nerzouille.koan.data.LoginSummary
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.KoanField
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.kit.SecureWindow
 import dev.nerzouille.koan.ui.kit.SelectionAction
@@ -279,13 +278,13 @@ internal fun confirmDelete(ui: PasswordsUi, picked: List<Pair<String, List<Login
 @Composable
 private fun SiteRow(origin: String, site: String, subtitle: String?, value: String?, checked: Boolean?, on: Boolean, onTap: () -> Unit, onLong: () -> Unit) {
     val palette = KoanTheme.colors
-    val haptics = LocalHapticFeedback.current
+    val view = LocalView.current
     val wash = selectionWash(checked == true)
     Row(
         Modifier
             .rowArea(
                 if (on) onTap else null,
-                if (on) { { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onLong() } } else null,
+                if (on) { { KoanHaptics.hold(view); onLong() } } else null,
                 wash = { wash.value },
             )
             .height(if (subtitle != null) SettingsTokens.RowTallHeight else SettingsTokens.RowHeight),
