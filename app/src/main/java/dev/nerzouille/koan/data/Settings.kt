@@ -34,8 +34,9 @@ data class SyncBackChoice(val passwords: Boolean = false, val history: Boolean =
 }
 
 /** The owner's settings. */
-class Settings(context: Context) {
-    private val store = context.applicationContext.settingsStore
+class Settings internal constructor(private val store: DataStore<Preferences>) {
+    constructor(context: Context) : this(context.applicationContext.settingsStore)
+
     private val theme = stringPreferencesKey("theme")
 
     val themeMode: Flow<ThemeMode> = store.safeData.map { prefs ->
