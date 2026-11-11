@@ -137,6 +137,26 @@ each group (launch + kill + restore checked).
   Translate (now a haptic); a quick short swipe on a library row still deletes / hides; every
   other haptic (toggles, dock scrub, stack, long presses) feels the same; Private's flip still
   dips the dock's text.
+- **Group F, logic helpers (done except F6, 10 commits):** `search/Urls.kt` (`isWebUrl`,
+  `siteHost`, `baseDomain`; `UrlsTest` first) and its three fixes: an IPv6 address shows whole in
+  the pill, a `*.github.io` / `pages.dev`… login stays on its own site, an app-link "Always" holds
+  for `m.` / `www.` hosts (old choices still read); `copyText`; `ui/kit/DeviceAuth.kt` for
+  Private and Passwords (Passwords now open on a phone without a screen lock); Downloads' Undo tied
+  to its toast (`Toast.onGone`, `PendingDeletes`, `UndoWindowTest`): a replaced toast no longer
+  deletes the file seconds later; the player's Delete gains Undo (`undoToast`); `PageBridge` under
+  `PageEngines` / `PageImages`. **Left out:** the other host call sites (player `siteOf`,
+  `ownPlayer`, origins: same results, low value), the size formatters (merging would change shown
+  sizes), F6 (two favicon caches: memory only, needs a fair meminfo A/B). R8 build: launches,
+  restores after a kill, no crash.
+  **Check on the phone:** Downloads: delete a file, then before the toast goes do something that
+  shows another toast (copy a link): the file is gone at once and stays gone; delete then Undo:
+  it's back; hide then Undo; delete and wait: gone after the toast. The player: open a downloaded
+  video, ⋯ › Delete: "File deleted · Undo" brings it back in Downloads. Passwords: unlock with the
+  fingerprint as before; copy a username / password. A login saved on one `*.github.io` site is not
+  offered on another; one on `accounts.example.com` still is on `example.com`. "Open in app" with
+  "Always" on `m.youtube.com`, then a link on `youtube.com`: no card. ⋯ on a page that declares a
+  search engine: "Add this search engine"; long-press an image on Google Images: Save image waits
+  for the full one.
 
 ## Open branches
 
