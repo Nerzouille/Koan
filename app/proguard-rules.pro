@@ -14,11 +14,3 @@
 # its own package name: once R8 moved its classes out of their package, Koan crashed at start.
 -keep class org.yaml.snakeyaml.** { *; }
 -dontwarn org.yaml.snakeyaml.**
-
-# The media notification's timeline (Components.enableMediaTimeline) switches feature-media's
-# Nimbus flag on by reflection: these names must survive R8.
--keep class mozilla.components.feature.media.MediaNimbus { public *; }
--keep class mozilla.components.feature.media.MediaNimbus$Features { public *; }
--keep class mozilla.components.feature.media.MediaNotificationImprovements { public <init>(...); }
--keep class org.mozilla.experiments.nimbus.internal.FeatureHolder { public *; }
--keep class org.mozilla.experiments.nimbus.Variables

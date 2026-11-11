@@ -103,6 +103,12 @@ class Components(context: Context) {
                 historyTrackingDelegate = history,
                 // tel:, mailto:, intent:// … open in their app.
                 requestInterceptor = externalLinks,
+                // A download's name: the server's (Content-Disposition, validated by Gecko since
+                // 160), else the URL's. Without a delegate AC only had the URL ("file.php").
+                downloadDelegate = object : mozilla.components.concept.engine.DownloadDelegate {
+                    override fun guessFileName(contentDisposition: String?, url: String?, mimeType: String?) =
+                        downloadFiles.guessFileName(contentDisposition, url, mimeType)
+                },
             ),
             runtime,
         )
@@ -213,7 +219,6 @@ class Components(context: Context) {
     fun startMedia() {
         if (mediaStarted) return
         mediaStarted = true
-        enableMediaTimeline()
         MediaSessionFeature(appContext, KoanMediaService::class.java, store).start()
         // The notification shows the tab's icon: Koan's favicons, given to a tab once it plays.
         appScope.launch {
@@ -331,26 +336,6 @@ data class Incoming(
         /** Text selected in another app ("Search in Koan"): opened if it is a url, else searched. */
         Selected,
     }
-}
-
-/**
- * feature-media's "media notification improvements" (an experiment Fenix turns on remotely;
- * Koan has no experiments): the notification's timeline with position, length, speed and
- * seeking. The position itself comes from the page (PageVideo). Nimbus isn't on Koan's compile
- * classpath (feature-media's own dependency), hence reflection; proguard-rules.pro keeps the
- * names. Without it, the notification simply keeps play/pause only.
- */
-private fun enableMediaTimeline() {
-    runCatching {
-        val nimbus = Class.forName("mozilla.components.feature.media.MediaNimbus")
-        val features = nimbus.getMethod("getFeatures").invoke(nimbus.getField("INSTANCE").get(null))
-        val holder = features.javaClass.getMethod("getMediaNotificationImprovements").invoke(features)
-        val feature = Class.forName("mozilla.components.feature.media.MediaNotificationImprovements")
-        val variables = Class.forName("org.mozilla.experiments.nimbus.Variables")
-        val make = feature.getConstructor(variables, android.content.SharedPreferences::class.java, Boolean::class.javaPrimitiveType)
-        val init: (Any?, Any?) -> Any = { v, prefs -> make.newInstance(v, prefs, true) }
-        holder.javaClass.getMethod("withInitializer", Function2::class.java).invoke(holder, init)
-    }.onFailure { android.util.Log.w("Components", "Media timeline not enabled", it) }
 }
 
 /** A pairing link for the sign-in; [fromOtherApp]: not typed or pasted by the owner, so Koan asks first. */

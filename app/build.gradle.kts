@@ -22,9 +22,9 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "dev.nerzouille.koan"
-    // AC 157 requires compiling against 37.1 (minor SDK release).
+    // AC 160 requires compiling against 37.2 (minor SDK release).
     compileSdk {
-        version = release(37) { minorApiLevel = 1 }
+        version = release(37) { minorApiLevel = 2 }
     }
 
     defaultConfig {
