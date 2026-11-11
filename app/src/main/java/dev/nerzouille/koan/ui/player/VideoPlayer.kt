@@ -651,7 +651,7 @@ fun VideoPlayer(
                             }
                             .size(PlayerTokens.BubbleSize.width, PlayerTokens.BubbleSize.height)
                             .graphicsLayer { alpha = bubble.progress }
-                            .playerPanel(RoundedCornerShape(18.dp)),
+                            .playerPanel(RoundedCornerShape(PlayerTokens.BubbleRadius)),
                         contentAlignment = Alignment.Center,
                     ) {
                         ScrubTime({ scrubF.floatValue }, state.duration, playerText(15.sp, FontWeight.SemiBold))
@@ -697,7 +697,7 @@ fun VideoPlayer(
                     .padding(top = topInset + 6.dp)
                     .graphicsLayer { alpha = badge.progress }
                     .height(PlayerTokens.BadgeHeight)
-                    .playerPanel(RoundedCornerShape(16.dp))
+                    .playerPanel(RoundedCornerShape(PlayerTokens.BadgeRadius))
                     .padding(start = 14.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -817,7 +817,7 @@ private fun TitlePill(mode: PlayerMode, title: String, subtitle: String, onLeadi
     Row(
         modifier
             .height(PlayerTokens.PillHeight)
-            .playerPanel(RoundedCornerShape(22.dp))
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
             .blockTouches()
             .padding(end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -852,7 +852,7 @@ private fun SpeedPill(rate: Double, onClick: () -> Unit) {
         Modifier
             .height(PlayerTokens.RoundPill)
             .pressScale(LocalControlsLive.current, onClick = onClick)
-            .playerPanel(RoundedCornerShape(22.dp))
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -866,7 +866,7 @@ private fun UnlockPill(onClick: () -> Unit) {
         Modifier
             .height(PlayerTokens.RoundPill)
             .pressScale(onClick = onClick)
-            .playerPanel(RoundedCornerShape(22.dp))
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
             .padding(start = 12.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -883,7 +883,7 @@ private fun CentreGroup(state: PlayerState, landscape: Boolean, onBack10: () -> 
             modifier
                 .height(PlayerTokens.ReplayHeight)
                 .pressScale(LocalControlsLive.current, onClick = onPlay)
-                .playerPanel(RoundedCornerShape(28.dp))
+                .playerPanel(RoundedCornerShape(PlayerTokens.ReplayRadius))
                 .padding(start = 18.dp, end = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1042,7 +1042,7 @@ private fun ProgressBar(
 @Composable
 private fun SeekLabel(forward: Boolean, steps: Int, turn: () -> Float, modifier: Modifier) {
     val density = LocalDensity.current
-    val shape = RoundedCornerShape(36.dp)
+    val shape = RoundedCornerShape(PlayerTokens.SeekLabelRadius)
     Row(
         modifier
             .drawBehindHalo(density)

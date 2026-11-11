@@ -15,6 +15,15 @@ import dev.nerzouille.koan.ui.theme.Motion
 
 /** Koan's video player (docs/VIDEO_PLAYER.md): always dark, whatever Koan's theme. */
 object PlayerTokens {
+    // Corner radii (half the height of their pill or disc).
+    val PillRadius = 22.dp
+    val ReplayRadius = 28.dp
+    val BubbleRadius = 18.dp
+    val BadgeRadius = 16.dp
+    val ChipRadius = 16.dp
+    val LevelRadius = 30.dp
+    val SeekLabelRadius = 36.dp
+
     // §1 colour
     val Background = Color(0xFF000000)
     val PanelNoBlur = Color(0xE61C1C1E) // 90 %

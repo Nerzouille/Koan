@@ -240,7 +240,7 @@ private fun CardButton(label: String, color: androidx.compose.ui.graphics.Color,
     Box(
         modifier
             .height(44.dp)
-            .playerPanel(RoundedCornerShape(22.dp), PlayerTokens.Chip)
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius), PlayerTokens.Chip)
             .pressable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

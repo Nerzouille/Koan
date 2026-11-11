@@ -233,7 +233,7 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
                     Modifier
                         .weight(1f)
                         .height(PlayerTokens.ChipHeight)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(PlayerTokens.ChipRadius))
                         .background(if (selected) Color.White else PlayerTokens.Chip)
                         .pressable { onRate(s) },
                     contentAlignment = Alignment.Center,
@@ -270,7 +270,7 @@ internal fun speedLabel(s: Double) = if (kotlin.math.abs(s - 1.0) < 0.01) "Norma
  */
 @Composable
 internal fun LevelIndicator(volume: Boolean, level: () -> Float, height: Dp, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(30.dp)
+    val shape = RoundedCornerShape(PlayerTokens.LevelRadius)
     // Fixed parts first; the track takes what is left, so the glyph always sits inside the pill.
     Column(
         modifier
