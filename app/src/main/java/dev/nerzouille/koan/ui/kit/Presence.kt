@@ -29,6 +29,8 @@ class Presence internal constructor(private val anim: Animatable<Float, Animatio
 /**
  * A [Presence] that animates itself towards [open]: [enter] on the way in, [exit] on the way out.
  * [snapIn]: shows at once (no animation in), fades out with [exit].
+ * [startShown]: starts at [open]'s first value instead of hidden (like `animateFloatAsState`), so
+ * something already open on its first frame doesn't animate in.
  */
 @Composable
 fun rememberPresence(
@@ -36,8 +38,9 @@ fun rememberPresence(
     enter: AnimationSpec<Float>,
     exit: AnimationSpec<Float> = enter,
     snapIn: Boolean = false,
+    startShown: Boolean = false,
 ): Presence {
-    val anim = remember { Animatable(0f) }
+    val anim = remember { Animatable(if (startShown && open) 1f else 0f) }
     val openState = rememberUpdatedState(open)
     LaunchedEffect(open) {
         when {

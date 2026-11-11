@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -87,6 +88,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.rememberPresence
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -150,6 +152,7 @@ fun VideoPlayer(
     var levelSerial by remember { mutableIntStateOf(0) }
     val levelTarget = remember { mutableFloatStateOf(0f) }
     val levelShown = remember { Animatable(0f) }
+    val levelOn by remember { derivedStateOf { levelShown.value > 0f } }
     val levelAnim = remember { Animatable(0f) }
 
     fun touched() {
@@ -264,6 +267,7 @@ fun VideoPlayer(
 
     // ---- double-tap seek feedback (§5 seek.glow) ----
     val glow = remember { Animatable(0f) }
+    val glowOn by remember { derivedStateOf { glow.value > 0f } }
     val pulse = remember { Animatable(1f) }
     val turn = remember { Animatable(0f) }
     LaunchedEffect(seekSerial) {
@@ -483,7 +487,7 @@ fun VideoPlayer(
         )
 
         // ---- seek glow and label ----
-        if (seekSide != 0 || glow.value > 0f) {
+        if (seekSide != 0 || glowOn) {
             val sideNow = if (seekSide != 0) seekSide else 1
             Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = glow.value; scaleX = pulse.value; scaleY = pulse.value }) {
                 val boxW = size.width * 0.55f
@@ -643,18 +647,19 @@ fun VideoPlayer(
                 }
 
                 // ---- ⋯ menu ----
-                val menuIn by animateFloatAsState(if (menuOpen) 1f else 0f, tween(if (menuOpen) 160 else 120), label = "menu")
-                if (menuIn > 0f) {
+                val menuIn = rememberPresence(menuOpen, enter = tween(160), exit = tween(120), startShown = true)
+                if (menuIn.composed) {
+                    val rows = remember(menuRows) { menuRows.map { row -> MenuRow(row.icon, row.label, row.destructive) { menuOpen = false; row.onClick() } } }
                     PlayerMenu(
                         rate = state.rate,
                         onRate = { r -> controls.rate(r); touched() },
-                        rows = menuRows.map { row -> MenuRow(row.icon, row.label, row.destructive) { menuOpen = false; row.onClick() } },
+                        rows = rows,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(end = endInset, top = topInset + PlayerTokens.RoundPill + 8.dp)
                             .graphicsLayer {
-                                alpha = menuIn
-                                val s = 0.92f + 0.08f * menuIn
+                                alpha = menuIn.progress
+                                val s = 0.92f + 0.08f * menuIn.progress
                                 scaleX = s
                                 scaleY = s
                                 transformOrigin = TransformOrigin(1f - (PlayerTokens.RoundPill / 2 / PlayerTokens.MenuWidth), 0f)
@@ -666,19 +671,19 @@ fun VideoPlayer(
         }
 
         // ---- buffering spinner (stays alone when the controls hide) ----
-        val spin by animateFloatAsState(if (spinner) 1f else 0f, tween(200), label = "spinner")
-        if (spin > 0f && !locked) {
-            PlayerSpinner(PlayerTokens.Spinner, PlayerTokens.SpinnerStroke, modifier = Modifier.align(Alignment.Center).graphicsLayer { alpha = spin * hiddenAlpha(hidden) })
+        val spin = rememberPresence(spinner, tween(200), startShown = true)
+        if (spin.composed && !locked) {
+            PlayerSpinner(PlayerTokens.Spinner, PlayerTokens.SpinnerStroke, modifier = Modifier.align(Alignment.Center).graphicsLayer { alpha = spin.progress * hiddenAlpha(hidden) })
         }
 
         // ---- long-press 2× badge ----
-        val badge by animateFloatAsState(if (boost) 1f else 0f, tween(if (boost) 200 else 160), label = "badge")
-        if (badge > 0f) {
+        val badge = rememberPresence(boost, enter = tween(200), exit = tween(160), startShown = true)
+        if (badge.composed) {
             Row(
                 Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = topInset + 6.dp)
-                    .graphicsLayer { alpha = badge }
+                    .graphicsLayer { alpha = badge.progress }
                     .height(PlayerTokens.BadgeHeight)
                     .playerPanel(RoundedCornerShape(16.dp))
                     .padding(start = 14.dp, end = 12.dp),
@@ -692,7 +697,7 @@ fun VideoPlayer(
 
         // ---- brightness / volume level ----
         val kind = levelKind
-        if (kind != null || levelShown.value > 0f) {
+        if (kind != null || levelOn) {
             val right = kind ?: true
             val edge = if (landscape) PlayerTokens.LevelEdgeLandscape else PlayerTokens.LevelEdgePortrait
             LevelIndicator(

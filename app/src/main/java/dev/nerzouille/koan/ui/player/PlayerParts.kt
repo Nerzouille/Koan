@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.rememberPresence
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -169,8 +170,8 @@ internal fun PlayGlyph(state: GlyphState, size: Dp, optical: Dp = 0.dp) {
     }
     Box(Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value }, contentAlignment = Alignment.Center) {
         for (g in GlyphState.entries) {
-            val a by animateFloatAsState(if (g == state) 1f else 0f, tween(120), label = "glyph")
-            if (a > 0f) {
+            val a = rememberPresence(g == state, tween(120), startShown = true)
+            if (a.composed) {
                 val icon = when (g) {
                     GlyphState.Play -> KoanIcons.PlayFilled
                     GlyphState.Pause -> KoanIcons.PauseFilled
@@ -181,7 +182,7 @@ internal fun PlayGlyph(state: GlyphState, size: Dp, optical: Dp = 0.dp) {
                     if (g == GlyphState.Replay) size * 0.92f else size,
                     Modifier
                         .offset(x = if (g == GlyphState.Play) optical else 0.dp)
-                        .graphicsLayer { alpha = a },
+                        .graphicsLayer { alpha = a.progress },
                 )
             }
         }
