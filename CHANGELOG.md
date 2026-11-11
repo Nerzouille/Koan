@@ -89,7 +89,8 @@
 - Picture-in-picture on leaving a full-screen video now also starts on sites where it didn't.
 - Video player: hidden controls no longer swallow a tap; portrait full screen keeps the status bar
   and its top row clear of the camera; no white flash when a full-screen video turns; with
-  auto-rotate off the phone's rotate button works in full screen.
+  auto-rotate off a landscape video flips sides by itself and a rotate button (a few seconds after
+  you turn the phone) turns it to portrait.
 
 - Space icons picked from Zen's built-in icons were missing in release builds (0.4.0 and before).
 - **Downloads keep the name the site gives them** (for example "report.pdf"), instead of a name

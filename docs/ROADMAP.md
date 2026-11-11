@@ -100,13 +100,8 @@ From the batch 4 refactoring (`docs/plans/BATCH4_PLAN.md`, branch `refactor`), l
 ### Video player follow-ups (after the release)
 
 From the fixes list's second round (`docs/plans/FIXES_CHECKS.md` "Recheck"), left for after the
-0.5 release:
+0.5 release (the "Rotate" idea became the rotate pill, built on `fixes`):
 
-- **Rotate in the ⋯ menu:** a "Rotate" row that turns fullscreen to the other orientation
-  (portrait ↔ landscape), for portrait with the phone's auto-rotate off. Android's own rotate
-  button can't reach portrait there: while fullscreen asks for the video's shape
-  (`USER_LANDSCAPE`), it only offers the other landscape side. `rememberFullscreen` already takes
-  a `rotated` flag for this (`ui/browser/Fullscreen.kt`); the standalone player needs the same.
 - **Quality choice for Download video:** when the page offers several files of the same video
   (Wikimedia Commons: 240p … 1080p renditions and the 2.8 GB original), let the owner pick one
   (a short list in the ⋯ menu, with sizes when the page or a HEAD request gives them) instead of

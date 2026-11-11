@@ -40,16 +40,31 @@ your hands, especially anything that needs the phone turned: Claude can't rotate
      - a big streaming site and a DRM page: greyed out with the reason;
      - airplane mode just after the tap: "Couldn't download the video" in the player;
      - a file already there: the player leaves fullscreen and the duplicate card shows.
-3. **Rotation with auto-rotate off** (`ae0a8e5`, your #7). Fullscreen asks for `USER_LANDSCAPE` /
-   `USER_PORTRAIT` (the video's shape) instead of `SENSOR_*`, which turned the system's rotate
-   button off.
-   - Turn the phone during fullscreen: HyperOS's floating rotate button should show, and tapping it
-     should turn the screen.
-   - **Android limit:** while fullscreen holds a landscape video, the button can only switch
-     between the two landscape sides. Allowing portrait there would drop back to portrait at once,
-     because your lock holds portrait. If you want portrait in fullscreen with auto-rotate off, the
-     way is a rotate button in Koan's player (its code has an unused hook for one).
-   - Also check the standalone player from Downloads with auto-rotate off.
+3. **Rotation with auto-rotate off** (your #7, second version, the rotate pill commit).
+   - **Before building:** the system limit is confirmed in AOSP's `DisplayRotation.java`. Its rotate
+     button is offered only for USER_* / FULL_USER requests:
+     - USER_LANDSCAPE doesn't flip the landscape sides by itself under the lock;
+     - FULL_USER goes back to the locked portrait;
+     - SENSOR_LANDSCAPE flips the sides, but never gets the button.
+   - **Built:**
+     - fullscreen keeps SENSOR_LANDSCAPE / SENSOR_PORTRAIT;
+     - turning the phone to the other shape shows Koan's round rotate pill for about 3 s, in the
+       bottom corner on the side AOSP puts its button;
+     - a tap turns the player; doing nothing keeps it.
+   - **Checks, auto-rotate off:**
+     - a landscape video: turn the phone over (one landscape side to the other) and it flips with no
+       button;
+     - turn it towards portrait: the pill fades in. Tap it and the player turns to portrait. Turn
+       the phone towards landscape: the pill again, and a tap turns it back;
+     - leave it: it fades out after about 3 s and nothing turns;
+     - turn back before it goes: it goes at once;
+     - which corner: compare with where HyperOS shows its own button in other apps. If it's the
+       other side, that's one function (`rotatePillOnRight`);
+     - leave fullscreen after rotating: back to portrait; the next fullscreen opens in the video's
+       shape again;
+     - the standalone player from Downloads: the same;
+     - in PiP: no pill.
+   - **Auto-rotate on:** no pill ever; the player follows the phone as before.
 4. **Hidden controls and taps** (`0f601af`, your #8; test `PlayerTapsTest`).
    - With the controls hidden, tap where ⋯, lock, the play button or the progress bar would be:
      the controls show, and nothing else happens.
