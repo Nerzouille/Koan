@@ -248,8 +248,8 @@ drawer, sheets, first run), 16dp (start page), 20dp (settings, sign-in pages), 2
 
 ### 1.7 Hairlines
 
-
 All 1dp lines share `SharedTokens.Hairline` (`SheetTokens.Divider`, `SettingsTokens.Divider`, `CardTokens.Hairline`, `SignInTokens.CardBorder`, `TourTokens.FrameBorder` point at it); grouped blocks share `SharedTokens.GroupRadius` 18dp (sheet, search and Downloads groups).
+
 1dp everywhere: card outline (`CardBorder`, light `#E4E4EA`, dark white 8%), sheet and settings
 dividers, sign-in choice cards' border, tour clip frame border. Focus rings are thicker: search
 field 1.5dp (neutral) / 2dp ("@" gradient), brand outlines 1.5dp.
