@@ -78,11 +78,20 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
     LaunchedEffect(st.playing, st.width, st.height) {
         onPlaying(st.playing, if (st.width > 0 && st.height > 0) st.width to st.height else null)
     }
-    // Any orientation while it is open (the phone's sensor), portrait again once closed.
+    // Any orientation while it is open (the phone's sensor), portrait again once closed. With the
+    // phone's auto-rotate off: the video's shape once it is known (F2), as a web fullscreen does.
     val activity = context as? Activity
+    val rotationLocked = rememberRotationLocked()
+    val shape = if (st.width > 0 && st.height > 0) st.height > st.width else null
+    LaunchedEffect(rotationLocked, shape) {
+        activity?.requestedOrientation = when {
+            !rotationLocked -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+            shape == null -> return@LaunchedEffect
+            else -> fullscreenOrientation(fullscreen = true, videoPortrait = shape, rotationLocked = true, turned = false)
+        }
+    }
     DisposableEffect(Unit) {
         val before = activity?.requestedOrientation
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
         val window = activity?.window
         val bars = window?.let { androidx.core.view.WindowCompat.getInsetsController(it, it.decorView) }
         bars?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE

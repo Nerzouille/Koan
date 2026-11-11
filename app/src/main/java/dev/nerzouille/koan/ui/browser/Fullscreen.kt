@@ -31,13 +31,13 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
         } == true
     }
     val activity = LocalContext.current as? Activity
-    // [rotated]: the video layer's rotate button turns it the other way.
-    LaunchedEffect(fullScreen, portrait, rotated) {
-        activity?.requestedOrientation = when {
-            !fullScreen -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            portrait != rotated -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        }
+    // [rotated]: the video layer's rotate button turns it the other way. The video's shape first,
+    // then (auto-rotate on, once the phone is held that way) the phone's rotation, portrait included.
+    val shapePortrait = portrait != rotated
+    val rotationLocked = dev.nerzouille.koan.ui.player.rememberRotationLocked()
+    val turned = dev.nerzouille.koan.ui.player.rememberTurned(fullScreen && !rotationLocked, shapePortrait)
+    LaunchedEffect(fullScreen, shapePortrait, rotationLocked, turned) {
+        activity?.requestedOrientation = dev.nerzouille.koan.ui.player.fullscreenOrientation(fullScreen, shapePortrait, rotationLocked, turned)
     }
     // Again after each rotation: HyperOS brings the bars back (grey, with their contrast scrim)
     // when a fullscreen video turns the screen.
