@@ -17,6 +17,12 @@ data are kept in memory only. Koan never downloads an icon for a private tab: it
 it already has it. Screenshots and screen recordings of private tabs are blocked unless you turn on
 Settings › Private browsing › Allow screenshots.
 
+A private video can go to picture-in-picture when you leave Koan (Settings › Picture-in-picture):
+its small window shows the video over other apps, and Android's screenshot block doesn't hide what
+the window shows. The time in that window counts as time away from Koan: if the private lock is due
+by the time the window closes or comes back to full screen, Private is locked before anything else
+of it shows. Turn picture-in-picture off to keep private videos from leaving Koan's screen.
+
 Bookmarks made in private tabs are kept apart from your normal bookmarks, in their own file on
 the phone, encrypted with their own Keystore key. They are never synced and never shown outside
 Private. That file stays when the last private tab closes.
@@ -59,8 +65,11 @@ Besides the sites you open, Koan connects to these:
 A link to a video file (`…/clip.mp4`) that another app opens with Koan first gets a short `HEAD`
 request to that same address, to ask whether it really is a video (Koan's player) or a page (a
 tab). It goes to the site you opened, nowhere else. The video player's **Download video**, on a
-video whose address doesn't end like a video file, sends the same `HEAD` request to the video's
-address when you tap it (never before), to check it is a file.
+video whose address doesn't end like a video file, sends a `HEAD` request to the video's address
+when you tap it (never before), to check it is a file. That one goes through the engine like the
+tab's own requests: in a private tab, through the private session (its cookies, never the normal
+ones), and only over HTTPS. A video downloaded from a private tab downloads the same way and stays
+a private download.
 
 When you long-press an image, Koan downloads it again from its address (up to 4 MB) to show the
 preview. When you play a video link in Koan's player ("Play video" on a long-pressed link, or a

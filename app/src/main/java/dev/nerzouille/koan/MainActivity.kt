@@ -302,6 +302,10 @@ class MainActivity : FragmentActivity() {
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         pip?.onModeChanged(isInPictureInPictureMode)
+        // A private video in PiP counts as time away for the private lock: due by the time the
+        // window closes (or comes back to full screen), the lock comes up then.
+        val privateMode = (application as KoanApp).components.privateMode
+        if (isInPictureInPictureMode) privateMode.onHidden() else privateMode.onShown()
     }
 
     override fun onDestroy() {

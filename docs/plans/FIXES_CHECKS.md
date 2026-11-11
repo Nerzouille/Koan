@@ -40,7 +40,14 @@ Checks:
 2. A paused fullscreen video, then home: **no** PiP (your rule).
 3. ⋯ › **Picture-in-picture on leave** → Off. Home: no PiP. Settings › Picture-in-picture shows Off;
    turn it back on there and the ⋯ row says On.
-4. A private video: PiP; the lock still applies when you come back after 1 min.
+4. A private video in PiP for over 1 min (`cefcff4`, `the PiP lock commit`):
+   - Tap the window back to full screen: the lock cover comes up at once, in portrait, with no
+     video over it, and the fingerprint is asked.
+   - Under 1 min: no lock.
+   - Close the window (✕) after over 1 min, then open Koan: locked.
+   - Close it after 30 s, wait 40 s, then open Koan: locked (the time counts from when PiP
+     started).
+   - Turn the screen off during PiP: locked on return.
 5. The standalone player (a video from Downloads): the row is there and works the same.
 6. PiP's Audio only still works.
 
@@ -101,7 +108,11 @@ Checks:
 3. A DRM page: "Protected video". A live stream: "Live video, can't be saved".
 4. A video whose address has no `.mp4`-type ending: the row is enabled. The tap either downloads it
    or says "This video can't be downloaded".
-5. The changed video extension (version 1.2) loads after the update: Koan's player still takes
+5. In a private tab, a video with no `.mp4`-type ending on a site you're signed in to only in
+   Private: Download video works (the check uses the private session). The download is masked in
+   Downloads and absent in normal mode. The same for an image saved from a long press in a private
+   tab, and for "Download video" in the standalone player opened from a private page.
+6. The changed video extension (version 1.2) loads after the update: Koan's player still takes
    over a fullscreen video.
 
 ## Tier 3: look and feel
@@ -139,7 +150,10 @@ Checks:
   hints that they exist.
 - F1: the standalone player keeps restoring the orientation it found. A web fullscreen under it
   still needs it.
-- F5: the PiP lock rule (no PiP once the private lock is due) is not built. The lock still applies
-  when you come back to Koan.
+- F5: there is no "lock is due, so no PiP" rule. Instead, time in PiP counts as time away, and the
+  lock comes up as soon as the window closes or comes back to full screen, if it is due by then.
+- Found while checking F6: Koan's own downloads (⋯ › Download video, a long-pressed image's Save
+  image, the standalone player's Download) never marked a private tab's download as private. They
+  now do, so they download in the private session and follow F7.
 - The plan's per-item dev installs were folded into one install after phase 1 (owner: no stop
   between phases).
