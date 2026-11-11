@@ -40,6 +40,8 @@ internal class PrivateSwitch(
     /** Switches what is shown; the flip calls it once the old tabs have left. */
     fun show(on: Boolean) {
         if (privateOnState.value == on) return
+        // A video left fullscreen in the mode being left would turn the screen when it shows again.
+        dev.nerzouille.koan.ui.browser.leaveFullscreen(components)
         root.editing = false
         root.startPage = false
         tabSwipe.cancel()

@@ -31,13 +31,15 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
         } == true
     }
     val activity = LocalContext.current as? Activity
-    // [rotated]: the video layer's rotate button turns it the other way.
-    LaunchedEffect(fullScreen, portrait, rotated) {
-        activity?.requestedOrientation = when {
-            !fullScreen -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            portrait != rotated -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        }
+    // [rotated]: the video layer's rotate button turns it the other way. The video's shape first,
+    // then (auto-rotate on, once the phone is held that way) the phone's rotation, portrait included.
+    // Auto-rotate off: the player's rotate pill turns it the other way, until fullscreen ends.
+    LaunchedEffect(fullScreen) { if (!fullScreen) components.player.fullscreenRotated = false }
+    val shapePortrait = portrait != (rotated || components.player.fullscreenRotated)
+    val rotationLocked = dev.nerzouille.koan.ui.player.rememberRotationLocked()
+    val turned = dev.nerzouille.koan.ui.player.rememberTurned(fullScreen && !rotationLocked, shapePortrait)
+    LaunchedEffect(fullScreen, shapePortrait, rotationLocked, turned) {
+        activity?.requestedOrientation = dev.nerzouille.koan.ui.player.fullscreenOrientation(fullScreen, shapePortrait, rotationLocked, turned)
     }
     // Again after each rotation: HyperOS brings the bars back (grey, with their contrast scrim)
     // when a fullscreen video turns the screen.
@@ -48,7 +50,7 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
         bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         dev.nerzouille.koan.ui.player.immersive(window, fullScreen)
         if (fullScreen) {
-            bars.hide(WindowInsetsCompat.Type.systemBars())
+            dev.nerzouille.koan.ui.player.playerBars(window, orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT)
         } else {
             bars.show(WindowInsetsCompat.Type.navigationBars())
             if (hideStatus) bars.hide(WindowInsetsCompat.Type.statusBars()) else bars.show(WindowInsetsCompat.Type.statusBars())
@@ -64,4 +66,16 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
     }
     BackHandler(enabled = fullScreen && tabId != null) { tabId?.let { components.sessionUseCases.exitFullscreen(it) } }
     return fullScreen
+}
+
+/**
+ * Every page that is fullscreen leaves it, the way the player's own ✕ does (its video port let go
+ * first). [only] narrows it (the private tabs). Fullscreen is per tab in the engine: a tab left in
+ * it would turn the screen again the next time it shows (fixes F1: Private back in landscape).
+ */
+fun leaveFullscreen(components: Components, only: (mozilla.components.browser.state.state.TabSessionState) -> Boolean = { true }) {
+    components.store.state.tabs.filter { it.content.fullScreen && only(it) }.forEach { tab ->
+        components.pageVideo.release(tab.id)
+        components.sessionUseCases.exitFullscreen(tab.id)
+    }
 }

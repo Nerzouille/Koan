@@ -88,7 +88,7 @@ class MainActivity : FragmentActivity() {
         components.startExtensions()
         components.startMedia()
         components.watchDownloadLocation()
-        pip = PictureInPicture(this, components.store, components.settings, lifecycleScope).also { p ->
+        pip = PictureInPicture(this, components.store, components.settings, lifecycleScope, components.pageVideo.videos).also { p ->
             components.pip.value = p
             p.audioOnly = {
                 runOnUiThread {
@@ -302,6 +302,8 @@ class MainActivity : FragmentActivity() {
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         pip?.onModeChanged(isInPictureInPictureMode)
+        // The private lock: a PiP window on screen counts as Private open (no timer). The time away
+        // starts in onStop (the window closed, or Audio only), or the screen off locks at once.
     }
 
     override fun onDestroy() {

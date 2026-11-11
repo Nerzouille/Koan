@@ -82,6 +82,9 @@ class PlayerHost {
     /** Koan's controls give way to the site's until the next fullscreen. */
     var siteControls by mutableStateOf(false)
 
+    /** Auto-rotate off: the rotate pill turned the web fullscreen to the other orientation (until it ends). */
+    var fullscreenRotated by mutableStateOf(false)
+
     /** The standalone player's video size and play state, for picture-in-picture. */
     var standaloneShape by mutableStateOf<Pair<Int, Int>?>(null)
     var standalonePlaying by mutableStateOf(false)
@@ -94,10 +97,46 @@ class PlayerHost {
 /** A video Koan can download or play as a file: http(s), ending in .mp4 / .webm (not a stream, a blob, a manifest). */
 fun downloadableVideo(source: String?): String? {
     val url = source?.takeIf { it.startsWith("https://") || it.startsWith("http://") } ?: return null
+    if (isFilePage(url)) return null
     val path = url.substringBefore('#').substringBefore('?').lowercase()
-    // A wiki's page about a file ("…/File:Clip.webm") is a page, not the file.
-    if (path.substringAfterLast('/').contains(':') || path.contains("/wiki/")) return null
     return url.takeIf { VIDEO_EXTENSIONS.any { e -> path.endsWith(e) } }
+}
+
+/** Whether a page's video can be saved, for the ⋯ menu's "Download video" (fixes F6). */
+sealed interface VideoSave {
+    /** A video file by its address: download it. */
+    data class File(val url: String) : VideoSave
+
+    /** An http address with no video ending: ask the server on tap ([isVideoFile]), never before. */
+    data class Check(val url: String) : VideoSave
+
+    /** Not a file Koan can save: the row is greyed out, with [reason] under it. */
+    data class No(val reason: String) : VideoSave
+}
+
+/**
+ * [file]: a plain file the page lists for the same video (a streamed video's <source>, as on
+ * Wikimedia Commons): saved instead of the stream.
+ */
+fun videoSave(src: String, drm: Boolean, kind: String, live: Boolean, file: String = ""): VideoSave {
+    val http = src.startsWith("https://") || src.startsWith("http://")
+    val listed = downloadableVideo(file)
+    return when {
+        drm -> VideoSave.No("Protected video")
+        live -> VideoSave.No("Live video, can't be saved")
+        kind == "stream" && listed != null -> VideoSave.File(listed)
+        kind == "stream" -> VideoSave.No("Streamed video, can't be saved")
+        downloadableVideo(src) != null -> VideoSave.File(src)
+        listed != null -> VideoSave.File(listed)
+        http && !isFilePage(src) -> VideoSave.Check(src)
+        else -> VideoSave.No("This video can't be saved")
+    }
+}
+
+/** A wiki's page about a file ("…/File:Clip.webm") is a page, not the file. */
+private fun isFilePage(url: String): Boolean {
+    val path = url.substringBefore('#').substringBefore('?').lowercase()
+    return path.substringAfterLast('/').contains(':') || path.contains("/wiki/")
 }
 
 /** The server says [url] is a video (a HEAD request, 2 s at most); false when unsure. */
@@ -107,12 +146,36 @@ suspend fun isVideoFile(url: String): Boolean = kotlinx.coroutines.withContext(k
         c.requestMethod = "HEAD"
         c.instanceFollowRedirects = true
         try {
-            c.responseCode in 200..399 && c.contentType.orEmpty().lowercase().let { it.startsWith("video/") || it == "application/octet-stream" && downloadableVideo(url) != null }
+            c.responseCode in 200..399 && isVideoType(c.contentType, url)
         } finally {
             c.disconnect()
         }
     }.getOrDefault(false)
 }
+
+/**
+ * The same question for a page's video (⋯ › Download video), asked through the engine as the tab
+ * would: in a private tab, Gecko's private session (its cookies only, never the normal ones; its
+ * DNS over HTTPS), and never over plain http (Private is HTTPS-only). Fixes F6.
+ */
+suspend fun isVideoFile(client: mozilla.components.concept.fetch.Client, url: String, private: Boolean): Boolean {
+    if (private && !url.startsWith("https://")) return false
+    return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching {
+            val request = mozilla.components.concept.fetch.Request(
+                url,
+                method = mozilla.components.concept.fetch.Request.Method.HEAD,
+                connectTimeout = 2L to java.util.concurrent.TimeUnit.SECONDS,
+                readTimeout = 2L to java.util.concurrent.TimeUnit.SECONDS,
+                private = private,
+            )
+            client.fetch(request).use { r -> r.status in 200..399 && isVideoType(r.headers["Content-Type"], url) }
+        }.getOrDefault(false)
+    }
+}
+
+internal fun isVideoType(contentType: String?, url: String): Boolean =
+    contentType.orEmpty().lowercase().let { it.startsWith("video/") || it.startsWith("application/octet-stream") && downloadableVideo(url) != null }
 
 private val VIDEO_EXTENSIONS = listOf(".mp4", ".webm", ".m4v", ".mov", ".mkv")
 

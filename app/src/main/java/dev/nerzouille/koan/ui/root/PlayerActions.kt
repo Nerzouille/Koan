@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.root
 
+import kotlinx.coroutines.launch
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.ui.kit.Toast
 import dev.nerzouille.koan.ui.kit.undoToast
@@ -55,7 +56,9 @@ internal fun standaloneActions(
             } else {
                 components.store.dispatch(
                     mozilla.components.browser.state.action.DownloadAction.AddDownloadAction(
-                        mozilla.components.browser.state.state.content.DownloadState(url, skipConfirmation = true, referrerUrl = video.pageUrl),
+                        mozilla.components.browser.state.state.content.DownloadState(
+                            url, skipConfirmation = true, referrerUrl = video.pageUrl, private = components.privateMode.on.value,
+                        ),
                     ),
                 )
             }
@@ -66,5 +69,6 @@ internal fun standaloneActions(
             context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
         },
         pip = { components.pip.value?.enterNow() },
+        setPipOnLeave = { on -> components.appScope.launch { components.settings.setPictureInPicture(on) } },
     )
 }

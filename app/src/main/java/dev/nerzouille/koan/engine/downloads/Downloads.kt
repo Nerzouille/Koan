@@ -124,6 +124,9 @@ class Downloads(
     /** Clears the list; the files stay where they are. */
     fun clearHistory() = useCases.removeAllDownloads()
 
+    /** Removes these rows only (normal mode's Clear list: private rows aren't shown there). The files stay. */
+    fun clearRows(downloads: List<DownloadState>) = downloads.forEach { useCases.removeDownload(it.id) }
+
     /** The system's own view of the downloads folder. */
     fun showFolder() {
         runCatching {

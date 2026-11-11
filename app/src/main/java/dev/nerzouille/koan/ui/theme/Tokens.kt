@@ -1248,11 +1248,15 @@ object DownloadTokens {
     val GroupRadius = SharedTokens.GroupRadius
     val ChipHeight = 32.dp
     val ChipTextSize = 13.sp
+    /** Between the Private pill and the folder chip (Private only). */
+    val PillGap = 8.dp
     val BottomGap = 10.dp
 
     /** The ring in the address pill while something downloads. */
     val Ring = 18.dp
     val RingStroke = 2.dp
+    /** A finished download: the ring fills, its check draws in, then it fades out (all of it). */
+    const val DONE_MS = 1400
 }
 
 /** The search sheet above the address field (design 7a–7d). */

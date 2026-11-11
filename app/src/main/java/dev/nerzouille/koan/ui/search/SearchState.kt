@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.ui.search
 
+import dev.nerzouille.koan.privacy.PrivateBookmark
+import dev.nerzouille.koan.privacy.PrivateBookmarks
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -58,12 +60,15 @@ fun rememberSearch(
     suggest: Boolean,
     /** Private: no history is read (bookmarks and the private tabs in [spaces] only). */
     private: Boolean = false,
+    /** Private's own bookmarks, suggested only while [private] (before the normal ones). */
+    privateMarks: List<PrivateBookmark> = emptyList(),
 ): SearchState {
     val state = remember { SearchState() }
     val latestSpaces by rememberUpdatedState(spaces)
     val latestModels by rememberUpdatedState(models)
     val current by rememberUpdatedState(currentTabId)
     val latestShortcuts by rememberUpdatedState(shortcuts)
+    val latestPrivateMarks by rememberUpdatedState(privateMarks)
     LaunchedEffect(field.typed, field.edited, private) {
         val parsed = parseQuery(field.typed, latestShortcuts)
         if (!field.edited || parsed.picking || parsed.shortcut != null) {
@@ -77,8 +82,11 @@ fun rememberSearch(
         val first = q.substringBefore(' ')
         val visits = if (private) emptyList() else (if (q.isEmpty()) dao.recentVisits(LIMIT) else dao.searchVisits(first, LIMIT))
             .map { Hit(it.url, it.title, Source.History, visits = it.visitCount, lastUsed = it.lastVisit) }
-        val marks = (if (q.isEmpty()) dao.recentBookmarks(LIMIT) else dao.searchBookmarks(first, LIMIT))
+        val own = if (!private) emptyList() else PrivateBookmarks.search(latestPrivateMarks, first, LIMIT)
             .map { Hit(it.url, it.title, Source.Bookmark, lastUsed = it.createdAt) }
+        val marks = (own + (if (q.isEmpty()) dao.recentBookmarks(LIMIT) else dao.searchBookmarks(first, LIMIT))
+            .map { Hit(it.url, it.title, Source.Bookmark, lastUsed = it.createdAt) })
+            .distinctBy { it.url }
         val tabs = latestSpaces.flatMapIndexed { i, s ->
             val model = latestModels.getOrNull(i)
             (s.stack.flatMap { it.tabs } + s.pinnedTabs + s.essentials)

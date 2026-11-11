@@ -54,6 +54,8 @@ class StandaloneActions(
     val download: () -> Unit,
     val shareLink: () -> Unit,
     val pip: () -> Unit,
+    /** Settings › Picture-in-picture, from the ⋯ menu. */
+    val setPipOnLeave: (Boolean) -> Unit = {},
 )
 
 /**
@@ -62,7 +64,7 @@ class StandaloneActions(
  * the screen under it as it was. Grows from [StandaloneVideo.from] (or the centre) and goes back.
  */
 @Composable
-fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: Boolean, onClosed: () -> Unit, onPlaying: (Boolean, Pair<Int, Int>?) -> Unit, onControls: (PlayerControls?, (() -> PlayerState)?) -> Unit) {
+fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: Boolean, pipOnLeave: Boolean = true, onClosed: () -> Unit, onPlaying: (Boolean, Pair<Int, Int>?) -> Unit, onControls: (PlayerControls?, (() -> PlayerState)?) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val native = remember(video.uri) { NativeVideo(context.applicationContext, video.uri) }
@@ -78,15 +80,25 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
     LaunchedEffect(st.playing, st.width, st.height) {
         onPlaying(st.playing, if (st.width > 0 && st.height > 0) st.width to st.height else null)
     }
-    // Any orientation while it is open (the phone's sensor), portrait again once closed.
+    // Any orientation while it is open (the phone's sensor), portrait again once closed. With the
+    // phone's auto-rotate off: the video's shape once it is known (F2), as a web fullscreen does.
     val activity = context as? Activity
+    val rotationLocked = rememberRotationLocked()
+    val shape = if (st.width > 0 && st.height > 0) st.height > st.width else null
+    // The rotate pill (auto-rotate off) turns it the other way.
+    var rotated by remember { mutableStateOf(false) }
+    LaunchedEffect(rotationLocked, shape, rotated) {
+        activity?.requestedOrientation = when {
+            !rotationLocked -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+            shape == null -> return@LaunchedEffect
+            else -> fullscreenOrientation(fullscreen = true, videoPortrait = shape != rotated, rotationLocked = true, turned = false)
+        }
+    }
     DisposableEffect(Unit) {
         val before = activity?.requestedOrientation
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
         val window = activity?.window
         val bars = window?.let { androidx.core.view.WindowCompat.getInsetsController(it, it.decorView) }
         bars?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        bars?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
         window?.let { immersive(it, true) }
         onDispose {
             window?.let { immersive(it, false) }
@@ -94,6 +106,12 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
             bars?.show(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
             bars?.show(androidx.core.view.WindowInsetsCompat.Type.statusBars())
         }
+    }
+
+    // Portrait: the status bar stays and the top row sits under it; landscape: both bars away.
+    val orientation = androidx.compose.ui.platform.LocalConfiguration.current.orientation
+    LaunchedEffect(orientation) {
+        activity?.window?.let { playerBars(it, orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT) }
     }
 
     val open = remember { Animatable(if (noMotion) 1f else 0f) }
@@ -164,7 +182,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 modifier = Modifier.align(Alignment.Center),
             )
         }
-        val rows = remember(video.mode, video.download, actions, native) { when (video.mode) {
+        val rows = remember(video.mode, video.download, actions, native, pipOnLeave) { listOf(pipOnLeaveRow(pipOnLeave, actions.setPipOnLeave)) + when (video.mode) {
             PlayerMode.File -> listOf(
                 MenuRow(KoanIcons.Share, "Share") { actions.share() },
                 MenuRow(KoanIcons.Open, "Open with another app") { native.pause(); actions.openWith() },
@@ -175,6 +193,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
             )
         } }
         VideoPlayer(
+            onRotate = { rotated = !rotated },
             state = st,
             controls = native,
             mode = video.mode,

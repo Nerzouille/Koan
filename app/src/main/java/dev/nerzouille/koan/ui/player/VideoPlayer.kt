@@ -1,5 +1,8 @@
 package dev.nerzouille.koan.ui.player
 
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.layout.systemGestures
+import androidx.compose.foundation.layout.WindowInsets
 import android.app.Activity
 import android.content.Context
 import android.media.AudioManager
@@ -126,6 +129,10 @@ fun VideoPlayer(
     modifier: Modifier = Modifier,
     /** Picture-in-picture or a transition: nothing but the video. */
     hidden: Boolean = false,
+    /** A short note over the video (Download video started or failed); a new [PlayerNotice.serial] shows it again. */
+    notice: PlayerNotice? = null,
+    /** Turns the player to the other orientation (the rotate pill, auto-rotate off); null: no pill. */
+    onRotate: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -163,8 +170,34 @@ fun VideoPlayer(
         lastTouch = SystemClock.uptimeMillis()
     }
 
+    /** A visible control was used (maybe while fading out): the controls stay, from now. */
+    fun used() {
+        touched()
+        shown = true
+    }
+
+    // Play / pause from the last tap's intent while the page hasn't reported it yet: quick taps
+    // each turn it the other way instead of two reading the same stale "playing".
+    var intent by remember { mutableStateOf<Boolean?>(null) }
+    var intentAt by remember { mutableLongStateOf(0L) }
+    fun playPause() {
+        val s = live.value
+        val now = SystemClock.uptimeMillis()
+        if (s.ended) {
+            toggle(s, ctl.value)
+            intent = true
+        } else {
+            val play = nextPlay(s.playing, intent, now - intentAt)
+            if (play) ctl.value.play() else ctl.value.pause()
+            intent = play
+        }
+        intentAt = now
+    }
+
     // ---- the mist (§5 controls.in / controls.out) ----
     val mist = remember { Animatable(1f) }
+    // On screen at all (fading in or out included); changes only at the two ends, not per frame.
+    val controlsVisible by remember { derivedStateOf { mist.value > 0f } }
     val settle = remember { Animatable(1f) }
     var entering by remember { mutableStateOf(true) }
     LaunchedEffect(shown) {
@@ -183,8 +216,10 @@ fun VideoPlayer(
         }
     }
     // §5 controls.autoHide
-    LaunchedEffect(shown, lastTouch, state.playing, menuOpen, scrubbing, locked) {
-        if (!shown || locked || !state.playing || menuOpen || scrubbing) return@LaunchedEffect
+    // A finger on the player (a press on a button included): the controls never start hiding under it.
+    var fingerDown by remember { mutableStateOf(false) }
+    LaunchedEffect(shown, lastTouch, state.playing, menuOpen, scrubbing, locked, fingerDown) {
+        if (!shown || locked || !state.playing || menuOpen || scrubbing || fingerDown) return@LaunchedEffect
         delay(PlayerTokens.AUTO_HIDE_MS)
         shown = false
     }
@@ -292,7 +327,25 @@ fun VideoPlayer(
         }
     }
 
-    BoxWithConstraints(modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier
+            .fillMaxSize()
+            // Sees every touch first (never consumes): a finger down holds the auto-hide.
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    fingerDown = true
+                    try {
+                        do {
+                            val e = awaitPointerEvent(PointerEventPass.Initial)
+                        } while (e.changes.any { it.pressed })
+                    } finally {
+                        fingerDown = false
+                        touched()
+                    }
+                }
+            },
+    ) {
         val landscape = maxWidth > maxHeight
         val widthPx = constraints.maxWidth.toFloat()
         val heightPx = constraints.maxHeight.toFloat()
@@ -301,7 +354,9 @@ fun VideoPlayer(
         val cut = rememberCutouts(landscape)
         val bottomPillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
         val side = PlayerTokens.Inset
-        val ins = playerInsets(cut, maxWidth, maxHeight, bottomPillH, density)
+        // The status bar's height even before it shows (portrait keeps it over the player).
+        val statusTop = with(density) { WindowInsets.statusBarsIgnoringVisibility.getTop(density).toDp() }
+        val ins = playerInsets(cut, maxWidth, maxHeight, bottomPillH, density, statusTop)
         val startInset = ins.titleStart
         val endInset = ins.rightEnd
         val topInset = ins.top
@@ -312,6 +367,12 @@ fun VideoPlayer(
         val levelHeight = levelRoom.coerceIn(PlayerTokens.LevelMin, PlayerTokens.LevelSize.height)
         val levelRangePx = PlayerTokens.LEVEL_RANGE * heightPx
         val slop = with(density) { PlayerTokens.SwipeSlop.toPx() }
+        // The system's gesture edges (the shade from the top, home from the bottom): a press that
+        // starts there never moves a level, swipes the player away or holds for 2× (fixes F4).
+        val gestures = WindowInsets.systemGestures
+        val edgeMin = with(density) { PlayerTokens.EdgeBand.roundToPx() }
+        val topBand = maxOf(gestures.getTop(density), edgeMin).toFloat()
+        val bottomBand = maxOf(gestures.getBottom(density), edgeMin).toFloat()
         val fling = with(density) { PlayerTokens.FlingCommit.toPx() }
         val swipeY = remember { Animatable(0f) }
 
@@ -324,11 +385,12 @@ fun VideoPlayer(
         Box(
             Modifier
                 .fillMaxSize()
-                .pointerInput(landscape, widthPx, heightPx, levelRangePx) {
+                .pointerInput(landscape, widthPx, heightPx, levelRangePx, topBand, bottomBand) {
                     var lastTapUp = 0L
                     var lastTapZone = 0
-                    var shownBeforeTap = true
                     var lastSeekAt = 0L
+                    // A side tap's show / hide waits TAP_PAIR_MS: a second tap makes it a seek instead (F3).
+                    var pendingToggle: Job? = null
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = true)
                         if (hidden) return@awaitEachGesture
@@ -345,6 +407,7 @@ fun VideoPlayer(
                             return@awaitEachGesture
                         }
                         val start = down.position
+                        val atEdge = start.y < topBand || start.y > heightPx - bottomBand
                         val velocity = VelocityTracker()
                         velocity.addPosition(down.uptimeMillis, down.position)
                         var mode = 0 // 0 undecided, 1 level, 2 swipe down, 3 long press, 4 horizontal (ignored)
@@ -352,7 +415,7 @@ fun VideoPlayer(
                         var levelFrom = 0f
                         var lastLevelTick = -1
                         var pressJob: Job? = null
-                        if (!locked && live.value.playing) {
+                        if (!locked && !atEdge && live.value.playing) {
                             pressJob = scope.launch {
                                 delay(PlayerTokens.LONG_PRESS_MS)
                                 if (mode == 0) {
@@ -375,6 +438,11 @@ fun VideoPlayer(
                                 break
                             }
                             val d = change.position - start
+                            if (mode == 0 && (abs(d.x) > slop || abs(d.y) > slop) && atEdge) {
+                                // From a system edge: the system's gesture, not the player's.
+                                mode = 4
+                                pressJob?.cancel()
+                            }
                             if (mode == 0 && !locked && (abs(d.x) > slop || abs(d.y) > slop)) {
                                 mode = when {
                                     // Down from the centre: leave (or close); any other vertical move: the
@@ -434,24 +502,22 @@ fun VideoPlayer(
                             }
                             0 -> if (up) {
                                 val now = SystemClock.uptimeMillis()
-                                when {
-                                    locked -> {
+                                when (tapAction(locked, zone, seekSide, now - lastSeekAt, lastTapZone, now - lastTapUp)) {
+                                    TapAction.ShowUnlock -> {
                                         unlockShown = true
                                         unlockSerial++
                                     }
-                                    // Another tap on the same side while a seek shows: 10 s more.
-                                    zone != 0 && zone == seekSide && now - lastSeekAt < PlayerTokens.DOUBLE_TAP_WINDOW_MS -> {
+                                    TapAction.SeekMore -> {
                                         seekSteps++
                                         seekSerial++
                                         lastSeekAt = now
                                         KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
-                                    // The second tap of a pair on a side: a seek, and the first tap's toggle undone.
-                                    zone != 0 && zone == lastTapZone && now - lastTapUp < PlayerTokens.TAP_PAIR_MS -> {
+                                    TapAction.SeekPair -> {
                                         lastTapUp = 0L
-                                        shown = false
-                                        if (shownBeforeTap && !live.value.playing) shown = shownBeforeTap
+                                        pendingToggle?.cancel()
+                                        pendingToggle = null
                                         seekSide = zone
                                         seekSteps = 1
                                         seekSerial++
@@ -459,10 +525,19 @@ fun VideoPlayer(
                                         KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
-                                    else -> {
-                                        // A tap shows or hides the controls at once.
-                                        shownBeforeTap = shown
+                                    TapAction.ToggleNow -> {
+                                        pendingToggle?.cancel()
+                                        pendingToggle = null
                                         shown = !shown
+                                        lastTapUp = now
+                                        lastTapZone = zone
+                                    }
+                                    TapAction.ToggleLater -> {
+                                        pendingToggle?.cancel()
+                                        pendingToggle = scope.launch {
+                                            delay(PlayerTokens.TAP_PAIR_MS)
+                                            shown = !shown
+                                        }
                                         lastTapUp = now
                                         lastTapZone = zone
                                     }
@@ -526,12 +601,17 @@ fun VideoPlayer(
             )
         }
 
-        CompositionLocalProvider(LocalControlsLive provides (shown && !hidden)) {
+        // Hidden controls take no touches at all (F8 recheck): a tap where a button would be reaches
+        // the video. Visible ones (fading in or out too) always take theirs.
+        CompositionLocalProvider(LocalControlsLive provides controlsTakeTouches(shown || controlsVisible, hidden)) {
             val group: GraphicsLayerScope.(TransformOrigin, Float) -> Unit = { origin, inward ->
                 applyMist(mist.value, settle.value, entering, origin, inward * PlayerTokens.MistShift.toPx(), noMotion, mistBlurs)
                 alpha *= hiddenAlpha(hidden) * (1f - levelShown.value)
             }
-            val buttonsLive = shown && !hidden
+            val buttonsLive = controlsTakeTouches(shown || controlsVisible, hidden)
+            // The ⋯ pill grows into the panel (the standalone player's open / close springs); the
+            // round pills under it fade out meanwhile, so none shows through the panel.
+            val menuIn = rememberPresence(menuOpen, enter = PlayerTokens.OpenSpring, exit = PlayerTokens.CloseSpring, startShown = true)
             // ---- top: title pill, round pills ----
             var rightWidth by remember { mutableIntStateOf(0) }
             val rightDp = with(density) { rightWidth.toDp() }
@@ -558,12 +638,13 @@ fun VideoPlayer(
                             alpha = if (unlockShown) 1f else 0f
                         } else {
                             group(TransformOrigin(1f, 0f), 1f)
+                            alpha *= 1f - menuIn.progress
                         }
                     },
                 horizontalArrangement = Arrangement.spacedBy(PlayerTokens.RoundGap),
             ) {
                 if (locked) {
-                    UnlockPill(onClick = {
+                    UnlockPill(unlockShown, onClick = {
                         if (unlockShown) {
                             locked = false
                             unlockShown = false
@@ -573,7 +654,7 @@ fun VideoPlayer(
                     })
                     Spacer(Modifier.width(PlayerTokens.RoundPill))
                 } else {
-                    if (abs(state.rate - 1.0) > 0.01 && !boost) SpeedPill(state.rate) { if (buttonsLive) { menuOpen = true; touched() } }
+                    if (abs(state.rate - 1.0) > 0.01 && !boost) SpeedPill(state.rate) { if (buttonsLive) { menuOpen = true; used() } }
                     PlayerDisc(PlayerTokens.RoundPill, onClick = { if (buttonsLive) onPip() }) { PlayerIcon(KoanIcons.Pip, PlayerTokens.Glyph) }
                     PlayerDisc(PlayerTokens.RoundPill, onClick = {
                         if (buttonsLive) {
@@ -584,25 +665,28 @@ fun VideoPlayer(
                             unlockSerial++
                         }
                     }) { PlayerIcon(KoanIcons.Lock, PlayerTokens.Glyph) }
-                    PlayerDisc(PlayerTokens.RoundPill, onClick = { if (buttonsLive) { menuOpen = !menuOpen; touched() } }) { PlayerIcon(KoanIcons.More, PlayerTokens.Glyph) }
+                    PlayerDisc(PlayerTokens.RoundPill, onClick = { if (buttonsLive) { menuOpen = !menuOpen; used() } }) { PlayerIcon(KoanIcons.More, PlayerTokens.Glyph) }
                 }
             }
 
             if (!locked) {
                 // ---- centre group (hidden while the bar is pressed) ----
                 val centreOut by animateFloatAsState(if (scrubbing) 0f else 1f, Motion.Fade, label = "centreOut")
-                if (!spinner) {
+                val spinnerOut = animateFloatAsState(if (spinner) 0f else 1f, Motion.Fade, label = "spinnerOut")
+                // Always composed (fixes recheck): while the spinner shows it is only faded out, so a
+                // press on it is never torn down mid-way and a tap in the middle still plays / pauses.
+                run {
                     CentreGroup(
                         state = state,
                         landscape = landscape,
-                        onBack10 = { if (buttonsLive) { touched(); seekBy(state, controls, -1) } },
-                        onAhead10 = { if (buttonsLive) { touched(); seekBy(state, controls, 1) } },
-                        onPlay = { if (buttonsLive) { touched(); toggle(state, controls) } },
+                        onBack10 = { if (buttonsLive) { used(); seekBy(state, controls, -1) } },
+                        onAhead10 = { if (buttonsLive) { used(); seekBy(state, controls, 1) } },
+                        onPlay = { if (buttonsLive) { used(); playPause() } },
                         modifier = Modifier
                             .align(Alignment.Center)
                             .graphicsLayer {
                                 group(TransformOrigin.Center, 0f)
-                                alpha *= centreOut
+                                alpha *= centreOut * spinnerOut.value
                             },
                     )
                 }
@@ -624,9 +708,9 @@ fun VideoPlayer(
                         touched()
                     },
                     onSeek = { seconds -> controls.seek(seconds) },
-                    onPlay = { if (buttonsLive) { touched(); toggle(state, controls) } },
-                    onMute = { if (buttonsLive) { touched(); controls.mute(!state.muted) } },
-                    onFullscreen = { if (buttonsLive) { touched(); onFullscreenButton() } },
+                    onPlay = { if (buttonsLive) { used(); playPause() } },
+                    onMute = { if (buttonsLive) { used(); controls.mute(!state.muted) } },
+                    onFullscreen = { if (buttonsLive) { used(); onFullscreenButton() } },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(start = ins.bottomStart, end = ins.bottomEnd, bottom = bottomInset)
@@ -659,27 +743,72 @@ fun VideoPlayer(
                 }
 
                 // ---- ⋯ menu ----
-                val menuIn = rememberPresence(menuOpen, enter = Motion.Fade, exit = Motion.FadeQuick, startShown = true)
                 if (menuIn.composed) {
-                    val rows = remember(menuRows) { menuRows.map { row -> MenuRow(row.icon, row.label, row.destructive) { menuOpen = false; row.onClick() } } }
+                    // Every field kept (a switch's state, a greyed-out row and its reason); a tap also closes the menu.
+                    val rows = remember(menuRows) { menuRows.map { row -> row.after { menuOpen = false } } }
                     PlayerMenu(
                         rate = state.rate,
                         onRate = { r -> controls.rate(r); touched() },
                         rows = rows,
+                        // Its top edge level with the top row, its corner on the ⋯ pill.
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(end = endInset, top = topInset + PlayerTokens.RoundPill + 8.dp)
-                            .graphicsLayer {
-                                alpha = menuIn.progress
-                                val s = 0.92f + 0.08f * menuIn.progress
-                                scaleX = s
-                                scaleY = s
-                                transformOrigin = TransformOrigin(1f - (PlayerTokens.RoundPill / 2 / PlayerTokens.MenuWidth), 0f)
-                            }
+                            .padding(end = endInset, top = topInset)
                             .pointerInput(Unit) { awaitEachGesture { awaitFirstDown().also { touched() } } },
+                        morph = { menuIn.progress },
                     )
                 }
             }
+        }
+
+        // ---- a notice (Download video): above the bottom pill, never taking a touch ----
+        var noticeOn by remember { mutableStateOf(false) }
+        var lastNotice by remember { mutableStateOf<PlayerNotice?>(null) }
+        LaunchedEffect(notice?.serial) {
+            if (notice == null) return@LaunchedEffect
+            lastNotice = notice
+            noticeOn = true
+            delay(PlayerTokens.NOTICE_MS)
+            noticeOn = false
+        }
+        val noticeIn = rememberPresence(noticeOn && !hidden, enter = PlayerTokens.ControlsSpring, exit = Motion.Fade)
+        val shownNotice = lastNotice
+        if (noticeIn.composed && shownNotice != null) {
+            val pillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
+            NoticePanel(
+                shownNotice,
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = side, end = side, bottom = bottomInset + pillH + PlayerTokens.BubbleGap)
+                    .graphicsLayer {
+                        alpha = noticeIn.progress
+                        translationY = (1f - noticeIn.progress) * 12.dp.toPx()
+                    },
+            )
+        }
+
+        // ---- auto-rotate off: the rotate pill, a few seconds after the phone turns (like the system's) ----
+        val rotationLocked = rememberRotationLocked()
+        val offer = rememberRotateOffer(onRotate != null && rotationLocked && !hidden, screenPortrait = !landscape)
+        val rotateIn = rememberPresence(offer, enter = Motion.Fade, exit = Motion.FadeSlow)
+        if (rotateIn.composed && onRotate != null) {
+            // Exactly where the fullscreen button is (the bottom pill's end), while the controls are
+            // hidden; it rises above the bottom pill as the controls come in (their own mist, read
+            // in the layer).
+            val pillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
+            val inner = if (landscape) PlayerTokens.BottomPillInnerLandscape else PlayerTokens.BottomPillInnerPortrait
+            val lift = pillH + PlayerTokens.BubbleGap - PlayerTokens.BottomPillInnerBottom
+            PlayerDisc(
+                PlayerTokens.RoundPill,
+                onClick = { onRotate() },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = ins.bottomEnd + inner, bottom = bottomInset + PlayerTokens.BottomPillInnerBottom)
+                    .graphicsLayer {
+                        alpha = rotateIn.progress
+                        translationY = -lift.toPx() * (if (locked) 0f else mist.value * hiddenAlpha(hidden))
+                    },
+            ) { PlayerIcon(KoanIcons.Rotate, PlayerTokens.Glyph) }
         }
 
         // ---- buffering spinner (stays alone when the controls hide) ----
@@ -818,7 +947,7 @@ private fun TitlePill(mode: PlayerMode, title: String, subtitle: String, onLeadi
         modifier
             .height(PlayerTokens.PillHeight)
             .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
-            .blockTouches()
+            .then(if (LocalControlsLive.current) Modifier.blockTouches() else Modifier)
             .padding(end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -861,11 +990,12 @@ private fun SpeedPill(rate: Double, onClick: () -> Unit) {
 }
 
 @Composable
-private fun UnlockPill(onClick: () -> Unit) {
+private fun UnlockPill(shown: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .height(PlayerTokens.RoundPill)
-            .pressScale(onClick = onClick)
+            // Unseen, it takes no touch: the tap reaches the video and shows it.
+            .pressScale(shown, onClick = onClick)
             .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
             .padding(start = 12.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -930,7 +1060,7 @@ private fun BottomPill(
         ProgressBar(state, frameNow, scrubbing, scrubFraction, onScrub, onSeek, live, m.height(touch))
     }
     // The pill's empty parts take touches (they never reach the video under it).
-    val swallow = Modifier.blockTouches()
+    val swallow = if (live) Modifier.blockTouches() else Modifier
     if (landscape) {
         Row(
             modifier
@@ -1011,11 +1141,28 @@ private fun ProgressBar(
                         val w = size.width.toFloat().coerceAtLeast(1f)
                         fun frac(x: Float) = (x / w).coerceIn(0f, 1f)
                         var f = frac(down.position.x)
-                        onScrub(f, rootX + down.position.x)
+                        // Nothing moves until the finger goes sideways (a scrub) or lifts in place (a
+                        // tap seek): a move up or down (home from the bottom edge) leaves the video alone (F4).
+                        val touchSlop = viewConfiguration.touchSlop
+                        var scrubbing = false
                         var lastSent = 0L
                         while (true) {
                             val e = awaitPointerEvent(PointerEventPass.Main)
                             val c = e.changes.firstOrNull { it.id == down.id } ?: break
+                            val d = c.position - down.position
+                            if (!scrubbing) {
+                                if (abs(d.y) > touchSlop && abs(d.y) >= abs(d.x)) return@awaitEachGesture
+                                if (!c.pressed) {
+                                    c.consume()
+                                    onScrub(f, rootX + down.position.x)
+                                    break
+                                }
+                                if (abs(d.x) <= touchSlop) {
+                                    c.consume()
+                                    continue
+                                }
+                                scrubbing = true
+                            }
                             if (!c.pressed) {
                                 c.consume()
                                 break
@@ -1075,3 +1222,25 @@ private fun Modifier.drawBehindHalo(density: androidx.compose.ui.unit.Density): 
 private fun Modifier.drawBehindCompat(block: androidx.compose.ui.graphics.drawscope.DrawScope.(Size) -> Unit): Modifier =
     this.drawBehind { block(size) }
 
+
+/** A notice's panel: what (the file), then how it goes ("Downloading · 1.2 GB"); an error in the destructive colour. */
+@Composable
+private fun NoticePanel(notice: PlayerNotice, modifier: Modifier) {
+    Column(
+        modifier
+            .widthIn(max = PlayerTokens.MenuWidth + 80.dp)
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius), PlayerTokens.PanelMenu)
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            notice.title,
+            style = playerText(15.sp, FontWeight.SemiBold, if (notice.error) PlayerTokens.Destructive else PlayerTokens.Text),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        notice.detail?.let {
+            Text(it, style = playerText(13.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}

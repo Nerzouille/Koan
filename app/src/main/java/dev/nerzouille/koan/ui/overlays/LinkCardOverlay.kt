@@ -160,7 +160,13 @@ internal fun LinkCardOverlay(
                                     fun save(src: String) {
                                         tab ?: return
                                         components.store.dispatch(
-                                            ContentAction.UpdateDownloadAction(tab, DownloadState(src, skipConfirmation = true, referrerUrl = page.url)),
+                                            ContentAction.UpdateDownloadAction(
+                                                tab,
+                                                DownloadState(
+                                                    src, skipConfirmation = true, referrerUrl = page.url,
+                                                    private = components.store.state.findTab(tab)?.content?.private == true,
+                                                ),
+                                            ),
                                         )
                                         closeUnlessNext()
                                     }

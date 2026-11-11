@@ -64,6 +64,10 @@ object PlayerTokens {
     val ReplayHeight = 56.dp
     val BottomPillHeightLandscape = 56.dp
     val BottomPillHeightPortrait = 92.dp
+    /** Where the bottom pill's last button (fullscreen) sits from the pill's end and bottom (its paddings). */
+    val BottomPillInnerLandscape = 6.dp
+    val BottomPillInnerPortrait = 12.dp
+    val BottomPillInnerBottom = 6.dp
     val BottomPillRadius = 28.dp
     val TimeMinWidth = 36.dp
     val TrackThickness = 8.dp
@@ -125,6 +129,20 @@ object PlayerTokens {
     const val DOUBLE_TAP_WINDOW_MS = 700L
     const val LONG_PRESS_MS = 400L
     val SwipeSlop = 12.dp
+    /** The least of a system gesture edge (top and bottom) the player's drags leave alone. */
+    val EdgeBand = 32.dp
+
+    /** A ⋯ menu row that can't be used (Download video on a protected or streamed video). */
+    const val DISABLED_ALPHA = 0.5f
+
+    /** Download video: how long the engine may take to start it before the player says it couldn't. */
+    const val DOWNLOAD_START_MS = 8000L
+    /** A notice in the player (a download started or failed): on screen this long. */
+    const val NOTICE_MS = 3500L
+    /** Auto-rotate off: Koan's rotate pill stays this long after the phone turns (like the system's). */
+    const val ROTATE_OFFER_MS = 3000L
+    /** A play / pause tap counts on its own intent this long, until the page has reported it. */
+    const val PLAY_INTENT_MS = 1000L
     const val SWIPE_RATIO = 1.5f
     const val SWIPE_DOWN_SCALE_AT = 0.4f
     const val SWIPE_DOWN_COMMIT = 0.2f

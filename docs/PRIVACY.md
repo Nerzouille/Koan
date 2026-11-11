@@ -17,6 +17,18 @@ data are kept in memory only. Koan never downloads an icon for a private tab: it
 it already has it. Screenshots and screen recordings of private tabs are blocked unless you turn on
 Settings › Private browsing › Allow screenshots.
 
+A private video can go to picture-in-picture when you leave Koan (Settings › Picture-in-picture):
+its small window shows the video over other apps, and Android's screenshot block doesn't hide what
+the window shows. While that window is on screen, it counts as Private being open: the private
+lock's 1-minute timer doesn't run. The time away starts once nothing private is on screen: the
+window closed, **Audio only** (the sound goes on with no picture), or the screen turned off (which
+locks Private at once, as always). Turn picture-in-picture off to keep private videos from leaving
+Koan's screen.
+
+Bookmarks made in private tabs are kept apart from your normal bookmarks, in their own file on
+the phone, encrypted with their own Keystore key. They are never synced and never shown outside
+Private. That file stays when the last private tab closes.
+
 Translation runs on the phone (Firefox Translations): the text of a page is never sent anywhere.
 
 When you tap **Save image** on a picture that is still a small preview, a small part of Koan
@@ -54,7 +66,12 @@ Besides the sites you open, Koan connects to these:
 
 A link to a video file (`…/clip.mp4`) that another app opens with Koan first gets a short `HEAD`
 request to that same address, to ask whether it really is a video (Koan's player) or a page (a
-tab). It goes to the site you opened, nowhere else.
+tab). It goes to the site you opened, nowhere else. The video player's **Download video**, on a
+video whose address doesn't end like a video file, sends a `HEAD` request to the video's address
+when you tap it (never before), to check it is a file. That one goes through the engine like the
+tab's own requests: in a private tab, through the private session (its cookies, never the normal
+ones), and only over HTTPS. A video downloaded from a private tab downloads the same way and stays
+a private download.
 
 When you long-press an image, Koan downloads it again from its address (up to 4 MB) to show the
 preview. When you play a video link in Koan's player ("Play video" on a long-pressed link, or a
@@ -88,6 +105,8 @@ These lists are downloaded to the phone; the pages you visit are not sent to any
   was off stay in your account.
 - **Private tabs:** closing the last one deletes the saved private tabs, their cookies and their
   site data.
+- **Private bookmarks:** unstar one in a private tab, or, in Private, **Clear browsing data** ›
+  **Private bookmarks** deletes them all and their file.
 - **Translation languages:** Settings › Translation › On this phone › Delete.
 - **Site settings › Clear site data** clears one site's cookies, storage and permission answers.
 - Uninstalling Koan removes everything it stored.

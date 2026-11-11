@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +50,7 @@ import dev.nerzouille.koan.ui.kit.LibraryRowTitle
 import dev.nerzouille.koan.ui.kit.ListPage
 import dev.nerzouille.koan.ui.kit.SelectionAction
 import dev.nerzouille.koan.ui.kit.SelectionBar
+import dev.nerzouille.koan.ui.kit.SelectionDayHeader
 import dev.nerzouille.koan.ui.kit.SelectionHeader
 import dev.nerzouille.koan.ui.kit.SwipeRow
 import dev.nerzouille.koan.ui.kit.Toast
@@ -76,6 +78,8 @@ import mozilla.components.browser.state.state.content.DownloadState.Status
 @Composable
 fun DownloadsScreen(
     downloads: List<DownloadState>,
+    /** Private shown: private rows are listed (masked) and the Private pill narrows to them. */
+    private: Boolean = false,
     folder: String,
     actions: Downloads,
     onClear: () -> Unit,
@@ -91,7 +95,9 @@ fun DownloadsScreen(
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
     val hidden by actions.hidden.collectAsState()
-    val shown = downloads
+    // Private's pill: only private downloads. Off again whenever Private goes off.
+    var privateOnly by rememberSaveable(private) { mutableStateOf(false) }
+    val shown = visibleDownloads(downloads, private, privateOnly)
         .filterNot { it.status == Status.CANCELLED || it.id in hidden }
         .filter { query.isBlank() || it.fileName.orEmpty().contains(query.trim(), ignoreCase = true) }
         .sortedByDescending { it.createdTime }
@@ -150,6 +156,10 @@ fun DownloadsScreen(
         onClose = onClose,
         modifier = modifier,
         headerTrailing = {
+            if (private) {
+                PrivatePill(privateOnly) { privateOnly = !privateOnly }
+                Spacer(Modifier.width(DownloadTokens.PillGap))
+            }
             Row(
                 Modifier
                     .height(DownloadTokens.ChipHeight)
@@ -181,7 +191,7 @@ fun DownloadsScreen(
         ) {
             if (shown.isEmpty()) {
                 EmptyLine(
-                    if (query.isBlank()) "Files you download show up here." else "No download matches “${query.trim()}”.",
+                    if (query.isBlank()) (if (privateOnly) "Files you download in Private show up here." else "Files you download show up here.") else "No download matches “${query.trim()}”.",
                     Modifier.padding(top = SettingsTokens.SectionTop),
                 )
             }
@@ -191,7 +201,7 @@ fun DownloadsScreen(
             }
             // One card per day, newest first.
             byDay(done, { it.createdTime }).forEach { (day, items) ->
-                SettingsSection(day)
+                if (selecting) SelectionDayHeader(day, items.map { it.id }, selection) else SettingsSection(day)
                 items.forEachIndexed { i, d ->
                     key(d.id) {
                         SwipeRow(
@@ -284,6 +294,26 @@ private fun RunningRow(d: DownloadState, actions: Downloads) {
         }
         Spacer(Modifier.width(DownloadTokens.ActionGap))
         RoundButton(KoanIcons.Close) { actions.cancel(d) }
+    }
+}
+
+/** Private's filter: the mask and "Private", filled while it narrows the list to private downloads. */
+@Composable
+private fun PrivatePill(on: Boolean, onClick: () -> Unit) {
+    val palette = KoanTheme.colors
+    val content = if (on) palette.OnPrimary else palette.TextSecondary
+    Row(
+        Modifier
+            .height(DownloadTokens.ChipHeight)
+            .clip(CircleShape)
+            .background(if (on) palette.Primary else palette.Card)
+            .clickable(onClickLabel = if (on) "Show all downloads" else "Show only private downloads", onClick = onClick)
+            .padding(horizontal = SettingsTokens.RowInset),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.Icon(KoanIcons.Private, null, tint = content, modifier = Modifier.size(SettingsTokens.RowGlyph * 0.8f))
+        Spacer(Modifier.width(SettingsTokens.Divider * 6))
+        Text("Private", color = content, fontSize = DownloadTokens.ChipTextSize, maxLines = 1)
     }
 }
 

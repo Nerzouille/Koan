@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
@@ -81,6 +82,7 @@ import dev.nerzouille.koan.ui.browser.TabSwipe
 import dev.nerzouille.koan.ui.browser.TranslateOfferHost
 import dev.nerzouille.koan.ui.browser.observeSlice
 import dev.nerzouille.koan.ui.browser.rememberFullscreen
+import dev.nerzouille.koan.ui.downloads.visibleIn
 import dev.nerzouille.koan.ui.downloads.host
 import dev.nerzouille.koan.ui.downloads.sizeText
 import dev.nerzouille.koan.ui.kit.KoanToastHost
@@ -97,7 +99,6 @@ import dev.nerzouille.koan.ui.overview.SyncUi
 import dev.nerzouille.koan.ui.overview.findTab
 import dev.nerzouille.koan.ui.overview.toModel
 import dev.nerzouille.koan.ui.player.WebPlayerLayer
-import dev.nerzouille.koan.ui.player.downloadVideo
 import dev.nerzouille.koan.ui.privacy.NoPersonalizedLearning
 import dev.nerzouille.koan.ui.privacy.PrivateDockPill
 import dev.nerzouille.koan.ui.privacy.PrivateFlip
@@ -120,6 +121,7 @@ import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
 import dev.nerzouille.koan.ui.start.ContinueTab
 import dev.nerzouille.koan.ui.start.StartPage
+import dev.nerzouille.koan.ui.theme.DownloadTokens
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanNormalTheme
@@ -273,10 +275,12 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val searchField = remember { SearchField() }
     val suggestions by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val privateSuggestions by components.settings.privateSuggestions.collectAsStateWithLifecycle(false)
+    val searchPrivateMarks by components.privateBookmarks.list.collectAsStateWithLifecycle()
     val search = rememberSearch(
         searchField, components.database.dao(), spaces, models, activeTabId, searchEngine, shortcuts,
         suggest = if (privateOn) privateSuggestions else suggestions,
         private = privateOn,
+        privateMarks = if (privateOn) searchPrivateMarks else emptyList(),
     )
     val toasts = remember { ToastState() }
     // (space uuid, card id) the overview brings into focus (a card put back by Undo).
@@ -808,10 +812,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 tabId = activeTabId,
                 fullScreen = fullScreen,
                 inPip = inPip,
-                onDownload = { url ->
-                    downloadVideo(components, activeTabId, url)
-                    toasts.show(Toast("Downloading the video"))
-                },
                 onToast = { title, detail -> toasts.show(Toast(title, detail = detail)) },
             )
         }
@@ -920,8 +920,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
         val findUi = rememberFindUi(components, overlays, activeTabId)
         // Downloads running: their combined progress for the ring in the pill (NaN = size unknown).
-        val downloadProgress by store.observeSlice(Unit) { s ->
-            val running = s.downloads.values.filter { it.status == DownloadState.Status.DOWNLOADING }
+        val downloadProgress by store.observeSlice(privateOn) { s ->
+            val running = s.downloads.values.filter { it.status == DownloadState.Status.DOWNLOADING && visibleIn(it, privateOn) }
             if (running.isEmpty()) {
                 null
             } else {
@@ -929,18 +929,33 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 if (running.any { it.contentLength == null } || total <= 0L) Float.NaN else running.sumOf { it.currentBytesCopied }.toFloat() / total
             }
         }
+        // A download finished: the ring's check for DONE_MS (restarted by the next one), unless
+        // another download still runs (the ring then keeps showing progress).
+        var ringDoneTick by remember { mutableIntStateOf(0) }
+        var ringDone by remember { mutableStateOf(false) }
+        LaunchedEffect(ringDoneTick) {
+            if (ringDoneTick == 0) return@LaunchedEffect
+            ringDone = true
+            kotlinx.coroutines.delay(DownloadTokens.DONE_MS.toLong())
+            ringDone = false
+        }
         // A download finished (or failed): say so, with Open (or Retry).
         LaunchedEffect(Unit) {
             components.downloadDone.collect { (download, status) ->
+                // A private download that ends while normal mode is shown says nothing there.
+                if (!visibleIn(download, components.privateMode.on.value)) return@collect
                 val name = download.fileName ?: "File"
                 when (status) {
-                    DownloadState.Status.COMPLETED -> toasts.show(
-                        Toast(
-                            "$name downloaded", "Open",
-                            detail = listOfNotNull(sizeText(download.contentLength ?: download.currentBytesCopied), host(download)).joinToString(" · "),
-                            moment = true,
-                        ) { components.downloads.open(download) },
-                    )
+                    DownloadState.Status.COMPLETED -> {
+                        ringDoneTick++
+                        toasts.show(
+                            Toast(
+                                "$name downloaded", "Open",
+                                detail = listOfNotNull(sizeText(download.contentLength ?: download.currentBytesCopied), host(download)).joinToString(" · "),
+                                moment = true,
+                            ) { components.downloads.open(download) },
+                        )
+                    }
                     DownloadState.Status.FAILED -> toasts.show(Toast("Couldn't download $name", "Retry") { components.downloads.retry(download) })
                     else -> Unit
                 }
@@ -1070,6 +1085,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     complete = search::complete,
                     completedTitle = { search.results.top?.title },
                     download = downloadProgress,
+                    downloadDone = ringDone && downloadProgress == null,
                     onDownloads = { overlays.downloadsOpen = true },
                     private = flip.labels,
                     flip = flip,
@@ -1111,6 +1127,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 video = video,
                 actions = standaloneActions(components, androidx.compose.ui.platform.LocalContext.current, video, activeTabId, toasts::show),
                 inPip = inPip,
+                pipOnLeave = components.settings.pictureInPicture.collectAsStateWithLifecycle(true).value,
                 onClosed = {
                     player.standalone = null
                     pipNow?.setStandalone(false, false, null)
@@ -1210,11 +1227,17 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         val locked by privateMode.locked.collectAsStateWithLifecycle()
         val lockOn by components.settings.privateLock.collectAsStateWithLifecycle(true)
         val privateCount by privateTabs.count.collectAsStateWithLifecycle()
-        val showLock = privateOn && locked && lockOn && privateCount > 0
+        val privateMarks by components.privateBookmarks.list.collectAsStateWithLifecycle()
+        val showLock = privateOn && locked && lockOn && (privateCount > 0 || privateMarks.isNotEmpty())
         fun unlock() {
             scope.launch { if (fragmentActivity != null && unlockPrivate(fragmentActivity)) privateMode.locked.value = false }
         }
-        LaunchedEffect(showLock) { if (showLock) unlock() }
+        LaunchedEffect(showLock) {
+            if (!showLock) return@LaunchedEffect
+            // The lock cover is never shown turned or immersive over a private video.
+            dev.nerzouille.koan.ui.browser.leaveFullscreen(components) { it.content.private }
+            unlock()
+        }
         if (showLock) {
             BackHandler { leavePrivate() }
             PrivateLockCover(onUnlock = ::unlock, onLeave = ::leavePrivate)

@@ -453,9 +453,18 @@ Each language is downloaded once (about 20–30 MB) the first time you use it.
 
 ### Full screen video
 
-When a video goes full screen, the status bar, navigation bar and dock hide, and the screen turns
-to the video's orientation (landscape, or portrait for a portrait video). Swipe from an edge to
-see the system bars for a moment. Koan's own player then takes over from the site's controls: see
+When a video goes full screen, the navigation bar and dock hide (and the status bar in landscape;
+in portrait it stays, white on black, with the player's top row under it), and the screen turns
+to the video's orientation (landscape, or portrait for a portrait video). With the phone's
+auto-rotate on, once you turn the phone that way the screen follows the phone, portrait included
+(a landscape video then plays with bars above and below). With auto-rotate off, it stays in the
+video's orientation (a landscape video flips by itself between the two landscape sides), and when
+you turn the phone to the other shape a small rotate button shows for about 3 s where the
+full-screen button is (above the bottom bar while the controls show): tap it to turn the player,
+or leave it and nothing changes.
+The screen stays black while it turns. Swipe from an edge to see the system bars for a moment: swipes that start on
+the top or bottom edge (the notification shade, going home) never move brightness, volume or the
+timeline. Leaving Private, or Private locking, takes a private video out of full screen. Koan's own player then takes over from the site's controls: see
 [Video player](#video-player). YouTube keeps its own controls.
 
 ### Video player
@@ -465,18 +474,29 @@ Koan's player, always dark, over a page's full-screen video and for videos Koan 
 - **Tap** shows or hides the controls; they hide on their own while the video plays. Play/pause,
   10 s back and ahead, the timeline (press and slide to move), mute, picture-in-picture, lock and
   ⋯.
-- **Double-tap** the left or right side: 10 s back or ahead; each more tap on that side adds 10 s.
+- **Double-tap** the left or right side: 10 s back or ahead, without showing the controls; each
+  more tap on that side adds 10 s. (A single tap on a side shows the controls a moment later; in
+  the middle, at once.)
 - **Long press** while it plays: 2× speed while you hold (a "2×" badge shows).
 - **Swipe up or down** on the left half for brightness, on the right half for volume.
 - **Lock:** the controls and gestures stop until you tap **Unlock** (a tap shows it for 3 s).
-- **⋯:** **Playback speed** (0.5×, 0.75×, Normal, 1.25×, 1.5×, 2×), and, on a page,
-  **Download video** (when the video is a plain file) and **Use the site's controls** (Koan's come
-  back the next time the video goes full screen).
+- **⋯:** **Playback speed** (0.5×, 0.75×, Normal, 1.25×, 1.5×, 2×), **PiP on
+  leave** (On / Off at the end, the icon crossed out when off; the same setting as Settings ›
+  Picture-in-picture), and, on a page,
+  **Download video** and **Use the site's controls** (Koan's come back the next time the video
+  goes full screen). The ⋯ menu grows out of its pill. **Download video** stays in the player
+  and says how it goes there ("Downloading · 2.8 GB" with the file's name, or that it failed). A
+  streamed video still downloads when its page offers the same video as a plain file (a
+  `<source>` of the video, or a link to the file, as on Wikimedia Commons, where the original
+  file is picked). Otherwise it is greyed out, with why: a protected video (DRM), a streamed one
+  (most big video sites) or a live one. For an address that doesn't end like a video file, Koan
+  asks the site on the tap whether it is one. With the controls hidden, a tap anywhere shows them
+  (a double tap on a side seeks).
 - **Swipe down** from the middle, the exit-full-screen button or Back leave full screen; the page
   is where it was and the video keeps playing there.
 - **YouTube** keeps its own controls.
 
-**Picture-in-picture:** go home while a full-screen video plays, and it keeps playing in a small
+**Picture-in-picture:** go home while a full-screen video plays (not a paused one), and it keeps playing in a small
 window, with 10 s back, play/pause and 10 s ahead. Tap the window to come back. On a page's video
 the window also has **Audio only**: the window closes, the video leaves full screen and its sound
 keeps playing in the background with the media notification. (On phones that show only three
@@ -508,7 +528,8 @@ Playback keeps going with Koan in the background or the screen off.
   One a page starts on its own (a countdown, a script, a background tab) asks first, on a card
   with the file's name, size and site: **Download** or **Cancel** (a tap outside or Back cancels).
   A small ring in the address pill shows the progress. Tap the ring for Downloads.
-- When it's done: a toast with the file's name, size and site, and **Open**. A failed download says
+- When it's done: the ring fills, shows a check for a moment, then goes (tap it meanwhile for
+  Downloads); a toast with the file's name, size and site, and **Open**. A failed download says
   so, with **Retry**.
 - A link that only downloads a file (from another app, or opening a new tab) doesn't leave an empty
   tab behind.
@@ -525,10 +546,13 @@ Playback keeps going with Koan in the background or the screen off.
     file. Both have **Undo**; the file is only deleted once the toast is gone.
   - Long-press for selection mode: check files, then **Open** (or **Install** for an app),
     **Copy link**, **Share** or **Delete** for one, **Share** or **Delete** for several (deleting
-    several asks first).
+    several asks first). Each day's header has **Select all** (then **Deselect**) for that day.
   - **Search downloads** at the bottom, and **Clear** next to it to empty the list (asks first; the
     files stay).
   - The chip at the top shows the folder; tap it for Android's own downloads view.
+  - Downloads from private tabs only show while Private is on (masked), never in normal mode: not
+    in the list, the ring, the menu's count or a "downloaded" toast. In Private, the **Private**
+    pill next to the folder chip shows only them. **Clear** in normal mode leaves them alone.
 - **Where files go:** the phone's **Download** folder. To use another folder: Settings › **Save
   downloads to** › **Choose a folder…** (Android's folder picker).
 
@@ -586,10 +610,11 @@ Playback keeps going with Koan in the background or the screen off.
     a group to remove all its pages at once. With two-way history sync on, it's removed from your
     account too; otherwise a page from your desktop is only hidden on the phone.
   - Long-press for selection mode: **New tab**, **Copy link**, **Share link**, **Remove** for one
-    page, **Share** or **Remove** for several (a group: **Remove N visits**).
+    page, **Share** or **Remove** for several (a group: **Remove N visits**). Each day's header
+    has **Select all** (then **Deselect**) for that day.
   - **Clear** (next to the search field) opens **Clear browsing data**: History (on), Cached images
-    and files (on), Cookies and site data (off: it signs you out of most sites). Desktop history is
-    only hidden on the phone.
+    and files (on), Cookies and site data (off: it signs you out of most sites), and in Private,
+    when you have some, Private bookmarks (off). Desktop history is only hidden on the phone.
 - **Recently closed:** the last 25 tabs you closed (from the overview, the tab count's menu or
   Back) are at the top of the History page, or long-press the clock on the overview's dock for the
   whole list. Tap one: it comes back in its space and place, with its back and forward history,
@@ -708,7 +733,9 @@ the phone: a private card shows the site's icon after a restart until you open i
 the saved file. Koan opens in normal mode after a restart; Private is one tap away.
 
 **Locked:** opening Private asks for your fingerprint or the phone's PIN when you have private
-tabs, after 1 minute away from Koan or once the screen turned off. While locked, Private shows
+tabs or private bookmarks, after 1 minute away from Koan or once the screen turned off. A private
+video's picture-in-picture window counts as Private open: the minute starts once the window is
+closed or Audio only plays. While locked, Private shows
 only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on by default.)
 
 **What Private does**
@@ -739,7 +766,13 @@ only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on
 - **Refuse cookie banners** (Settings, off by default): where Firefox's rules know the site, its
   cookie banner is answered "reject" for you.
 - **Downloads** from private tabs go to the phone's Download folder and show in Downloads with a
-  small mask, until Koan restarts (the files stay). **Bookmarks** you save stay too.
+  small mask, only while Private is on, until Koan restarts (the files stay).
+- **Private bookmarks:** the ⋯ menu's star in a private tab saves a private bookmark, kept apart
+  from your normal ones and shown only in Private (private search suggests them first, then your
+  normal bookmarks). They are saved on the phone encrypted with a Keystore key, never synced, and
+  stay after the last private tab closes and after a restart (the lock covers them too). Unstar
+  one to remove it, or **Clear browsing data** › **Private bookmarks** (in Private, off by default)
+  for all of them. A page bookmarked in normal mode shows unstarred in a private tab.
 
 **What Private doesn't do**
 
@@ -748,7 +781,7 @@ only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on
   Tor Browser.
 - It doesn't stop sites from recognising you if you sign in.
 - It doesn't keep you signed in across restarts (see above).
-- Files you download and bookmarks you save stay on the phone after Private ends.
+- Files you download and private bookmarks stay on the phone after Private ends.
 
 **For all tabs** (Settings › All tabs)
 

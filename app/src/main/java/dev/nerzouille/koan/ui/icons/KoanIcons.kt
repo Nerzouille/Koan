@@ -250,6 +250,26 @@ object KoanIcons {
             moveTo(13f, 14f); lineTo(20f, 14f); lineTo(20f, 19f); lineTo(13f, 19f); close()
         }
     }
+    /** Turn the screen: a phone between two arrows going round. */
+    val Rotate: ImageVector by lazy {
+        stroked("rotate") {
+            moveTo(9f, 8f); lineTo(15f, 8f); lineTo(15f, 16f); lineTo(9f, 16f); close()
+            moveTo(4f, 12f); arcTo(8f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 12f, y1 = 4f)
+            moveTo(12f, 4f); lineTo(10f, 2f)
+            moveTo(12f, 4f); lineTo(10f, 6f)
+            moveTo(20f, 12f); arcTo(8f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 12f, y1 = 20f)
+            moveTo(12f, 20f); lineTo(14f, 18f)
+            moveTo(12f, 20f); lineTo(14f, 22f)
+        }
+    }
+    /** [Pip] crossed out: picture-in-picture off. */
+    val PipOff: ImageVector by lazy {
+        stroked("pip_off") {
+            moveTo(20f, 11f); lineTo(20f, 6f); lineTo(4f, 6f); lineTo(4f, 18f); lineTo(10f, 18f)
+            moveTo(13f, 14f); lineTo(20f, 14f); lineTo(20f, 19f); lineTo(13f, 19f); close()
+            moveTo(3f, 3f); lineTo(21f, 21f)
+        }
+    }
     val Unlock: ImageVector by lazy {
         stroked("unlock") {
             moveTo(6f, 11f); lineTo(18f, 11f); lineTo(18f, 20f); lineTo(6f, 20f); close()

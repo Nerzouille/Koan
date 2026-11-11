@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.ui.overlays
 
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -35,6 +37,7 @@ internal fun LibraryOverlays(
     overlays: Overlays,
     scope: CoroutineScope,
     downloads: List<DownloadState>,
+    private: Boolean,
     folderName: String?,
     clipboard: KoanClipboard,
     activeTabId: String?,
@@ -51,11 +54,12 @@ internal fun LibraryOverlays(
     if (downloadsSlide.composed) {
         DownloadsScreen(
             downloads = downloads,
+            private = private,
             folder = folderName ?: "Download",
             actions = components.downloads,
             onClear = {
                 overlays.ask("Clear the download list?", "The files stay in ${folderName ?: "Download"}.", "Clear list") {
-                    components.downloads.clearHistory()
+                    if (private) components.downloads.clearHistory() else components.downloads.clearRows(downloads)
                 }
             },
             onClose = { overlays.downloadsOpen = false },
@@ -115,13 +119,16 @@ internal fun LibraryOverlays(
         )
     }
     val clearData = overlays.clearDataCard
+    val privateMarks by components.privateBookmarks.list.collectAsStateWithLifecycle()
     KoanCard(clearData) { interactive ->
         ClearDataCard(
             interactive = interactive,
+            privateBookmarks = if (private) privateMarks.size else 0,
             onClear = { choice ->
                 clearData.animateTo(Detent.Closed)
                 scope.launch {
                     if (choice.history) components.database.dao().clearHistory()
+                    if (choice.privateBookmarks) components.privateBookmarks.clear()
                     val ok = components.sitePermissions.clearAll(cookies = choice.cookies, cache = choice.cache)
                     onToast(Toast(if (ok) "Browsing data cleared" else "Couldn't clear everything"))
                 }

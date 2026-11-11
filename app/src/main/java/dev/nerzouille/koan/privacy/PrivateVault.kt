@@ -25,23 +25,14 @@ data class SavedPrivateTabs(val tabs: List<SavedPrivateTab>, val current: String
  * and site data are not in it: GeckoView keeps those in memory only, so sites sign you out when
  * Koan restarts. [delete] when the last private tab closes.
  */
-class PrivateVault(private val file: File, private val box: SecretBox) {
-    fun read(): SavedPrivateTabs? = runCatching {
-        if (!file.exists()) return null
-        decode(String(box.open(file.readBytes()), Charsets.UTF_8))
-    }.getOrNull()
+class PrivateVault(file: File, box: SecretBox) {
+    private val sealed = SealedFile(file, box)
 
-    fun write(saved: SavedPrivateTabs) {
-        file.parentFile?.mkdirs()
-        val tmp = File(file.path + ".tmp")
-        tmp.writeBytes(box.seal(encode(saved).toByteArray(Charsets.UTF_8)))
-        if (!tmp.renameTo(file)) tmp.delete()
-    }
+    fun read(): SavedPrivateTabs? = sealed.read()?.let { runCatching { decode(it) }.getOrNull() }
 
-    fun delete() {
-        file.delete()
-        File(file.path + ".tmp").delete()
-    }
+    fun write(saved: SavedPrivateTabs) = sealed.write(encode(saved))
+
+    fun delete() = sealed.delete()
 
     companion object {
         fun encode(saved: SavedPrivateTabs): String = JSONObject().apply {

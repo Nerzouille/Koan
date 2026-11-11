@@ -2,6 +2,7 @@ package dev.nerzouille.koan.ui.bar
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -187,6 +188,8 @@ fun AddressRow(
     find: FindUi? = null,
     /** Something is downloading: its progress (0..1, NaN = size unknown), shown as a ring in the pill. */
     download: Float? = null,
+    /** A download just finished and nothing else runs: the ring fills, shows a check, then goes. */
+    downloadDone: Boolean = false,
     onDownloads: () -> Unit = {},
     /** The text being edited, shared with the search sheet. */
     search: SearchField = remember { SearchField() },
@@ -233,6 +236,7 @@ fun AddressRow(
                 shownUrl = shownUrl,
                 space = space,
                 download = if (overviewOpen) null else download,
+                downloadDone = !overviewOpen && downloadDone,
                 onDownloads = onDownloads,
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 onPress = pillPressed,
@@ -264,6 +268,7 @@ private fun AddressField(
     shownUrl: String?,
     space: SwipeTarget?,
     download: Float?,
+    downloadDone: Boolean,
     onDownloads: () -> Unit,
     onClick: () -> Unit,
     /** A finger lands on the pill (before the bar's drags see it). */
@@ -295,12 +300,12 @@ private fun AddressField(
         Box(
             Modifier
                 .fillMaxSize()
-                .padding(end = if (download != null) BarTokens.IconTouch - BarTokens.FieldPadding else 0.dp)
+                .padding(end = if (download != null || downloadDone) BarTokens.IconTouch - BarTokens.FieldPadding else 0.dp)
                 .cleanTap(onTap = onClick)
                 .padding(horizontal = BarTokens.FieldPadding),
             contentAlignment = Alignment.Center,
         ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, { spaceMode.value }, private, flip) }
-        if (download != null) DownloadRing(download, onDownloads, Modifier.align(Alignment.CenterEnd))
+        if (download != null || downloadDone) DownloadRing(download, downloadDone, onDownloads, Modifier.align(Alignment.CenterEnd))
     }
 }
 
@@ -341,11 +346,23 @@ private fun FieldLabels(
 /**
  * A download is running (design 7g): a small neutral ring at the end of the pill, filling with
  * its progress. Its own 48dp hit target, outside the text's: tap = Downloads, with a light tick.
+ * [done]: the download just finished (fixes F8): the ring fills up, a check draws in, then the
+ * whole ring fades and shrinks away; it stays tappable until it leaves. Read in draw / layer only.
  */
 @Composable
-private fun DownloadRing(progress: Float, onClick: () -> Unit, modifier: Modifier) {
+private fun DownloadRing(progress: Float?, done: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val palette = KoanTheme.colors
     val view = LocalView.current
+    val instant = rememberAnimationsOff()
+    // The progress the fill starts from once the download is done.
+    val last = remember { floatArrayOf(0f) }
+    if (progress != null) last[0] = if (progress.isNaN()) 0.25f else progress.coerceIn(0f, 1f)
+    val t = remember { Animatable(if (done) 1f else 0f) }
+    LaunchedEffect(done) {
+        if (!done) t.snapTo(0f)
+        else if (instant) t.snapTo(1f)
+        else t.animateTo(1f, tween(DownloadTokens.DONE_MS, easing = LinearEasing))
+    }
     Box(
         modifier
             .size(BarTokens.IconTouch)
@@ -359,23 +376,60 @@ private fun DownloadRing(progress: Float, onClick: () -> Unit, modifier: Modifie
         Box(
             Modifier
                 .size(DownloadTokens.Ring)
+                .graphicsLayer {
+                    // The last part: fade and shrink out (none while running; gone at once without animations).
+                    val out = if (!done) 0f else if (instant) 1f else phase(t.value, 0.78f, 1f)
+                    alpha = 1f - out
+                    val s = 1f + 0.12f * phase(t.value, 0.3f, 0.5f) * (1f - phase(t.value, 0.5f, 0.7f)) - 0.3f * out
+                    scaleX = s
+                    scaleY = s
+                }
                 .drawBehind {
                     val stroke = DownloadTokens.RingStroke.toPx()
                     val inset = stroke / 2f
                     val arcSize = Size(size.width - stroke, size.height - stroke)
                     drawArc(palette.Glass, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                    val fill = phase(t.value, 0f, 0.3f)
                     // Size unknown: a quarter, so it still reads as "working".
-                    val sweep = if (progress.isNaN()) 90f else 360f * progress.coerceIn(0f, 1f)
+                    val running = if (progress == null) last[0] else if (progress.isNaN()) 0.25f else progress.coerceIn(0f, 1f)
+                    val sweep = 360f * (running + (1f - running) * fill)
                     drawArc(palette.TextSecondary, -90f, sweep, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                    val check = phase(t.value, 0.25f, 0.55f)
+                    if (check > 0f) drawCheck(check, palette.TextPrimary, stroke)
                 },
         )
     }
 }
 
-/**
- * A tab or space in the pill: icon and name. [side] -1 / 1: a neighbour a swipe heads to, sliding
- * in from that side; 0: the one in the middle, sliding out as the swipe goes.
- */
+/** 0 before [from], 1 after [to], linear (eased) in between. */
+private fun phase(t: Float, from: Float, to: Float): Float {
+    val x = ((t - from) / (to - from)).coerceIn(0f, 1f)
+    return x * x * (3f - 2f * x)
+}
+
+/** The ✓ of KoanIcons.Check, drawn in up to [part] of its length, inside the ring. */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCheck(part: Float, color: Color, stroke: Float) {
+    val k = size.width / 24f
+    val a = Offset(7f * k, 12.5f * k)
+    val b = Offset(10.5f * k, 16f * k)
+    val c = Offset(17f * k, 8.5f * k)
+    val first = (b - a).getDistance()
+    val second = (c - b).getDistance()
+    val len = (first + second) * part
+    val path = androidx.compose.ui.graphics.Path().apply {
+        moveTo(a.x, a.y)
+        if (len <= first) {
+            val p = a + (b - a) * (len / first)
+            lineTo(p.x, p.y)
+        } else {
+            lineTo(b.x, b.y)
+            val p = b + (c - b) * ((len - first) / second)
+            lineTo(p.x, p.y)
+        }
+    }
+    drawPath(path, color, style = Stroke(stroke, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+}
+
 @Composable
 private fun SwipeLabel(target: SwipeTarget, side: Float, swipe: () -> Float, overview: () -> Float, modifier: Modifier = Modifier) {
     Row(

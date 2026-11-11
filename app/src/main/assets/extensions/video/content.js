@@ -201,7 +201,67 @@ function report() {
     height: v.videoHeight || 0,
     title: titleOf(v),
     src: /^https?:/.test(src) ? src : "",
+    // Why the file can't be saved, for the player's "Download video" (protected, streamed, live).
+    drm: v.mediaKeys != null,
+    kind: src.startsWith("blob:") || src.startsWith("mediasource:") ? "stream"
+      : /\.(m3u8|mpd)([?#]|$)/i.test(src) ? "stream" : "",
+    live: d === Infinity,
+    // A streamed video's page often lists plain files too (<source>): the largest one, to download.
+    file: fileSource(v),
   });
+}
+
+// A video file the page links (a "Download" or "Original file" link) whose name the video itself
+// carries in its attributes or its player's (poster, data-*): the same video, as a plain file.
+function linkedFile(v) {
+  const words = [];
+  for (let e = v, i = 0; e && i < 4; e = e.parentElement, i++) {
+    for (const a of e.attributes || []) words.push(a.value);
+  }
+  const hay = words.join(" ");
+  for (const a of document.querySelectorAll("a[href]")) {
+    const u = a.href.split(/[?#]/)[0];
+    if (!/^https?:/.test(u)) continue;
+    const raw = u.substring(u.lastIndexOf("/") + 1);
+    if (!/\.(mp4|webm|m4v|mov|mkv)$/i.test(raw)) continue;
+    let name = raw;
+    try { name = decodeURIComponent(raw); } catch (e) {}
+    if (hay.includes(raw) || hay.includes(name)) return u;
+  }
+  return "";
+}
+
+function fileSource(v) {
+  const plain = (s) => {
+    const u = s.src || "";
+    const t = (s.type || "").toLowerCase();
+    if (!/^https?:/.test(u)) return false;
+    if (/dash|mpegurl|m3u8/.test(t) || /\.(m3u8|mpd)([?#]|$)/i.test(u)) return false;
+    return !t || t.startsWith("video/");
+  };
+  let list = [...v.querySelectorAll("source")].filter(plain);
+  if (!list.length) {
+    // A streaming player that took its <source>s away: the page's other copies of the same video,
+    // only when they are all renditions of one video (one folder).
+    const all = [...document.querySelectorAll("video source")].filter(plain);
+    const dirs = new Set(all.map((s) => s.src.substring(0, s.src.lastIndexOf("/"))));
+    list = dirs.size === 1 ? all : [];
+  }
+  let best = "";
+  let bestH = -1;
+  for (const s of list) {
+    const h = parseInt(s.getAttribute("data-height") || s.getAttribute("height") || "0", 10) || 0;
+    if (h > bestH) { best = s.src; bestH = h; }
+  }
+  if (!best) return linkedFile(v);
+  // MediaWiki (Commons, Wikipedia): renditions sit in ".../transcoded/<x>/<xy>/<File>/"; the
+  // original file, when the page links it, is the one to save.
+  const original = best.replace(/\/transcoded\/(.+)\/([^/]+)\/[^/]+$/, "/$1/$2");
+  if (original !== best) {
+    const linked = [...document.querySelectorAll("a[href]")].some((a) => a.href.split(/[?#]/)[0] === original);
+    if (linked) return original;
+  }
+  return best;
 }
 
 function titleOf(v) {

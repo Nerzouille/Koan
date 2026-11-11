@@ -78,18 +78,23 @@ internal fun Modifier.playerPanel(shape: Shape, color: Color = PlayerTokens.Pane
     this.clip(shape).background(color, shape).border(1.dp, PlayerTokens.Stroke, shape)
 
 /** A press that scales the button down (§5 disc press) and acts on release inside it. */
-internal fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): Modifier = this.then(
-    if (!enabled) Modifier else Modifier.pointerInput(onClick) {
-        awaitEachGesture {
-            awaitFirstDown().consume()
-            val up = waitForUpOrCancellation()
-            if (up != null) {
-                up.consume()
-                onClick()
+@Composable
+internal fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
+    // One handler for the row's life (a new lambda each recomposition must not restart a press).
+    val click by androidx.compose.runtime.rememberUpdatedState(onClick)
+    return this.then(
+        if (!enabled) Modifier else Modifier.pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown().consume()
+                val up = waitForUpOrCancellation()
+                if (up != null) {
+                    up.consume()
+                    click()
+                }
             }
-        }
-    },
-)
+        },
+    )
+}
 
 /** A round 44dp button (or a disc of [size]) on the panel. */
 @Composable
@@ -103,7 +108,7 @@ internal fun PlayerDisc(
     Box(
         modifier
             .size(size)
-            .pressScale(onClick = onClick)
+            .pressScale(LocalControlsLive.current, onClick = onClick)
             .then(if (panel) Modifier.playerPanel(CircleShape) else Modifier.clip(CircleShape)),
         contentAlignment = Alignment.Center,
     ) { content() }
@@ -200,21 +205,58 @@ internal fun clock(seconds: Double): String {
 }
 
 /** The ⋯ menu's rows (beside the speed row). */
-class MenuRow(val icon: ImageVector, val label: String, val destructive: Boolean = false, val onClick: () -> Unit)
+class MenuRow(
+    val icon: ImageVector,
+    val label: String,
+    val destructive: Boolean = false,
+    /** False: greyed out, a tap does nothing ([subtitle] says why). */
+    val enabled: Boolean = true,
+    val subtitle: String? = null,
+    /** A switch row: "On" / "Off" at the end (null = an action). */
+    val on: Boolean? = null,
+    val onClick: () -> Unit,
+) {
+    /** The same row (state, greyed out, reason) doing [also] first, then its own action. */
+    fun after(also: () -> Unit) = MenuRow(icon, label, destructive, enabled, subtitle, on) { also(); onClick() }
+}
 
-/** §2 ⋯ menu: the speed row and its chips, then [rows]. */
+/**
+ * The ⋯ row for Settings › Picture-in-picture (the same setting): leaving Koan in fullscreen opens
+ * PiP. Its state at the end ("On" / "Off", like "Normal" on Playback speed), its icon crossed out when off.
+ */
+fun pipOnLeaveRow(on: Boolean, onChange: (Boolean) -> Unit) =
+    MenuRow(if (on) dev.nerzouille.koan.ui.icons.KoanIcons.Pip else dev.nerzouille.koan.ui.icons.KoanIcons.PipOff, "PiP on leave", on = on) { onChange(!on) }
+
+/**
+ * §2 ⋯ menu: the speed row and its chips, then [rows]. [morph] 0…1 (read in layer and draw only):
+ * the panel grows out of the ⋯ pill at its top right corner, the pill's rounded square opening
+ * into the panel; the rows fade in over the second half.
+ */
 @Composable
-internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuRow>, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(PlayerTokens.MenuRadius)
+internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuRow>, modifier: Modifier = Modifier, morph: () -> Float = { 1f }) {
     Column(
         modifier
             .width(PlayerTokens.MenuWidth)
             .graphicsLayer {
-                shadowElevation = PlayerTokens.MenuShadow.toPx() / 2
-                this.shape = shape
-                clip = false
+                val m = morph()
+                shadowElevation = PlayerTokens.MenuShadow.toPx() / 2 * m
+                shape = menuMorphShape(m, PlayerTokens.RoundPill.toPx(), PlayerTokens.MenuRadius.toPx())
+                clip = true
             }
-            .playerPanel(shape, PlayerTokens.PanelMenu)
+            .drawBehind {
+                val m = morph()
+                val r = menuMorphRect(size, m, PlayerTokens.RoundPill.toPx())
+                val radius = menuMorphRadius(m, PlayerTokens.RoundPill.toPx(), PlayerTokens.MenuRadius.toPx())
+                val corner = androidx.compose.ui.geometry.CornerRadius(radius)
+                drawRoundRect(PlayerTokens.PanelMenu, r.topLeft, r.size, corner)
+                val stroke = 1.dp.toPx()
+                drawRoundRect(
+                    PlayerTokens.Stroke, r.topLeft + androidx.compose.ui.geometry.Offset(stroke / 2, stroke / 2),
+                    androidx.compose.ui.geometry.Size(r.width - stroke, r.height - stroke), corner,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+            }
+            .graphicsLayer { alpha = ((morph() - 0.35f) / 0.65f).coerceIn(0f, 1f) }
             .padding(vertical = 4.dp),
     ) {
         Row(Modifier.fillMaxWidth().height(PlayerTokens.MenuRow).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -248,14 +290,26 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
         }
         for (row in rows) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(PlayerTokens.Stroke))
-            val color = if (row.destructive) PlayerTokens.Destructive else PlayerTokens.Text
+            val color = when {
+                !row.enabled -> PlayerTokens.TextSecondary
+                row.destructive -> PlayerTokens.Destructive
+                else -> PlayerTokens.Text
+            }
             Row(
-                Modifier.fillMaxWidth().height(PlayerTokens.MenuRow).pressable(onClick = row.onClick).padding(horizontal = 16.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .height(PlayerTokens.MenuRow)
+                    .then(if (row.enabled) Modifier.pressable(onClick = row.onClick) else Modifier.graphicsLayer { alpha = PlayerTokens.DISABLED_ALPHA })
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PlayerIcon(row.icon, 18.dp, tint = color)
                 Spacer(Modifier.width(12.dp))
-                Text(row.label, style = playerText(15.sp, FontWeight.Medium, color))
+                Column(Modifier.weight(1f)) {
+                    Text(row.label, style = playerText(15.sp, FontWeight.Medium, color), maxLines = 1)
+                    row.subtitle?.let { Text(it, style = playerText(12.sp, FontWeight.Normal, PlayerTokens.TextSecondary), maxLines = 1) }
+                }
+                row.on?.let { Text(if (it) "On" else "Off", style = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1) }
             }
         }
     }
@@ -345,4 +399,20 @@ internal fun Modifier.progressTrack(thickness: () -> Float, fraction: () -> Floa
     if (b > 0f) drawRoundRect(PlayerTokens.TrackBuffered, Offset(0f, top), Size(b, h), r)
     val p = fraction().coerceIn(0f, 1f) * size.width
     if (p > 0f) drawRoundRect(PlayerTokens.TrackPlayed, Offset(0f, top), Size(maxOf(p, h), h), r)
+}
+
+/** The ⋯ menu's outline at [m]: the pill's rounded square at the top right corner (0), the whole panel (1). */
+internal fun menuMorphRect(size: androidx.compose.ui.geometry.Size, m: Float, pill: Float): androidx.compose.ui.geometry.Rect {
+    val w = pill + (size.width - pill) * m
+    val h = pill + (size.height - pill) * m
+    return androidx.compose.ui.geometry.Rect(size.width - w, 0f, size.width, h.coerceAtMost(size.height))
+}
+
+internal fun menuMorphRadius(m: Float, pill: Float, radius: Float): Float = pill / 2 + (radius - pill / 2) * m
+
+private fun menuMorphShape(m: Float, pill: Float, radius: Float) = object : androidx.compose.ui.graphics.Shape {
+    override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: androidx.compose.ui.unit.LayoutDirection, density: androidx.compose.ui.unit.Density) =
+        androidx.compose.ui.graphics.Outline.Rounded(
+            androidx.compose.ui.geometry.RoundRect(menuMorphRect(size, m, pill), androidx.compose.ui.geometry.CornerRadius(menuMorphRadius(m, pill, radius))),
+        )
 }
