@@ -19,9 +19,11 @@ Settings › Private browsing › Allow screenshots.
 
 A private video can go to picture-in-picture when you leave Koan (Settings › Picture-in-picture):
 its small window shows the video over other apps, and Android's screenshot block doesn't hide what
-the window shows. The time in that window counts as time away from Koan: if the private lock is due
-by the time the window closes or comes back to full screen, Private is locked before anything else
-of it shows. Turn picture-in-picture off to keep private videos from leaving Koan's screen.
+the window shows. While that window is on screen, it counts as Private being open: the private
+lock's 1-minute timer doesn't run. The time away starts once nothing private is on screen: the
+window closed, **Audio only** (the sound goes on with no picture), or the screen turned off (which
+locks Private at once, as always). Turn picture-in-picture off to keep private videos from leaving
+Koan's screen.
 
 Bookmarks made in private tabs are kept apart from your normal bookmarks, in their own file on
 the phone, encrypted with their own Keystore key. They are never synced and never shown outside

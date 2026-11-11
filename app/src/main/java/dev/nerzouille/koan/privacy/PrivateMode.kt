@@ -45,18 +45,15 @@ class PrivateMode(
     }
 
     /**
-     * Koan went to the background, or into its picture-in-picture window (the activity isn't
-     * stopped there, but Private is out of sight). The first one counts: closing the PiP window
-     * then stops the activity, and the time away still runs from when PiP started.
+     * Nothing of Koan on screen any more (onStop): Koan went to the background, its PiP window was
+     * closed, or "Audio only" ended it. A PiP window still on screen is not this: it counts as
+     * Private open, with no timer.
      */
     fun onHidden() {
-        if (hiddenAt == null) hiddenAt = SystemClock.elapsedRealtime()
+        hiddenAt = SystemClock.elapsedRealtime()
     }
 
-    /**
-     * Koan is back, or its PiP window closed (back to full screen, or dismissed): locked again if
-     * it was away [LOCK_AFTER_MS] or more, so the lock is up before anything private shows again.
-     */
+    /** Koan is back (onStart): locked again if it was away [LOCK_AFTER_MS] or more. */
     fun onShown() {
         val at = hiddenAt ?: return
         hiddenAt = null

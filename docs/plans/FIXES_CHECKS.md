@@ -40,13 +40,12 @@ Checks:
 2. A paused fullscreen video, then home: **no** PiP (your rule).
 3. ⋯ › **Picture-in-picture on leave** → Off. Home: no PiP. Settings › Picture-in-picture shows Off;
    turn it back on there and the ⋯ row says On.
-4. A private video in PiP for over 1 min (`5f6b4ab`):
-   - Tap the window back to full screen: the lock cover comes up at once, in portrait, with no
-     video over it, and the fingerprint is asked.
-   - Under 1 min: no lock.
-   - Close the window (✕) after over 1 min, then open Koan: locked.
-   - Close it after 30 s, wait 40 s, then open Koan: locked (the time counts from when PiP
-     started).
+4. A private video in PiP (`5f6b4ab`, reworked in the PiP lock commit of the recheck, below):
+   - Keep the window on screen for over 1 min, then tap it back to full screen: **no** lock (the
+     window counts as Private open).
+   - Close the window (✕), wait over 1 min, open Koan: locked. Close it and come back within 1 min:
+     not locked.
+   - **Audio only**, wait over 1 min, open Koan: locked.
    - Turn the screen off during PiP: locked on return.
 5. The standalone player (a video from Downloads): the row is there and works the same.
 6. PiP's Audio only still works.

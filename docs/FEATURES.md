@@ -723,9 +723,9 @@ the phone: a private card shows the site's icon after a restart until you open i
 the saved file. Koan opens in normal mode after a restart; Private is one tap away.
 
 **Locked:** opening Private asks for your fingerprint or the phone's PIN when you have private
-tabs or private bookmarks, after 1 minute away from Koan or once the screen turned off. Time a
-private video spends in picture-in-picture counts as time away: when the window closes or comes
-back to full screen after that, Private is locked. While locked, Private shows
+tabs or private bookmarks, after 1 minute away from Koan or once the screen turned off. A private
+video's picture-in-picture window counts as Private open: the minute starts once the window is
+closed or Audio only plays. While locked, Private shows
 only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on by default.)
 
 **What Private does**
