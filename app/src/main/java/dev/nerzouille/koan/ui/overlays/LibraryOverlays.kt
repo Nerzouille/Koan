@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.ui.overlays
 
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -117,13 +119,16 @@ internal fun LibraryOverlays(
         )
     }
     val clearData = overlays.clearDataCard
+    val privateMarks by components.privateBookmarks.list.collectAsStateWithLifecycle()
     KoanCard(clearData) { interactive ->
         ClearDataCard(
             interactive = interactive,
+            privateBookmarks = if (private) privateMarks.size else 0,
             onClear = { choice ->
                 clearData.animateTo(Detent.Closed)
                 scope.launch {
                     if (choice.history) components.database.dao().clearHistory()
+                    if (choice.privateBookmarks) components.privateBookmarks.clear()
                     val ok = components.sitePermissions.clearAll(cookies = choice.cookies, cache = choice.cache)
                     onToast(Toast(if (ok) "Browsing data cleared" else "Couldn't clear everything"))
                 }

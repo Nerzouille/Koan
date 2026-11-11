@@ -86,7 +86,10 @@ internal fun MenuOverlays(
     val reader by components.store.observeSlice(activeTabId) { s ->
         activeTabId?.let { s.findTab(it) }?.readerState.let { (it?.readerable == true) to (it?.active == true) }
     }
-    val bookmarks by components.bookmarks.urls.collectAsStateWithLifecycle()
+    // A private tab's star is Private's own bookmarks (never the normal ones, never synced).
+    val normalMarks by components.bookmarks.urls.collectAsStateWithLifecycle()
+    val privateMarks by components.privateBookmarks.list.collectAsStateWithLifecycle()
+    val bookmarks = if (private) privateMarks.mapTo(HashSet()) { it.url } else normalMarks
     // A search engine the page declares (OpenSearch): asked each time the menu opens on a page (the
     // page may have added it since); hidden when Koan already has an engine on that site.
     val declared by produceState<Pair<String, EngineDraft?>?>(null, page.url, menu.open) {
@@ -173,7 +176,7 @@ internal fun MenuOverlays(
                         }
                     },
                     newTab = { close(); onNewTab() },
-                    bookmark = { components.bookmarks.toggle(page.url, title) },
+                    bookmark = { if (private) components.privateBookmarks.toggle(page.url, title) else components.bookmarks.toggle(page.url, title) },
                     share = { close(); share(page.url, title) },
                     find = {
                         close()

@@ -15,7 +15,12 @@ import kotlinx.coroutines.flow.first
  * private tabs need the fingerprint or PIN before they show again (on by default: after 1 min
  * away from Koan, or the screen turning off). Per process: a cold start opens normal mode, locked.
  */
-class PrivateMode(private val settings: Settings, private val count: StateFlow<Int>) {
+class PrivateMode(
+    private val settings: Settings,
+    private val count: StateFlow<Int>,
+    /** Private bookmarks (they're kept with no private tab open): the lock covers them too. */
+    private val bookmarks: suspend () -> Int = { 0 },
+) {
     /** Private is shown: the private overview, or a private tab in the page view. */
     val on = MutableStateFlow(false)
 
@@ -51,8 +56,8 @@ class PrivateMode(private val settings: Settings, private val count: StateFlow<I
         if (SystemClock.elapsedRealtime() - at >= LOCK_AFTER_MS) locked.value = true
     }
 
-    /** Whether showing Private needs the fingerprint first: the lock is on, there are private tabs, locked. */
-    suspend fun needsUnlock(): Boolean = locked.value && count.value > 0 && settings.privateLock.first()
+    /** Whether showing Private needs the fingerprint first: the lock is on, there are private tabs or bookmarks, locked. */
+    suspend fun needsUnlock(): Boolean = locked.value && (count.value > 0 || bookmarks() > 0) && settings.privateLock.first()
 
     companion object {
         const val LOCK_AFTER_MS = 60_000L

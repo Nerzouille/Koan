@@ -155,7 +155,7 @@ Private palettes use their own hairline (§5.1).
 - `SheetScrim` of the private palette.
 - First item, a notice: radius 18, fill `Card` + `private.pill` over it, padding 10 / 14, mask 20 + 10dp + "Private search: only your bookmarks are suggested, and nothing you type is kept." 13sp / 18 Medium `private.ink`.
 - Groups (Card, radius 18, as today):
-  - **"Bookmarks"**: bookmarks only. No history is read.
+  - **"Bookmarks"**: bookmarks only. No history is read. *As built (fixes F10, 2026-11-12): private bookmarks first, then the normal ones; private bookmarks are never shown outside Private.*
   - **"Switch to private tab"**: private tabs only. Row chip: mask 14 + "Private".
   - Engine suggestions (chips).
 - Never offers normal tabs from Private, nor private tabs outside Private.

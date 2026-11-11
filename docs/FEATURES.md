@@ -508,7 +508,8 @@ Playback keeps going with Koan in the background or the screen off.
   One a page starts on its own (a countdown, a script, a background tab) asks first, on a card
   with the file's name, size and site: **Download** or **Cancel** (a tap outside or Back cancels).
   A small ring in the address pill shows the progress. Tap the ring for Downloads.
-- When it's done: a toast with the file's name, size and site, and **Open**. A failed download says
+- When it's done: the ring fills, shows a check for a moment, then goes (tap it meanwhile for
+  Downloads); a toast with the file's name, size and site, and **Open**. A failed download says
   so, with **Retry**.
 - A link that only downloads a file (from another app, or opening a new tab) doesn't leave an empty
   tab behind.
@@ -525,10 +526,13 @@ Playback keeps going with Koan in the background or the screen off.
     file. Both have **Undo**; the file is only deleted once the toast is gone.
   - Long-press for selection mode: check files, then **Open** (or **Install** for an app),
     **Copy link**, **Share** or **Delete** for one, **Share** or **Delete** for several (deleting
-    several asks first).
+    several asks first). Each day's header has **Select all** (then **Deselect**) for that day.
   - **Search downloads** at the bottom, and **Clear** next to it to empty the list (asks first; the
     files stay).
   - The chip at the top shows the folder; tap it for Android's own downloads view.
+  - Downloads from private tabs only show while Private is on (masked), never in normal mode: not
+    in the list, the ring, the menu's count or a "downloaded" toast. In Private, the **Private**
+    pill next to the folder chip shows only them. **Clear** in normal mode leaves them alone.
 - **Where files go:** the phone's **Download** folder. To use another folder: Settings › **Save
   downloads to** › **Choose a folder…** (Android's folder picker).
 
@@ -586,10 +590,11 @@ Playback keeps going with Koan in the background or the screen off.
     a group to remove all its pages at once. With two-way history sync on, it's removed from your
     account too; otherwise a page from your desktop is only hidden on the phone.
   - Long-press for selection mode: **New tab**, **Copy link**, **Share link**, **Remove** for one
-    page, **Share** or **Remove** for several (a group: **Remove N visits**).
+    page, **Share** or **Remove** for several (a group: **Remove N visits**). Each day's header
+    has **Select all** (then **Deselect**) for that day.
   - **Clear** (next to the search field) opens **Clear browsing data**: History (on), Cached images
-    and files (on), Cookies and site data (off: it signs you out of most sites). Desktop history is
-    only hidden on the phone.
+    and files (on), Cookies and site data (off: it signs you out of most sites), and in Private,
+    when you have some, Private bookmarks (off). Desktop history is only hidden on the phone.
 - **Recently closed:** the last 25 tabs you closed (from the overview, the tab count's menu or
   Back) are at the top of the History page, or long-press the clock on the overview's dock for the
   whole list. Tap one: it comes back in its space and place, with its back and forward history,
@@ -708,7 +713,7 @@ the phone: a private card shows the site's icon after a restart until you open i
 the saved file. Koan opens in normal mode after a restart; Private is one tap away.
 
 **Locked:** opening Private asks for your fingerprint or the phone's PIN when you have private
-tabs, after 1 minute away from Koan or once the screen turned off. While locked, Private shows
+tabs or private bookmarks, after 1 minute away from Koan or once the screen turned off. While locked, Private shows
 only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on by default.)
 
 **What Private does**
@@ -739,7 +744,13 @@ only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on
 - **Refuse cookie banners** (Settings, off by default): where Firefox's rules know the site, its
   cookie banner is answered "reject" for you.
 - **Downloads** from private tabs go to the phone's Download folder and show in Downloads with a
-  small mask, until Koan restarts (the files stay). **Bookmarks** you save stay too.
+  small mask, only while Private is on, until Koan restarts (the files stay).
+- **Private bookmarks:** the ⋯ menu's star in a private tab saves a private bookmark, kept apart
+  from your normal ones and shown only in Private (private search suggests them first, then your
+  normal bookmarks). They are saved on the phone encrypted with a Keystore key, never synced, and
+  stay after the last private tab closes and after a restart (the lock covers them too). Unstar
+  one to remove it, or **Clear browsing data** › **Private bookmarks** (in Private, off by default)
+  for all of them. A page bookmarked in normal mode shows unstarred in a private tab.
 
 **What Private doesn't do**
 
@@ -748,7 +759,7 @@ only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on
   Tor Browser.
 - It doesn't stop sites from recognising you if you sign in.
 - It doesn't keep you signed in across restarts (see above).
-- Files you download and bookmarks you save stay on the phone after Private ends.
+- Files you download and private bookmarks stay on the phone after Private ends.
 
 **For all tabs** (Settings › All tabs)
 

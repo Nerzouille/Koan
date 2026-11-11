@@ -276,10 +276,12 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val searchField = remember { SearchField() }
     val suggestions by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val privateSuggestions by components.settings.privateSuggestions.collectAsStateWithLifecycle(false)
+    val searchPrivateMarks by components.privateBookmarks.list.collectAsStateWithLifecycle()
     val search = rememberSearch(
         searchField, components.database.dao(), spaces, models, activeTabId, searchEngine, shortcuts,
         suggest = if (privateOn) privateSuggestions else suggestions,
         private = privateOn,
+        privateMarks = if (privateOn) searchPrivateMarks else emptyList(),
     )
     val toasts = remember { ToastState() }
     // (space uuid, card id) the overview brings into focus (a card put back by Undo).
@@ -1229,7 +1231,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         val locked by privateMode.locked.collectAsStateWithLifecycle()
         val lockOn by components.settings.privateLock.collectAsStateWithLifecycle(true)
         val privateCount by privateTabs.count.collectAsStateWithLifecycle()
-        val showLock = privateOn && locked && lockOn && privateCount > 0
+        val privateMarks by components.privateBookmarks.list.collectAsStateWithLifecycle()
+        val showLock = privateOn && locked && lockOn && (privateCount > 0 || privateMarks.isNotEmpty())
         fun unlock() {
             scope.launch { if (fragmentActivity != null && unlockPrivate(fragmentActivity)) privateMode.locked.value = false }
         }

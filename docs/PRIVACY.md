@@ -17,6 +17,10 @@ data are kept in memory only. Koan never downloads an icon for a private tab: it
 it already has it. Screenshots and screen recordings of private tabs are blocked unless you turn on
 Settings › Private browsing › Allow screenshots.
 
+Bookmarks made in private tabs are kept apart from your normal bookmarks, in their own file on
+the phone, encrypted with their own Keystore key. They are never synced and never shown outside
+Private. That file stays when the last private tab closes.
+
 Translation runs on the phone (Firefox Translations): the text of a page is never sent anywhere.
 
 When you tap **Save image** on a picture that is still a small preview, a small part of Koan
@@ -88,6 +92,8 @@ These lists are downloaded to the phone; the pages you visit are not sent to any
   was off stay in your account.
 - **Private tabs:** closing the last one deletes the saved private tabs, their cookies and their
   site data.
+- **Private bookmarks:** unstar one in a private tab, or, in Private, **Clear browsing data** ›
+  **Private bookmarks** deletes them all and their file.
 - **Translation languages:** Settings › Translation › On this phone › Delete.
 - **Site settings › Clear site data** clears one site's cookies, storage and permission answers.
 - Uninstalling Koan removes everything it stored.
