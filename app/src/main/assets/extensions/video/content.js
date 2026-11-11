@@ -211,6 +211,26 @@ function report() {
   });
 }
 
+// A video file the page links (a "Download" or "Original file" link) whose name the video itself
+// carries in its attributes or its player's (poster, data-*): the same video, as a plain file.
+function linkedFile(v) {
+  const words = [];
+  for (let e = v, i = 0; e && i < 4; e = e.parentElement, i++) {
+    for (const a of e.attributes || []) words.push(a.value);
+  }
+  const hay = words.join(" ");
+  for (const a of document.querySelectorAll("a[href]")) {
+    const u = a.href.split(/[?#]/)[0];
+    if (!/^https?:/.test(u)) continue;
+    const raw = u.substring(u.lastIndexOf("/") + 1);
+    if (!/\.(mp4|webm|m4v|mov|mkv)$/i.test(raw)) continue;
+    let name = raw;
+    try { name = decodeURIComponent(raw); } catch (e) {}
+    if (hay.includes(raw) || hay.includes(name)) return u;
+  }
+  return "";
+}
+
 function fileSource(v) {
   const plain = (s) => {
     const u = s.src || "";
@@ -233,7 +253,7 @@ function fileSource(v) {
     const h = parseInt(s.getAttribute("data-height") || s.getAttribute("height") || "0", 10) || 0;
     if (h > bestH) { best = s.src; bestH = h; }
   }
-  if (!best) return "";
+  if (!best) return linkedFile(v);
   // MediaWiki (Commons, Wikipedia): renditions sit in ".../transcoded/<x>/<xy>/<File>/"; the
   // original file, when the page links it, is the one to save.
   const original = best.replace(/\/transcoded\/(.+)\/([^/]+)\/[^/]+$/, "/$1/$2");
