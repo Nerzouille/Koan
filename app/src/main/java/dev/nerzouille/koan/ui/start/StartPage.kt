@@ -4,7 +4,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,20 +34,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.bar.EssentialsGrid
 import dev.nerzouille.koan.ui.kit.rememberPresence
+import dev.nerzouille.koan.ui.kit.swipeDownToDismiss
 import dev.nerzouille.koan.ui.overview.Favicon
-import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.overview.SpaceModel
+import dev.nerzouille.koan.ui.overview.SpaceTitle
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.KoanType
-import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.StartPageTokens
 
 /**
@@ -85,17 +82,7 @@ fun StartPage(
                 if (!open) {
                     Modifier
                 } else {
-                    Modifier.pointerInput(Unit) {
-                        var total = 0f
-                        detectVerticalDragGestures(onDragStart = { total = 0f }) { change, dy ->
-                            total += dy
-                            if (total > StartPageTokens.SwipeDownToDismiss.toPx()) {
-                                total = Float.NEGATIVE_INFINITY
-                                dismiss()
-                            }
-                            change.consume()
-                        }
-                    }
+                    Modifier.swipeDownToDismiss(StartPageTokens.SwipeDownToDismiss) { dismiss() }
                 },
             ),
     ) {
@@ -108,18 +95,7 @@ fun StartPage(
                 .padding(bottom = bottom + StartPageTokens.BottomGap),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(OverviewTokens.SpaceIconBox).clip(RoundedCornerShape(OverviewTokens.SpaceIconRadius)).background(palette.Glass),
-                    contentAlignment = Alignment.Center,
-                ) { ZenIcon(current.icon, OverviewTokens.SpaceIconGlyph, tint = palette.TextPrimary) }
-                Spacer(Modifier.width(OverviewTokens.TitleGap))
-                Text(
-                    current.name,
-                    color = palette.TextPrimary,
-                    style = KoanType.title(OverviewTokens.TitleSize),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                SpaceTitle(current.icon, current.name)
             }
             Spacer(Modifier.height(StartPageTokens.TitleGap))
             if (current.essentials.isEmpty()) {
