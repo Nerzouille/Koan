@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.downloads
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,10 +20,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,22 +41,19 @@ import dev.nerzouille.koan.engine.downloads.Downloads
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.DayCard
-import dev.nerzouille.koan.ui.kit.ListPage
+import dev.nerzouille.koan.ui.kit.EmptyLine
 import dev.nerzouille.koan.ui.kit.LibraryRowFrame
 import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
 import dev.nerzouille.koan.ui.kit.LibraryRowTitle
+import dev.nerzouille.koan.ui.kit.ListPage
 import dev.nerzouille.koan.ui.kit.SelectionAction
 import dev.nerzouille.koan.ui.kit.SelectionBar
 import dev.nerzouille.koan.ui.kit.SelectionHeader
 import dev.nerzouille.koan.ui.kit.SwipeRow
+import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.kit.byDay
 import dev.nerzouille.koan.ui.kit.dayRowShape
 import dev.nerzouille.koan.ui.kit.rememberSelection
-import androidx.activity.compose.BackHandler
-import androidx.compose.runtime.SideEffect
-import dev.nerzouille.koan.ui.kit.Toast
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.key
-import dev.nerzouille.koan.ui.kit.byDay
 import dev.nerzouille.koan.ui.settings.SettingsDivider
 import dev.nerzouille.koan.ui.settings.SettingsSection
 import dev.nerzouille.koan.ui.theme.BrandHorizontal
@@ -177,11 +178,9 @@ fun DownloadsScreen(
                 .padding(horizontal = SettingsTokens.Padding),
         ) {
             if (shown.isEmpty()) {
-                Text(
+                EmptyLine(
                     if (query.isBlank()) "Files you download show up here." else "No download matches “${query.trim()}”.",
-                    color = palette.TextSecondary,
-                    fontSize = SettingsTokens.RowValueSize,
-                    modifier = Modifier.padding(top = SettingsTokens.SectionTop),
+                    Modifier.padding(top = SettingsTokens.SectionTop),
                 )
             }
             if (running.isNotEmpty()) {
