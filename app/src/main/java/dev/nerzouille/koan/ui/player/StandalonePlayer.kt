@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.view.TextureView
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -43,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.theme.Motion
 import kotlinx.coroutines.launch
 
 /** What the standalone player's ⋯ menu does outside the player. */
@@ -104,7 +104,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
     var closing by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        launch { backdrop.animateTo(1f, tween(180)) }
+        launch { backdrop.animateTo(1f, Motion.Fade) }
         open.animateTo(1f, PlayerTokens.OpenSpring)
     }
     fun close() {
@@ -113,8 +113,8 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
         native.pause()
         scope.launch {
             if (!noMotion) {
-                launch { backdrop.animateTo(0f, tween(200)) }
-                open.animateTo(0f, if (video.from != null) PlayerTokens.CloseSpring else tween(200))
+                launch { backdrop.animateTo(0f, Motion.FadeSlow) }
+                open.animateTo(0f, if (video.from != null) PlayerTokens.CloseSpring else Motion.FadeSlow)
             }
             onClosed()
         }

@@ -1,7 +1,9 @@
 package dev.nerzouille.koan.ui.theme
 
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -1414,6 +1416,14 @@ object PageTokens {
 }
 
 object Motion {
+    /** Fades, three speeds (a popup in: [Fade], out: [FadeQuick]). */
+    const val FADE_QUICK_MS = 120
+    const val FADE_MS = 160
+    const val FADE_SLOW_MS = 220
+    val FadeQuick: TweenSpec<Float> = tween(FADE_QUICK_MS)
+    val Fade: TweenSpec<Float> = tween(FADE_MS)
+    val FadeSlow: TweenSpec<Float> = tween(FADE_SLOW_MS)
+
     /**
      * Stack snap: exponential glide, no overshoot (prototype: 17% of the remaining distance per
      * 60 Hz frame = time constant ≈ 90 ms). Frame-rate independent here.

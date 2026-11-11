@@ -10,7 +10,6 @@ import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -25,10 +24,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlurEffect
@@ -72,11 +68,10 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -91,12 +86,13 @@ import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.animationsOff
 import dev.nerzouille.koan.ui.kit.rememberPresence
+import dev.nerzouille.koan.ui.theme.Motion
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.math.abs
-import kotlin.math.roundToInt
 
 /** The controls take touches only while shown (they are composed while fading out too). */
 internal val LocalControlsLive = compositionLocalOf { true }
@@ -256,7 +252,7 @@ fun VideoPlayer(
     }
     LaunchedEffect(levelSerial) {
         if (levelKind == null) return@LaunchedEffect
-        if (noMotion) levelShown.snapTo(1f) else levelShown.animateTo(1f, tween(150))
+        if (noMotion) levelShown.snapTo(1f) else levelShown.animateTo(1f, Motion.Fade)
     }
     LaunchedEffect(Unit) {
         androidx.compose.runtime.snapshotFlow { levelTarget.floatValue }.collect { t ->
@@ -266,7 +262,7 @@ fun VideoPlayer(
     LaunchedEffect(levelDown, levelSerial) {
         if (levelDown || levelKind == null) return@LaunchedEffect
         delay(PlayerTokens.LEVEL_HOLD_MS)
-        if (noMotion) levelShown.snapTo(0f) else levelShown.animateTo(0f, tween(200))
+        if (noMotion) levelShown.snapTo(0f) else levelShown.animateTo(0f, Motion.FadeSlow)
         levelKind = null
     }
     val levelScale by animateFloatAsState(if (levelDown) 1.06f else 1f, PlayerTokens.LevelScale, label = "levelScale")
@@ -280,7 +276,7 @@ fun VideoPlayer(
         if (seekSide == 0) return@LaunchedEffect
         launch { pulse.snapTo(0.96f); pulse.animateTo(1f, PlayerTokens.GlowPulse) }
         launch { turn.snapTo(30f * seekSide); turn.animateTo(0f, PlayerTokens.GlyphTurn) }
-        if (noMotion) glow.snapTo(1f) else glow.animateTo(1f, tween(120))
+        if (noMotion) glow.snapTo(1f) else glow.animateTo(1f, Motion.FadeQuick)
         delay(PlayerTokens.GLOW_HOLD_MS)
         if (noMotion) glow.snapTo(0f) else glow.animateTo(0f, tween(400, easing = LinearOutSlowInEasing))
         seekSide = 0
@@ -592,7 +588,7 @@ fun VideoPlayer(
 
             if (!locked) {
                 // ---- centre group (hidden while the bar is pressed) ----
-                val centreOut by animateFloatAsState(if (scrubbing) 0f else 1f, tween(160), label = "centreOut")
+                val centreOut by animateFloatAsState(if (scrubbing) 0f else 1f, Motion.Fade, label = "centreOut")
                 if (!spinner) {
                     CentreGroup(
                         state = state,
@@ -636,7 +632,7 @@ fun VideoPlayer(
                 )
 
                 // ---- time bubble (while dragging the bar) ----
-                val bubble = rememberPresence(scrubbing, enter = tween(120), exit = tween(160), startShown = true)
+                val bubble = rememberPresence(scrubbing, enter = Motion.FadeQuick, exit = Motion.Fade, startShown = true)
                 if (bubble.composed) {
                     val pillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
                     val half = PlayerTokens.BubbleSize.width / 2
@@ -661,7 +657,7 @@ fun VideoPlayer(
                 }
 
                 // ---- ⋯ menu ----
-                val menuIn = rememberPresence(menuOpen, enter = tween(160), exit = tween(120), startShown = true)
+                val menuIn = rememberPresence(menuOpen, enter = Motion.Fade, exit = Motion.FadeQuick, startShown = true)
                 if (menuIn.composed) {
                     val rows = remember(menuRows) { menuRows.map { row -> MenuRow(row.icon, row.label, row.destructive) { menuOpen = false; row.onClick() } } }
                     PlayerMenu(
@@ -685,13 +681,13 @@ fun VideoPlayer(
         }
 
         // ---- buffering spinner (stays alone when the controls hide) ----
-        val spin = rememberPresence(spinner, tween(200), startShown = true)
+        val spin = rememberPresence(spinner, Motion.FadeSlow, startShown = true)
         if (spin.composed && !locked) {
             PlayerSpinner(PlayerTokens.Spinner, PlayerTokens.SpinnerStroke, modifier = Modifier.align(Alignment.Center).graphicsLayer { alpha = spin.progress * hiddenAlpha(hidden) })
         }
 
         // ---- long-press 2× badge ----
-        val badge = rememberPresence(boost, enter = tween(200), exit = tween(160), startShown = true)
+        val badge = rememberPresence(boost, enter = Motion.FadeSlow, exit = Motion.Fade, startShown = true)
         if (badge.composed) {
             Row(
                 Modifier

@@ -45,7 +45,7 @@ import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.PrivateTokens
 
 /** The dock's texts during the flip: they dip out and back in where they switch (alpha only). */
-fun Modifier.mist(flip: PrivateFlip?): Modifier = if (flip == null) this else graphicsLayer { alpha = flip.textAlpha() }
+fun Modifier.flipTextDip(flip: PrivateFlip?): Modifier = if (flip == null) this else graphicsLayer { alpha = flip.textAlpha() }
 
 /**
  * The Private toggle at the end of the overview header (§4.2): a 56×32 track, a white knob with

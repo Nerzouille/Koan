@@ -102,7 +102,7 @@ import dev.nerzouille.koan.ui.privacy.NoPersonalizedLearning
 import dev.nerzouille.koan.ui.privacy.PrivateDockPill
 import dev.nerzouille.koan.ui.privacy.PrivateFlip
 import dev.nerzouille.koan.ui.privacy.PrivateLockCover
-import dev.nerzouille.koan.ui.privacy.mist
+import dev.nerzouille.koan.ui.privacy.flipTextDip
 import dev.nerzouille.koan.ui.privacy.unlockPrivate
 import dev.nerzouille.koan.ui.root.IncomingLinks
 import dev.nerzouille.koan.ui.root.PrivateSwitch
@@ -1020,7 +1020,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             switcher = { modifier ->
                 // Private: one "Private" pill instead (a label, no action for now), on the same
                 // line as the space pills. It dips out and back in with the flip.
-                Box(modifier.mist(flip), contentAlignment = Alignment.BottomCenter) {
+                Box(modifier.flipTextDip(flip), contentAlignment = Alignment.BottomCenter) {
                     if (flip.labels) {
                         PrivateDockPill(Modifier.padding(bottom = BarTokens.SwitcherBottom).height(BarTokens.SwitcherItem))
                     } else {

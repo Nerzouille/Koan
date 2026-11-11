@@ -3,7 +3,7 @@ package dev.nerzouille.koan.ui.bar
 import dev.nerzouille.koan.ui.kit.frameClock
 import dev.nerzouille.koan.ui.kit.rememberAnimationsOff
 import dev.nerzouille.koan.ui.privacy.PrivateFlip
-import dev.nerzouille.koan.ui.privacy.mist
+import dev.nerzouille.koan.ui.privacy.flipTextDip
 import dev.nerzouille.koan.ui.theme.PrivateTokens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
@@ -240,7 +240,7 @@ fun AddressRow(
                 private = private,
                 flip = flip,
             )
-            Box(Modifier.mist(flip)) { TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu) }
+            Box(Modifier.flipTextDip(flip)) { TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu) }
             Box {
                 BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
                 BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
@@ -332,7 +332,7 @@ private fun FieldLabels(
         lastSpace?.let { current ->
             SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode() })
         }
-        MaskedText(if (private) PRIVATE_HINT else SEARCH_HINT, primary = false, mask = private, modifier = Modifier.graphicsLayer { alpha = overview() }.mist(flip))
+        MaskedText(if (private) PRIVATE_HINT else SEARCH_HINT, primary = false, mask = private, modifier = Modifier.graphicsLayer { alpha = overview() }.flipTextDip(flip))
         previous?.let { SwipeLabel(it, -1f, swipe, overview) }
         next?.let { SwipeLabel(it, 1f, swipe, overview) }
     }

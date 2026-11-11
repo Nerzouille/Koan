@@ -50,11 +50,11 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.rememberPresence
+import dev.nerzouille.koan.ui.theme.Motion
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -170,7 +171,7 @@ internal fun PlayGlyph(state: GlyphState, size: Dp, optical: Dp = 0.dp) {
     }
     Box(Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value }, contentAlignment = Alignment.Center) {
         for (g in GlyphState.entries) {
-            val a = rememberPresence(g == state, tween(120), startShown = true)
+            val a = rememberPresence(g == state, Motion.FadeQuick, startShown = true)
             if (a.composed) {
                 val icon = when (g) {
                     GlyphState.Play -> KoanIcons.PlayFilled
