@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -95,6 +96,8 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
     }
 
     val open = remember { Animatable(if (noMotion) 1f else 0f) }
+    // Controls wait until the morph is mostly done; read through a derived state, not per frame.
+    val early by remember { derivedStateOf { open.value < 0.6f } }
     val backdrop = remember { Animatable(if (noMotion) 1f else 0f) }
     val dragY = remember { mutableFloatStateOf(0f) }
     val dragScale = remember { mutableFloatStateOf(1f) }
@@ -160,7 +163,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 modifier = Modifier.align(Alignment.Center),
             )
         }
-        val rows = when (video.mode) {
+        val rows = remember(video.mode, video.download, actions, native) { when (video.mode) {
             PlayerMode.File -> listOf(
                 MenuRow(KoanIcons.Share, "Share") { actions.share() },
                 MenuRow(KoanIcons.Open, "Open with another app") { native.pause(); actions.openWith() },
@@ -169,7 +172,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 MenuRow(KoanIcons.Download, "Download video") { actions.download() },
                 MenuRow(KoanIcons.Share, "Share link") { actions.shareLink() },
             )
-        }
+        } }
         VideoPlayer(
             state = st,
             controls = native,
@@ -186,7 +189,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 dragY.floatValue = dy
                 dragScale.floatValue = s
             },
-            hidden = inPip || closing || open.value < 0.6f,
+            hidden = inPip || closing || early,
             modifier = Modifier.graphicsLayer { alpha = if (closing) 0f else 1f },
         )
         if (confirmDelete) {
