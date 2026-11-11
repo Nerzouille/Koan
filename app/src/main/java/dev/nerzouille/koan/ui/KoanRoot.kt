@@ -1,37 +1,31 @@
 package dev.nerzouille.koan.ui
 
-import dev.nerzouille.koan.ui.kit.animationsOff
-import dev.nerzouille.koan.ui.root.rememberRootState
-import dev.nerzouille.koan.ui.theme.PageTokens
-import dev.nerzouille.koan.ui.browser.ClosingPage
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.ImageBitmap
-import dev.nerzouille.koan.ui.browser.TranslateOfferHost
-import dev.nerzouille.koan.ui.player.WebPlayerLayer
-import dev.nerzouille.koan.ui.player.downloadVideo
-import androidx.compose.runtime.mutableStateSetOf
-import dev.nerzouille.koan.ui.overview.LocalCardHero
-import dev.nerzouille.koan.ui.overview.PageHeroLayer
-import dev.nerzouille.koan.ui.overview.CardHero
-import androidx.compose.runtime.CompositionLocalProvider
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.splineBasedDecay
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,102 +34,107 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.nerzouille.koan.BuildConfig
 import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.data.TabOrigin
-import android.app.Activity
-import androidx.fragment.app.FragmentActivity
+import dev.nerzouille.koan.engine.ClosedTab
+import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.engine.Incoming
+import dev.nerzouille.koan.engine.Opener
+import dev.nerzouille.koan.engine.returnToApp
 import dev.nerzouille.koan.privacy.PrivateTabs
+import dev.nerzouille.koan.search.Hit
+import dev.nerzouille.koan.search.SearchEngine
+import dev.nerzouille.koan.search.Shortcut
+import dev.nerzouille.koan.search.completion
+import dev.nerzouille.koan.search.displayHost
+import dev.nerzouille.koan.search.parseQuery
+import dev.nerzouille.koan.search.resolveInput
+import dev.nerzouille.koan.search.resolveShared
+import dev.nerzouille.koan.thumbs.BakedBlur
+import dev.nerzouille.koan.thumbs.ThumbnailStore
+import dev.nerzouille.koan.ui.bar.AddressRow
+import dev.nerzouille.koan.ui.bar.BarGestures
+import dev.nerzouille.koan.ui.bar.DrawerContent
+import dev.nerzouille.koan.ui.bar.DrawerStatus
+import dev.nerzouille.koan.ui.bar.KoanBar
+import dev.nerzouille.koan.ui.bar.PageInfo
+import dev.nerzouille.koan.ui.bar.SpaceScrub
+import dev.nerzouille.koan.ui.bar.SwipeTarget
+import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
+import dev.nerzouille.koan.ui.bar.barZone
+import dev.nerzouille.koan.ui.bar.drawerBackdrop
+import dev.nerzouille.koan.ui.browser.BrowserScreen
+import dev.nerzouille.koan.ui.browser.ClosingPage
+import dev.nerzouille.koan.ui.browser.CoverTarget
+import dev.nerzouille.koan.ui.browser.DockState
+import dev.nerzouille.koan.ui.browser.TabSwipe
+import dev.nerzouille.koan.ui.browser.TranslateOfferHost
+import dev.nerzouille.koan.ui.browser.observeSlice
+import dev.nerzouille.koan.ui.browser.rememberFullscreen
+import dev.nerzouille.koan.ui.downloads.host
+import dev.nerzouille.koan.ui.downloads.sizeText
+import dev.nerzouille.koan.ui.kit.KoanToastHost
+import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.kit.ToastState
+import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.overview.CardHero
+import dev.nerzouille.koan.ui.overview.LocalCardHero
+import dev.nerzouille.koan.ui.overview.OverviewScreen
+import dev.nerzouille.koan.ui.overview.PageHeroLayer
 import dev.nerzouille.koan.ui.overview.PrivateOverview
+import dev.nerzouille.koan.ui.overview.SpacePager
+import dev.nerzouille.koan.ui.overview.SyncBadge
+import dev.nerzouille.koan.ui.overview.SyncUi
+import dev.nerzouille.koan.ui.overview.findTab
+import dev.nerzouille.koan.ui.overview.toModel
+import dev.nerzouille.koan.ui.player.WebPlayerLayer
+import dev.nerzouille.koan.ui.player.downloadVideo
 import dev.nerzouille.koan.ui.privacy.NoPersonalizedLearning
 import dev.nerzouille.koan.ui.privacy.PrivateDockPill
 import dev.nerzouille.koan.ui.privacy.PrivateFlip
 import dev.nerzouille.koan.ui.privacy.PrivateLockCover
 import dev.nerzouille.koan.ui.privacy.mist
 import dev.nerzouille.koan.ui.privacy.unlockPrivate
-import dev.nerzouille.koan.ui.theme.KoanNormalTheme
-import dev.nerzouille.koan.ui.theme.KoanPalette
-import dev.nerzouille.koan.ui.theme.KoanPrivateTheme
-import dev.nerzouille.koan.engine.ClosedTab
-import dev.nerzouille.koan.engine.Opener
-import dev.nerzouille.koan.engine.returnToApp
-import dev.nerzouille.koan.engine.Components
-import dev.nerzouille.koan.engine.Incoming
-import dev.nerzouille.koan.search.resolveInput
-import dev.nerzouille.koan.search.resolveShared
-import dev.nerzouille.koan.search.Hit
-import dev.nerzouille.koan.search.completion
-import dev.nerzouille.koan.search.parseQuery
+import dev.nerzouille.koan.ui.root.ownPlayer
+import dev.nerzouille.koan.ui.root.rememberRootState
+import dev.nerzouille.koan.ui.root.standaloneActions
 import dev.nerzouille.koan.ui.search.SearchActions
 import dev.nerzouille.koan.ui.search.SearchField
 import dev.nerzouille.koan.ui.search.SearchSheet
 import dev.nerzouille.koan.ui.search.TabTarget
 import dev.nerzouille.koan.ui.search.rememberSearch
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.background
-import dev.nerzouille.koan.search.SearchEngine
-import dev.nerzouille.koan.search.Shortcut
-import dev.nerzouille.koan.thumbs.BakedBlur
-import dev.nerzouille.koan.ui.bar.AddressRow
-import dev.nerzouille.koan.ui.bar.DrawerContent
-import dev.nerzouille.koan.ui.bar.drawerBackdrop
-import dev.nerzouille.koan.ui.bar.DrawerStatus
-import dev.nerzouille.koan.ui.sheet.SheetState
-import dev.nerzouille.koan.ui.bar.KoanBar
-import dev.nerzouille.koan.ui.bar.PageInfo
-import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
-import dev.nerzouille.koan.ui.bar.barZone
-import dev.nerzouille.koan.ui.kit.KoanToastHost
-import dev.nerzouille.koan.ui.kit.Toast
-import dev.nerzouille.koan.ui.downloads.host
-import dev.nerzouille.koan.ui.downloads.sizeText
-import mozilla.components.browser.state.state.content.DownloadState
-import dev.nerzouille.koan.ui.kit.ToastState
-import dev.nerzouille.koan.ui.bar.SwipeTarget
-import dev.nerzouille.koan.ui.bar.BarGestures
-import dev.nerzouille.koan.ui.bar.SpaceScrub
 import dev.nerzouille.koan.ui.sheet.Detent
-import dev.nerzouille.koan.ui.browser.TabSwipe
-import dev.nerzouille.koan.thumbs.ThumbnailStore
-import dev.nerzouille.koan.search.displayHost
-import dev.nerzouille.koan.ui.theme.BarTokens
-import androidx.compose.animation.splineBasedDecay
-import dev.nerzouille.koan.ui.browser.BrowserScreen
-import dev.nerzouille.koan.ui.browser.rememberFullscreen
-import dev.nerzouille.koan.ui.browser.CoverTarget
-import dev.nerzouille.koan.ui.browser.DockState
-import dev.nerzouille.koan.ui.browser.observeSlice
-import androidx.compose.runtime.SideEffect
-import mozilla.components.browser.state.selector.findTab
-import dev.nerzouille.koan.ui.overview.OverviewScreen
-import dev.nerzouille.koan.ui.overview.SpacePager
-import dev.nerzouille.koan.ui.overview.SyncBadge
-import dev.nerzouille.koan.ui.overview.SyncUi
-import dev.nerzouille.koan.ui.overview.findTab
-import kotlinx.coroutines.flow.first
-import dev.nerzouille.koan.ui.overview.toModel
+import dev.nerzouille.koan.ui.sheet.SheetState
 import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
 import dev.nerzouille.koan.ui.start.ContinueTab
 import dev.nerzouille.koan.ui.start.StartPage
+import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
+import dev.nerzouille.koan.ui.theme.KoanNormalTheme
+import dev.nerzouille.koan.ui.theme.KoanPalette
+import dev.nerzouille.koan.ui.theme.KoanPrivateTheme
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.ui.theme.PageTokens
+import dev.nerzouille.koan.ui.theme.PagerTokens
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import dev.nerzouille.koan.ui.theme.Motion
-import dev.nerzouille.koan.ui.theme.PagerTokens
+import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.state.content.DownloadState
 
 /**
  * Page view and Space overview, with the one bottom bar on top of both: it morphs into the
@@ -1299,66 +1298,3 @@ private const val ZEN_TOP_WAIT_MS = 120_000L
 
 /** How long an incoming link's tab may take to become the current one (it is a Room write). */
 private const val LANDING_TIMEOUT_MS = 5_000L
-
-/** Sites whose fullscreen player keeps its own controls over the video (checked on the phone). */
-private fun ownPlayer(url: String?): Boolean {
-    val host = url?.let { android.net.Uri.parse(it).host }?.removePrefix("www.")?.removePrefix("m.") ?: return false
-    return OWN_PLAYER_SITES.any { host == it || host.endsWith(".$it") }
-}
-
-private val OWN_PLAYER_SITES = listOf("youtube.com", "youtube-nocookie.com")
-
-/** The standalone player's ⋯ menu, outside the player: share, open with, delete, download. */
-private fun standaloneActions(
-    components: Components,
-    context: android.content.Context,
-    video: dev.nerzouille.koan.ui.player.StandaloneVideo,
-    activeTabId: String?,
-    toast: (Toast) -> Unit,
-): dev.nerzouille.koan.ui.player.StandaloneActions {
-    val download = video.download
-    return dev.nerzouille.koan.ui.player.StandaloneActions(
-        share = {
-            val ok = if (download != null) components.downloads.share(download) else runCatching {
-                val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("video/*")
-                    .putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse(video.uri))
-                    .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-            }.isSuccess
-            if (!ok) toast(Toast("Couldn't share this file"))
-        },
-        openWith = {
-            val ok = if (download != null) components.downloads.open(download) else runCatching {
-                val view = android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(android.net.Uri.parse(video.uri), "video/*")
-                    .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                context.startActivity(android.content.Intent.createChooser(view, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-            }.isSuccess
-            if (!ok) toast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
-        },
-        delete = {
-            if (download != null) {
-                components.downloads.delete(download)
-                toast(Toast("File deleted"))
-            }
-        },
-        download = {
-            val url = video.uri
-            val tab = activeTabId
-            if (tab != null) {
-                downloadVideo(components, tab, url)
-            } else {
-                components.store.dispatch(
-                    mozilla.components.browser.state.action.DownloadAction.AddDownloadAction(
-                        mozilla.components.browser.state.state.content.DownloadState(url, skipConfirmation = true, referrerUrl = video.pageUrl),
-                    ),
-                )
-            }
-            toast(Toast("Downloading the video"))
-        },
-        shareLink = {
-            val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, video.uri)
-            context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-        },
-        pip = { components.pip.value?.enterNow() },
-    )
-}
