@@ -50,7 +50,6 @@ import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.data.TabOrigin
 import dev.nerzouille.koan.engine.ClosedTab
 import dev.nerzouille.koan.engine.Components
-import dev.nerzouille.koan.engine.Incoming
 import dev.nerzouille.koan.engine.Opener
 import dev.nerzouille.koan.engine.returnToApp
 import dev.nerzouille.koan.privacy.PrivateTabs
@@ -61,7 +60,6 @@ import dev.nerzouille.koan.search.completion
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.search.parseQuery
 import dev.nerzouille.koan.search.resolveInput
-import dev.nerzouille.koan.search.resolveShared
 import dev.nerzouille.koan.thumbs.BakedBlur
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.bar.AddressRow
@@ -106,6 +104,7 @@ import dev.nerzouille.koan.ui.privacy.PrivateFlip
 import dev.nerzouille.koan.ui.privacy.PrivateLockCover
 import dev.nerzouille.koan.ui.privacy.mist
 import dev.nerzouille.koan.ui.privacy.unlockPrivate
+import dev.nerzouille.koan.ui.root.IncomingLinks
 import dev.nerzouille.koan.ui.root.PrivateSwitch
 import dev.nerzouille.koan.ui.root.ownPlayer
 import dev.nerzouille.koan.ui.root.rememberRootState
@@ -415,39 +414,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val privateOverview = remember(flip) { PrivateOverview(flip) { latestToggle.value() } }
 
     // Links and text other apps send (default browser, share): a new tab in the current space.
-    LaunchedEffect(tabsStarted, spaces.isEmpty(), placeRestored) {
-        if (!tabsStarted || spaces.isEmpty() || !placeRestored) return@LaunchedEffect
-        components.incoming.collect { incoming ->
-            if (incoming == null) return@collect
-            // A link from another app opens as a normal tab, never in Private.
-            leavePrivate()
-            components.incoming.value = null
-            tabSwipe.cancel()
-            tabs.cancelBlank()
-            overlays.dismissAll()
-            overlays.menu.snapClosed()
-            overlays.settingsOpen = false
-            overlays.historyOpen = false
-            overlays.downloadsOpen = false
-            val url = when (incoming.kind) {
-                Incoming.Kind.Url -> incoming.text
-                Incoming.Kind.Shared -> resolveShared(incoming.text, searchEngine)
-                Incoming.Kind.Selected -> resolveInput(incoming.text, searchEngine)
-            }
-            landing = openNewTab(url, select = true, nextToCurrent = false, fromApp = Opener.App(incoming.referrer, url))
-        }
-    }
-    // The app's tab is created a moment later (TabManager): until it is the current one, nothing
-    // may put the overview up (no current tab, at launch), and then it shows, in the page view.
-    LaunchedEffect(landing) {
-        val id = landing ?: return@LaunchedEffect
-        withTimeoutOrNull(LANDING_TIMEOUT_MS) { snapshotFlow { activeTabId }.first { it == id } }
-        if (activeTabId == id && overviewOpen) {
-            heroPick = NO_CARD
-            overviewOpen = false
-        }
-        landing = null
-    }
+    IncomingLinks(
+        components, root, tabsStarted, spaces.isEmpty(), searchEngine, { activeTabId }, tabSwipe, { tabs }, overlays,
+        leavePrivate = ::leavePrivate, openNewTab = ::openNewTab,
+    )
     /** A url from the field: loads in the current tab, or in a new one from the start page. */
     fun loadHere(url: String) {
         if (startPage) openNewTab(url, select = true, nextToCurrent = false) else tabs.load(url)
@@ -1253,10 +1223,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
 }
 
 /** [heroPick]: the tab shown next has no card to fly from (a new tab, a link from another app). */
-private const val NO_CARD = ""
+internal const val NO_CARD = ""
 
 /** After sign-in, how long the overview waits for the first sync before giving up on showing Zen's top tab. */
 private const val ZEN_TOP_WAIT_MS = 120_000L
 
-/** How long an incoming link's tab may take to become the current one (it is a Room write). */
-private const val LANDING_TIMEOUT_MS = 5_000L
