@@ -34,8 +34,8 @@ android {
         targetSdk = 37
         // versionCode only goes up: 2 was the m3 build already on the phone, 7 the Android 11
         // preview (0.2.2-preview.1).
-        versionCode = 9
-        versionName = "0.4.0"
+        versionCode = 10
+        versionName = "1.0.0-beta.1"
         // GeckoView-omni ships every ABI; both owner phones are arm64. `-Pkoan.emulatorAbi` adds
         // x86_64 for emulator test runs only, never for a build that goes on a phone.
         ndk {

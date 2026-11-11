@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.RawRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.nerzouille.koan.R
+import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.settings.REPO
 import dev.nerzouille.koan.ui.theme.TourTokens
 
@@ -119,10 +120,36 @@ val Highlights: Map<String, List<TourCard>> = mapOf(
             stillLight = R.drawable.whatsnew_engines_light,
         ),
     ),
+    // Stills only (no clips); the sync card stays text-only: its screen shows the account's email.
+    "1.0" to listOf(
+        TourCard(
+            "Private browsing",
+            "Tap the switch at the right of the overview's header: private tabs in their own set, locked behind your fingerprint.",
+            icon = KoanIcons.Private,
+        ),
+        TourCard(
+            "Koan's own video player",
+            "Play a video full screen: double-tap to skip, hold for 2×, swipe for brightness and volume. Go home and it keeps playing in a small window.",
+            icon = KoanIcons.PlayFilled,
+        ),
+        TourCard(
+            "Translate a page",
+            "⋯ › Translate page, or the card that offers it: pages are translated on the phone, their text never leaves it.",
+            icon = KoanIcons.Translate,
+        ),
+        TourCard(
+            "Two-way sync, if you want it",
+            "Settings › Mozilla account › Send to your Mozilla account: passwords saved here, and history both ways. Off until you turn it on.",
+            icon = KoanIcons.Key,
+        ),
+    ),
 )
 
-/** Koan's latest GitHub release: the last highlight links to its full changelog. */
-const val LATEST_RELEASE_URL = "$REPO/releases/latest"
+/**
+ * The GitHub release page of [versionName] ("1.0.0-beta.1"): the last highlight links to its full
+ * changelog. Not `/releases/latest`, which skips pre-releases (a 404 while every release is one).
+ */
+fun releaseUrl(versionName: String): String = "$REPO/releases/tag/v$versionName"
 
 /** The first card of a "What's new": the welcome card's gradient and K, with the version. */
 fun whatsNewIntro(version: String): TourCard =

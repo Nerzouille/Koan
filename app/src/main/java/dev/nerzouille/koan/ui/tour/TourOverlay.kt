@@ -159,7 +159,7 @@ fun TourOverlay(open: Boolean, sheet: TourSheet?, onOpenUrl: (String) -> Unit, o
                 if (card.welcome) {
                     WelcomePage(card, motion) { (pager.currentPage + pager.currentPageOffsetFraction - i).coerceIn(0f, 1f) }
                 } else if (sheet is TourSheet.WhatsNew && i == cards.lastIndex) {
-                    TourPage(card) { WhatsNewEnd { if (open) onOpenUrl(LATEST_RELEASE_URL) } }
+                    TourPage(card) { WhatsNewEnd { if (open) onOpenUrl(releaseUrl(dev.nerzouille.koan.BuildConfig.VERSION_NAME)) } }
                 } else {
                     TourPage(card)
                 }
