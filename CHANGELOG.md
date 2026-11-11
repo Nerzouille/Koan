@@ -57,9 +57,12 @@
 ### Fixed
 
 - WebAuthn results reach the page after an Activity recreation; canceled or overlapping prompts
-  no longer leave an abandoned callback.
+  no longer leave an abandoned callback. Each Activity result is tied to its own request so a
+  late result cannot complete a retry; stopped hosts reject new launches.
 - Devices with Android Credential Manager no longer depend on Google FIDO for their platform
   passkey capability check. Missing/disabled Google services fail promptly on legacy fallback.
+- Legacy Google FIDO login tasks now return failures/cancellations to the page; canceling their
+  Activity is reported as an abort, consistently with registration.
 - Android's selected password Autofill service can suggest logins alongside Koan's own logins.
 
 ### Known limitations

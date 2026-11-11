@@ -8,6 +8,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Handle;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,11 +24,13 @@ public abstract class PasskeyCapabilityVisitorFactory
     static final String TARGET = "org.mozilla.geckoview.WebAuthnTokenManager";
     static final String METHOD = "webAuthnIsUserVerifyingPlatformAuthenticatorAvailable";
     static final String DESCRIPTOR = "()Lorg/mozilla/geckoview/GeckoResult;";
+    static final String ACTIVITY_FAILURE = "lambda$getAssertion$11";
     static final Map<String, String> METHODS = Map.of(
             METHOD, DESCRIPTOR,
             "makeCredential", "(Lorg/mozilla/gecko/util/GeckoBundle;[B[B[Lorg/mozilla/gecko/util/WebAuthnUtils$WebAuthnPublicCredential;Lorg/mozilla/gecko/util/GeckoBundle;Lorg/mozilla/gecko/util/GeckoBundle;)Lorg/mozilla/geckoview/GeckoResult;",
             "getAssertion", "([B[Lorg/mozilla/gecko/util/WebAuthnUtils$WebAuthnPublicCredential;Lorg/mozilla/gecko/util/GeckoBundle;Lorg/mozilla/gecko/util/GeckoBundle;)Lorg/mozilla/geckoview/GeckoResult;",
-            "hasCredentialInGMS", "(Ljava/lang/String;[Lorg/mozilla/gecko/util/WebAuthnUtils$WebAuthnPublicCredential;)Lorg/mozilla/geckoview/GeckoResult;");
+            "hasCredentialInGMS", "(Ljava/lang/String;[Lorg/mozilla/gecko/util/WebAuthnUtils$WebAuthnPublicCredential;)Lorg/mozilla/geckoview/GeckoResult;",
+            ACTIVITY_FAILURE, "(Lorg/mozilla/geckoview/GeckoResult;Ljava/lang/Throwable;)V");
 
     @Override public boolean isInstrumentable(ClassData data) {
         return TARGET.equals(data.getClassName());
@@ -49,7 +52,62 @@ public abstract class PasskeyCapabilityVisitorFactory
                     throw new IllegalStateException("GeckoView WebAuthn probe changed; review the adapter");
                 }
                 found.add(name);
+                if (ACTIVITY_FAILURE.equals(name)) return new MethodVisitor(Opcodes.ASM9, nextMethod) {
+                    private int replacements = 0;
+                    @Override public void visitLdcInsn(Object value) {
+                        // Match registration's cancellation mapping, including RESULT_CANCELED.
+                        if ("UNKNOWN_ERR".equals(value)) { value = "ABORT_ERR"; replacements++; }
+                        super.visitLdcInsn(value);
+                    }
+                    @Override public void visitEnd() {
+                        if (replacements != 1) throw new IllegalStateException("GeckoView activity failure mapping changed");
+                        super.visitEnd();
+                    }
+                };
                 return new MethodVisitor(Opcodes.ASM9, nextMethod) {
+                    private int lastLoaded = -1;
+                    private int resultLocal = -1;
+                    private int failureHooks = 0;
+
+                    @Override public void visitVarInsn(int opcode, int slot) {
+                        if (opcode == Opcodes.ALOAD) lastLoaded = slot;
+                        super.visitVarInsn(opcode, slot);
+                    }
+
+                    @Override public void visitInvokeDynamicInsn(String invokedName, String desc,
+                            Handle bootstrap, Object... arguments) {
+                        if (legacyRequest() && "onSuccess".equals(invokedName) &&
+                                "(Lorg/mozilla/geckoview/GeckoResult;)Lcom/google/android/gms/tasks/OnSuccessListener;".equals(desc)) {
+                            resultLocal = lastLoaded;
+                        }
+                        super.visitInvokeDynamicInsn(invokedName, desc, bootstrap, arguments);
+                    }
+
+                    @Override public void visitMethodInsn(int opcode, String owner, String method, String desc, boolean itf) {
+                        super.visitMethodInsn(opcode, owner, method, desc, itf);
+                        if (legacyRequest() && "com/google/android/gms/tasks/Task".equals(owner) &&
+                                "addOnSuccessListener".equals(method) &&
+                                "(Lcom/google/android/gms/tasks/OnSuccessListener;)Lcom/google/android/gms/tasks/Task;".equals(desc)) {
+                            if (resultLocal < 0) throw new IllegalStateException("GeckoView FIDO result capture changed");
+                            mv.visitVarInsn(Opcodes.ALOAD, resultLocal);
+                            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "dev/nerzouille/koan/engine/auth/LegacyFidoResult",
+                                    "getAssertion".equals(name) ? "observe" : "observeCancellation",
+                                    "(Lcom/google/android/gms/tasks/Task;Lorg/mozilla/geckoview/GeckoResult;)Lcom/google/android/gms/tasks/Task;", false);
+                            failureHooks++;
+                        }
+                    }
+
+                    @Override public void visitEnd() {
+                        if (legacyRequest() && failureHooks != 1) {
+                            throw new IllegalStateException("GeckoView FIDO task changed; review failure handling");
+                        }
+                        super.visitEnd();
+                    }
+
+                    private boolean legacyRequest() {
+                        return "getAssertion".equals(name) || "makeCredential".equals(name);
+                    }
+
                     @Override public void visitCode() {
                         super.visitCode();
                         if (METHOD.equals(name)) {

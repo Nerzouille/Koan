@@ -1,16 +1,23 @@
 package dev.nerzouille.koan.auth.testing
 
 import android.app.PendingIntent
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.lifecycle.ViewModelProvider
+import androidx.core.app.ActivityOptionsCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.nerzouille.koan.KoanApp
 import dev.nerzouille.koan.MainActivity
-import dev.nerzouille.koan.engine.auth.PendingPasskeyResult
+import dev.nerzouille.koan.engine.auth.WebAuthnController
+import dev.nerzouille.koan.engine.auth.LegacyFidoResult
+import com.google.android.gms.tasks.Tasks
+import org.mozilla.gecko.util.WebAuthnUtils
+import org.mozilla.geckoview.GeckoResult
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.ExecutionException
@@ -22,18 +29,99 @@ import org.junit.runner.RunWith
 class PasskeyIntegrationTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     @Test fun pendingCallbackSurvivesActivityRecreation() {
+        val registry = ControlledRegistry()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             val done = CompletableFuture<Intent?>()
             scenario.onActivity { activity ->
-                val state = ViewModelProvider(activity)[PendingPasskeyResult::class.java]
-                assertTrue(state.begin { done.complete(it) })
+                controller(activity, registry).startIntentSenderForResult(sender().intentSender) { done.complete(it) }
             }
             scenario.recreate()
             scenario.onActivity { activity ->
-                ViewModelProvider(activity)[PendingPasskeyResult::class.java].complete(Intent().putExtra("fixture-result", "restored"))
+                // The provider may return while the old registration is detached. Rebinding
+                // must consume that queued result synchronously without losing its callback.
+                registry.dispatchResult(registry.codes.single(), Activity.RESULT_OK, Intent().putExtra("fixture-result", "restored"))
+                controller(activity, registry)
             }
             assertEquals("restored", done.get(20, TimeUnit.SECONDS)?.getStringExtra("fixture-result"))
         }
+    }
+
+    @Test fun lateActivityResultCannotCompleteNewRequest() {
+        val registry = ControlledRegistry()
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val controller = controller(activity, registry)
+                var firstCalls = 0
+                var retryCalls = 0
+                controller.startIntentSenderForResult(sender().intentSender) { assertNull(it); firstCalls++ }
+                val first = registry.codes.last()
+                registry.dispatchResult(first, Activity.RESULT_CANCELED, Intent().putExtra("fixture-result", "discard me"))
+                controller.startIntentSenderForResult(sender().intentSender) {
+                    assertEquals("retry", it?.getStringExtra("fixture-result")); retryCalls++
+                }
+                val retry = registry.codes.last()
+                assertNotEquals(first, retry)
+                registry.dispatchResult(first, Activity.RESULT_OK, Intent().putExtra("fixture-result", "old"))
+                assertEquals(0, retryCalls)
+                registry.dispatchResult(retry, Activity.RESULT_OK, Intent().putExtra("fixture-result", "retry"))
+                assertEquals(1, firstCalls)
+                assertEquals(1, retryCalls)
+            }
+        }
+    }
+
+    @Test fun launchFailureAndStoppedHostAllowSafeRetry() {
+        val registry = ControlledRegistry()
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                var failLaunch = true
+                var canceled = 0
+                val controller = WebAuthnController(activity, (activity.application as KoanApp).components.engine,
+                    { if (failLaunch) error("synthetic launch failure") }, registry).also { it.start() }
+                controller.startIntentSenderForResult(sender().intentSender) { assertNull(it); canceled++ }
+                assertTrue(registry.codes.isEmpty())
+                failLaunch = false
+                controller.stop()
+                controller.startIntentSenderForResult(sender().intentSender) { assertNull(it); canceled++ }
+                assertTrue(registry.codes.isEmpty())
+                controller.start()
+                var result: Intent? = null
+                controller.startIntentSenderForResult(sender().intentSender) { result = it }
+                registry.dispatchResult(registry.codes.single(), Activity.RESULT_OK, Intent())
+                assertNotNull(result)
+                assertEquals(2, canceled)
+            }
+        }
+    }
+
+    @Test fun legacyTaskFailureAndCancellationRejectPromptly() {
+        for (task in listOf(Tasks.forException<Any>(IllegalStateException("synthetic FIDO failure")), Tasks.forCanceled<Any>())) {
+            val result = GeckoResult<Any>()
+            LegacyFidoResult.observe(task, result)
+            val error = assertThrows(WebAuthnUtils.Exception::class.java) { result.poll(1000) }
+            assertEquals("ABORT_ERR", error.message)
+        }
+    }
+
+    @Test fun successfulLegacyTaskLeavesNativeResultHandlingIntact() {
+        val result = GeckoResult<Any>()
+        val task = Tasks.forResult("synthetic pending intent")
+        assertSame(task, LegacyFidoResult.observe(task, result))
+        result.complete("native response")
+        assertEquals("native response", result.poll(1000))
+        val canceled = GeckoResult<Any>()
+        LegacyFidoResult.observeCancellation(Tasks.forCanceled<Any>(), canceled)
+        assertThrows(WebAuthnUtils.Exception::class.java) { canceled.poll(1000) }
+    }
+
+    @Test fun actualEngineMapsCanceledLegacyActivityToAbort() {
+        val result = GeckoResult<Any>()
+        val method = Class.forName("org.mozilla.geckoview.WebAuthnTokenManager").getDeclaredMethod(
+            "lambda\$getAssertion\$11", GeckoResult::class.java, Throwable::class.java,
+        ).apply { isAccessible = true }
+        method.invoke(null, result, IllegalStateException("synthetic canceled activity"))
+        val error = assertThrows(WebAuthnUtils.Exception::class.java) { result.poll(1000) }
+        assertEquals("ABORT_ERR", error.message)
     }
 
     @Test fun nativeActivityDelegateReceivesSuccessAndCancellation() {
@@ -70,4 +158,18 @@ class PasskeyIntegrationTest {
 
     private fun fixtureIntent() = Intent().setComponent(ComponentName("dev.nerzouille.koan.credentials.fixture",
         "dev.nerzouille.koan.auth.testing.ActivityResultFixture"))
+
+    private fun sender() = PendingIntent.getActivity(instrumentation.targetContext, 42,
+        fixtureIntent(), PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+    private fun controller(activity: MainActivity, registry: ControlledRegistry) = WebAuthnController(
+        activity, (activity.application as KoanApp).components.engine, {}, registry,
+    ).also { it.start() }
+
+    private class ControlledRegistry : ActivityResultRegistry() {
+        val codes = mutableListOf<Int>()
+        override fun <I, O> onLaunch(requestCode: Int, contract: ActivityResultContract<I, O>, input: I, options: ActivityOptionsCompat?) {
+            codes += requestCode
+        }
+    }
 }

@@ -40,12 +40,19 @@ document.getElementById('run').onclick=async()=>{document.getElementById('run').
  if(!await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())throw Error('Platform capability probe returned false');
  const options=await fetch('/options').then(r=>r.json());
  const creation={rp:{id:'localhost',name:'Koan test RP'},user:{id:new TextEncoder().encode('test-user'),name:'test-user',displayName:'Test User'},challenge:dec(options.challenge),pubKeyCredParams:[{type:'public-key',alg:-7}],authenticatorSelection:{residentKey:'required',userVerification:'required'},timeout:30000,attestation:'none'};
+ const reject=async(action,names)=>{let error;try{await action()}catch(e){error=e}if(!error||!names.includes(error.name))throw Error('Expected '+names.join('/')+', received '+error?.name)};
+ const aborted=new AbortController();aborted.abort();
+ await reject(()=>navigator.credentials.create({publicKey:creation,signal:aborted.signal}),['AbortError']);
+ await reject(()=>navigator.credentials.get({publicKey:{rpId:'example.com',challenge:creation.challenge}}),['SecurityError']);
  await send('/phase',{phase:'create'});
  const credential=await navigator.credentials.create({publicKey:creation});
  await send('/register',serialize(credential));
  await send('/phase',{phase:'get'});
  const assertion=await navigator.credentials.get({publicKey:{rpId:'localhost',challenge:dec(options.challenge),allowCredentials:[{type:'public-key',id:credential.rawId}],userVerification:'required',timeout:30000}});
  await send('/assert',serialize(assertion));
+ await send('/phase',{phase:'discoverable'});
+ const discoverable=await navigator.credentials.get({publicKey:{rpId:'localhost',challenge:dec(options.challenge),userVerification:'required',timeout:30000}});
+ await send('/assert',serialize(discoverable));
  await send('/phase',{phase:'cancel'});
  let rejected=false;try{await navigator.credentials.create({publicKey:creation})}catch(e){rejected=e.name==='AbortError'||e.name==='NotAllowedError'}
  if(!rejected)throw Error('Cancel did not reject the request');
@@ -53,6 +60,13 @@ document.getElementById('run').onclick=async()=>{document.getElementById('run').
  const started=performance.now();let unavailable=false;
  try{await navigator.credentials.create({publicKey:{...creation,user:{...creation.user,name:'no-options'}}})}catch(e){unavailable=true}
  if(!unavailable||performance.now()-started>10000)throw Error('Unavailable provider did not fail promptly');
+ for(const [name,errors] of [['provider-error',['UnknownError']],['malformed-response',['DataError']]]){
+  await send('/phase',{phase:name});
+  await reject(()=>navigator.credentials.create({publicKey:{...creation,user:{...creation.user,name}}}),errors);
+ }
+ await send('/phase',{phase:'retry'});
+ const retry=await navigator.credentials.get({publicKey:{rpId:'localhost',challenge:dec(options.challenge),allowCredentials:[{type:'public-key',id:credential.rawId}],userVerification:'required',timeout:30000}});
+ await send('/assert',serialize(retry));
  await send('/done',{});document.getElementById('out').textContent='Passed';
 }catch(e){document.getElementById('out').textContent=e.stack;await send('/error',{error:String(e)})}};
 </script>`;
@@ -76,7 +90,7 @@ const server=http.createServer(async(req,res)=>{
     }
     let raw='';for await(const chunk of req)raw+=chunk;
     const data=JSON.parse(raw||'{}');
-    if(path==='/phase')state.phase=data.phase;
+    if(path==='/phase'){state.phase=data.phase;console.log('Phase:',data.phase);}
     if(path==='/error')state.error=data.error;
     if(path==='/fill'){assert.equal(data.username,'test-user');assert.equal(data.password,'test-password');state.passed=true;console.log('PASS: system username/password Autofill');}
     if(path==='/register'){
@@ -94,7 +108,7 @@ const server=http.createServer(async(req,res)=>{
       assert(crypto.verify('sha256',Buffer.concat([auth,crypto.createHash('sha256').update(clientJSON).digest()]),state.key,decode(data.response.signature)),'P-256 signature verification failed');
       state.signatureVerified=true;
     }
-    if(path==='/done'){assert(state.signatureVerified);state.passed=true;state.phase='done';console.log('PASS: capability, registration, signature and cancellation');}
+    if(path==='/done'){assert(state.signatureVerified);state.passed=true;state.phase='done';console.log('PASS: capability, registration, signature, discoverable login, cancellation, provider errors and retry');}
     res.setHeader('content-type','application/json');res.end('{}');
   }catch(error){state.error=String(error);console.error(state.error);res.statusCode=400;res.end(state.error);}
 });

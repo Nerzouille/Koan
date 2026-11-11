@@ -19,8 +19,10 @@ datastore = "1.2.1"
 androidsvg = "1.4"
 zxing = "3.5.4"
 orgJson = "20260814"
+gmsTasks = "18.3.2"
 
 [libraries]
+gms-tasks = { module = "com.google.android.gms:play-services-tasks", version.ref = "gmsTasks" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }

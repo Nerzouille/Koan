@@ -144,8 +144,9 @@ Pulled in by Gradle, not copied into this repository:
   (`org.mozilla.components`): Mozilla Public License 2.0, https://www.mozilla.org/MPL/2.0/.
   Source: https://github.com/mozilla-firefox/firefox. GeckoView bundles further third-party code
   under its own licenses (listed in `about:license` of any Firefox build).
-  Koan modifies four Java entry points in `WebAuthnTokenManager` at build time for Credential
-  Manager capability detection and missing/disabled Google-service handling. Original source:
+  Koan modifies four Java entry points and one Activity failure continuation in
+  `WebAuthnTokenManager` at build time for Credential Manager capability detection, Google-service
+  availability, and task/cancellation error handling. Original source:
   https://maven.mozilla.org/maven2/org/mozilla/geckoview/geckoview-omni/157.0.20261005135250/geckoview-omni-157.0.20261005135250-sources.jar.
   The complete modification and pinned build recipe are in `build-logic/`, with runtime checks
   in `app/src/main/java/dev/nerzouille/koan/engine/auth/PasskeyCapabilities.kt`; see

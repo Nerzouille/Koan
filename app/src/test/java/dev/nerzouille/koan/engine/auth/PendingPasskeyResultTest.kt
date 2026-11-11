@@ -7,6 +7,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 
 class PendingPasskeyResultTest {
@@ -14,9 +16,9 @@ class PendingPasskeyResultTest {
         val state = PendingPasskeyResult()
         val response = Intent()
         val received = mutableListOf<Intent?>()
-        assertTrue(state.begin(received::add))
-        state.complete(response)
-        state.complete(null)
+        val id = requireNotNull(state.begin(received::add))
+        state.complete(id, response)
+        state.complete(id, null)
         assertEquals(1, received.size)
         assertSame(response, received.single())
     }
@@ -25,11 +27,11 @@ class PendingPasskeyResultTest {
         val state = PendingPasskeyResult()
         var firstCalls = 0
         var secondCalls = 0
-        assertTrue(state.begin { firstCalls++ })
-        assertFalse(state.begin { assertNull(it); secondCalls++ })
+        val id = requireNotNull(state.begin { firstCalls++ })
+        assertNull(state.begin { assertNull(it); secondCalls++ })
         assertEquals(0, firstCalls)
         assertEquals(1, secondCalls)
-        state.complete(null)
+        state.complete(id, null)
         assertEquals(1, firstCalls)
         assertEquals(1, secondCalls)
     }
@@ -37,10 +39,10 @@ class PendingPasskeyResultTest {
     @Test fun cancellationAllowsAnotherRequest() {
         val state = PendingPasskeyResult()
         var cancellations = 0
-        assertTrue(state.begin { assertNull(it); cancellations++ })
-        state.complete(null)
-        assertTrue(state.begin { assertNull(it); cancellations++ })
-        state.complete(null)
+        val first = requireNotNull(state.begin { assertNull(it); cancellations++ })
+        state.complete(first, null)
+        val second = requireNotNull(state.begin { assertNull(it); cancellations++ })
+        state.complete(second, null)
         assertEquals(2, cancellations)
     }
 
@@ -49,9 +51,37 @@ class PendingPasskeyResultTest {
         val state = PendingPasskeyResult()
         store.put("passkey", state)
         var calls = 0
-        state.begin { assertNull(it); calls++ }
+        val id = requireNotNull(state.begin { assertNull(it); calls++ })
         store.clear()
-        state.complete(null)
+        state.complete(id, null)
         assertEquals(1, calls)
+    }
+
+    @Test fun lateResultCannotCompleteRetry() {
+        val state = PendingPasskeyResult()
+        val first = requireNotNull(state.begin {})
+        state.complete(first, null)
+        var retryCalls = 0
+        val second = requireNotNull(state.begin { retryCalls++ })
+        assertNotEquals(first, second)
+        assertFalse(state.complete(first, Intent()))
+        assertEquals(0, retryCalls)
+        assertTrue(state.complete(second, Intent()))
+        assertEquals(1, retryCalls)
+    }
+
+    @Test fun callbackCanStartAnotherRequestWithoutBeingCleared() {
+        val state = PendingPasskeyResult()
+        var next: String? = null
+        var calls = 0
+        val first = requireNotNull(state.begin {
+            next = state.begin { calls++ }
+        })
+        state.complete(first, null)
+        assertNotNull(next)
+        assertEquals(next, state.requestId)
+        state.complete(requireNotNull(next), Intent())
+        assertEquals(1, calls)
+        assertNull(state.requestId)
     }
 }

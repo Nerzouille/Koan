@@ -84,6 +84,8 @@ android {
         create("staging") {
             initWith(getByName("release"))
             applicationIdSuffix = ".staging"
+            // Identify a local test APK without changing the upstream release version.
+            versionNameSuffix = providers.gradleProperty("koan.testVersionSuffix").orNull
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += "release"
         }
@@ -171,6 +173,8 @@ dependencies {
     ksp(libs.room.compiler)
 
     implementation(libs.geckoview)
+    // Already part of GeckoView's runtime dependency graph; named here for the FIDO task bridge.
+    implementation(libs.gms.tasks)
     implementation(libs.mozilla.browser.engine.gecko)
     implementation(libs.mozilla.browser.state)
     implementation(libs.mozilla.concept.engine)

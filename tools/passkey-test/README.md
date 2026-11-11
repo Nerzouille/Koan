@@ -34,7 +34,9 @@ or a disconnected emulator can prevent cleanup. Stop only this AVD when done.
 The web test checks real browser-returned client data, RP hash, origin, challenge, credential
 ID and a real P-256 signature on the local server. It covers platform capability detection
 without GMS, registration, authentication, prompt cancellation followed by retry, and a
-no-options request that must reject promptly. It repeats through a bound external Custom Tabs
+no-options request that must reject promptly. It also checks pre-aborted calls and an invalid RP
+ID, discoverable login without an allowlist, provider exceptions/malformed responses and a
+successful retry. It repeats through a bound external Custom Tabs
 client. Normal links resolve through the system browser role. Finally, a separate fixture
 AutofillService fills an HTML username/password form and the server checks both values.
 For coexistence with Koan's built-in login store, add a synthetic login for the fixture origin
@@ -44,7 +46,8 @@ in Settings > Passwords before running the Autofill check.
 services nor its synthetic key code is present in a browser APK. The only browser debug
 manifest override allows localhost HTTP for instrumentation's test client.
 
-For the minified user build, assemble/install `:app:assembleStaging` separately and run with
+For the minified user build, assemble/install `:app:assembleStaging` separately (optionally
+`-Pkoan.testVersionSuffix=-passkeys.test` to identify it in About) and run with
 `--browser dev.nerzouille.koan.staging`. The browser and fixture must use the same debug signing
 key: the fixture validates the caller's package/certificate and accepts only the localhost
 origin. This deliberately tests origin delegation instead of bypassing it.

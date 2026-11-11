@@ -42,8 +42,8 @@ def click(tree, text):
     return False
 
 def wait_flow(fill=False):
-    deadline = time.monotonic() + 90
-    canceled = False
+    deadline = time.monotonic() + 180
+    canceled_phases = set()
     selected = False
     last_phase = None
     while time.monotonic() < deadline:
@@ -70,10 +70,11 @@ def wait_flow(fill=False):
                 click(tree, 'Check password fill')
             else:
                 click(tree, 'Focus username')
-        elif status['phase'] == 'cancel' and not canceled and picker:
-            adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
-            canceled = True
-        elif picker and not canceled:
+        elif status['phase'] == 'cancel' and picker:
+            if status['phase'] not in canceled_phases:
+                adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
+                canceled_phases.add(status['phase'])
+        elif picker:
             for label in ('Continue', 'Create', 'Save', 'Koan test account'):
                 if click(tree, label):
                     break

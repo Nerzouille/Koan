@@ -9,6 +9,7 @@ import time
 parser = argparse.ArgumentParser()
 parser.add_argument('--adb', default='adb')
 parser.add_argument('--serial', default='emulator-5564')
+parser.add_argument('--mode', choices=['all', 'browser', 'custom-tab', 'autofill'], default='all')
 parser.add_argument('--browser', choices=['dev.nerzouille.koan.debug', 'dev.nerzouille.koan.staging'],
                     default='dev.nerzouille.koan.debug')
 args = parser.parse_args()
@@ -44,7 +45,7 @@ try:
                    '-d', 'http://localhost:8786/')
     assert args.browser + '/' in resolved, 'System default link resolution did not select Koan'
     subprocess.run([sys.executable, str(here / 'drive.py'), '--adb', args.adb, '--serial', args.serial,
-                    '--browser', args.browser, '--default-browser'], check=True)
+                    '--browser', args.browser, '--mode', args.mode, '--default-browser'], check=True)
 finally:
     for key, value in saved.items():
         adb('shell', 'settings', 'delete' if value == 'null' else 'put', 'secure', key,

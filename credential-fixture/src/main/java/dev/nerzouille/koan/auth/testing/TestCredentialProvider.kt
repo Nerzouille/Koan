@@ -15,6 +15,7 @@ import androidx.credentials.GetPublicKeyCredentialOption
 import androidx.credentials.PublicKeyCredential
 import androidx.credentials.exceptions.ClearCredentialException
 import androidx.credentials.exceptions.CreateCredentialException
+import androidx.credentials.exceptions.CreateCredentialUnknownException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.provider.*
 import java.security.MessageDigest
@@ -67,8 +68,14 @@ class TestCredentialActivity : Activity() {
                 val request = requireNotNull(PendingIntentHandler.retrieveProviderCreateCredentialRequest(intent))
                 val origin = verifiedOrigin(request.callingAppInfo)
                 val options = request.callingRequest as CreatePublicKeyCredentialRequest
-                val json = TestPasskey(this).create(options.requestJson, origin)
-                PendingIntentHandler.setCreateCredentialResponse(result, CreatePublicKeyCredentialResponse(json))
+                when (JSONObject(options.requestJson).getJSONObject("user").getString("name")) {
+                    "provider-error" -> PendingIntentHandler.setCreateCredentialException(result, CreateCredentialUnknownException("Synthetic provider failure"))
+                    "malformed-response" -> PendingIntentHandler.setCreateCredentialResponse(result, CreatePublicKeyCredentialResponse("{}"))
+                    else -> {
+                        val json = TestPasskey(this).create(options.requestJson, origin)
+                        PendingIntentHandler.setCreateCredentialResponse(result, CreatePublicKeyCredentialResponse(json))
+                    }
+                }
             } else {
                 val request = requireNotNull(PendingIntentHandler.retrieveProviderGetCredentialRequest(intent))
                 val origin = verifiedOrigin(request.callingAppInfo)
