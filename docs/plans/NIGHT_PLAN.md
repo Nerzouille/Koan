@@ -422,6 +422,74 @@ follow-ups are listed below. `docs/AUDIT.md` was read only for the items the doc
   baseline (10.3).
 - **Branches** `private` and `statusbar`: kept as they are, as you decided.
 
-## Night report
+## Night report (2026-11-12, 06:00–07:30 local)
 
-_Filled in at the end of the run._
+Branch `release-prep` (from `dev`), 15 commits, pushed once to origin. Nothing on `main`, no tag,
+no release.
+
+### Done
+- **1a Sync write tests:** `FakeStorage` (an in-memory Sync storage server) +
+  `SyncClientPostBatchTest` (7) + `SyncWriteTest` (16, Robolectric). No production change needed.
+- **1b Room:** Robolectric 4.17, room-testing 2.8.5, androidx.test (test-only).
+  `KoanDatabaseMigrationTest` (7: each step 2→8, the chain through the real DAO, v1 rebuilt) and
+  `KoanDaoVisitsTest` (4). The schemas are added to the **debug** source set's assets (the only
+  assets unit tests see; never in dev, staging or release APKs).
+- **1c DataStore:** there are no DataStore migrations to test. An internal `Settings(store)`
+  constructor + `SettingsTest` (3): the safety defaults (write-back off, sync switches off, lock
+  on), also after a corrupted file, and restarts.
+- **1d Private:** a clock seam in `PrivateMode` + `onScreenOff()`; `localHits()` pulled out of the
+  search composable (no behaviour change). Tests: `PrivateModeLockTest` (11, PiP included),
+  `SealedFileTest` (5), `PrivateSearchTest` (3), `DuplicateDownloadsPrivateTest` (2).
+  **One fix found:** a normal download's "same file" card could point at a private download
+  (`fix(downloads)`).
+- **1e CI:** `.github/workflows/ci.yml` (actions pinned by SHA, read-only token, Z-Sync at a pinned
+  commit, `-Pkoan.requireContract=true` so missing fixtures fail). **Not run yet:** it triggers on
+  `dev` / `main` and on PRs to them, not on a push of `release-prep`. Open a draft PR
+  `release-prep → dev` to run it.
+- **4 code:** `versionCode 10` / `1.0.0-beta.1`; semver `UpdateCheck` with the approved rule
+  (13 tests); the What's new link goes to the version's tag page; What's new "1.0" with 4
+  text + icon cards (Private, video player, translation, two-way sync).
+- **2 Baseline profile:** the `:baselineprofile` module, profileinstaller, the generated build
+  types under their own id `dev.nerzouille.koan.bp` (checked with aapt2), journeys guarded to run
+  only with that copy in front, and local demo pages through `adb reverse`. **No profile
+  generated:** see Blocked.
+- **Checks:** full suite **411 tests, 0 failures, 0 skipped** (346 before). R8 release build OK,
+  same certificate as v0.4.0, 87/87 Zen icons, 219 124 488 bytes. APK, SHA-256 and `mapping.txt`
+  are in `reference/release-1.0.0-beta.1/` (built from `release-prep`: rebuild from `main` at
+  release).
+- **3 README** rewritten; the image cells are placeholder comments.
+- **4 docs:** CHANGELOG (section `1.0.0-beta.1`, date unset), FEATURES, the CLAUDE.md
+  pre-release case, release notes and a Discord post in `reference/` (gitignored).
+
+### Blocked (needs the owner)
+- **POCO installs:** MIUI asks for an on-phone confirmation for every new package over USB and
+  cancels it after a timeout (`INSTALL_FAILED_USER_RESTRICTED`), even with Install via USB on.
+  Tapping that system dialog through adb is outside the rules, so these are not done:
+  - baseline profile generation;
+  - the perf A/B (APK A without a profile is saved in `reference/perf-bp/`);
+  - the staging R8 launch / kill / restore;
+  - the 0.4.0 → beta update-path test.
+  Next time: watch the POCO and tap Install for `dev.nerzouille.koan.bp`, the test APK and the
+  staging copies.
+- **Xiaomi captures (step 5):** the phone was connected but another app was in front (in use), so
+  nothing was done on it. No screenshots or recordings yet; the README images and the What's new
+  stills are still to do.
+
+### Tour review (release step 2)
+- **Outdated:** cards 2 (Spaces) and 5 (hold and slide) show real data in their clips (design
+  follow-up 6): re-record them before a public release. Their text is still right.
+- **Still right:** Welcome, swipe up, swipe sideways, search shortcuts, long presses.
+- **Worth a card:** Private browsing (the header switch); maybe the video player's gestures.
+- **Could go:** none.
+
+### What's new "1.0" (release step 3)
+Four highlights, stills only: Private browsing, Koan's video player (+ PiP), Translate a page,
+Two-way sync. Planned stills from the captures: the private overview, the player on a Wikimedia
+Commons video, a translated Wikipedia page. The sync card stays text-only (its screen shows the
+email).
+
+### State left on the phones
+- POCO: "Stay awake while plugged in" turned on through adb (`svc power stayon usb`, was 0); put it
+  back with `adb -s <poco> shell settings put global stay_on_while_plugged_in 0`. `adb reverse
+  tcp:8765` is set, and a local demo server is running on this machine.
+- Xiaomi: untouched (night mode auto, show taps off, DND off).

@@ -5,6 +5,13 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 
 ## Where things stand
 
+- **Release prep for v1.0.0-beta.1 (2026-11-12):** branch **`release-prep`** (from `dev`, pushed),
+  plan and night report in `docs/plans/NIGHT_PLAN.md`. Batch 5 tests (411 JVM tests, Robolectric
+  added), CI workflow (not run yet: open a draft PR to `dev`), semver update check, What's new
+  "1.0", the baseline profile module (no profile yet), README and release docs. Waiting on the
+  owner: tapping Install on the POCO (profile, perf A/B, update path) and the Xiaomi captures.
+  1.0.0-beta.1 replaces the planned 0.5; versionCode 10.
+
 - **Latest release: v0.4.0** ("Koan 0.4 (beta)"), tagged on `main` at `d4f3a2e`, published on
   2026-10-30 as a GitHub **pre-release**. versionName `0.4.0`, versionCode `9`: the next release
   needs versionCode **≥ 10**.
@@ -179,6 +186,7 @@ each group (launch + kill + restore checked).
 
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
+| `release-prep` | dev | v1.0.0-beta.1 prep: batch 5 tests, CI, baseline profile module, update check, README, release docs. | Pushed; not merged |
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3, batch 4 and the fixes list merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
