@@ -300,7 +300,7 @@ private fun AddressField(
                 .cleanTap(onTap = onClick)
                 .padding(horizontal = BarTokens.FieldPadding),
             contentAlignment = Alignment.Center,
-        ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, spaceMode.value, private, flip) }
+        ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, { spaceMode.value }, private, flip) }
         if (download != null) DownloadRing(download, onDownloads, Modifier.align(Alignment.CenterEnd))
     }
 }
@@ -314,7 +314,8 @@ private fun FieldLabels(
     previous: SwipeTarget?,
     next: SwipeTarget?,
     lastSpace: SwipeTarget?,
-    spaceMode: Float,
+    /** 0…1, read in layers only. */
+    spaceMode: () -> Float,
     private: Boolean = false,
     flip: PrivateFlip? = null,
 ) {
@@ -326,11 +327,11 @@ private fun FieldLabels(
             modifier = Modifier.graphicsLayer {
                 val f = swipe()
                 translationX = -f * size.width * SWIPE_TRAVEL
-                alpha = (1f - overview()) * (1f - spaceMode) * swipeOut(f)
+                alpha = (1f - overview()) * (1f - spaceMode()) * swipeOut(f)
             },
         )
         lastSpace?.let { current ->
-            SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode })
+            SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode() })
         }
         MaskedText(if (private) PRIVATE_HINT else SEARCH_HINT, primary = false, mask = private, modifier = Modifier.graphicsLayer { alpha = overview() }.mist(flip))
         previous?.let { SwipeLabel(it, -1f, swipe, overview) }
