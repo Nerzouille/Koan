@@ -1,11 +1,11 @@
 package dev.nerzouille.koan.ui.menu
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,23 +37,23 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.kit.KoanField
-import androidx.activity.compose.BackHandler
-import mozilla.components.concept.engine.translate.ModelState
+import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.kit.SecondaryButton
+import dev.nerzouille.koan.ui.sheet.RowChevron
+import dev.nerzouille.koan.ui.sheet.RowValue
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.sheet.SheetPageScope
 import dev.nerzouille.koan.ui.sheet.SheetRow
-import dev.nerzouille.koan.ui.sheet.RowValue
-import dev.nerzouille.koan.ui.sheet.RowChevron
+import dev.nerzouille.koan.ui.sheet.SheetToggleRow
 import dev.nerzouille.koan.ui.theme.BrandHorizontal
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.TranslateTokens
 import java.util.Locale
+import mozilla.components.concept.engine.translate.ModelState
 
 /** A language Firefox Translations offers: its code ("zh", "fr") and the name to show. */
 @Immutable
@@ -180,17 +179,11 @@ fun TranslatePage(ui: TranslateUi, target: String, actions: TranslateActions, sc
             )
         }
         SheetGroup {
-            SheetRow(null, "Always translate ${name(from, ui.from)}", on, onClick = { actions.alwaysLanguage(!ui.alwaysLanguage) }) {
-                dev.nerzouille.koan.ui.kit.KoanToggle(ui.alwaysLanguage, if (on) actions.alwaysLanguage else null)
-            }
+            SheetToggleRow(null, "Always translate ${name(from, ui.from)}", on, checked = ui.alwaysLanguage, onChange = actions.alwaysLanguage)
             SheetDivider()
-            SheetRow(null, "Never translate ${name(from, ui.from)}", on, onClick = { actions.neverLanguage(!ui.neverLanguage) }) {
-                dev.nerzouille.koan.ui.kit.KoanToggle(ui.neverLanguage, if (on) actions.neverLanguage else null)
-            }
+            SheetToggleRow(null, "Never translate ${name(from, ui.from)}", on, checked = ui.neverLanguage, onChange = actions.neverLanguage)
             SheetDivider()
-            SheetRow(null, "Never translate this site", on, onClick = { actions.neverSite(!ui.neverSite) }) {
-                dev.nerzouille.koan.ui.kit.KoanToggle(ui.neverSite, if (on) actions.neverSite else null)
-            }
+            SheetToggleRow(null, "Never translate this site", on, checked = ui.neverSite, onChange = actions.neverSite)
         }
     }
 }

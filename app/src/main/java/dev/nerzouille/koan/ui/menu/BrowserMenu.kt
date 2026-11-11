@@ -1,7 +1,5 @@
 package dev.nerzouille.koan.ui.menu
 
-import dev.nerzouille.koan.engine.AppTarget
-import dev.nerzouille.koan.search.EngineDraft
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import dev.nerzouille.koan.engine.AppTarget
+import dev.nerzouille.koan.search.EngineDraft
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.bar.PageInfo
 import dev.nerzouille.koan.ui.icons.KoanIcons
@@ -36,6 +36,7 @@ import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.sheet.SheetPageScope
 import dev.nerzouille.koan.ui.sheet.SheetRow
 import dev.nerzouille.koan.ui.sheet.SheetTile
+import dev.nerzouille.koan.ui.sheet.SheetToggleRow
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -136,9 +137,7 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
                 onClick = if (hasPage) actions.siteSettings else null,
             ) { if (hasPage) RowChevron() }
             SheetDivider()
-            SheetRow(KoanIcons.Desktop, "Desktop site", on, onClick = { actions.desktopSite(!page.desktopSite) }) {
-                KoanToggle(checked = page.desktopSite, onCheckedChange = if (on) actions.desktopSite else null)
-            }
+            SheetToggleRow(KoanIcons.Desktop, "Desktop site", on, checked = page.desktopSite, onChange = actions.desktopSite)
             SheetDivider()
             SheetRow(
                 KoanIcons.Reader, if (state.readerActive) "Leave reader view" else "Reader view", on,

@@ -30,6 +30,7 @@ import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.sheet.SheetPageScope
 import dev.nerzouille.koan.ui.sheet.SheetRow
 import dev.nerzouille.koan.ui.sheet.SheetSectionTitle
+import dev.nerzouille.koan.ui.sheet.SheetToggleRow
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -95,9 +96,7 @@ fun SiteSettingsPage(ui: SiteSettingsUi, scope: SheetPageScope) {
                 decisions.isEmpty() -> SheetRow(null, "Nothing allowed or blocked yet", on, subtitle = "Koan asks the first time a site wants something")
                 else -> decisions.forEachIndexed { i, d ->
                     if (i > 0) SheetDivider()
-                    SheetRow(d.ask.icon(), d.ask.label, on, subtitle = if (d.allowed) "Allowed" else "Blocked", onClick = { ui.onSet(d, !d.allowed) }) {
-                        KoanToggle(checked = d.allowed, onCheckedChange = if (on) { allow -> ui.onSet(d, allow) } else null)
-                    }
+                    SheetToggleRow(d.ask.icon(), d.ask.label, on, checked = d.allowed, onChange = { allow -> ui.onSet(d, allow) }, subtitle = if (d.allowed) "Allowed" else "Blocked")
                 }
             }
         }

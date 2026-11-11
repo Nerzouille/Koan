@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -200,4 +201,19 @@ fun SheetSectionTitle(text: String) {
         fontWeight = FontWeight.Medium,
         modifier = Modifier.padding(start = SheetTokens.RowPadding, top = SheetTokens.Gap / 2),
     )
+}
+
+/** A sheet row with a switch: the whole row toggles; inert while not [interactive]. */
+@Composable
+fun SheetToggleRow(
+    icon: ImageVector?,
+    title: String,
+    interactive: Boolean,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+    subtitle: String? = null,
+) {
+    SheetRow(icon, title, interactive, subtitle = subtitle, onClick = { onChange(!checked) }) {
+        KoanToggle(checked = checked, onCheckedChange = if (interactive) onChange else null)
+    }
 }

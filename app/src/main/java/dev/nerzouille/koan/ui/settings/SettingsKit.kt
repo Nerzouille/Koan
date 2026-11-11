@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.CollapsingBar
+import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.kit.SELECTION_FADE_MS
 import dev.nerzouille.koan.ui.kit.brandWash
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -264,5 +265,20 @@ fun <T> Segmented(options: List<Pair<T, String>>, selected: T, interactive: Bool
                 )
             }
         }
+    }
+}
+
+/** A settings row with a switch: the whole row toggles; greyed and inert when not [on]. */
+@Composable
+fun SettingsToggleRow(
+    icon: ImageVector?,
+    title: String,
+    on: Boolean,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+    subtitle: String? = null,
+) {
+    SettingsRow(icon, title, on, subtitle = subtitle, onClick = { onChange(!checked) }) {
+        KoanToggle(checked = checked, onCheckedChange = if (on) onChange else null)
     }
 }
