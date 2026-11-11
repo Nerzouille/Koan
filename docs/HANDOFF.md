@@ -43,10 +43,10 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 - Milestones done and tagged: `m0`, `m1`, `m2`, `m3`, `m5`. M4 partly done (no tag), M6 passwords
   + history done on `dev` (Spaces, tabs, bookmarks never written), M7 partly done. Details per
   item in `docs/ROADMAP.md`.
-- Unit tests: 301 JVM tests on `dev`, green (299 on `refactor`: dead-code tests removed, batch 4 tests added) (`./gradlew testDebugUnitTest`). R8 staging build of
+- Unit tests: 301 JVM tests on `dev`, green (after batch 4: dead-code tests removed, batch 4 tests added)  (`./gradlew testDebugUnitTest`). R8 staging build of
   `dev` + 160 launched on the POCO without a crash (2026-11-11).
 
-## Batch 4 on `refactor` (from `dev`, not merged)
+## Batch 4 (branch `refactor`, merged into `dev` 2026-11-12)
 
 Plan: `docs/plans/BATCH4_PLAN.md` (defaults: SemiBold + 10 dp, 3.37 skipped, SeedData deleted). One
 commit per step; full suite + dev build per step; R8 release build installed on the POCO at the end of
@@ -164,7 +164,7 @@ each group (launch + kill + restore checked).
   Downloads, the player's pills, bubble, badge and level indicator.
 - **Batch 4 overall:** the phone checks, riskiest first: `docs/plans/BATCH4_CHECKS.md`. E6–E8,
   F6 and G3 are in `docs/ROADMAP.md` "Batch 4 leftovers" (after the release). 299 JVM tests, green. Final R8 release build installed on the POCO (real
-  app). Not merged into `dev`. Open for you: E6–E8 (gesture merges, need your feel check per
+  app). Merged into `dev` on 2026-11-12 after the owner's tier 1 checks (`a4d39a3`); `refactor` deleted. Open for you: E6–E8 (gesture merges, need your feel check per
   caller), G3, F6, the drawer's small perf drift (group C).
 
 ## Open branches
@@ -172,7 +172,6 @@ each group (launch + kill + restore checked).
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
-| `refactor` | dev | Audit batch 4 (see "Batch 4 on `refactor`"). | In progress, not merged |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
