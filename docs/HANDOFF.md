@@ -101,6 +101,26 @@ each group (launch + kill + restore checked).
   tour from Settings › About); Private on / off and the lock; a link shared from another app;
   kill Koan in the background with the overview open and come back. Open and close the drawer a
   few times: it should feel the same.
+- **Group D, shared UI components (done, 14 commits; D12 dropped, as the plan allowed):**
+  `DragHandle`, `brandWash`, `SpaceTitle`, `swipeDownToDismiss`; `KoanButton(kind)` under the
+  four buttons (prompt cards' private secondaries gone); `SettingsToggleRow` / `SheetToggleRow`;
+  `KoanIconButton`; `CardHeader` + `CardIconTile`; `FileGlyph`, `PrivateIconTile`; `TextLink`;
+  `EmptyLine`; `KoanDivider`; `RowTexts` in both kit rows; clear site data, delete a language and
+  clear downloads now ask on `Overlays.ask`. **Visible change (decided):** prompt cards' secondary
+  buttons SemiBold (were Medium), 10dp between two buttons (were 8). **Left out:** touch-size
+  alignment (3.3, every icon button keeps its size), the chips (3.7: no two alike), the 4
+  hand-built rows (3.2), the scrim / spinner / field / label merges (3.12), the player's delete
+  dialog (draws over the overlays, so `ask` would sit under it). R8 build: launches, restores
+  after a kill, no crash.
+  **Check on the phone, light, dark and Private:** permission card (Block / Always allow / Allow
+  once), download card, "Open in app" card, a page's alert / confirm / <select> / date: buttons
+  SemiBold and 10dp apart, nothing else moved; sign-out and Clear browsing data cards; ⋯ › Site
+  settings › Clear site data, Settings › Translation › delete a downloaded language, Downloads ›
+  Clear: each asks on the floating card and does the same thing; Settings toggles (search
+  suggestions, hide status bar, picture-in-picture, uBlock, the three sync switches, Private
+  browsing's toggles); the menu's Desktop site, Translate's three switches, Site settings'
+  permission switches; the overview header and start page title, pull down to dismiss both;
+  sheet and drawer handles; empty Downloads / History; the private empty state and lock cover.
 
 ## Open branches
 
