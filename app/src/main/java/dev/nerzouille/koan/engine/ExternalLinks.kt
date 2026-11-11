@@ -111,10 +111,10 @@ class ExternalLinks(
      */
     override fun onErrorRequest(
         session: EngineSession,
-        errorType: mozilla.components.browser.errorpages.ErrorType,
+        errorType: mozilla.components.concept.engine.request.ErrorType,
         uri: String?,
     ): RequestInterceptor.ErrorResponse? {
-        if (errorType == mozilla.components.browser.errorpages.ErrorType.ERROR_HTTPS_ONLY) {
+        if (errorType == mozilla.components.concept.engine.request.ErrorType.ERROR_HTTPS_ONLY) {
             messages.tryEmit("Not opened in Private: no HTTPS")
         }
         return null

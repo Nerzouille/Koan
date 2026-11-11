@@ -21,32 +21,37 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 - **Audit of 2026-11-11:** report in `docs/AUDIT.md` + `docs/audits/2026-11-11/` (both
   **gitignored** until the owner publishes them, after the security fixes are merged). Fixes come
   in batches, each on its own branch:
-  1. `audit-fixes` (`79de50d`, pushed, **not merged into `dev` yet**): critical fixes (history
+  1. `audit-fixes` (`79de50d`, merged into `dev`): critical fixes (history
      deletions only for pages removed on the phone, `zen_*` icons kept in R8 builds, crash and
      DataStore corruption handlers, private favicons cache-only, pairing-link confirmation card,
      FLAG_SECURE on Passwords, upload URI filter, sign-in WebView wipe, generic User-Agent, PiP
      leak, `writeBackEnabled` + `SpacesWriteGate` for the Zen `spaces` collection).
-  2. `audit-docs` (from `audit-fixes`): every doc brought in line with the code;
+  2. `audit-docs` (merged into `dev`): every doc brought in line with the code;
      `docs/ARCHITECTURE.md` rewritten; `NIGHT_REPORT.md` and `REVIEW_NIGHT.md` removed (their
      rules are in `docs/UI_SPEC.md`).
-  3. Next: GeckoView / android-components 160 (own branch), then refactoring (audit top 15).
-- Engine: android-components / GeckoView **157** (`gradle/libs.versions.toml`, the two versions
-  move together). **160 is released** (AC `160.0`, GV `160.0.20261104181552` on
-  maven.mozilla.org, 2026-11-10); the bump is batch 3.
+  3. `geckoview-160` (merged into `dev`): GeckoView / android-components 160, see "Engine".
+  4. Next: refactoring, from **`docs/plans/BATCH4_BRIEF.md`** (branch `refactor` from `dev`).
+  5. Later: tests, CI, baseline profile.
+- Engine: android-components **160.0** / GeckoView **160.0.20261104181552**
+  (`gradle/libs.versions.toml`, the two versions move together), compileSdk **37.2** (AC 160
+  requires it). Bump notes: ARCHITECTURE "Bumping android-components + GeckoView". Tested on the
+  POCO (staging copies): R8 launch, Widevine, downloads + duplicate card, media notification; perf
+  A/B 157 → 160 on the POCO: no regression, starts faster, space switch p90 12 → 17 ms to watch.
+  Android's own scroll screenshot ("Capture more") works on stock Android 14 (emulator); HyperOS's
+  does not (see "Untested / unverified").
 - Milestones done and tagged: `m0`, `m1`, `m2`, `m3`, `m5`. M4 partly done (no tag), M6 passwords
   + history done on `dev` (Spaces, tabs, bookmarks never written), M7 partly done. Details per
   item in `docs/ROADMAP.md`.
-- Unit tests: 301 JVM tests on `audit-fixes`, green (`./gradlew testDebugUnitTest`). R8 release
-  of `dev` built and launched on the POCO without a crash (2026-11-11).
+- Unit tests: 301 JVM tests on `dev`, green (`./gradlew testDebugUnitTest`). R8 staging build of
+  `dev` + 160 launched on the POCO without a crash (2026-11-11).
 
 ## Open branches
 
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
-| `dev` | — | Working branch: night batch, video player, private mode merged. | Active |
+| `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
-| `audit-fixes` | dev `06e13d6` | Audit batch 1 (see above). 301 tests green; pairing card checked on the POCO by the owner; the rest of the phone test list not reported yet. | Pushed; merge into `dev` after the owner's OK |
-| `audit-docs` | audit-fixes | Audit batch 2 (docs only). | Merge after `audit-fixes` |
+| `audit-fixes`, `audit-docs`, `geckoview-160` | dev | Audit batches 1–3, merged into `dev`. | Can be deleted |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
 
@@ -71,7 +76,7 @@ The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) are 
 
 ## Untested / unverified
 
-- **Audit batch 1 on the phone:** only the pairing card is confirmed. Still to check: Passwords
+- **Audit batch 1 on the phone (the owner's checks):** only the pairing card is confirmed. Still to check: Passwords
   screenshots blocked, history removal with History sync on, space icons in the R8 build, private
   favicons, file upload, sign-in again after the WebView wipe.
 - **Change and delete passwords:** unit-tested only, never run on the account.
@@ -86,7 +91,13 @@ The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) are 
 - **Full image on Google Images** (`engine/PageImages.kt`, `assets/extensions/pageimage`): works
   but the owner calls it "not perfect, but better": revisit what it picks and how the wait feels
   (ask the owner what's off).
-- **Long screenshots** (HyperOS scroll screenshot) on GeckoView 160: not tried yet.
+- **Long screenshots on HyperOS:** still greyed out on GeckoView 160. HyperOS doesn't use
+  Android's scroll-capture API (`frameworkSupportLongScreenshot:false`); its own helper gives up
+  ("can not run invoke canScrollVertically on background thread"). Option left: Koan's own
+  full-page screenshot or Save as PDF (ROADMAP).
+- **Vimeo** says "unsupported browser" on a copy where Vimeo's protected-content (DRM) request
+  was once blocked: Gecko then refuses without a card. Widevine plays after "Allow once" on a new
+  site. Check ⋯ › Site settings on Vimeo in the real app.
 - Two rare bugs seen once and never reproduced (ROADMAP "Open items after v0.2.0"): page painted
   only down to where the keyboard was; dock ignoring taps after the phone sat idle.
 - The "black screen" when a link goes Discord → GitHub app → Koan is the GitHub app's own App
@@ -109,11 +120,9 @@ The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) are 
 
 ## Next concrete steps
 
-1. Owner tests batch 1 on the POCO, then merge `audit-fixes` and `audit-docs` into `dev`.
-2. **GeckoView / android-components 160:** bump both in `gradle/libs.versions.toml` on a branch
-   from `dev` (`gv-160`), fix API breaks, full test suite, R8 release on the phone, then retest the
-   HyperOS long screenshot and the rare bugs above.
-3. Refactoring from the audit top 15 (dead code, duplicated UI, per-frame recompositions).
+1. **Owner:** the batch 1 phone checks (list under "Untested / unverified").
+2. **Batch 4, refactoring:** a fresh session starts from `docs/plans/BATCH4_BRIEF.md`.
+3. Watch on GeckoView 160: the rare bugs above, the space switch p90.
 
 ## Build
 
@@ -142,9 +151,10 @@ All from the repo root. Gradle has configuration cache, build cache and parallel
   Clone if missing: `git clone --depth 1 https://github.com/Kjell6/Z-Sync.git reference/Z-Sync`.
   Never edit the fixtures.
 - **Phones:** the **POCO X4 GT** (Android 14, 1080×2460, one display, its VPN can drop) is the
-  **main test phone**: every dev build and check goes there by default. The **Xiaomi 18 Pro Max**
-  (HyperOS, Android 17, 120 Hz, 1208×2624) is the owner's daily phone: performance checks and
-  releases only. Check `adb devices -l` before installing. The owner allows testing any time, in
+  **main test phone**: every dev build, check and perf A/B goes there by default (`tools/perf`
+  with `CX=540 DOCK_Y=2306 DOCK_DOWN_Y=2455 STACK_TOP=850 STACK_BOTTOM=1780 EDGE_L=180 EDGE_R=900`).
+  The **Xiaomi 18 Pro Max** (HyperOS, Android 17, 120 Hz, 1208×2624) is the owner's daily phone:
+  mostly the release check and screenshots / recordings. Check `adb devices -l` before installing. The owner allows testing any time, in
   their real spaces, but follow CLAUDE.md "Driving the phone with adb" (Koan in front + fresh
   screenshot before any input). The Xiaomi has several displays: `adb shell screencap` needs
   `-d <main display id>` (`adb shell dumpsys SurfaceFlinger --display-id`). Open throwaway test

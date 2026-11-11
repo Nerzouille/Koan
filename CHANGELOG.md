@@ -64,9 +64,14 @@
 - **Passwords pages** can't be captured in screenshots or the recent-apps preview.
 - After signing in, the sign-in page's cookies and storage are wiped.
 
+- **Engine:** GeckoView 160 (was 157). On Android phones without a maker's own screenshot tool,
+  the system's "Capture more" now takes a long screenshot of a page.
+
 ### Fixed
 
 - Space icons picked from Zen's built-in icons were missing in release builds (0.4.0 and before).
+- **Downloads keep the name the site gives them** (for example "report.pdf"), instead of a name
+  made from the link ("download.php").
 
 ### Known limitations
 

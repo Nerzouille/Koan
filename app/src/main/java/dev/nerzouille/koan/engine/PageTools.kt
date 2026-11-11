@@ -22,7 +22,7 @@ class PageTools(context: Context, engine: Engine, private val store: BrowserStor
         override fun setColorScheme(scheme: ReaderViewFeature.ColorScheme) = Unit
         override fun showControls() = Unit
         override fun hideControls() = Unit
-        override fun tryInflate(shouldInflate: Boolean): Boolean = false
+        override fun tryInflate(): Boolean = false
     }
 
     private val reader = ReaderViewFeature(context, engine, store, readerControls)
