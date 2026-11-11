@@ -41,14 +41,14 @@ import dev.nerzouille.koan.ui.tour.dueSheet
 import dev.nerzouille.koan.ui.tour.featureVersion
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.feature.tabs.WindowFeature
-import mozilla.components.feature.webauthn.WebAuthnFeature
+import dev.nerzouille.koan.engine.auth.WebAuthnController
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.findTab
 
 class MainActivity : FragmentActivity() {
     private val refresh = RefreshBooster(this)
-    private var webAuthnFeature: WebAuthnFeature? = null
+    private var webAuthn: WebAuthnController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -66,11 +66,10 @@ class MainActivity : FragmentActivity() {
         val app = application as KoanApp
         val components = app.components
         app.componentsReady = true
-        webAuthnFeature = WebAuthnFeature(
-            engine = components.engine,
+        webAuthn = WebAuthnController(
             activity = this,
-            exitFullScreen = { tabId -> components.sessionUseCases.exitFullscreen(tabId) },
-            currentTab = { components.store.state.selectedTabId },
+            engine = components.engine,
+            beforeLaunch = { components.sessionUseCases.exitFullscreen(components.store.state.selectedTabId) },
         )
         IconStore.initialize(this)
         ThumbnailStore.initialize(this)
@@ -330,7 +329,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        webAuthnFeature?.start()
+        webAuthn?.start()
         val components = (application as KoanApp).components
         components.sync.onForeground()
         components.privateMode.onShown()
@@ -355,19 +354,13 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (webAuthnFeature?.onActivityResult(requestCode, data, resultCode) == true) return
-        super.onActivityResult(requestCode, resultCode, data)
-    }
-
     override fun onResume() {
         super.onResume()
         checkStartPage()
     }
 
     override fun onStop() {
-        webAuthnFeature?.stop()
+        webAuthn?.stop()
         val components = (application as KoanApp).components
         // Not for a rotation: the activity comes straight back.
         if (!isChangingConfigurations) {

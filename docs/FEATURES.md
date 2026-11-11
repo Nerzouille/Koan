@@ -498,6 +498,13 @@ with Koan in the background or the screen off.
   username again updates it.
 - Android's selected autofill service is allowed in page fields. Its suggestions may appear
   alongside Koan's own login chips; availability depends on the autofill provider.
+- **Passkeys:** explicit website create/sign-in buttons use GeckoView's native WebAuthn flow.
+  Android 14+ can use the system-selected credential provider, including on devices without
+  Google Play Services. Older Android versions use GeckoView's Google FIDO path when available.
+  Canceling a prompt settles the request; rotating the Activity keeps a pending result.
+- Credential providers can restrict which browsers they trust. Sideloading Koan does not bypass
+  those restrictions. GeckoView on Android does not currently implement conditional passkey
+  suggestions in username fields; this is separate from ordinary password autofill.
 - **Settings › Passwords:**
   - One row per site, with a search field and the site's icon when Koan already has it (never
     fetched for this list; otherwise a key). A site with several accounts says how many ("3

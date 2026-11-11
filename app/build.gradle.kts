@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    id("koan.passkeys")
 }
 
 // Local release signing. keystore.properties (gitignored) points at a keystore outside the repo.
@@ -31,6 +32,7 @@ android {
         // preview (0.2.2-preview.1).
         versionCode = 9
         versionName = "0.4.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // GeckoView-omni ships every ABI; both owner phones are arm64. `-Pkoan.emulatorAbi` adds
         // x86_64 for emulator test runs only, never for a build that goes on a phone.
         ndk {
@@ -174,7 +176,6 @@ dependencies {
     implementation(libs.mozilla.concept.engine)
     implementation(libs.mozilla.feature.session)
     implementation(libs.mozilla.feature.tabs)
-    implementation(libs.mozilla.feature.webauthn)
     implementation(libs.mozilla.browser.session.storage)
     implementation(libs.mozilla.lib.state)
     implementation(libs.mozilla.feature.readerview)
@@ -191,4 +192,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
     testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation("androidx.test:core-ktx:1.7.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
 }

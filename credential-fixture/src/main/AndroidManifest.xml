@@ -1,0 +1,26 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries><intent><action android:name="android.support.customtabs.action.CustomTabsService" /></intent></queries>
+    <application android:label="Koan test credentials" android:icon="@android:drawable/ic_lock_lock">
+        <service android:name="dev.nerzouille.koan.auth.testing.TestAutofillService"
+            android:exported="true" android:permission="android.permission.BIND_AUTOFILL_SERVICE">
+            <intent-filter><action android:name="android.service.autofill.AutofillService" /></intent-filter>
+            <meta-data android:name="android.autofill" android:resource="@xml/test_autofill_service" />
+        </service>
+        <service
+            android:name="dev.nerzouille.koan.auth.testing.TestCredentialProvider"
+            android:exported="true"
+            android:label="Koan test credentials"
+            android:permission="android.permission.BIND_CREDENTIAL_PROVIDER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.credentials.CredentialProviderService" />
+            </intent-filter>
+            <meta-data android:name="android.credentials.provider" android:resource="@xml/test_credential_provider" />
+        </service>
+        <activity android:name="dev.nerzouille.koan.auth.testing.TestCredentialActivity"
+            android:exported="true" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+        <activity android:name="dev.nerzouille.koan.auth.testing.ActivityResultFixture"
+            android:exported="true" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+        <activity android:name="dev.nerzouille.koan.auth.testing.CustomTabFixture"
+            android:exported="true" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+    </application>
+</manifest>

@@ -28,6 +28,7 @@
       can still be opened (Android starts it), Koan just can't name it.
     -->
     <queries>
+        <package android:name="com.google.android.gms" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.BROWSABLE" />

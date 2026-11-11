@@ -31,6 +31,8 @@
   the bar at the bottom (Select all, ✕ or Back to leave).
 - **Add a password by hand:** Settings › Passwords › the round **+**.
 - Space icons picked with Zen's **Zia** mod show on the phone too.
+- **System passkeys:** website create/sign-in prompts can use Android's selected credential
+  provider. Providers may require Koan to be on their trusted-browser list.
 
 ### Improved
 
@@ -52,10 +54,20 @@
 - Koan no longer asks Android for the list of every installed app: it only looks for the apps
   behind web links and the app links sites use.
 
+### Fixed
+
+- WebAuthn results reach the page after an Activity recreation; canceled or overlapping prompts
+  no longer leave an abandoned callback.
+- Devices with Android Credential Manager no longer depend on Google FIDO for their platform
+  passkey capability check. Missing/disabled Google services fail promptly on legacy fallback.
+- Android's selected password Autofill service can suggest logins alongside Koan's own logins.
+
 ### Known limitations
 
 - The full-image wait on Google Images can still pick the wrong moment; it will get another look.
 - The new video player isn't in this build yet.
+- Conditional passkey suggestions in username fields are not implemented by GeckoView Android.
+  This is separate from explicit passkey buttons and ordinary username/password Autofill.
 
 ## 0.4.0 — 2026-10-30 (beta)
 
