@@ -7,21 +7,6 @@ import org.json.JSONObject
 import java.net.URL
 import java.util.Base64
 
-/**
- * A consistent collection read: every page was served under one
- * `X-Last-Modified` condition (SPEC §7.2).
- */
-data class CollectionRead(
-    val records: List<JSONObject>,
-    val lastModified: String?,
-)
-
-/** Outcome of a conditional single-record PUT. */
-sealed class PutOutcome {
-    object Applied : PutOutcome()
-    data class PreconditionFailed(val lastModified: String?) : PutOutcome()
-}
-
 /** Outcome of an atomic multi-record POST (SPEC §7.2). */
 sealed class PostOutcome {
     object Applied : PostOutcome()
@@ -130,50 +115,6 @@ class SyncClient internal constructor(
     }
 
     /**
-     * Conflict-safe full read (SPEC §7.2): captures the collection's
-     * `X-Last-Modified` on the first page and conditions every subsequent page
-     * on it, so a concurrent writer makes the read fail cleanly instead of
-     * splicing two versions together. One mid-read 412 restarts the whole read
-     * once; a second one surfaces as [SyncError.Conflict].
-     */
-    fun getCollectionWithMetadata(collection: String): CollectionRead {
-        var restarts = 0
-        while (true) {
-            val records = mutableListOf<JSONObject>()
-            var offset: String? = null
-            var pages = 0
-            var lastModified: String? = null
-            var preconditionFailed = false
-            while (pages < 50) {
-                var path = "/storage/$collection?full=1&limit=2500"
-                if (!offset.isNullOrEmpty()) {
-                    path += "&offset=" + encodeUnreserved(offset)
-                }
-                val response = requestRaw(
-                    creds = this.creds,
-                    method = "GET",
-                    path = path,
-                    ifUnmodifiedSince = if (offset.isNullOrEmpty()) null else lastModified,
-                    allowPreconditionFailed = true,
-                )
-                if (response.statusCode == 412) {
-                    preconditionFailed = true
-                    break
-                }
-                if (lastModified == null) lastModified = response.header("X-Last-Modified")
-                val result = pageFrom(response)
-                records += result.page
-                pages++
-                if (result.nextOffset.isNullOrEmpty() || result.page.isEmpty() || result.nextOffset == offset) break
-                offset = result.nextOffset
-            }
-            if (!preconditionFailed) return CollectionRead(records, lastModified)
-            if (restarts >= 1) throw SyncError.Conflict("collection '$collection' changed while reading")
-            restarts++
-        }
-    }
-
-    /**
      * The newest page of a collection, decrypted by callers. Large read-only
      * collections (history) don't need full pagination — the server's
      * `sort=newest` orders by last-modified, so the first page holds the
@@ -189,101 +130,6 @@ class SyncClient internal constructor(
         if (payload.isEmpty()) return JSONObject()
         val data = SyncCrypto.decryptBSO(payloadJSON = payload, keys = keys(collection))
         return JSONObject(String(data, Charsets.UTF_8))
-    }
-
-    fun putRecord(collection: String, id: String, obj: JSONObject) {
-        val body = SyncCrypto.encryptBSO(obj.toString().toByteArray(Charsets.UTF_8), keys(collection))
-        val bso = JSONObject().put("payload", body)
-        requestJSONObject(
-            method = "PUT",
-            path = "/storage/$collection/${encodedBSOId(id)}",
-            json = bso,
-            allowMissing = false,
-        )
-    }
-
-    /**
-     * Conditional single-record PUT (SPEC §7.2). With a null condition the
-     * legacy unconditional request runs unchanged; otherwise a 412 is reported
-     * instead of thrown, carrying the server's current `X-Last-Modified`.
-     */
-    fun putRecord(
-        collection: String,
-        id: String,
-        obj: JSONObject,
-        ifUnmodifiedSince: String?,
-    ): PutOutcome {
-        if (ifUnmodifiedSince == null) {
-            putRecord(collection, id, obj)
-            return PutOutcome.Applied
-        }
-        val body = SyncCrypto.encryptBSO(obj.toString().toByteArray(Charsets.UTF_8), keys(collection))
-        val bso = JSONObject().put("payload", body)
-        val response = requestRaw(
-            creds = this.creds,
-            method = "PUT",
-            path = "/storage/$collection/${encodedBSOId(id)}",
-            json = bso,
-            allowMissing = false,
-            ifUnmodifiedSince = ifUnmodifiedSince,
-            allowPreconditionFailed = true,
-        )
-        if (response.statusCode == 412) {
-            return PutOutcome.PreconditionFailed(response.header("X-Last-Modified"))
-        }
-        return PutOutcome.Applied
-    }
-
-    /**
-     * Atomic multi-record write (SPEC §7.2): one `POST /storage/<collection>`
-     * with a JSON array of encrypted BSOs `[{id, payload}]`, optionally
-     * conditioned on the collection timestamp. A 200 response reports the
-     * per-record outcome; any requested id missing from `success` is a failure.
-     */
-    fun postRecords(
-        collection: String,
-        records: List<JSONObject>,
-        ifUnmodifiedSince: String? = null,
-    ): PostOutcome {
-        val array = JSONArray()
-        val requestedIds = mutableListOf<String>()
-        for (record in records) {
-            val id = record.optString("id")
-            require(id.isNotEmpty()) { "postRecords: every record needs an id" }
-            requestedIds += id
-            val payload = SyncCrypto.encryptBSO(record.toString().toByteArray(Charsets.UTF_8), keys(collection))
-            array.put(JSONObject().put("id", id).put("payload", payload))
-        }
-        val response = requestRaw(
-            creds = this.creds,
-            method = "POST",
-            path = "/storage/$collection",
-            json = array,
-            allowMissing = false,
-            ifUnmodifiedSince = ifUnmodifiedSince,
-            allowPreconditionFailed = true,
-        )
-        if (response.statusCode == 412) {
-            return PostOutcome.PreconditionFailed(response.header("X-Last-Modified"))
-        }
-        val parsed = runCatching { JSONObject(String(response.body, Charsets.UTF_8)) }.getOrNull()
-            ?: JSONObject()
-        val successArr = parsed.optJSONArray("success") ?: JSONArray()
-        val success = buildSet {
-            for (i in 0 until successArr.length()) {
-                (successArr.opt(i) as? String)?.let { add(it) }
-            }
-        }
-        val failedObj = parsed.optJSONObject("failed") ?: JSONObject()
-        val failed = linkedMapOf<String, String>()
-        for (key in failedObj.keys()) {
-            failed[key] = failedObj.optString(key)
-        }
-        val missing = requestedIds.filter { !success.contains(it) }
-        if (failed.isNotEmpty() || missing.isNotEmpty()) {
-            return PostOutcome.PartialFailure(failed = failed, missingIds = missing)
-        }
-        return PostOutcome.Applied
     }
 
     // MARK: - Two-way sync (data/SyncWrite.kt)
@@ -328,8 +174,10 @@ class SyncClient internal constructor(
     }
 
     /**
-     * [postRecords] with records already in cleartext and the collection's new `X-Last-Modified`
-     * after an applied batch (the next batch is conditioned on it).
+     * Atomic multi-record write (SPEC §7.2): one `POST /storage/<collection>` with the records
+     * (cleartexts, encrypted here) conditioned on the collection timestamp. Returns the outcome
+     * (any requested id missing from `success` is a failure) and the collection's new
+     * `X-Last-Modified` after an applied batch (the next batch is conditioned on it).
      */
     fun postBatch(collection: String, records: List<JSONObject>, ifUnmodifiedSince: String): Pair<PostOutcome, String?> {
         val array = JSONArray()
@@ -352,20 +200,6 @@ class SyncClient internal constructor(
         val modified = response.header("X-Last-Modified") ?: parsed.opt("modified")?.toString()
         if (failed.isNotEmpty() || missing.isNotEmpty()) return PostOutcome.PartialFailure(failed, missing) to modified
         return PostOutcome.Applied to modified
-    }
-
-    /**
-     * Weave tombstone: encrypted `{ id, deleted: true }` payload.
-     * Zen's Spaces engine reads `CryptoWrapper.deleted` from *cleartext*
-     * after decrypt; a raw WBO `{deleted:true}` with no ciphertext never
-     * applies and the desktop re-uploads the pin on the next sync.
-     */
-    fun putTombstone(collection: String, id: String) {
-        putRecord(
-            collection = collection,
-            id = id,
-            obj = JSONObject().put("id", id).put("deleted", true),
-        )
     }
 
     private data class PageResult(val page: List<JSONObject>, val nextOffset: String?)

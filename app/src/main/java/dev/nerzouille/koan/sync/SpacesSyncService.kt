@@ -10,8 +10,8 @@ import java.net.URI
 
 /**
  * Read half of Z-Sync's `SpacesSyncService`: pulls the `spaces` and `prefs` collections and builds a
- * [ZenSpaces.ZenSnapshot]. Koan ports no write path before M6 (CLAUDE.md rule 4), so nothing here
- * can modify the owner's desktop Spaces.
+ * [ZenSpaces.ZenSnapshot]. Nothing here writes: the only write call, `SyncClient.postBatch`, is
+ * refused for `spaces` by [SpacesWriteGate] while `writeBackEnabled` is off (CLAUDE.md rule 4).
  */
 object SpacesSyncService {
     const val collection = "spaces"

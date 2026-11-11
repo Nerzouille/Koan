@@ -3,7 +3,6 @@
 package dev.nerzouille.koan.sync
 
 import dev.nerzouille.koan.sync.PostOutcome
-import dev.nerzouille.koan.sync.PutOutcome
 import dev.nerzouille.koan.sync.SpacesWriteGate
 import dev.nerzouille.koan.sync.SyncClient
 import dev.nerzouille.koan.sync.SyncCrypto
@@ -250,169 +249,34 @@ class SyncTransportTests {
         assertArrayEquals(defaultKeys.encryptionKey, client.keys("other").encryptionKey)
     }
 
-    // MARK: Writes
+    // MARK: Writes (SPEC §7.2)
 
     @Test
-    fun putRecordRequestShapeAndRoundTrip() {
+    fun postBatchRequestShapeAndRoundTrip() {
         val fake = FakeHttpTransport()
-        fake.enqueue(fixtureResponse("http-put-200"))
-        val obj = JSONObject().put("hello", "zen")
+        fake.enqueue(fixtureResponse("http-post-200-success-failed"))
         val client = client(fake)
 
-        client.putRecord("spaces", "{abc}", obj)
+        client.postBatch("spaces", listOf(JSONObject().put("id", "tab-1").put("hello", "zen")), "1700000000.00")
 
         val request = fake.requests.single()
-        assertEquals("PUT", request.method)
-        assertEquals(HttpFixtures.request("http-put-200").getString("path"), request.url.file)
-        assertEquals(setOf("User-Agent", "Content-Type", "Authorization"), request.headers.keys)
         assertTrue(request.headers.getValue("Authorization").startsWith("Hawk "))
         assertTrue(request.headers.getValue("Authorization").contains("id=\"hawk-id\""))
-        assertFalse(request.headers.keys.any { it.equals("X-If-Unmodified-Since", ignoreCase = true) })
-
-        val body = JSONObject(String(request.body!!, Charsets.UTF_8))
-        assertEquals(setOf("payload"), body.keys().asSequence().toSet())
-        val envelope = body.getString("payload")
+        val envelope = JSONArray(String(request.body!!, Charsets.UTF_8)).getJSONObject(0).getString("payload")
         val plaintext = JSONObject(String(SyncCrypto.decryptBSO(envelope, defaultKeys), Charsets.UTF_8))
         assertEquals("zen", plaintext.getString("hello"))
 
         // Client-side decrypt is the inverse of the wire envelope.
-        val record = JSONObject().put("id", "{abc}").put("payload", envelope)
+        val record = JSONObject().put("id", "tab-1").put("payload", envelope)
         assertEquals("zen", client.decryptRecord("spaces", record).getString("hello"))
     }
 
     @Test
-    fun putTombstoneEncryptsBooleanDeleted() {
-        val fake = FakeHttpTransport()
-        fake.enqueue(fixtureResponse("http-put-200"))
-
-        client(fake).putTombstone("spaces", "{abc}")
-
-        val body = JSONObject(String(fake.requests.single().body!!, Charsets.UTF_8))
-        val payload = JSONObject(
-            String(SyncCrypto.decryptBSO(body.getString("payload"), defaultKeys), Charsets.UTF_8),
-        )
-        assertEquals("{abc}", payload.getString("id"))
-        assertTrue(payload.get("deleted") is Boolean)
-        assertTrue(payload.getBoolean("deleted"))
-    }
-
-    // MARK: Conditional reads and writes (SPEC §7.2)
-
-    @Test
-    fun getCollectionWithMetadataConditionsSubsequentPages() {
-        val fake = FakeHttpTransport()
-        fake.enqueue(
-            SyncHttpResponse(
-                200,
-                mapOf("x-last-modified" to "1700000000.00", "x-weave-next-offset" to "2"),
-                """[{"id":"a"},{"id":"b"}]""".toByteArray(Charsets.UTF_8),
-            ),
-            SyncHttpResponse(
-                200,
-                mapOf("x-last-modified" to "1700000000.00"),
-                """[{"id":"c"}]""".toByteArray(Charsets.UTF_8),
-            ),
-        )
-
-        val read = client(fake).getCollectionWithMetadata("spaces")
-
-        assertEquals("1700000000.00", read.lastModified)
-        assertEquals(listOf("a", "b", "c"), read.records.map { it.getString("id") })
-        assertEquals(2, fake.requests.size)
-        assertNull(fake.requests[0].headers["X-If-Unmodified-Since"])
-        assertEquals("1700000000.00", fake.requests[1].headers["X-If-Unmodified-Since"])
-    }
-
-    @Test
-    fun getCollectionWithMetadataRestartsOnceAfterMidRead412() {
-        val fake = FakeHttpTransport()
-        fake.enqueue(
-            SyncHttpResponse(
-                200,
-                mapOf("x-last-modified" to "1700000000.00", "x-weave-next-offset" to "1"),
-                """[{"id":"a"}]""".toByteArray(Charsets.UTF_8),
-            ),
-            SyncHttpResponse(412, mapOf("x-last-modified" to "1700000100.12"), ByteArray(0)),
-            SyncHttpResponse(
-                200,
-                mapOf("x-last-modified" to "1700000100.12", "x-weave-next-offset" to "1"),
-                """[{"id":"a"}]""".toByteArray(Charsets.UTF_8),
-            ),
-            SyncHttpResponse(
-                200,
-                mapOf("x-last-modified" to "1700000100.12"),
-                """[{"id":"b"}]""".toByteArray(Charsets.UTF_8),
-            ),
-        )
-
-        val read = client(fake).getCollectionWithMetadata("spaces")
-
-        assertEquals("1700000100.12", read.lastModified)
-        assertEquals(listOf("a", "b"), read.records.map { it.getString("id") })
-        assertEquals(4, fake.requests.size)
-        assertNull(fake.requests[0].headers["X-If-Unmodified-Since"])
-        assertEquals("1700000000.00", fake.requests[1].headers["X-If-Unmodified-Since"])
-        assertNull(fake.requests[2].headers["X-If-Unmodified-Since"])
-        assertEquals("1700000100.12", fake.requests[3].headers["X-If-Unmodified-Since"])
-    }
-
-    @Test
-    fun getCollectionWithMetadataSecondMidRead412ThrowsConflict() {
-        val fake = FakeHttpTransport()
-        fake.enqueue(
-            SyncHttpResponse(
-                200,
-                mapOf("x-last-modified" to "1.00", "x-weave-next-offset" to "1"),
-                """[{"id":"a"}]""".toByteArray(Charsets.UTF_8),
-            ),
-            SyncHttpResponse(412, mapOf("x-last-modified" to "2.00"), ByteArray(0)),
-            SyncHttpResponse(
-                200,
-                mapOf("x-last-modified" to "2.00", "x-weave-next-offset" to "1"),
-                """[{"id":"a"}]""".toByteArray(Charsets.UTF_8),
-            ),
-            SyncHttpResponse(412, mapOf("x-last-modified" to "3.00"), ByteArray(0)),
-        )
-
-        try {
-            client(fake).getCollectionWithMetadata("spaces")
-            fail("expected SyncError.Conflict")
-        } catch (expected: SyncError.Conflict) {
-            // Expected: the single restart also lost the race.
-        }
-        assertEquals(4, fake.requests.size)
-    }
-
-    @Test
-    fun putRecordConditional412ReportsLastModified() {
-        val fake = FakeHttpTransport()
-        fake.enqueue(fixtureResponse("http-put-412"))
-
-        val outcome = client(fake).putRecord("spaces", "{abc}", JSONObject().put("hello", "zen"), "1700000000.00")
-
-        assertEquals(PutOutcome.PreconditionFailed("1700000100.12"), outcome)
-        val request = fake.requests.single()
-        assertEquals("PUT", request.method)
-        assertEquals(HttpFixtures.request("http-put-412").getString("path"), request.url.file)
-        assertEquals("1700000000.00", request.headers["X-If-Unmodified-Since"])
-    }
-
-    @Test
-    fun putRecordConditionalSuccessApplies() {
-        val fake = FakeHttpTransport()
-        fake.enqueue(fixtureResponse("http-put-200"))
-
-        val outcome = client(fake).putRecord("spaces", "{abc}", JSONObject().put("hello", "zen"), "1700000000.00")
-
-        assertEquals(PutOutcome.Applied, outcome)
-    }
-
-    @Test
-    fun postRecordsParsesSuccessAndFailed() {
+    fun postBatchParsesSuccessAndFailed() {
         val fake = FakeHttpTransport()
         fake.enqueue(fixtureResponse("http-post-200-success-failed"))
 
-        val outcome = client(fake).postRecords(
+        val (outcome, _) = client(fake).postBatch(
             "spaces",
             listOf(JSONObject().put("id", "tab-1"), JSONObject().put("id", "space-1")),
             "1700000000.00",
@@ -430,7 +294,7 @@ class SyncTransportTests {
     }
 
     @Test
-    fun postRecordsMissingIdIsPartialFailure() {
+    fun postBatchMissingIdIsPartialFailure() {
         val fake = FakeHttpTransport()
         fake.enqueue(
             SyncHttpResponse(
@@ -440,24 +304,25 @@ class SyncTransportTests {
             ),
         )
 
-        val outcome = client(fake).postRecords(
+        val (outcome, modified) = client(fake).postBatch(
             "spaces",
             listOf(JSONObject().put("id", "a"), JSONObject().put("id", "b")),
+            "1.00",
         )
 
         assertTrue(outcome is PostOutcome.PartialFailure)
         outcome as PostOutcome.PartialFailure
         assertEquals(mapOf("b" to "oops"), outcome.failed)
         assertEquals(listOf("b"), outcome.missingIds)
-        assertNull(fake.requests.single().headers["X-If-Unmodified-Since"])
+        assertEquals("1", modified)
     }
 
     @Test
-    fun postRecords412ReportsLastModified() {
+    fun postBatch412ReportsLastModified() {
         val fake = FakeHttpTransport()
         fake.enqueue(SyncHttpResponse(412, mapOf("x-last-modified" to "1700000100.12"), ByteArray(0)))
 
-        val outcome = client(fake).postRecords("spaces", listOf(JSONObject().put("id", "a")), "1.00")
+        val (outcome, _) = client(fake).postBatch("spaces", listOf(JSONObject().put("id", "a")), "1.00")
 
         assertEquals(PostOutcome.PreconditionFailed("1700000100.12"), outcome)
         assertEquals("1.00", fake.requests.single().headers["X-If-Unmodified-Since"])
