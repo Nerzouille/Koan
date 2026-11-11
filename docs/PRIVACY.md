@@ -5,11 +5,17 @@ crash reporting. Nothing about you or your browsing is sent to the people who ma
 
 ## What stays on the phone
 
-Your tabs, spaces, history, bookmarks, downloads, site permissions and settings live on the phone
-only. The passwords and Mozilla account keys Koan keeps are encrypted with a key held by Android's
-Keystore. Passwords you save in Koan stay on this phone unless you turn on two-way sync for
+Your tabs, history, bookmarks, downloads, site permissions and settings are kept on the phone.
+Your Zen Spaces and their tabs come from your Mozilla account and are never sent back. The
+passwords and Mozilla account keys Koan keeps are encrypted with a key held by Android's Keystore. Passwords you save in Koan stay on this phone unless you turn on two-way sync for
 passwords (Settings › Mozilla account): then they are added to your account, end-to-end encrypted
 like the rest of Firefox Sync. History goes back to your account only if you turn that on too.
+
+Private tabs are saved in one file on the phone, encrypted with a Keystore key, so they come back
+after a restart; that file is deleted when you close the last private tab. Their cookies and site
+data are kept in memory only. Koan never downloads an icon for a private tab: it shows one only if
+it already has it. Screenshots and screen recordings of private tabs are blocked unless you turn on
+Settings › Private browsing › Allow screenshots.
 
 Translation runs on the phone (Firefox Translations): the text of a page is never sent anywhere.
 
@@ -19,8 +25,8 @@ remembers the spot of your last long-press, in that page, and reads nothing befo
 
 The Passwords list shows a site's icon only if Koan already has it from your tabs or history; it
 never downloads an icon for that list, so no site and no icon service learns which sites you have
-saved logins for. (A test build on 2026-11-10 did ask DuckDuckGo's icon service once for those
-icons; that build was never released.)
+saved logins for. Screenshots, screen recordings and the Recents preview are blocked on the
+Passwords pages.
 
 While a page plays audio or video, its title and icon show in Android's media notification,
 including on the lock screen. Links like `tel:` or `mailto:` are handed to the app you choose,
@@ -33,30 +39,43 @@ nothing happens on pages you only browse.
 
 ## The servers Koan talks to
 
-Apart from the sites you open, Koan only connects to these:
+Besides the sites you open, Koan connects to these:
 
 | Server | When | What it gets |
 |---|---|---|
-| Mozilla accounts and Firefox Sync (`accounts.firefox.com`, `token.services.mozilla.com`, Sync storage) | When you sign in, and when Koan syncs | Your sign-in, then requests for your Spaces, passwords, history and bookmarks, and (only with two-way sync on) the passwords and history Koan sends back. Sync data is end-to-end encrypted: Mozilla can't read it. |
-| Your search engine (DuckDuckGo, Google, Brave Search, Startpage, Baidu, or an engine you added yourself) | When you search, and while you type if search suggestions are on | What you type in the search field, never a web address. Turn suggestions off in Settings. An engine you add gets your searches (and, if you gave it a suggestions address, what you type) exactly like the built-in ones: only add engines you trust. |
+| Mozilla accounts and Firefox Sync (`accounts.firefox.com` and its `api.`, `oauth.` and `profile.` servers, `token.services.mozilla.com`, Sync storage) | When you sign in, and when Koan syncs | Your sign-in, then requests for your Spaces, passwords, history and bookmarks, and (only with two-way sync on) the passwords and history Koan sends back. Sync data is end-to-end encrypted: Mozilla can't read it. |
+| Your search engine (DuckDuckGo, Google, Brave Search, Startpage, Baidu, or an engine you added yourself), and Wikipedia or YouTube suggestions (`<language>.wikipedia.org`, `suggestqueries.google.com`) while you use the `@wiki` or `@yt` shortcut | When you search, and while you type if search suggestions are on | What you type in the search field. No suggestions are asked for text that looks like an address with a path (it has `/` or `://` and no space), but a bare site name such as `example.com` is sent like any other word. Turn suggestions off in Settings. An engine you add gets your searches (and, if you gave it a suggestions address, what you type) exactly like the built-in ones: only add engines you trust. |
+| The sites Koan shows an icon for, including ones you never opened on this phone: your synced Zen tabs, synced history, search results, a long-pressed link | When the icon isn't on the phone yet (never for the pages of your private tabs) | A plain request for the site's page and its icon files, without cookies. For a few Google and Shopify pages, the icon comes from that company's icon address (`ssl.gstatic.com`, `calendar.google.com`, `cdn.shopify.com`). |
 | DuckDuckGo's icon service (`icons.duckduckgo.com`) | When a site's own icon can't be found | The site's domain name only. Never for local network addresses. |
-| Mozilla's translation models (Firefox's Remote Settings servers) | The first time you translate from or to a language | A normal download of that language's model, about 20–30 MB. The page's text is not sent. |
+| Mozilla's translation models (Firefox's Remote Settings servers) | The list of languages at start; a language's model the first time you translate from or to it | A normal download; a model is about 20–30 MB. The page's text is not sent. |
 | GitHub (`github.com`) | Each time you open Settings › About Koan | A request for Koan's public releases feed, to tell you whether an update exists. Never in the background. |
-| Mozilla Add-ons (`addons.mozilla.org`) | On first start, to install uBlock Origin, and for its updates | A normal download request. |
+| Mozilla Add-ons (`addons.mozilla.org`) | On first start, to install uBlock Origin (or when you install it from Settings) | A normal download request. |
 | Mozilla's DNS over HTTPS resolver (`mozilla.cloudflare-dns.com`, run by Cloudflare) | Only if you turn on Settings › DNS over HTTPS (off by default) | The names of the sites Koan looks up (instead of your network's DNS server). |
 
 A link to a video file (`…/clip.mp4`) that another app opens with Koan first gets a short `HEAD`
 request to that same address, to ask whether it really is a video (Koan's player) or a page (a
 tab). It goes to the site you opened, nowhere else.
 
+When you long-press an image, Koan downloads it again from its address (up to 4 MB) to show the
+preview. When you play a video link in Koan's player ("Play video" on a long-pressed link, or a
+video another app opens with Koan), Android's media player streams it from that address. Neither
+request carries the site's cookies.
+
+Koan's own small requests (search suggestions, image previews, the video check and the
+video poster) send the engine's own User-Agent, the one every page already sees: no phone model
+or build. Icon requests send a common phone browser's User-Agent, with no details of your phone.
+
 For the media notification, the poster image a page gives its video (when the page sets no
-artwork of its own) is downloaded once from the address the page names, like the page would.
+artwork of its own) is downloaded from the address the page names. Koan makes that request
+itself, without the page's cookies and without content blocking, in private tabs too.
 
 uBlock Origin then downloads its filter lists from its own sources, as it does in any browser.
 
-GeckoView, Firefox's engine that Koan runs on, also uses Firefox's standard protection services,
-such as the lists that block trackers and dangerous sites. These lists are downloaded to the phone;
-the pages you visit are not sent to anyone.
+GeckoView, Firefox's engine that Koan runs on, also does what Firefox does on its own: it checks
+now and then whether the network works (a small unencrypted request to
+`firefox-portal-detection.com`), and it fetches Firefox's Remote Settings at start and about once a
+day (tracker-blocking lists, certificate revocation lists, add-on block lists, cookie-banner rules).
+These lists are downloaded to the phone; the pages you visit are not sent to anyone.
 
 ## Deleting your data
 
@@ -65,7 +84,10 @@ the pages you visit are not sent to anyone.
 - **History:** swipe a page right to left to remove it. **Clear** › **Clear browsing data** deletes the
   phone's history and cached files, and if you choose, every site's cookies and site data. Clear
   browsing data never deletes your account's history. Removing single pages from History removes
-  them from your account too, but only while two-way history sync is on.
+  them from your account too, but only while two-way history sync is on: pages removed while it
+  was off stay in your account.
+- **Private tabs:** closing the last one deletes the saved private tabs, their cookies and their
+  site data.
 - **Translation languages:** Settings › Translation › On this phone › Delete.
 - **Site settings › Clear site data** clears one site's cookies, storage and permission answers.
 - Uninstalling Koan removes everything it stored.
