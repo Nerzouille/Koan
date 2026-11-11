@@ -13,7 +13,9 @@ has them.
 1. **Downloads' Undo follows its toast (F3).** Delete a file, then before the toast goes do
    something that shows another toast (copy a link): the file is gone at once and stays gone.
    Delete, then Undo: the file is back and opens. Hide from the list, then Undo. Delete and wait:
-   gone once the toast leaves. Kill Koan right after a delete: the file stays.
+   gone once the toast leaves. Kill Koan right after a delete: the file stays. A file Koan may not
+   delete (one another app saved or replaced): the row comes back with "Couldn't delete …", and
+   the file is still on the phone (before the fix the row vanished and the file stayed).
 2. **The player's Delete gains Undo (F4).** Open a downloaded video, ⋯ › Delete: "File deleted ·
    Undo" brings it back in Downloads; without Undo it is deleted once the toast goes.
 3. **Logins per site (F1).** A login saved on one `*.github.io` site is no longer offered on
