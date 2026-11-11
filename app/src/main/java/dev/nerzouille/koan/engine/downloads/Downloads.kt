@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -43,10 +44,27 @@ class Downloads(
     }
 
     /** Deletes the file and drops it from the list. */
-    fun delete(download: DownloadState) {
-        files.deleteMediaFile(context.contentResolver, download.fileName, download.directoryPath)
-        useCases.removeDownload(download.id)
+    /**
+     * The file, then its row; the row stays when the file couldn't be deleted ([deleteFailed] then
+     * says which). False in that case.
+     */
+    fun delete(download: DownloadState): Boolean {
+        val name = download.fileName
+        val removed = DownloadRemoval.deleteFileThenRow(
+            deleteFile = { files.deleteMediaFile(context.contentResolver, name, download.directoryPath) },
+            fileStillThere = { name != null && files.fileExists(download.directoryPath, name) },
+            removeRow = { useCases.removeDownload(download.id) },
+        )
+        if (!removed) {
+            // Never the file name in the log (CLAUDE.md: no personal data).
+            android.util.Log.w("KoanDownloads", "delete failed: the file is still there")
+            deleteFailed.tryEmit(name ?: "the file")
+        }
+        return removed
     }
+
+    /** A file that couldn't be deleted (its name, for the toast). Its row is back in the list. */
+    val deleteFailed = MutableSharedFlow<String>(extraBufferCapacity = 4)
 
     /**
      * Hidden or deleted from the page: gone from the list at once. Only once its Undo had its

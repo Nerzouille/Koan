@@ -1,6 +1,7 @@
 package dev.nerzouille.koan.ui.overlays
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import dev.nerzouille.koan.data.VisitEntity
@@ -43,6 +44,8 @@ internal fun LibraryOverlays(
     share: (url: String, subject: String) -> Unit,
 ) {
     val session = components.sessionUseCases
+    // A delete that left the file on the phone: its row is back, and Koan says so.
+    LaunchedEffect(Unit) { components.downloads.deleteFailed.collect { name -> onToast(Toast("Couldn't delete $name", detail = "It's still in the list")) } }
     // ---- Downloads, full screen, over Settings too ----
     val downloadsSlide = rememberPresence(overlays.downloadsOpen, Motion.Sheet)
     if (downloadsSlide.composed) {
