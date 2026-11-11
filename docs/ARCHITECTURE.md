@@ -43,7 +43,7 @@ relative to it unless they start with `app/`, `docs/` or `tools/`).
 | Package | What it holds |
 |---|---|
 | (root) | `KoanApp`, `MainActivity`, `SearchSelection` ("Search in Koan" trampoline), `DeviceProfile` (RAM tiers) |
-| `data` | Room (`KoanDatabase`, `KoanDao`, entities), `SpacesRepository`, `Settings`, `LastPlace`, `AccountStore`, `SecretBox`/`KeystoreBox`, `SafeStores` (DataStores that survive a corrupted file), `LoginStore`, `Bookmarks`, sync runs (`SpacesSync`, `LibrarySync`, `SyncWrite`, `SyncBack`), `ZenDiff` |
+| `data` | Room (`KoanDatabase`, `KoanDao`, entities), `SpacesRepository`, `Settings`, `LastPlace`, `AccountStore`, `SecretBox`/`KeystoreBox`, `SafeStores` (DataStores that survive a corrupted file), `LoginStore`, `Bookmarks`, sync runs (`SpacesSync`, `LibrarySync`, `SyncWrite`, `PhoneLogins`), `ZenDiff` |
 | `engine` | `Components`, `KoanScopes` (guarded process scopes), `KoanHttp` (Koan's own small requests), `TabManager`, `HistoryRecorder`, `ExternalLinks`, `SitePermissions`, `PageTools` (reader, find), `PageEngines`, `PageImages`, `PageVideo`, `PictureInPicture`, `UBlock`, `LoginAutofill`, `GeckoPrefs`, `GeckoFinder.java`, Custom Tabs and media services |
 | `engine/downloads` | `Downloads`, duplicate detection (`DuplicateDownloads`, `DuplicateMiddleware`), `KoanDownloadService` |
 | `favicon` | `IconStore` (Koan's), and Z-Sync's favicon loader, discovery, decoder, SVG rasteriser |

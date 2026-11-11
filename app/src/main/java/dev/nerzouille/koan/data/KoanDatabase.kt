@@ -326,13 +326,9 @@ interface KoanDao {
     @Query("DELETE FROM visits WHERE url IN (:urls)")
     suspend fun deleteVisits(urls: List<String>)
 
-    /** Two-way sync (dry run): pages first visited on the phone, not the account's copy. */
+    /** Two-way sync: pages first visited on the phone, not the account's copy. */
     @Query("SELECT * FROM visits WHERE NOT fromSync AND NOT hidden ORDER BY lastVisit DESC LIMIT :limit")
     suspend fun phoneVisits(limit: Int): List<VisitEntity>
-
-    /** Two-way sync (dry run): bookmarks added on the phone. */
-    @Query("SELECT * FROM bookmarks WHERE id NOT LIKE 'sync:%'")
-    suspend fun phoneBookmarks(): List<BookmarkEntity>
 
     @Query("SELECT * FROM logins WHERE origin = :origin OR origin LIKE '%.' || :baseDomain OR origin LIKE '%//' || :baseDomain")
     suspend fun loginsFor(origin: String, baseDomain: String): List<LoginEntity>

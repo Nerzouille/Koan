@@ -22,14 +22,12 @@ class UploadPlan(
     val mergesIntoExisting: Int,
     /** Phone items left out: invalid for the other clients (reasons, no content). */
     val invalid: List<String>,
-    /** Records the account already has that the plan also rewrites (e.g. a bookmark folder). */
-    val rewrites: Int = 0,
 ) {
     val fields: Set<String> get() = records.flatMapTo(sortedSetOf()) { it.keys().asSequence().toList() }
 
     /** Safe to log: counts and field names only. */
     fun summary(): String =
-        "$collection: ${records.size} record(s) to upload (new $new, changed $changed, rewritten $rewrites, " +
+        "$collection: ${records.size} record(s) to upload (new $new, changed $changed, " +
             "merging into existing $mergesIntoExisting), fields ${fields.joinToString(",")}, " +
             "${invalid.size} left out" + if (invalid.isEmpty()) "" else " (${invalid.groupingBy { it }.eachCount().entries.joinToString { "${it.key} ×${it.value}" }})"
 
@@ -230,69 +228,6 @@ object HistoryUpload {
             // Microseconds since 2001 at least: a value in ms would be read as 1970.
             if (v.optLong("date") < 978_307_200_000_000L) return "visit date not in µs"
             if (v.optInt("type") !in 1..9) return "bad visit type"
-        }
-        return null
-    }
-}
-
-/** A bookmark added on the phone, as the planner sees it. */
-class PhoneBookmark(val url: String, val title: String, val createdAtMs: Long)
-
-/** Step 2b: bookmarks added on the phone → `bookmarks`, under "Mobile Bookmarks" (SYNC_WRITE.md §2). */
-object BookmarkUpload {
-    const val MOBILE = "mobile"
-
-    /**
-     * [server]: the account's bookmark records (cleartexts). Phone bookmarks whose URL the account
-     * already has are skipped (dogear would de-duplicate them anyway). The new ones go under
-     * `mobile`, and the `mobile` folder is rewritten with its complete children list (new ones
-     * appended), every other field kept: one batch.
-     */
-    fun plan(phone: List<PhoneBookmark>, server: List<JSONObject>, random: SecureRandom = SecureRandom()): UploadPlan {
-        val known = server.mapNotNullTo(HashSet()) { r -> r.optString("bmkUri").takeIf { r.optString("type") == "bookmark" && it.isNotEmpty() } }
-        val invalid = mutableListOf<String>()
-        val adds = mutableListOf<JSONObject>()
-        var merges = 0
-        for (b in phone) {
-            if (!b.url.startsWith("http://") && !b.url.startsWith("https://")) {
-                invalid += "not a web page"
-                continue
-            }
-            if (b.url in known) {
-                merges++
-                continue
-            }
-            adds += JSONObject()
-                .put("id", newSyncId(random))
-                .put("type", "bookmark")
-                .put("parentid", MOBILE)
-                .put("parentName", "mobile")
-                .put("title", b.title)
-                .put("bmkUri", b.url)
-                .put("dateAdded", b.createdAtMs)
-                .put("hasDupe", true)
-        }
-        if (adds.isEmpty()) return UploadPlan("bookmarks", emptyList(), 0, 0, merges, invalid)
-        val existing = server.firstOrNull { it.optString("id") == MOBILE && !it.optBoolean("deleted") }
-        val folder = if (existing != null) JSONObject(existing.toString()) else JSONObject()
-            .put("id", MOBILE).put("type", "folder").put("parentid", "places").put("parentName", "").put("title", "mobile")
-        val children = folder.optJSONArray("children") ?: JSONArray()
-        adds.forEach { children.put(it.getString("id")) }
-        folder.put("children", children).put("hasDupe", true)
-        return UploadPlan("bookmarks", adds + folder, adds.size, 0, merges, invalid, rewrites = if (existing != null) 1 else 0)
-    }
-
-    /** The whole batch must form a valid tree for dogear: every new item listed by its parent, no `places`. */
-    fun problem(batch: List<JSONObject>): String? {
-        if (batch.any { it.optString("id") == "places" }) return "places root"
-        val folders = batch.filter { it.optString("type") == "folder" }.associateBy { it.optString("id") }
-        for (r in batch) {
-            if (r.optString("type") != "bookmark") continue
-            if (!isPlacesSyncId(r.optString("id"))) return "bad id"
-            if (r.optString("bmkUri").isEmpty()) return "no URL"
-            val parent = folders[r.optString("parentid")] ?: return "parent folder not in the batch"
-            val kids = parent.optJSONArray("children") ?: return "parent without children"
-            if ((0 until kids.length()).none { kids.optString(it) == r.optString("id") }) return "not listed by its parent"
         }
         return null
     }

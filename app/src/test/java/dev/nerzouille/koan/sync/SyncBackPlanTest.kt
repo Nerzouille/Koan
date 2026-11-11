@@ -136,50 +136,6 @@ class SyncBackPlanTest {
         assertEquals("visit date not in µs", HistoryUpload.problem(r))
     }
 
-    // MARK: bookmarks
-
-    private val mobileFolder = JSONObject().put("id", "mobile").put("type", "folder").put("parentid", "places")
-        .put("title", "mobile").put("children", JSONArray().put("existing0001")).put("unknownField", "keep")
-
-    @Test
-    fun newBookmarksGoUnderMobileWithTheFolderRewrittenInOneBatch() {
-        val plan = BookmarkUpload.plan(
-            listOf(PhoneBookmark("https://example.com/new", "New", now)),
-            listOf(mobileFolder, JSONObject().put("id", "existing0001").put("type", "bookmark").put("bmkUri", "https://example.org/").put("parentid", "mobile")),
-        )
-        assertEquals(2, plan.records.size)
-        val bookmark = plan.records[0]
-        val folder = plan.records[1]
-        assertEquals("mobile", bookmark.getString("parentid"))
-        assertTrue(bookmark.getBoolean("hasDupe"))
-        assertEquals("mobile", folder.getString("id"))
-        assertEquals("keep", folder.getString("unknownField"))
-        assertEquals(listOf("existing0001", bookmark.getString("id")), (0 until 2).map { folder.getJSONArray("children").getString(it) })
-        assertEquals(1, plan.rewrites)
-        assertNull(BookmarkUpload.problem(plan.records))
-        // The folder read from the server is not modified in place.
-        assertEquals(1, mobileFolder.getJSONArray("children").length())
-    }
-
-    @Test
-    fun bookmarksTheAccountAlreadyHasAreSkipped() {
-        val plan = BookmarkUpload.plan(
-            listOf(PhoneBookmark("https://example.org/", "Dup", now)),
-            listOf(mobileFolder, JSONObject().put("id", "existing0001").put("type", "bookmark").put("bmkUri", "https://example.org/")),
-        )
-        assertTrue(plan.records.isEmpty())
-        assertEquals(1, plan.mergesIntoExisting)
-    }
-
-    @Test
-    fun aTornTreeIsRefused() {
-        val orphan = JSONObject().put("id", "abcdefghijkl").put("type", "bookmark").put("parentid", "mobile").put("bmkUri", "https://example.com/")
-        assertEquals("parent folder not in the batch", BookmarkUpload.problem(listOf(orphan)))
-        val folder = JSONObject().put("id", "mobile").put("type", "folder").put("children", JSONArray())
-        assertEquals("not listed by its parent", BookmarkUpload.problem(listOf(orphan, folder)))
-        assertEquals("places root", BookmarkUpload.problem(listOf(JSONObject().put("id", "places"))))
-    }
-
     // MARK: guard
 
     private fun meta(version: Int = 5, passwordsVersion: Int = 1, declined: List<String> = emptyList()) = JSONObject()

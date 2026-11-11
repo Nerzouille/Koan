@@ -79,7 +79,7 @@ class SettingsUi(
     /** Suggestions from the search engine while typing. */
     val suggestions: Boolean,
     val onSuggestions: (Boolean) -> Unit,
-    /** Two-way sync, dry run only: which collections Koan would send. */
+    /** Two-way sync: which collections Koan sends to the account. */
     val syncBack: SyncBackChoice,
     val onSyncBack: (SyncBackChoice) -> Unit,
     val syncBackPasswordEdits: Boolean = false,
@@ -343,13 +343,6 @@ private fun FolderPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
         SettingsRow(null, ui.downloadFolder ?: "Choose a folder…", on, subtitle = if (ui.downloadFolder != null) "Tap to choose another folder" else null, onClick = ui.onPickDownloadFolder) {
             if (ui.downloadFolder != null) Icon(KoanIcons.Check, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))
         }
-    }
-}
-
-@Composable
-private fun SyncBackRow(title: String, checked: Boolean, on: Boolean, onChange: (Boolean) -> Unit) {
-    SettingsRow(null, title, on, subtitle = "Off by default", onClick = { onChange(!checked) }) {
-        KoanToggle(checked = checked, onCheckedChange = if (on) onChange else null)
     }
 }
 
