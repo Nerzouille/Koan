@@ -30,8 +30,8 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
      `docs/ARCHITECTURE.md` rewritten; `NIGHT_REPORT.md` and `REVIEW_NIGHT.md` removed (their
      rules are in `docs/UI_SPEC.md`).
   3. `geckoview-160` (merged into `dev`): GeckoView / android-components 160, see "Engine".
-  4. Refactoring, from **`docs/plans/BATCH4_BRIEF.md`** (branch `refactor` from `dev`): **next**,
-     before the release (see "Next concrete steps").
+  4. Refactoring (`docs/plans/BATCH4_PLAN.md`): merged into `dev` on 2026-11-12, see "Batch 4";
+     leftovers in `docs/ROADMAP.md` "Batch 4 leftovers".
   5. Tests, CI, baseline profile: after batch 4.
 - Engine: android-components **160.0** / GeckoView **160.0.20261104181552**
   (`gradle/libs.versions.toml`, the two versions move together), compileSdk **37.2** (AC 160
@@ -244,7 +244,7 @@ The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and 
 
 In this order (owner, 2026-11-11, changed the same day):
 
-1. **Batch 4**, refactoring, from `docs/plans/BATCH4_BRIEF.md` (branch `refactor` from `dev`).
+1. ~~**Batch 4**, refactoring~~: merged into `dev` 2026-11-12.
 2. **The owner's fixes list** (the owner brings it).
 3. **Release 0.5** (CLAUDE.md release checklist; versionCode ≥ 10). It was planned for Friday
    2026-11-13, before batch 4 moved ahead of it: confirm the date with the owner. The owner's
