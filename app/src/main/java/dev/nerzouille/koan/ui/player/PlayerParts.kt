@@ -222,19 +222,36 @@ class MenuRow(
 fun pipOnLeaveRow(on: Boolean, onChange: (Boolean) -> Unit) =
     MenuRow(if (on) dev.nerzouille.koan.ui.icons.KoanIcons.Pip else dev.nerzouille.koan.ui.icons.KoanIcons.PipOff, "PiP on leave", on = on) { onChange(!on) }
 
-/** §2 ⋯ menu: the speed row and its chips, then [rows]. */
+/**
+ * §2 ⋯ menu: the speed row and its chips, then [rows]. [morph] 0…1 (read in layer and draw only):
+ * the panel grows out of the ⋯ pill at its top right corner, the pill's rounded square opening
+ * into the panel; the rows fade in over the second half.
+ */
 @Composable
-internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuRow>, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(PlayerTokens.MenuRadius)
+internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuRow>, modifier: Modifier = Modifier, morph: () -> Float = { 1f }) {
     Column(
         modifier
             .width(PlayerTokens.MenuWidth)
             .graphicsLayer {
-                shadowElevation = PlayerTokens.MenuShadow.toPx() / 2
-                this.shape = shape
-                clip = false
+                val m = morph()
+                shadowElevation = PlayerTokens.MenuShadow.toPx() / 2 * m
+                shape = menuMorphShape(m, PlayerTokens.RoundPill.toPx(), PlayerTokens.MenuRadius.toPx())
+                clip = true
             }
-            .playerPanel(shape, PlayerTokens.PanelMenu)
+            .drawBehind {
+                val m = morph()
+                val r = menuMorphRect(size, m, PlayerTokens.RoundPill.toPx())
+                val radius = menuMorphRadius(m, PlayerTokens.RoundPill.toPx(), PlayerTokens.MenuRadius.toPx())
+                val corner = androidx.compose.ui.geometry.CornerRadius(radius)
+                drawRoundRect(PlayerTokens.PanelMenu, r.topLeft, r.size, corner)
+                val stroke = 1.dp.toPx()
+                drawRoundRect(
+                    PlayerTokens.Stroke, r.topLeft + androidx.compose.ui.geometry.Offset(stroke / 2, stroke / 2),
+                    androidx.compose.ui.geometry.Size(r.width - stroke, r.height - stroke), corner,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+            }
+            .graphicsLayer { alpha = ((morph() - 0.35f) / 0.65f).coerceIn(0f, 1f) }
             .padding(vertical = 4.dp),
     ) {
         Row(Modifier.fillMaxWidth().height(PlayerTokens.MenuRow).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -377,4 +394,20 @@ internal fun Modifier.progressTrack(thickness: () -> Float, fraction: () -> Floa
     if (b > 0f) drawRoundRect(PlayerTokens.TrackBuffered, Offset(0f, top), Size(b, h), r)
     val p = fraction().coerceIn(0f, 1f) * size.width
     if (p > 0f) drawRoundRect(PlayerTokens.TrackPlayed, Offset(0f, top), Size(maxOf(p, h), h), r)
+}
+
+/** The ⋯ menu's outline at [m]: the pill's rounded square at the top right corner (0), the whole panel (1). */
+internal fun menuMorphRect(size: androidx.compose.ui.geometry.Size, m: Float, pill: Float): androidx.compose.ui.geometry.Rect {
+    val w = pill + (size.width - pill) * m
+    val h = pill + (size.height - pill) * m
+    return androidx.compose.ui.geometry.Rect(size.width - w, 0f, size.width, h.coerceAtMost(size.height))
+}
+
+internal fun menuMorphRadius(m: Float, pill: Float, radius: Float): Float = pill / 2 + (radius - pill / 2) * m
+
+private fun menuMorphShape(m: Float, pill: Float, radius: Float) = object : androidx.compose.ui.graphics.Shape {
+    override fun createOutline(size: androidx.compose.ui.geometry.Size, layoutDirection: androidx.compose.ui.unit.LayoutDirection, density: androidx.compose.ui.unit.Density) =
+        androidx.compose.ui.graphics.Outline.Rounded(
+            androidx.compose.ui.geometry.RoundRect(menuMorphRect(size, m, pill), androidx.compose.ui.geometry.CornerRadius(menuMorphRadius(m, pill, radius))),
+        )
 }

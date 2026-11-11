@@ -682,7 +682,8 @@ fun VideoPlayer(
                 }
 
                 // ---- ⋯ menu ----
-                val menuIn = rememberPresence(menuOpen, enter = Motion.Fade, exit = Motion.FadeQuick, startShown = true)
+                // The ⋯ pill grows into the panel (the standalone player's open / close springs).
+                val menuIn = rememberPresence(menuOpen, enter = PlayerTokens.OpenSpring, exit = PlayerTokens.CloseSpring, startShown = true)
                 if (menuIn.composed) {
                     // Every field kept (a switch's state, a greyed-out row and its reason); a tap also closes the menu.
                     val rows = remember(menuRows) { menuRows.map { row -> row.after { menuOpen = false } } }
@@ -690,17 +691,12 @@ fun VideoPlayer(
                         rate = state.rate,
                         onRate = { r -> controls.rate(r); touched() },
                         rows = rows,
+                        // Its top edge level with the top row, its corner on the ⋯ pill.
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(end = endInset, top = topInset + PlayerTokens.RoundPill + 8.dp)
-                            .graphicsLayer {
-                                alpha = menuIn.progress
-                                val s = 0.92f + 0.08f * menuIn.progress
-                                scaleX = s
-                                scaleY = s
-                                transformOrigin = TransformOrigin(1f - (PlayerTokens.RoundPill / 2 / PlayerTokens.MenuWidth), 0f)
-                            }
+                            .padding(end = endInset, top = topInset)
                             .pointerInput(Unit) { awaitEachGesture { awaitFirstDown().also { touched() } } },
+                        morph = { menuIn.progress },
                     )
                 }
             }
