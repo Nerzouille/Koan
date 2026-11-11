@@ -25,8 +25,6 @@ import mozilla.components.concept.engine.webextension.Port
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.webextensions.BuiltInWebExtensionController
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.WeakHashMap
 
 /** A page's video as Koan's player drives it (assets/extensions/video). */
@@ -165,12 +163,10 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
         posters[url]?.let { return it }
         val bmp = withContext(Dispatchers.IO) {
             runCatching {
-                val c = URL(url).openConnection() as HttpURLConnection
-                c.connectTimeout = 4000
-                c.readTimeout = 4000
+                val c = KoanHttp.open(url, 4000)
                 try {
-                    val bytes = c.inputStream.use { it.readBytes() }
-                    if (bytes.size > MAX_POSTER_BYTES) return@runCatching null
+                    // Capped while reading: a hostile page can't make Koan buffer a huge file.
+                    val bytes = c.inputStream.use { KoanHttp.readCapped(it, MAX_POSTER_BYTES) } ?: return@runCatching null
                     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                     var sample = 1

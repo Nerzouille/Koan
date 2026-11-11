@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import dev.nerzouille.koan.sync.FxAClient
 import dev.nerzouille.koan.sync.FxACrypto
 import dev.nerzouille.koan.sync.PairingFlow
@@ -77,6 +76,18 @@ class Account private constructor(
     }
 }
 
+/**
+ * An email as Koan shows it on screens that may be seen or recorded: the first two and last two
+ * characters of the name, stars between ("no*****38@example.com"); a short name keeps its first one.
+ */
+fun maskedEmail(email: String): String {
+    val at = email.lastIndexOf('@')
+    if (at <= 0) return email.take(1) + "***"
+    val name = email.substring(0, at)
+    val shown = if (name.length > 4) name.take(2) + "*".repeat(name.length - 4) + name.takeLast(2) else name.take(1) + "***"
+    return shown + email.substring(at)
+}
+
 sealed interface AccountState {
     /** Not read from disk yet: show nothing account-related (no first-run card flash). */
     data object Loading : AccountState
@@ -91,12 +102,12 @@ interface BlobStore {
     suspend fun clear()
 }
 
-private val Context.accountDataStore: DataStore<Preferences> by preferencesDataStore(name = "account")
+private val Context.accountDataStore: DataStore<Preferences> by safePreferencesDataStore(name = "account")
 
 class DataStoreBlob(context: Context) : BlobStore {
     private val store = context.applicationContext.accountDataStore
     private val key = stringPreferencesKey("sealed")
-    override suspend fun read(): String? = store.data.map { it[key] }.first()
+    override suspend fun read(): String? = store.safeData.map { it[key] }.first()
     override suspend fun write(value: String) { store.edit { it[key] = value } }
     override suspend fun clear() { store.edit { it.remove(key) } }
 }
@@ -140,9 +151,27 @@ class AccountStore(
         return account
     }
 
-    /** Finishes a web login: fetches kB, then stores the session. Throws on failure. */
-    suspend fun completeWebLogin(email: String, uid: String, sessionToken: String, keyFetchToken: String, unwrapBKey: String) {
+    /**
+     * A sign-in with another Mozilla account than the one signed in, without the owner having
+     * been told it replaces it: nothing was stored, the signed-in account stays.
+     */
+    class OtherAccount : Exception("another Mozilla account is signed in")
+
+    /** Throws [OtherAccount] when an account is signed in, [uid] isn't it, and replacing wasn't confirmed. */
+    private suspend fun checkReplace(uid: String, allowReplace: Boolean) {
+        val current = load() ?: return
+        if (current.uid != uid && !allowReplace) throw OtherAccount()
+    }
+
+    /**
+     * Finishes a web login: fetches kB, then stores the session. Throws on failure, and
+     * [OtherAccount] for another account than the signed-in one unless [allowReplace] (the owner
+     * saw that it replaces it).
+     */
+    suspend fun completeWebLogin(email: String, uid: String, sessionToken: String, keyFetchToken: String, unwrapBKey: String, allowReplace: Boolean = false) {
+        checkReplace(uid, allowReplace)
         val result = FxAClient(authTransport).completeWebLogin(email, uid, sessionToken, keyFetchToken, unwrapBKey)
+        checkReplace(result.uid, allowReplace)
         save(Account(email, result.uid, result.session, FxACrypto.hex(result.kB)))
     }
 
@@ -152,13 +181,20 @@ class AccountStore(
      * in. Returns whether the key is the one the password sign-in already had (null: no password
      * sign-in to compare with): both must open the same Sync data.
      */
-    suspend fun completePairing(flow: PairingFlow, code: String): Boolean? {
+    suspend fun completePairing(flow: PairingFlow, code: String, allowReplace: Boolean = false): Boolean? {
         val client = FxAClient(authTransport)
         val tokens = client.exchangeCode(code, flow.codeVerifier, PairingFlow.CLIENT_ID)
         val syncKey = withContext(Dispatchers.Default) {
             ScopedKeys.oldSyncKey(ScopedKeys.decryptJwe(tokens.keysJwe, flow.keyPair.private as ECPrivateKey))
         }
         val (email, uid) = client.profile(tokens.accessToken)
+        try {
+            checkReplace(uid, allowReplace)
+        } catch (e: OtherAccount) {
+            // Not kept: the new token is revoked (best effort), the signed-in account stays.
+            runCatching { client.destroyToken(tokens.refreshToken, PairingFlow.CLIENT_ID) }
+            throw e
+        }
         val previous = load()
         val match = previous?.takeIf { it.uid == uid }?.kBHex?.let { kB -> sameKey(FxACrypto.unhex(kB), syncKey) }
         save(Account.oauth(email, uid, tokens.refreshToken, syncKey))

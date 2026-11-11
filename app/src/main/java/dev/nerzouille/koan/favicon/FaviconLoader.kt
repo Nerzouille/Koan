@@ -6,9 +6,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.util.LruCache
 import dev.nerzouille.koan.sync.ZenSpaces
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,7 +52,7 @@ object FaviconLoader {
         Thread(r, "favicon-loader").apply { isDaemon = true; priority = Thread.MIN_PRIORITY + 1 }
     }
     /** Runs prefetch independently of [executor], so it cannot starve its own workers. */
-    private val prefetchScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val prefetchScope = dev.nerzouille.koan.engine.KoanScopes.guarded("favicons", Dispatchers.IO)
 
     @Volatile
     private var diskDir: File? = null

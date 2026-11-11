@@ -6,14 +6,13 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import dev.nerzouille.koan.search.CustomEngines
 import dev.nerzouille.koan.search.SearchEngine
 
-private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+private val Context.settingsStore: DataStore<Preferences> by safePreferencesDataStore(name = "settings")
 
 enum class ThemeMode(val label: String) {
     System("Follow system"),
@@ -39,7 +38,7 @@ class Settings(context: Context) {
     private val store = context.applicationContext.settingsStore
     private val theme = stringPreferencesKey("theme")
 
-    val themeMode: Flow<ThemeMode> = store.data.map { prefs ->
+    val themeMode: Flow<ThemeMode> = store.safeData.map { prefs ->
         ThemeMode.entries.firstOrNull { it.name == prefs[theme] } ?: ThemeMode.System
     }
 
@@ -50,7 +49,7 @@ class Settings(context: Context) {
     private val hideStatus = booleanPreferencesKey("hide_status_bar")
 
     /** The status bar stays hidden (a swipe from the top edge shows it for a moment); off by default. */
-    val hideStatusBar: Flow<Boolean> = store.data.map { it[hideStatus] ?: false }
+    val hideStatusBar: Flow<Boolean> = store.safeData.map { it[hideStatus] ?: false }
 
     suspend fun setHideStatusBar(on: Boolean) {
         store.edit { it[hideStatus] = on }
@@ -67,13 +66,13 @@ class Settings(context: Context) {
     private val passwordEdits = booleanPreferencesKey("sync_back_password_edits")
 
     /** Two-way sync may also change and delete the account's passwords (off; the owner turns it on after checking). */
-    val syncBackPasswordEdits: Flow<Boolean> = store.data.map { it[passwordEdits] ?: false }
+    val syncBackPasswordEdits: Flow<Boolean> = store.safeData.map { it[passwordEdits] ?: false }
 
     suspend fun setSyncBackPasswordEdits(on: Boolean) {
         store.edit { it[passwordEdits] = on }
     }
 
-    val syncBack: Flow<SyncBackChoice> = store.data.map {
+    val syncBack: Flow<SyncBackChoice> = store.safeData.map {
         SyncBackChoice(it[sendPasswords] ?: false, it[sendHistory] ?: false, it[sendBookmarks] ?: false)
     }
 
@@ -85,10 +84,23 @@ class Settings(context: Context) {
         }
     }
 
+    private val writeBack = booleanPreferencesKey("write_back_enabled")
+
+    /**
+     * CLAUDE.md rule 4: Koan may write the Zen `spaces` collection only while this is on. Off by
+     * default and not shown in the UI (milestone M6 adds it). Enforced by SpacesWriteGate on every
+     * sync request.
+     */
+    val writeBackEnabled: Flow<Boolean> = store.safeData.map { it[writeBack] ?: false }
+
+    suspend fun setWriteBackEnabled(on: Boolean) {
+        store.edit { it[writeBack] = on }
+    }
+
     private val pip = booleanPreferencesKey("picture_in_picture")
 
     /** Leaving Koan while a fullscreen video plays keeps it playing in a small window; on by default. */
-    val pictureInPicture: Flow<Boolean> = store.data.map { it[pip] ?: true }
+    val pictureInPicture: Flow<Boolean> = store.safeData.map { it[pip] ?: true }
 
     suspend fun setPictureInPicture(on: Boolean) {
         store.edit { it[pip] = on }
@@ -97,7 +109,7 @@ class Settings(context: Context) {
     private val downloads = stringPreferencesKey("download_location")
 
     /** Where downloads go: a folder the owner picked (a content:// tree), or null = the phone's Download folder. */
-    val downloadLocation: Flow<String?> = store.data.map { it[downloads] }
+    val downloadLocation: Flow<String?> = store.safeData.map { it[downloads] }
 
     suspend fun setDownloadLocation(value: String?) {
         store.edit { if (value == null) it.remove(downloads) else it[downloads] = value }
@@ -106,7 +118,7 @@ class Settings(context: Context) {
     private val suggest = booleanPreferencesKey("search_suggestions")
 
     /** Suggestions from the search engine while typing (on by default). */
-    val searchSuggestions: Flow<Boolean> = store.data.map { it[suggest] ?: true }
+    val searchSuggestions: Flow<Boolean> = store.safeData.map { it[suggest] ?: true }
 
     suspend fun setSearchSuggestions(on: Boolean) {
         store.edit { it[suggest] = on }
@@ -115,7 +127,7 @@ class Settings(context: Context) {
     private val ublockOffered = booleanPreferencesKey("ublock_offered")
 
     /** uBlock Origin was installed once already (removed or turned off since = the owner's choice). */
-    suspend fun ublockOffered(): Boolean = store.data.first()[ublockOffered] ?: false
+    suspend fun ublockOffered(): Boolean = store.safeData.first()[ublockOffered] ?: false
 
     suspend fun markUblockOffered() {
         store.edit { it[ublockOffered] = true }
@@ -124,7 +136,7 @@ class Settings(context: Context) {
     private val blocked = stringPreferencesKey("ublock_blocked_days")
 
     /** Requests uBlock blocked, per day ("yyyymmdd" → count), the last 7 days. */
-    val blockedByDay: Flow<Map<String, Int>> = store.data.map { prefs -> parseDays(prefs[blocked]) }
+    val blockedByDay: Flow<Map<String, Int>> = store.safeData.map { prefs -> parseDays(prefs[blocked]) }
 
     suspend fun addBlocked(day: String, count: Int) {
         if (count <= 0) return
@@ -141,7 +153,7 @@ class Settings(context: Context) {
     private val tourSeen = stringPreferencesKey("tour_seen")
 
     /** Feature version ("0.3") whose tour or "What's new" was last seen; null = none yet. */
-    suspend fun tourSeen(): String? = store.data.first()[tourSeen]
+    suspend fun tourSeen(): String? = store.safeData.first()[tourSeen]
 
     suspend fun setTourSeen(version: String) {
         store.edit { it[tourSeen] = version }
@@ -151,12 +163,12 @@ class Settings(context: Context) {
     private val customEngines = stringPreferencesKey("custom_search_engines")
 
     /** Koan's engines, then the owner's own (in the order they were added). */
-    val searchEngines: Flow<List<SearchEngine>> = store.data.map { prefs ->
+    val searchEngines: Flow<List<SearchEngine>> = store.safeData.map { prefs ->
         SearchEngine.builtIns + CustomEngines.fromJson(prefs[customEngines])
     }
 
     /** The default engine; DuckDuckGo when none was picked or the picked one was deleted. */
-    val searchEngine: Flow<SearchEngine> = store.data.map { prefs ->
+    val searchEngine: Flow<SearchEngine> = store.safeData.map { prefs ->
         val all = SearchEngine.builtIns + CustomEngines.fromJson(prefs[customEngines])
         all.firstOrNull { it.id == prefs[engine] } ?: SearchEngine.DuckDuckGo
     }
@@ -184,7 +196,7 @@ class Settings(context: Context) {
 
     private val startAfter = stringPreferencesKey("start_page_after")
 
-    val startPageAfter: Flow<StartPageAfter> = store.data.map { prefs ->
+    val startPageAfter: Flow<StartPageAfter> = store.safeData.map { prefs ->
         StartPageAfter.entries.firstOrNull { it.name == prefs[startAfter] } ?: StartPageAfter.Hour
     }
 
@@ -196,7 +208,7 @@ class Settings(context: Context) {
 
     private fun flag(name: String, default: Boolean): Pair<Flow<Boolean>, suspend (Boolean) -> Unit> {
         val key = booleanPreferencesKey(name)
-        return store.data.map { it[key] ?: default } to { on -> store.edit { it[key] = on } }
+        return store.safeData.map { it[key] ?: default } to { on -> store.edit { it[key] = on } }
     }
 
     private val lockFlag = flag("private_lock", true)

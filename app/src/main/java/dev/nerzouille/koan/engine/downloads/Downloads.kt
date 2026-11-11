@@ -4,7 +4,6 @@ import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -87,7 +86,7 @@ class Downloads(
     val hidden: StateFlow<Set<String>> get() = _hidden
     private val _hidden = MutableStateFlow(emptySet<String>())
     private val pending = mutableMapOf<String, Job>()
-    private val scope = MainScope()
+    private val scope = dev.nerzouille.koan.engine.KoanScopes.guarded("downloads", kotlinx.coroutines.Dispatchers.Main)
 
     /** Clears the list; the files stay where they are. */
     fun clearHistory() = useCases.removeAllDownloads()

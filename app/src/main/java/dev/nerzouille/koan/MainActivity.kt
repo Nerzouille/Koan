@@ -65,6 +65,8 @@ class MainActivity : FragmentActivity() {
         val components = app.components
         app.componentsReady = true
         IconStore.initialize(this)
+        // A private tab's site is never fetched for its icon nor written to the icon index.
+        IconStore.isPrivatePage = { url -> components.store.state.tabs.any { it.content.private && it.content.url == url } }
         ThumbnailStore.initialize(this)
         BakedBlur.initialize(this)
         components.spaces.ensureLocalSpace()
@@ -208,7 +210,7 @@ class MainActivity : FragmentActivity() {
         val link = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString
         if (PairingFlow.isPairingLink(link)) {
             openedFromLink = true
-            (application as KoanApp).components.pairLink.value = link
+            (application as KoanApp).components.pairLink.value = dev.nerzouille.koan.engine.PairLinkRequest(link!!, fromOtherApp = true)
             return
         }
         // A video another app opened (a file, or a link straight to a video file): Koan's player
@@ -303,7 +305,12 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onDestroy() {
-        pip?.release()
+        pip?.let { p ->
+            p.release()
+            // The process outlives this activity ("Audio only" finishes it): don't keep it reachable.
+            (application as KoanApp).components.pip.compareAndSet(p, null)
+        }
+        pip = null
         super.onDestroy()
     }
 

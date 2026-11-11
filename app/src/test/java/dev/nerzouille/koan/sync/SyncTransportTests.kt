@@ -4,6 +4,7 @@ package dev.nerzouille.koan.sync
 
 import dev.nerzouille.koan.sync.PostOutcome
 import dev.nerzouille.koan.sync.PutOutcome
+import dev.nerzouille.koan.sync.SpacesWriteGate
 import dev.nerzouille.koan.sync.SyncClient
 import dev.nerzouille.koan.sync.SyncCrypto
 import dev.nerzouille.koan.sync.SyncError
@@ -31,6 +32,16 @@ import java.util.Base64
  * where they fit (SPEC.md §7.3).
  */
 class SyncTransportTests {
+    // These tests check the wire format of writes, some on `spaces`: the write-back gate is on
+    // here, and back off after each test. The gate itself is tested in SpacesWriteGateTest.
+    @org.junit.Before fun writeBackOn() {
+        SpacesWriteGate.writeBackEnabled = true
+    }
+
+    @org.junit.After fun writeBackOff() {
+        SpacesWriteGate.writeBackEnabled = false
+    }
+
     private val creds = TokenServerCreds(
         uid = "uid-1",
         apiEndpoint = "https://sync.example.com",
@@ -192,33 +203,19 @@ class SyncTransportTests {
     // MARK: Collection keys
 
     @Test
-    fun keysBootstrapCreatesDefaultBundleThenReReads() {
+    fun missingKeysAreAnErrorNeverAWrite() {
+        // Koan (audit 6.7): reading never creates crypto/keys. An account without them stops the
+        // read with an error; nothing is PUT, and the call doesn't loop.
         val fake = FakeHttpTransport()
-        fake.enqueue(
-            fixtureResponse("http-keys-missing"),
-            SyncHttpResponse(200, emptyMap(), "1700000300".toByteArray(Charsets.UTF_8)),
-            fixtureResponse("http-keys-present-default", body = keysRecordJson(defaultKeys, emptyMap())),
-        )
+        fake.enqueue(fixtureResponse("http-keys-missing"))
 
-        val client = bootstrappingClient(fake)
-
-        assertEquals(listOf("GET", "PUT", "GET"), fake.requests.map { it.method })
-        assertEquals(listOf("/storage/crypto/keys", "/storage/crypto/keys", "/storage/crypto/keys"), fake.requests.map { it.url.file })
-
-        // The bootstrap PUT body is a §4 envelope whose plaintext carries fresh
-        // 32-byte default keys (structure/lengths, not the random bytes).
-        val putBody = JSONObject(String(fake.requests[1].body!!, Charsets.UTF_8))
-        assertEquals(setOf("payload"), putBody.keys().asSequence().toSet())
-        val bootstrapped = JSONObject(
-            String(SyncCrypto.decryptBSO(putBody.getString("payload"), syncKeys), Charsets.UTF_8),
-        )
-        val def = bootstrapped.getJSONArray("default")
-        assertEquals(2, def.length())
-        assertEquals(32, Base64.getDecoder().decode(def.getString(0)).size)
-        assertEquals(32, Base64.getDecoder().decode(def.getString(1)).size)
-        assertEquals(0, bootstrapped.getJSONObject("collections").length())
-
-        assertArrayEquals(defaultKeys.encryptionKey, client.keys("spaces").encryptionKey)
+        try {
+            bootstrappingClient(fake)
+            fail("expected SyncError.Crypto")
+        } catch (e: SyncError.Crypto) {
+            // expected
+        }
+        assertEquals(listOf("GET"), fake.requests.map { it.method })
     }
 
     @Test

@@ -2,8 +2,9 @@ package dev.nerzouille.koan.engine
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
+import dev.nerzouille.koan.data.safeData
+import dev.nerzouille.koan.data.safePreferencesDataStore
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.suspendCancellableCoroutine
 import mozilla.components.concept.engine.permission.Permission
@@ -15,7 +16,7 @@ import org.mozilla.geckoview.GeckoSession.PermissionDelegate.ContentPermission
 import org.mozilla.geckoview.StorageController
 import kotlin.coroutines.resume
 
-private val Context.siteDecisions by preferencesDataStore(name = "site_permissions")
+private val Context.siteDecisions by safePreferencesDataStore(name = "site_permissions")
 
 /** What a page asks for, as Koan shows it. */
 enum class SiteAsk(val label: String, val wants: String) {
@@ -71,7 +72,7 @@ class SitePermissions(private val context: Context, private val runtime: GeckoRu
 
     /** A decision remembered for the site of [url]: true allow, false block, null ask. */
     suspend fun remembered(url: String, ask: SiteAsk): Boolean? {
-        val prefs = context.siteDecisions.data.first()
+        val prefs = context.siteDecisions.safeData.first()
         val values = kinds(ask).map { prefs[key(originOf(url), it)] }
         return when {
             values.all { it == ALLOW } -> true
@@ -94,7 +95,7 @@ class SitePermissions(private val context: Context, private val runtime: GeckoRu
     /** Everything decided for the site of [url]. */
     suspend fun decisions(url: String): List<SiteDecision> {
         val origin = originOf(url)
-        val prefs = context.siteDecisions.data.first()
+        val prefs = context.siteDecisions.safeData.first()
         val own = SiteAsk.entries.filter { it != SiteAsk.CameraAndMicrophone }.mapNotNull { ask ->
             when (prefs[key(origin, ask.name)]) {
                 ALLOW -> SiteDecision(ask, true, null)

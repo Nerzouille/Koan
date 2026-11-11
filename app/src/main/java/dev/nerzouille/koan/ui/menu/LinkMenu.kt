@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.menu
 
+import dev.nerzouille.koan.engine.KoanHttp
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.animation.core.Animatable
@@ -30,8 +31,6 @@ import dev.nerzouille.koan.favicon.SvgRasterizer
 import dev.nerzouille.koan.ui.overview.Favicon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -186,20 +185,11 @@ private fun LinkImage(url: String, modifier: Modifier) {
 
 /** Downloads [url] (small images only) and decodes it scaled down for the preview. */
 private fun loadPreview(url: String): ImageBitmap? = runCatching {
-    val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-        connectTimeout = PREVIEW_TIMEOUT_MS
-        readTimeout = PREVIEW_TIMEOUT_MS
-    }
-    val bytes = connection.inputStream.use { input ->
-        val out = java.io.ByteArrayOutputStream()
-        val buffer = ByteArray(16 * 1024)
-        while (true) {
-            val n = input.read(buffer)
-            if (n < 0) break
-            out.write(buffer, 0, n)
-            if (out.size() > PREVIEW_MAX_BYTES) return@runCatching null
-        }
-        out.toByteArray()
+    val connection = KoanHttp.open(url, PREVIEW_TIMEOUT_MS)
+    val bytes = try {
+        connection.inputStream.use { KoanHttp.readCapped(it, PREVIEW_MAX_BYTES) } ?: return@runCatching null
+    } finally {
+        connection.disconnect()
     }
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)

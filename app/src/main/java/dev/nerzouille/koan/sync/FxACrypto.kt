@@ -22,6 +22,9 @@ sealed class SyncError(message: String?) : Exception(message) {
     object SessionExpired : SyncError("session expired")
     object StorageUnavailable : SyncError(null)
 
+    /** Koan: a write to the Zen spaces collection while writeBackEnabled is off (SpacesWriteGate). */
+    object WriteBackDisabled : SyncError("writing Zen spaces is off")
+
     companion object {
         const val CRYPTO_INVALID_HEX = "invalid hex"
     }
