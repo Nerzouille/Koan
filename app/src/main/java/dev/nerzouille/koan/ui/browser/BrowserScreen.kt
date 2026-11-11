@@ -132,6 +132,13 @@ fun BrowserScreen(
         if (gecko?.isAttachedToWindow == true) dropKeyboard()
         onDispose { gecko?.removeOnAttachStateChangeListener(onAttach) }
     }
+    // A fullscreen video turning (portrait ↔ landscape): Gecko clears its resized surface with its
+    // clear colour, white by default, which flashed. Black while fullscreen, Gecko's white after.
+    LaunchedEffect(fullScreen) {
+        val gecko = engineView.getChildAt(0) as? org.mozilla.geckoview.GeckoView ?: return@LaunchedEffect
+        val clear = if (fullScreen) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+        gecko.session?.compositorController?.clearColor = clear
+    }
     val density = LocalDensity.current
     val imeUp = WindowInsets.isImeVisible
     val navPx = WindowInsets.navigationBars.getBottom(density)
