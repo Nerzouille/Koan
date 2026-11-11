@@ -45,14 +45,19 @@ fun FilePrompt(components: Components, tabId: String?) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val r = request ?: return@rememberLauncherForActivityResult
         val data = result.data
+        val photo = pending.photo?.takeIf { pending.file?.length() ?: 0L > 0L }
         val picked = if (result.resultCode != Activity.RESULT_OK) {
             emptyList()
         } else {
-            data?.clipData?.uris()
-                ?: data?.data?.let(::listOf)
-                // The camera wrote to the file Koan gave it, and returned nothing else.
-                ?: pending.photo?.takeIf { pending.file?.length() ?: 0L > 0L }?.let(::listOf)
-                ?: emptyList()
+            (
+                data?.clipData?.uris()
+                    ?: data?.data?.let(::listOf)
+                    // The camera wrote to the file Koan gave it, and returned nothing else.
+                    ?: photo?.let(::listOf)
+                    ?: emptyList()
+                // A picker answer naming Koan's own files (its data, its providers) never reaches
+                // the page; only the photo Koan itself asked the camera for.
+            ).filter { it == photo || UploadUris.allowed(it.scheme, it.authority, context.packageName) }
         }
         when {
             picked.isEmpty() -> r.onDismiss()
@@ -126,3 +131,17 @@ private fun takesImages(r: PromptRequest.File) = r.mimeTypes.isEmpty() || r.mime
 private fun takesVideos(r: PromptRequest.File) = r.mimeTypes.any { it.startsWith("video/") }
 
 private fun ClipData.uris(): List<Uri> = (0 until itemCount).mapNotNull { getItemAt(it).uri }
+
+/** Which picked files a page may receive. */
+internal object UploadUris {
+    /**
+     * Only content from other apps: never a `file:` path (it could point into Koan's own
+     * storage), and never a `content:` URI of one of Koan's own providers ([ownPackage]…).
+     */
+    fun allowed(scheme: String?, authority: String?, ownPackage: String): Boolean {
+        if (scheme?.lowercase() != "content") return false
+        val a = authority?.lowercase() ?: return false
+        val own = ownPackage.lowercase()
+        return a != own && !a.startsWith("$own.") && !a.split(';').any { it == own || it.startsWith("$own.") }
+    }
+}

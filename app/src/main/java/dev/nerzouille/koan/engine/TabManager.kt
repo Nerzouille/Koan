@@ -19,7 +19,6 @@ import java.io.StringWriter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,7 +81,7 @@ class TabManager(
 
     private fun isMine(id: String?) = id != null && store.state.findTab(id)?.content?.private == isPrivate
 
-    private val main = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val main = KoanScopes.guarded("tabs", Dispatchers.Main.immediate)
 
     private val _current = MutableStateFlow<String?>(null)
 

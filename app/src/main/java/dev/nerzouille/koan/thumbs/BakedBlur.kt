@@ -13,9 +13,7 @@ import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.StackTokens
 import dev.nerzouille.koan.ui.theme.ThumbTokens
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,7 +50,7 @@ object BakedBlur {
     /** All baking on one background thread, so it never takes every core from the UI. */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val baking = Dispatchers.Default.limitedParallelism(1)
-    private val bakes = CoroutineScope(SupervisorJob() + baking)
+    private val bakes = dev.nerzouille.koan.engine.KoanScopes.guarded("blur", baking)
     private val uploads = Mutex()
     private val moving = MutableStateFlow(false)
     private val settled = MutableStateFlow(false)
@@ -144,6 +142,17 @@ object BakedBlur {
         memory.remove(key)
         synchronized(inMemory) { inMemory.remove(key) }
         fileFor(key)?.delete()
+    }
+
+    /**
+     * Every copy whose key starts with one of [prefixes], wherever it is (uploaded, waiting in
+     * memory, or on disk): the private wipe, including copies the thumbnail cache already let go.
+     */
+    fun forgetAll(prefixes: List<String>) {
+        fun match(key: String) = prefixes.any { key.startsWith(it) }
+        memory.snapshot().keys.filter(::match).forEach { memory.remove(it) }
+        synchronized(inMemory) { inMemory.keys.removeAll(::match) }
+        dir?.listFiles()?.forEach { if (match(it.name)) it.delete() }
     }
 
     /** Deletes copies whose thumbnail is not in [keys]. */

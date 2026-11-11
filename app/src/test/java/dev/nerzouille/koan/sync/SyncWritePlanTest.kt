@@ -62,4 +62,47 @@ class SyncWritePlanTest {
         assertEquals("password", ReadBack.mismatch(sent, JSONObject(sent.toString()).put("password", "q")))
         assertEquals("missing", ReadBack.mismatch(sent, null))
     }
+
+    // ---- history deletions (audit 7.1): only explicit removals reach the account ----
+
+    private val accountIds = mapOf(
+        "https://a.example.com/" to "id-a",
+        "https://b.example.com/" to "id-b",
+        "https://c.example.com/" to "id-c",
+    )
+
+    @Test fun clearBrowsingDataSendsNoDeletion() {
+        // After "Clear browsing data" every synced page is hidden on the phone, but none was
+        // removed one by one: nothing may be deleted from the account.
+        val write = HistoryWritePlan.plan(
+            phoneVisits = listOf(PhoneVisit("https://d.example.com/", "D", 1_700_000_000_000)),
+            explicitDeletions = emptySet(),
+            accountByUrl = emptyMap(),
+            accountIds = accountIds,
+        )
+        assertTrue(write.tombstones.isEmpty())
+        assertTrue(write.deleted.isEmpty())
+        assertEquals(listOf("https://d.example.com/"), write.upload.records.map { it.getString("histUri") })
+    }
+
+    @Test fun explicitRemovalIsTheOnlyDeletion() {
+        val write = HistoryWritePlan.plan(
+            phoneVisits = listOf(
+                PhoneVisit("https://b.example.com/", "B", 1_700_000_000_000),
+                PhoneVisit("https://d.example.com/", "D", 1_700_000_000_000),
+            ),
+            explicitDeletions = setOf("https://b.example.com/"),
+            accountByUrl = emptyMap(),
+            accountIds = accountIds,
+        )
+        assertEquals(listOf("id-b"), write.tombstones.map { it.getString("id") })
+        assertTrue(write.tombstones.all { it.getBoolean("deleted") })
+        // A removed page is never sent up again in the same run.
+        assertEquals(listOf("https://d.example.com/"), write.upload.records.map { it.getString("histUri") })
+    }
+
+    @Test fun removalOfAPageTheAccountNeverHadSendsNothing() {
+        val write = HistoryWritePlan.plan(emptyList(), setOf("https://z.example.com/"), emptyMap(), accountIds)
+        assertTrue(write.tombstones.isEmpty())
+    }
 }

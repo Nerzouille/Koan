@@ -50,10 +50,27 @@ object IconStore {
 
     fun cached(key: String): Icon? = memory.get(key)
 
-    /** Loads (and caches) a tab's icon off the main thread. Null if it has none. */
-    suspend fun load(url: String, icon: String?): Icon? {
+    /**
+     * Pages of open private tabs (Components sets it). Their icons come only from what the phone
+     * already has: never fetched, never asked of a logo service, never written to the icon index.
+     */
+    @Volatile var isPrivatePage: (String) -> Boolean = { false }
+
+    /**
+     * Loads (and caches) a tab's icon off the main thread. Null if it has none. [private] (or a page
+     * of an open private tab): only an icon already on the phone ([FaviconLoader.cachedOnly]).
+     */
+    suspend fun load(url: String, icon: String?, private: Boolean = false): Icon? {
         val key = keyFor(url, icon) ?: return null
         memory.get(key)?.let { return it }
+        if (private || isPrivatePage(url)) {
+            return withContext(Dispatchers.IO) {
+                val bitmap = key.takeIf { it.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX) }
+                    ?.let { fileFor(it) }?.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.path) }
+                    ?: FaviconLoader.cachedOnly(url)?.let(::normalized)
+                bitmap?.let { Icon(it.asImageBitmap(), isDark(it)) }
+            }
+        }
         return withContext(Dispatchers.IO) {
             val bitmap = if (key.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX)) {
                 fileFor(key)?.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.path) }

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resources the shrinker can't see: ZenIcon loads the Zen space icons by name at runtime
+  (Resources.getIdentifier), so without this every zen_* drawable is dropped from R8 builds.
+  checkZenIcons (app/build.gradle.kts) fails a shrunk build if they're missing again.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/zen_*" />

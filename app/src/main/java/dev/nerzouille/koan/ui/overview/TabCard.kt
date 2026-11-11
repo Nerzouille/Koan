@@ -102,6 +102,7 @@ fun TabCard(
     modifier: Modifier = Modifier,
 ) {
     val palette = KoanTheme.colors
+    val private = dev.nerzouille.koan.ui.theme.LocalPrivateBrowsing.current
     val dimOf = { d: Float -> (DepthCurve.dim(d) * palette.DimGain).coerceAtMost(palette.DimMax) }
     if (card.skeleton) return SkeletonCard(depth, dimColor, dimOf, modifier)
     val look = faviconLook(card.url)
@@ -119,7 +120,7 @@ fun TabCard(
         val captureLayer = rememberUpdatedState(capture)
         // Keyed on everything the placeholder draws (host, favicon, split count, theme colours), so
         // any change re-bakes instead of showing a stale blur. The title is in the header, not here.
-        val bakeKey = "placeholder:${card.id}:${card.url}:${card.icon}:${card.staticIcon}:${card.splitCount}:" +
+        val bakeKey = (if (private) ThumbnailStore.PRIVATE_PLACEHOLDER_PREFIX else "placeholder:") + "${card.id}:${card.url}:${card.icon}:${card.staticIcon}:${card.splitCount}:" +
             "${palette.Card.value}:${palette.TextPrimary.value}:${palette.TextSecondary.value}:${palette.IconBacking.value}"
         var baked by remember(bakeKey) { mutableStateOf(BakedBlur.cached(bakeKey)) }
         if (baked == null && shot == null && DeviceProfile.tier.bakePlaceholders) {
@@ -130,7 +131,7 @@ fun TabCard(
                 // Don't bake the letter tile while the favicon is still loading: wait for it and its fade.
                 val iconKey = if (card.staticIcon) null else IconStore.keyFor(card.url, card.icon)
                 if (iconKey != null && IconStore.cached(iconKey) == null) {
-                    if (IconStore.load(card.url, card.icon) != null) delay(ICON_SETTLE_MS)
+                    if (IconStore.load(card.url, card.icon, private) != null) delay(ICON_SETTLE_MS)
                 }
                 baked = try {
                     BakedBlur.capture(bakeKey, BakedBlur.radii(density)) {

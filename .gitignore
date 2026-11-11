@@ -29,3 +29,7 @@ reference/
 
 # Design-system export for Claude Design (screenshots, logos, tokens): local only
 design-export/
+
+# Audit reports: kept local until the security fixes are merged
+docs/AUDIT.md
+docs/audits/2026-11-11/

@@ -6,10 +6,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 
-private val Context.lastPlaceStore: DataStore<Preferences> by preferencesDataStore(name = "last_place")
+private val Context.lastPlaceStore: DataStore<Preferences> by safePreferencesDataStore(name = "last_place")
 
 /**
  * The space and tab the user was on, on disk: swiping Koan away from recents drops the saved
@@ -24,7 +23,7 @@ class LastPlace(context: Context) {
     private val tab = stringPreferencesKey("tab")
     private val hidden = longPreferencesKey("hidden_at")
 
-    suspend fun read(): Place = store.data.first().let { Place(it[space], it[tab]) }
+    suspend fun read(): Place = store.safeData.first().let { Place(it[space], it[tab]) }
 
     suspend fun saveSpace(uuid: String) {
         store.edit { it[space] = uuid }
@@ -35,7 +34,7 @@ class LastPlace(context: Context) {
     }
 
     /** When Koan last went to the background (ms), or null: decides the start page after a cold start. */
-    suspend fun hiddenAt(): Long? = store.data.first()[hidden]
+    suspend fun hiddenAt(): Long? = store.safeData.first()[hidden]
 
     suspend fun saveHiddenAt(at: Long) {
         store.edit { it[hidden] = at }

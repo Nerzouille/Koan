@@ -20,14 +20,13 @@ import dev.nerzouille.koan.data.LastPlace
 import dev.nerzouille.koan.data.Settings
 import dev.nerzouille.koan.data.SpacesRepository
 import dev.nerzouille.koan.data.SpacesSync
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import dev.nerzouille.koan.ui.tour.TourSheet
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import mozilla.components.browser.state.state.content.DownloadState
 import kotlinx.coroutines.launch
+import dev.nerzouille.koan.sync.SpacesWriteGate
 import mozilla.components.support.webextensions.WebExtensionSupport
 import android.os.Environment
 import dev.nerzouille.koan.engine.downloads.Downloads
@@ -120,7 +119,7 @@ class Components(context: Context) {
                     downloadFileUtils = downloadFiles, downloadStorage = downloadStorage,
                 ) +
                 // Firefox Translations, on the phone. GeckoView wants its calls on the main thread.
-                TranslationsMiddleware(engine = engine, scope = kotlinx.coroutines.MainScope(), isTranslationsEnabled = { true }),
+                TranslationsMiddleware(engine = engine, scope = KoanScopes.guarded("translations", Dispatchers.Main), isTranslationsEnabled = { true }),
         ).also { it.dispatch(TranslationsAction.InitTranslationsBrowserState) }
     }
 
@@ -219,7 +218,8 @@ class Components(context: Context) {
         // The notification shows the tab's icon: Koan's favicons, given to a tab once it plays.
         appScope.launch {
             store.flow()
-                .map { s -> s.tabs.filter { it.mediaSessionState != null && it.content.icon == null }.map { it.id to it.content.url } }
+                // Never for a private tab: its site must not be fetched or recorded outside the private session.
+                .map { s -> s.tabs.filter { it.mediaSessionState != null && it.content.icon == null && !it.content.private }.map { it.id to it.content.url } }
                 .distinctUntilChanged()
                 .collect { playing ->
                     playing.forEach { (id, url) ->
@@ -250,10 +250,10 @@ class Components(context: Context) {
     val incoming = MutableStateFlow<Incoming?>(null)
 
     /**
-     * A "Connect another device" pairing link Koan was opened with (the system camera, when Koan
-     * is the default browser): it goes to the sign-in, never to a tab or the history.
+     * A "Connect another device" pairing link: one another app opened Koan with (Koan asks first),
+     * or one pasted in the address field. It goes to the sign-in, never to a tab or the history.
      */
-    val pairLink = MutableStateFlow<String?>(null)
+    val pairLink = MutableStateFlow<PairLinkRequest?>(null)
 
     /** Koan came back after being unused a while: the UI shows the start page (then clears it). */
     val startPage = MutableStateFlow(false)
@@ -265,7 +265,7 @@ class Components(context: Context) {
     val tabsUseCases by lazy { TabsUseCases(store) }
 
     /** Lives as long as the process; for writes that must not be cancelled with a screen. */
-    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val appScope = KoanScopes.guarded("app", Dispatchers.Default)
 
     val database by lazy { KoanDatabase.build(appContext) }
     val spaces by lazy { SpacesRepository(database.dao(), appScope) }
@@ -285,6 +285,12 @@ class Components(context: Context) {
     }
     val lastPlace by lazy { LastPlace(appContext) }
     val settings by lazy { Settings(appContext) }
+
+    init {
+        // Rule 4: the Zen spaces collection stays read-only unless writeBackEnabled is on (off).
+        appScope.launch { settings.writeBackEnabled.collect { SpacesWriteGate.writeBackEnabled = it } }
+    }
+
     val bookmarks by lazy { Bookmarks(database.dao(), appScope) }
 
     /** Engine tabs (history, scroll, form data) on disk, so they survive the process dying. */
@@ -346,3 +352,6 @@ private fun enableMediaTimeline() {
         holder.javaClass.getMethod("withInitializer", Function2::class.java).invoke(holder, init)
     }.onFailure { android.util.Log.w("Components", "Media timeline not enabled", it) }
 }
+
+/** A pairing link for the sign-in; [fromOtherApp]: not typed or pasted by the owner, so Koan asks first. */
+data class PairLinkRequest(val link: String, val fromOtherApp: Boolean)

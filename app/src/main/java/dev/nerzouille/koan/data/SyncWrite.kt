@@ -2,15 +2,16 @@ package dev.nerzouille.koan.data
 
 import android.content.Context
 import android.util.Log
-import dev.nerzouille.koan.sync.HistoryTombstones
-import dev.nerzouille.koan.sync.HistoryUpload
+import dev.nerzouille.koan.sync.HistoryWritePlan
 import dev.nerzouille.koan.sync.LoginUpload
 import dev.nerzouille.koan.sync.PasswordAdds
 import dev.nerzouille.koan.sync.PasswordEdits
 import dev.nerzouille.koan.sync.PostOutcome
 import dev.nerzouille.koan.sync.ReadBack
 import dev.nerzouille.koan.sync.SyncClient
+import dev.nerzouille.koan.sync.SyncError
 import dev.nerzouille.koan.sync.WriteGuard
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -34,8 +36,9 @@ import java.util.Locale
  * id must not change), a dry run logged (counts and field names, never a URL, username or
  * password), a first batch of at most [FIRST_BATCH] records read back and compared, then the rest
  * in batches of [BATCH], each one conditioned on the collection's timestamp
- * (X-If-Unmodified-Since). Any error, conflict or surprise stops that collection and turns its
- * switch off ([status] says why).
+ * (X-If-Unmodified-Since). A conflict or surprise stops that collection and turns its switch off
+ * ([status] says why); a cancelled run or a plain network error leaves the switch on and retries
+ * at the next run.
  */
 class SyncWrite(
     private val context: Context,
@@ -75,8 +78,21 @@ class SyncWrite(
             setStatus(name, body())
         } catch (e: Stop) {
             stop(name, e.reason)
+        } catch (e: CancellationException) {
+            // Koan went to the background mid-run: not a problem with the account. Try again later.
+            setStatus(name, "interrupted, will retry")
+            throw e
+        } catch (e: IOException) {
+            // Offline, timeout, DNS…: the switch stays on, the next run tries again.
+            log("$name: network error, will retry: ${e.javaClass.simpleName}")
+            setStatus(name, "network error, will retry")
         } catch (e: Throwable) {
-            stop(name, e.javaClass.simpleName)
+            if (e is SyncError.Network && isTransient(e)) {
+                log("$name: server busy, will retry")
+                setStatus(name, "server busy, will retry")
+            } else {
+                stop(name, e.javaClass.simpleName)
+            }
         }
     }
 
@@ -116,7 +132,9 @@ class SyncWrite(
         }
         val byUrl = recent.associateBy { it.optString("histUri") }.toMutableMap()
         val ids = deletions.ids() + byUrl.mapValues { it.value.optString("id") }
-        val deleted = deletions.pending() + dao.hiddenVisitUrls()
+        // Only pages removed one by one while the switch was on; never the ones "Clear browsing
+        // data" (or a removal with the switch off) only hid here (HistoryWritePlan).
+        val deleted = deletions.pending()
         val phone = dao.phoneVisits(HISTORY_LIMIT).filter { it.url !in deleted }
         // A page the account has but older than the recent page: its record, so it isn't duplicated.
         phone.asSequence().filter { it.url !in byUrl && it.url in ids }.take(OLDER_LOOKUPS).forEach { v ->
@@ -124,8 +142,9 @@ class SyncWrite(
                 runCatching { client.decryptRecord("history", raw) }.getOrNull()?.takeIf { !it.optBoolean("deleted") }?.let { byUrl[v.url] = it }
             }
         }
-        val plan = HistoryUpload.plan(phone.map { dev.nerzouille.koan.sync.PhoneVisit(it.url, it.title, it.lastVisit) }, byUrl)
-        val tombstones = HistoryTombstones.plan(deleted, ids)
+        val write = HistoryWritePlan.plan(phone.map { dev.nerzouille.koan.sync.PhoneVisit(it.url, it.title, it.lastVisit) }, deleted, byUrl, ids)
+        val plan = write.upload
+        val tombstones = write.tombstones
         log("dry run: ${plan.summary()}; deletions: ${tombstones.size} of ${deleted.size} pending")
         if (plan.records.isEmpty() && tombstones.isEmpty()) {
             // Pending deletions the account doesn't have (never synced): nothing to do for them.
@@ -201,13 +220,11 @@ class SyncWrite(
             runCatching { client.decryptRecord(collection, record) }.getOrNull()?.takeIf { !it.optBoolean("deleted") }
         }
 
-    private fun stop(collection: String, reason: String) {
+    private suspend fun stop(collection: String, reason: String) {
         log("$collection: stopped, switch turned off: $reason")
         setStatus(collection, "stopped: $reason")
-        kotlinx.coroutines.runBlocking {
-            val c = settings.syncBack.first()
-            settings.setSyncBack(if (collection == "passwords") c.copy(passwords = false) else c.copy(history = false))
-        }
+        val c = settings.syncBack.first()
+        settings.setSyncBack(if (collection == "passwords") c.copy(passwords = false) else c.copy(history = false))
     }
 
     private fun setStatus(collection: String, text: String) {
@@ -222,6 +239,12 @@ class SyncWrite(
     private fun log(text: String) = Log.i(TAG, text)
 
     companion object {
+        /** A server-side blip (5xx, 429): try again at the next run; any other HTTP error stops. */
+        fun isTransient(e: SyncError.Network): Boolean {
+            val m = e.message.orEmpty()
+            return m.startsWith("HTTP 5") || m.startsWith("HTTP 429")
+        }
+
         private const val TAG = "KoanSyncWrite"
         const val FIRST_BATCH = 3
         const val BATCH = 50

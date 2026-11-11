@@ -31,6 +31,7 @@ import dev.nerzouille.koan.favicon.IconStore
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.LocalPrivateBrowsing
 
 /**
  * The one letter tile (docs/DESIGN_SYSTEM.md "Favicon"), shown until (or instead of) a real favicon,
@@ -65,14 +66,15 @@ fun Favicon(url: String, size: Dp, modifier: Modifier = Modifier, icon: String? 
         }
         return
     }
+    val private = LocalPrivateBrowsing.current
     val key = remember(url, icon) { IconStore.keyFor(url, icon) }
     val initial = remember(key) { key?.let { IconStore.cached(it) } }
     var image by remember(key) { mutableStateOf(initial) }
     // 1 when the icon was in memory already: no fade, nothing to animate.
     val reveal = remember(key) { Animatable(if (initial != null) 1f else 0f) }
     if (image == null && key != null) {
-        LaunchedEffect(key) {
-            IconStore.load(url, icon)?.let {
+        LaunchedEffect(key, private) {
+            IconStore.load(url, icon, private)?.let {
                 image = it
                 reveal.animateTo(1f, tween(FADE_MS))
             }

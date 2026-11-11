@@ -1,5 +1,10 @@
+import com.android.build.api.artifact.SingleArtifact
+import com.android.build.api.variant.BuiltArtifactsLoader
+import java.io.ByteArrayOutputStream
 import java.io.FileInputStream
 import java.util.Properties
+import javax.inject.Inject
+import org.gradle.process.ExecOperations
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -131,6 +136,56 @@ android {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+/**
+ * Fails a shrunk build (release, staging) whose APK lost Zen space icons: ZenIcon loads the zen_*
+ * drawables by name, which the resource shrinker can't see (res/raw/keep.xml keeps them).
+ */
+abstract class CheckZenIcons : DefaultTask() {
+    @get:InputFiles abstract val apkDir: DirectoryProperty
+    @get:Internal abstract val loader: Property<BuiltArtifactsLoader>
+    @get:InputFile abstract val aapt2: RegularFileProperty
+    @get:Input abstract val expected: Property<Int>
+    @get:OutputFile abstract val report: RegularFileProperty
+    @get:Inject abstract val exec: ExecOperations
+
+    @TaskAction fun check() {
+        val apk = loader.get().load(apkDir.get())?.elements?.firstOrNull()?.outputFile
+            ?: throw GradleException("checkZenIcons: no APK found")
+        val out = ByteArrayOutputStream()
+        exec.exec {
+            commandLine(aapt2.get().asFile.absolutePath, "dump", "resources", apk)
+            standardOutput = out
+        }
+        val found = Regex("""drawable/zen_\w+""").findAll(out.toString()).map { it.value }.toSet().size
+        if (found < expected.get()) {
+            throw GradleException("checkZenIcons: $found of ${expected.get()} zen_* drawables in $apk (res/raw/keep.xml?)")
+        }
+        report.get().asFile.writeText("zen_* drawables: $found of ${expected.get()}\n")
+    }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("release")) { registerZenIconCheck(it) }
+    onVariants(selector().withBuildType("staging")) { registerZenIconCheck(it) }
+}
+
+fun registerZenIconCheck(variant: com.android.build.api.variant.ApplicationVariant) {
+    val name = variant.name.replaceFirstChar { it.uppercase() }
+    val expectedIcons = fileTree("src/main/res/drawable") { include("zen_*.xml") }.files.size
+    val check = tasks.register<CheckZenIcons>("check${name}ZenIcons") {
+        apkDir.set(variant.artifacts.get(SingleArtifact.APK))
+        loader.set(variant.artifacts.getBuiltArtifactsLoader())
+        aapt2.set(
+            androidComponents.sdkComponents.sdkDirectory.map {
+                it.dir("build-tools/${android.buildToolsVersion}").file("aapt2")
+            },
+        )
+        expected.set(expectedIcons)
+        report.set(layout.buildDirectory.file("reports/zenIcons/${variant.name}.txt"))
+    }
+    tasks.matching { it.name == "assemble$name" }.configureEach { dependsOn(check) }
 }
 
 kotlin {
