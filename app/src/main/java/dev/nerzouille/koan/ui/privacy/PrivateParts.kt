@@ -196,10 +196,7 @@ val PRIVATE_FACTS = listOf(
 fun PrivateEmptyState(onNewTab: () -> Unit, modifier: Modifier = Modifier) {
     val palette = KoanTheme.colors
     Column(modifier.fillMaxWidth().padding(horizontal = PrivateTokens.EmptySide), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            Modifier.size(PrivateTokens.EmptyIconBox).clip(RoundedCornerShape(PrivateTokens.EmptyIconRadius)).background(palette.PrivatePill),
-            contentAlignment = Alignment.Center,
-        ) { Icon(KoanIcons.Private, null, tint = palette.PrivateInk, modifier = Modifier.size(PrivateTokens.EmptyIcon)) }
+        PrivateIconTile()
         Spacer(Modifier.height(18.dp))
         Text("No private tabs", color = palette.TextPrimary, fontSize = PrivateTokens.EmptyTitle, lineHeight = PrivateTokens.EmptyTitleLine, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(6.dp))
@@ -253,10 +250,7 @@ fun PrivateLockCover(onUnlock: () -> Unit, onLeave: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = PrivateTokens.EmptySide)) {
-            Box(
-                Modifier.size(PrivateTokens.EmptyIconBox).clip(RoundedCornerShape(PrivateTokens.EmptyIconRadius)).background(palette.PrivatePill),
-                contentAlignment = Alignment.Center,
-            ) { Icon(KoanIcons.Private, null, tint = palette.PrivateInk, modifier = Modifier.size(PrivateTokens.EmptyIcon)) }
+            PrivateIconTile()
             Spacer(Modifier.height(18.dp))
             Text("Private tabs are locked", color = palette.TextPrimary, fontSize = PrivateTokens.EmptyTitle, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(24.dp))
@@ -284,4 +278,14 @@ fun PrivateLockCover(onUnlock: () -> Unit, onLeave: () -> Unit) {
             }
         }
     }
+}
+
+/** Private's icon on its pill-coloured tile (empty state, lock cover). */
+@Composable
+private fun PrivateIconTile() {
+    val palette = KoanTheme.colors
+    Box(
+        Modifier.size(PrivateTokens.EmptyIconBox).clip(RoundedCornerShape(PrivateTokens.EmptyIconRadius)).background(palette.PrivatePill),
+        contentAlignment = Alignment.Center,
+    ) { Icon(KoanIcons.Private, null, tint = palette.PrivateInk, modifier = Modifier.size(PrivateTokens.EmptyIcon)) }
 }

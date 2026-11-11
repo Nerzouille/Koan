@@ -42,6 +42,7 @@ import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.DayCard
 import dev.nerzouille.koan.ui.kit.EmptyLine
+import dev.nerzouille.koan.ui.kit.FileGlyph
 import dev.nerzouille.koan.ui.kit.LibraryRowFrame
 import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
 import dev.nerzouille.koan.ui.kit.LibraryRowTitle
@@ -330,7 +331,6 @@ private fun RoundButton(icon: ImageVector, onClick: () -> Unit) {
 /** A file's type at a glance: a document glyph over its extension. */
 @Composable
 fun FileTile(d: DownloadState, background: Color = KoanTheme.colors.GroupedRow) {
-    val ext = d.fileName.orEmpty().substringAfterLast('.', "").take(4).uppercase()
     Column(
         Modifier
             .size(DownloadTokens.FileTile)
@@ -339,8 +339,7 @@ fun FileTile(d: DownloadState, background: Color = KoanTheme.colors.GroupedRow) 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(KoanIcons.File, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(DownloadTokens.FileGlyph))
-        if (ext.isNotEmpty()) Text(ext, color = KoanTheme.colors.TextSecondary, fontSize = DownloadTokens.FileExtSize, fontWeight = FontWeight.SemiBold)
+        FileGlyph(d.fileName.orEmpty(), DownloadTokens.FileGlyph, DownloadTokens.FileExtSize)
     }
 }
 
