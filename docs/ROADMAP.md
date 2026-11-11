@@ -1,13 +1,15 @@
 # Roadmap
 
-Work strictly in order. Each milestone ends with: acceptance criteria met on the real phone, unit
-tests green, a short summary to the owner, and a git tag `m<N>`.
+M0–M3 and M5 were done strictly in order, each ending with its acceptance criteria met on the
+real phone, unit tests green, a summary to the owner and a git tag `m<N>`. Since v0.3.0, M4, M6
+and M7 move forward in parallel, one item or batch at a time on its own branch from `dev`
+(CLAUDE.md rule 1); there is no `m<N>` tag for them until they are finished.
 
 **Order (changed 2026-10-15):** M0 → M1 → M2 → M3 → **v0.1.0 pre-release** → **M5** → **M4** → M6 →
 M7. Browser essentials come before the motion polish, so Koan can become the daily browser sooner.
 Milestone numbers are kept as they are.
 
-## Status (2026-11-09)
+## Status (2026-11-11)
 
 Latest release **v0.4.0** (pre-release, 2026-10-30). Branches and how to build/test/release:
 `docs/HANDOFF.md`.
@@ -22,11 +24,13 @@ Latest release **v0.4.0** (pre-release, 2026-10-30). Branches and how to build/t
 | M5 Browser essentials | Done | tag `m5`, v0.2.0 / v0.2.1 | — |
 | Android 11+ (minSdk 30) | Done | v0.3.0 | — |
 | Releases v0.3.0, v0.4.0 | Done | tags on `main` | 0.4.0: owner decides whether to mark it a normal release (`/releases/latest` 404s, see HANDOFF) |
-| M4 Motion polish | **Partly done**, no branch | `dev` | Owner picks the next M4 item. Done: card flies page ↔ stack both ways (`ui/overview/CardHero.kt`, v0.4.0), long-press lift, swipe-to-close by distance or fling, Undo toast after a close. Not started: stack compression / elastic trailing, new-tab grow, close collapse, baseline profile, JankStats, search backdrop retry. |
-| M6 Write-back | **In progress** | `dev` | Passwords (add; edits and deletions behind their own switch, off) and history (both ways) done and running on the owner's account since 2026-11-10 (`docs/HANDOFF.md` "Two-way sync"). Bookmarks and Zen Spaces not written yet; Spaces writes come last, behind `writeBackEnabled`. |
-| M7 Delights | **Partly done** | `dev` | Done: `@engine` shortcuts, custom engines, Undo close, Reopen closed tab (last tab only), background audio. Dropped: status bar hidden while scrolling (branch `statusbar`, not merged). Not started: everything else below. |
-| Private mode + overview polish | **Built, untested on the phone** | branch `private` | Owner tests (list in `docs/HANDOFF.md` "Private mode"), then merge into `dev`. Card separation, two-line headers, amber sync dot, `#121214` dark base, permanent encrypted private tabs, lock, FLAG_SECURE, private-only engine protections. |
-| Open items after v0.2.0 | Not started | — | **Long screenshots** first: bump to GeckoView / android-components 160 (released 2026-11-10) on a branch from `dev`, then retest HyperOS scroll screenshots. The other items wait for the owner's choice. |
+| M4 Motion polish | **Partly done**, no branch | `dev` | Owner picks the next M4 item. Done: card flies page ↔ stack both ways (`ui/overview/CardHero.kt`, v0.4.0), long-press lift, swipe-to-close by distance or fling, Undo toast after a close, Back on a tab's first page shrinks the page into its card (`ui/browser/ClosingPage.kt`). Not started: stack compression / elastic trailing, new-tab grow, close collapse in the stack, baseline profile, JankStats, search backdrop retry. |
+| M6 Write-back | **In progress** | `dev` | Passwords (add; edits and deletions behind their own switch, off) and history (both ways) done and running on the owner's account since 2026-11-10 (`docs/HANDOFF.md` "Two-way sync"). Bookmarks and Zen Spaces not written yet; Spaces writes come last, behind `writeBackEnabled` (the setting and its gate `sync/SpacesWriteGate.kt` exist since the audit fixes, off and not in the UI). |
+| M7 Delights | **Partly done** | `dev` | Done: `@engine` shortcuts, custom engines, Undo close, Recently closed (last 25, since v0.3.0) and Reopen closed tab, background audio, Koan's video player and picture-in-picture (`ui/player`, `engine/PictureInPicture.kt`). Dropped: status bar hidden while scrolling (branch `statusbar`, not merged). Set aside: the video mini-player. Not started: everything else below. |
+| Private mode + overview polish | **Done** on `dev` (tested on the phone) | `06e13d6` | Open points in `docs/HANDOFF.md` "Private mode". Card separation, two-line headers, amber sync dot, `#121214` dark base, encrypted private tabs kept across restarts, lock, FLAG_SECURE, private-only engine protections. |
+| Page translation, "Open in app" cards, library selection mode, Zia icons | Done on `dev` | night batch | Ship in 0.5 (`CHANGELOG.md` "Unreleased"). |
+| Audit 2026-11-11 | **In progress** | branches `audit-fixes`, `audit-docs` | Batch 1 (critical fixes) and 2 (docs) done, waiting for the owner's phone test and merge; then GeckoView 160, then refactoring (`docs/HANDOFF.md`). |
+| Open items after v0.2.0 | Not started | — | **Long screenshots** first: bump to GeckoView / android-components 160 (released 2026-11-10; audit batch 3) on a branch from `dev`, then retest HyperOS scroll screenshots. The other items wait for the owner's choice. |
 
 ## M0 — Skeleton browser (≈ 2–4 days)
 - Gradle project, package `dev.nerzouille.koan` (rename if owner prefers), Compose, single activity.
@@ -84,12 +88,11 @@ losing data, and the owner has approved and published the release.
   listed under M4).
 - **Desktop site:** revisit the toggle.
 - **Add to home screen:** a page as a launcher shortcut.
-- **Picture-in-picture** for video when leaving Koan.
-- **Private browsing:** built on branch `private` (2026-11-11) from `docs/design/OVERVIEW_PRIVATE.md`
-  and the owner's decisions; see the Status table.
+- ~~**Picture-in-picture** for video when leaving Koan.~~ Done with the video player.
+- ~~**Private browsing**~~ Done (merged 2026-11-11, `docs/design/OVERVIEW_PRIVATE.md`).
 - **Pull to refresh in chats:** a site whose list scrolls inside the page (not the page itself) may
   reload on a pull at the top of the list. Gecko doesn't say whether an inner list can scroll up.
-- **Long screenshots:** update to GeckoView/android-components 160 (after Nov 10), then test
+- **Long screenshots:** update to GeckoView/android-components 160 (released), then test
   whether HyperOS's scroll screenshot works; if not, consider our own stitched full-page
   screenshot or Save as PDF.
 - **Page painted only down to where the keyboard was** (white below, stays while scrolling):
@@ -116,11 +119,19 @@ losing data, and the owner has approved and published the release.
 **Done when:** owner signs off on the feel. Expect several rounds of tweaks.
 
 ## M6 — Write-back to Zen (≈ 1 week, careful) — in progress: passwords and history on `dev`; bookmarks and Spaces next
-- `writeBackEnabled` setting (off by default), undo journal, conditional writes per spec §7.2.
-- Operations in the order listed in `SYNC.md`.
-- Test against a throwaway Mozilla account / throwaway Space first.
-- Offer to push the phone-only logins saved in M5 to the Mozilla account (`passwords` collection),
-  one explicit confirmation, never automatically.
+Done (details: `docs/SYNC_WRITE.md` "As built"):
+- Passwords and history, each behind its own switch in Settings › Mozilla account (off by
+  default). Phone-only logins go up only when "Passwords saved on this phone" is turned on.
+- Conditional writes (X-If-Unmodified-Since), meta/global checks, one encrypted backup per
+  collection before the first write, a first batch of 3 read back. Running on the owner's real
+  account since 2026-11-10 (no throwaway account was used in the end).
+- `writeBackEnabled` setting (off, not in the UI) and `sync/SpacesWriteGate.kt`: no request can
+  write `spaces` while it is off.
+
+Left:
+- Bookmarks, then Zen Spaces (operations in the order listed in `SYNC.md`), Spaces against a
+  throwaway Space first.
+- No undo journal (the original plan had one): decide whether the backups are enough.
 **Done when:** a tab added/closed/moved on the phone appears correctly in Zen desktop, and a 412
 conflict is handled without data loss.
 
@@ -140,8 +151,8 @@ conflict is handled without data loss.
 **Tabs**
 - **Undo close**: after closing a card (swipe or ✕), a small "Undo" toast for a few seconds.
   (Done: Back on a tab's first page since v0.2.0, and a card closed in the overview.)
-- **Recently closed**: long-press the tab button → list of recently closed tabs, tap to reopen.
-  (v0.4.0 has **Reopen closed tab** in the tab counter's long-press menu: the last one only.)
+- ~~**Recently closed**~~: done. A list of the last 25 closed tabs since v0.3.0, and **Reopen
+  closed tab** in the tab counter's long-press menu since v0.4.0.
 - **Previous tab**: double-tap the tab button → switch back to the previous tab (Alt-Tab style).
 - **Glance a card** (maybe): long-press a card in the overview to preview it larger without switching. Same sheet as Glance. To evaluate.
 - **Auto-archive**: phone-only tabs untouched for N days (setting) move to an "Archived" list instead of piling up. Never touches tabs that come from Zen.
@@ -163,7 +174,7 @@ conflict is handled without data loss.
 
 **Media**
 - ~~**Background audio**: audio/video keeps playing with the screen off or Koan in the background, with media controls in the notification.~~ Done in v0.2.0.
-- **Picture-in-picture** for video when leaving Koan.
+- ~~**Picture-in-picture** for video when leaving Koan.~~ Done with Koan's video player (2026-11-11), with an "Audio only" action and a Settings › Display switch.
 - **Video mini-player** (docs/VIDEO_PLAYER.md §6, built once on 2026-11-11 and set aside; a copy of that version is in `reference/mini-player-2026-11-11/`, local only): minimise a fullscreen web video to a card above the dock, visible all over Koan. Dropped for now because the page's own player kept playing in place under the card (Commons' modal player): it needs the page's player hidden or paused while minimised, and a live thumbnail (pages from another origin never give frames).
 
 **Phone → PC**

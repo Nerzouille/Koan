@@ -1,12 +1,68 @@
-# Two-way sync (M6): study
+# Two-way sync (M6): as built, and the original study
 
-Status: **study only** (2026-10-27). Nothing in Koan writes to a Mozilla account today. This file
-decides how it will, in the owner's order: **(1) passwords → (2) history and bookmarks → (3) Zen
-Spaces**. Sources are listed at the end; claims marked *[unverified]* were not confirmed in source.
+Koan writes **passwords and history** to the Mozilla account. Bookmarks, tabs, Zen Spaces, prefs,
+`crypto/keys` and `meta/global` are never written. The "As built" section below is the current
+behaviour; the rest of the file is the original study (record formats, merge rules, risks, sources),
+kept because the writers follow it. Where the plan differs from what was built, the section says
+"original plan". Claims marked *[unverified]* were not confirmed in source.
 
-## 0. Ground rules for every write
+## As built
 
-These hold for all three steps; each step adds its own below.
+**Switches** (Settings › Mozilla account › **Send to your Mozilla account**, all off by default):
+
+- **Passwords saved on this phone**: adds the phone's own logins that the account doesn't have
+  (no id and no site + username match on the account). Add only.
+- **Change and delete passwords**: a phone login matching an account login by site + username but
+  with another password updates that record (its id and other fields kept); an account login
+  deleted on the phone becomes a tombstone. Unit-tested only, never run on the account.
+- **History, both ways**: the phone's visits go up, merged into the account's record for that page
+  (or a new record). A page **removed on the phone while this switch is on** becomes a history
+  tombstone (deleted on every device; Undo in the toast cancels it). A page removed while the
+  switch is off, and "Clear browsing data", stay local: no tombstone.
+
+There is no bookmarks switch and no Spaces switch. Spaces writes are blocked separately by
+`Settings.writeBackEnabled` (default off, not in the UI) and `sync/SpacesWriteGate.kt`: `SyncClient`
+refuses every request other than GET/HEAD on `spaces` while it is off (see [SYNC.md](SYNC.md)).
+
+**Each run** (after a pull, at most every 30 min, or on "Sync now"), per collection whose switch is on:
+
+1. `WriteGuard` reads `meta/global`: storage version 5, the collection not declined, engine version
+   as expected (passwords 1, history 1), sync id the same as on Koan's first write.
+2. **One backup per collection, once**, before Koan's first write to it: the whole collection as
+   the server has it (still encrypted), in Koan's private storage plus a copy in its external files
+   folder. Not repeated per session, no rotation.
+3. A dry-run summary is **logged** (counts and field names only), then Koan writes: there is no
+   dry-run setting.
+4. A first batch of at most 3 records, read back and compared, then batches of 50, each with
+   `X-If-Unmodified-Since`.
+5. A conflict (412), a refused record, a read-back mismatch, a guard refusal or another HTTP error
+   stops that collection and turns its switch off (the switch's subtitle shows why). A cancelled
+   run, a network error, or an HTTP 5xx / 429 leaves the switch on ("will retry") and retries next
+   time.
+
+**Not built:** the undo journal and "Undo last sync writes" (rule 9), the dry-run mode (rule 2),
+bookmark uploads (the planner `BookmarkUpload` exists, nothing sends it), Spaces writes.
+
+**Accounts:** it runs on the owner's real account (not on a separate test account, see "Test
+plan"). Logins made on the phone use plain UUID ids (no braces); Firefox reads them back.
+
+**Files:** `data/SyncWrite.kt` (the runs, backup, batches), `sync/SyncWritePlan.kt` (`PasswordAdds`,
+`PasswordEdits`, `HistoryWritePlan` = the history run's plan, built from `HistoryUpload` and
+`HistoryTombstones`, `ReadBack`), `sync/SyncBackPlan.kt`
+(`WriteGuard`, `LoginUpload`, `HistoryUpload`, `BookmarkUpload`: record building and validation),
+`data/HistoryDeletions.kt` (pages removed on the phone, waiting for their tombstone),
+`sync/SpacesWriteGate.kt`.
+
+---
+
+The original study (2026-10-27) planned the order **(1) passwords → (2) history and bookmarks →
+(3) Zen Spaces**; (1) and the history half of (2) are built.
+
+## 0. Ground rules for every write (original plan)
+
+These hold for all three steps; each step adds its own below. As built, rules 1, 2, 5 and 9 differ:
+one switch per collection for passwords and history only (plus one for password edits), no
+dry-run mode, one backup per collection taken once, no undo journal (see "As built").
 
 1. **Opt-in, off by default, per collection.** Settings › Sync › "Send … to your Mozilla account",
    one switch per collection (passwords, history, bookmarks, Spaces), all off. The Spaces switch is
@@ -66,8 +122,9 @@ Recommendation: **prefer the QR token for writes, but don't require it.**
 
 ## 1. Passwords (phone → Mozilla)
 
-**Scope:** the logins saved on the phone ("Save in Koan", `LoginEntity.local == true`). Koan
-doesn't edit or delete the account's logins, so step 1 is upload-only of local ones.
+**Scope:** the logins saved on the phone ("Save in Koan", `LoginEntity.local == true`). Original
+plan: Koan doesn't edit or delete the account's logins, so step 1 is upload-only of local ones. As
+built, edits and deletions exist behind "Change and delete passwords" (`PasswordEdits`).
 
 ### Record (cleartext of a `passwords` BSO)
 
@@ -107,7 +164,7 @@ Never upload a login for the Mozilla accounts origin (both engines exclude it).
 - Desktop can't be hurt structurally by a password record; the worst case is a wrong password
   winning over the desktop's. Snapshot + undo journal cover it.
 
-### Plan (branch `sync-back`, step 1, dry-run only for now)
+### Plan (original plan; as built: `LoginUpload` in `sync/SyncBackPlan.kt`, sent by `data/SyncWrite.kt`)
 
 - `sync/LoginUpload.kt`: pure function `plan(localLogins, serverIds) → UploadPlan` (records,
   per-record validation result, summary) + `toRecord()` (the table above).
@@ -139,7 +196,9 @@ replace the server copy and hide the desktop's visits from any *new* device.
 
 **Risks:** dates in ms instead of µs land in 1970: Fenix drops them, desktop clamps them to 1993 and
 keeps them forever (permanent junk). A history **tombstone deletes the page and all its visits on
-every device**: Koan must never send one in step 2 (clearing history on the phone stays local).
+every device**. Original plan: Koan must never send one in step 2. As built (owner's decision):
+Koan sends one only for a page removed on the phone while History sync is on (`HistoryWritePlan`);
+"Clear browsing data" and removals with the switch off stay local.
 Koan reads only the 5000 most recent records: a URL older than that gets a new id from Koan, and
 desktop's behaviour for "known URL, new id" is *[unverified]* (Fenix re-keys to the incoming id).
 
@@ -175,9 +234,9 @@ whoever syncs in between), dropped titles/unknown fields on the parent folder.
 Bookmarks" on desktop). Koan doesn't edit or move the account's bookmarks in step 2. Koan's local
 bookmark ids aren't 12-char base64url today: new ids are generated at upload and stored.
 
-### Plan (branch `sync-back`, step 2, dry-run only)
+### Plan (original plan; as built: `HistoryUpload` and `BookmarkUpload` in `sync/SyncBackPlan.kt`, only history is sent)
 
-`sync/HistoryUpload.kt` and `sync/BookmarkUpload.kt`, pure planners like passwords: history = the
+`HistoryUpload` and `BookmarkUpload`, pure planners like passwords: history = the
 phone's own visits since the last upload, merged into the server records (or new records with fresh
 12-char ids); bookmarks = new phone bookmarks + the `mobile` folder record. Same switches, same
 dry-run summary, no network call.
@@ -213,7 +272,7 @@ dry-run summary, no network call.
   mandatory here, and Koan should refuse to write a record whose kind it doesn't know.
 - Verdict: stable enough for **tab-level writes** (add/close/pin/move a tab, keeping everything
   else); **not** for writing `space` or `layout` records yet (themes, ordering, essentials are the
-  part most likely to change, and the one that scrambles the desktop if wrong). DOCS/SYNC.md already
+  part most likely to change, and the one that scrambles the desktop if wrong). `docs/SYNC.md` already
   says "never write layout or space records in v1"; keep it.
 
 ### What could break the desktop Spaces
@@ -236,7 +295,9 @@ records producing one batch; same dry run, snapshot, conditional batch, journal.
 
 ---
 
-## Test plan (no write ever touches the owner's real account)
+## Test plan (original plan)
+
+As built, passwords and history run on the owner's real account. The plan still applies to Spaces.
 
 1. **A separate test Mozilla account** (new email), with Sync on.
 2. **A separate Zen profile** on the PC (`zen --ProfileManager` → new profile "koan-test"), signed

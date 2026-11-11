@@ -45,7 +45,8 @@ Z-Sync signs in exactly like Firefox desktop does:
    `id/key` + `api_endpoint`.
 5. TOTP (errno 103) must be handled by prompting for a code.
 
-See Z-Sync `android/.../ui/screens/MozillaSignInScreen.kt` and `sync/FxAClient.kt`.
+See Z-Sync `android/.../ui/screens/MozillaSignInScreen.kt` and `sync/FxAClient.kt`. Koan's port is
+`ui/signin/MozillaSignIn.kt` (WebView + WebChannel bridge) and `sync/FxAClient.kt`.
 
 Caveat: this piggybacks on Firefox desktop's client identity; Mozilla could change it. Acceptable for
 a personal app. If it breaks, check what Z-Sync did to fix it.
@@ -75,11 +76,11 @@ Mozilla's pairing ("Connect another device"): the desktop shows
 Verified live on 2026-10-26 (code exchange, scope `profile oldsync`, keys_jwe present, tokens
 revoked). The probe used for it is kept out of the repo in `reference/pairing-probe/`.
 
-## Reuse plan
+## What was reused from Z-Sync
 
-Port (copy + adapt, keep MIT header) these Z-Sync Android files into `sync/`:
+Ported in M2 (copied and adapted, each file keeps the MIT header):
 
-| Z-Sync file | Purpose |
+| Koan file | Purpose |
 |---|---|
 | `sync/FxACrypto.kt` | HKDF, unbundle, token material |
 | `sync/SyncCrypto.kt` | BSO envelope encrypt/decrypt |
@@ -88,15 +89,18 @@ Port (copy + adapt, keep MIT header) these Z-Sync Android files into `sync/`:
 | `sync/FxAClient.kt` | account login completion, kB, token server |
 | `sync/SyncClient.kt` | storage GET/PUT, crypto/keys, pagination |
 | `sync/ZenSpaces.kt` | wire decoding of spaces/tabs/folders/splits/layout/prefs |
-| `sync/SpacesSyncService.kt` | orchestration, write paths (study carefully before M6) |
-| `sync/SyncSafety.kt` | safe-sync switch |
-| `ui/screens/MozillaSignInScreen.kt` | WebView sign-in + WebChannel bridge (re-skin it) |
-| `data/AccountStore.kt` | encrypted credential storage |
+| `sync/SpacesSyncService.kt` | orchestration (read side; Koan never writes `spaces`, see below) |
+| `sync/ZenRoomMapper.kt` | wire model → Room entities (colour-dot order from Z-Sync's `Gradient.kt`) |
+| `ui/signin/MozillaSignIn.kt` | WebView sign-in + WebChannel bridge (from `MozillaSignInScreen.kt`, re-skinned) |
+| `favicon/*` (`FaviconDiscovery`, `FaviconResolver`, `FaviconLoader`, `FaviconDecoder`, `SvgRasterizer`, `HtmlText`) | favicon lookup and decoding |
 
-Don't port Z-Sync's UI, DemoCatalog, Play review, snapshot cache (we use Room).
+Koan's own, not ported: `data/AccountStore.kt` (encrypted credential storage), `sync/Pairing.kt`,
+`sync/ScopedKeys.kt`, `sync/SpacesWriteGate.kt`. Z-Sync's `SyncSafety.kt`, UI, DemoCatalog, Play
+review and snapshot cache were not ported (Koan uses Room).
 
-Then: copy the JSON fixtures into `app/src/test/resources/contract/` (or read them from
-`reference/`) and port Z-Sync's contract tests so `./gradlew test` proves the port is faithful.
+The contract tests (`app/src/test/.../sync/`, also with the MIT header) read Z-Sync's JSON
+fixtures in place from `reference/Z-Sync/shared/contract/` (`app/build.gradle.kts`); without that
+clone they skip instead of failing.
 
 ## Mapping into Koan
 
@@ -104,12 +108,19 @@ Then: copy the JSON fixtures into `app/src/test/resources/contract/` (or read th
 - Within a space: essentials (from `layout.essentials`, grouped per §7.4), then pinned tabs/folders
   in `space.children` order, then normal tabs (only if `normal-tabs` pref allows).
 - Splits: one card, `tabs` member ids; member tabs never appear as separate cards.
-- Folders: grouped cards, nested folders flattened one level for v1 (indent the label).
+- Folders: rows in the drawer with the space's pinned tabs (not cards); a folder inside a folder is
+  indented one level, deeper ones stay at that indent.
 
-## Write-back (M6 only, behind `writeBackEnabled`)
+## Write-back to Spaces (not built)
 
-The full design (passwords, history, bookmarks, then Spaces; safety rules; test plan) is in
-[`SYNC_WRITE.md`](SYNC_WRITE.md). Summary of the Spaces part:
+Koan never writes the `spaces` collection today. `Settings.writeBackEnabled` (default off, not in
+the UI) guards it: `sync/SpacesWriteGate.kt` makes `SyncClient` refuse every request other than
+GET/HEAD on `spaces` while it is off, whatever code built the request.
+
+Passwords and history are written to the account (their own switches, no Spaces, tabs or
+bookmarks): see "As built" in [`SYNC_WRITE.md`](SYNC_WRITE.md).
+
+The plan for Spaces, when it is built (M6, behind `writeBackEnabled`):
 
 Allowed operations, in this order of implementation:
 1. Add a pinned tab to a space (or a folder in that space, per §3.5 target-folder rules).
@@ -118,5 +129,6 @@ Allowed operations, in this order of implementation:
 4. Move a tab between spaces / reorder → update tab record + parent `children`.
 
 Every write: conditional `X-If-Unmodified-Since`, on 412 re-read, merge, retry once, otherwise
-surface a conflict. Keep a local **undo journal** of the last 50 writes (previous cleartext) so a bad
-write can be reverted from Settings. Never write `layout` or `space` records in v1.
+surface a conflict. Planned: a local undo journal of recent writes (previous cleartext) so a bad
+write can be reverted from Settings; nothing like it exists yet. Never write `layout` or `space`
+records in v1.
