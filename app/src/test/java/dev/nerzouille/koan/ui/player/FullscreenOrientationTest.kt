@@ -18,9 +18,10 @@ class FullscreenOrientationTest {
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR, fullscreenOrientation(true, videoPortrait = false, rotationLocked = false, turned = true))
     }
 
-    @Test fun `auto-rotate off, stays on the video shape`() {
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, fullscreenOrientation(true, videoPortrait = false, rotationLocked = true, turned = true))
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, fullscreenOrientation(true, videoPortrait = true, rotationLocked = true, turned = true))
+    @Test fun `auto-rotate off, the video shape as a user orientation (the system's rotate button stays)`() {
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE, fullscreenOrientation(true, videoPortrait = false, rotationLocked = true, turned = true))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE, fullscreenOrientation(true, videoPortrait = false, rotationLocked = true, turned = false))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT, fullscreenOrientation(true, videoPortrait = true, rotationLocked = true, turned = false))
     }
 
     @Test fun `how the phone is held`() {

@@ -19,13 +19,18 @@ import androidx.compose.ui.platform.LocalContext
  * The screen's orientation in fullscreen (docs/plans/FIXES_PLAN.md F2). A video opens turned to its
  * own shape (a landscape video goes landscape). With the phone's auto-rotate on, once the phone is
  * actually held that way (the user turned it), the screen follows the phone from then on, portrait
- * included (YouTube-style). With auto-rotate off, it stays on the video's shape, as before.
+ * included (YouTube-style). With auto-rotate off, it opens on the video's shape as a "user"
+ * orientation (USER_LANDSCAPE / USER_PORTRAIT), like other Android apps: the system keeps offering
+ * its rotate button (HyperOS's floating one) when the phone is turned. A SENSOR_* orientation
+ * would turn that button off.
  */
 
 /** What to ask the activity for. [turned]: the phone has been held in the video's shape since it opened. */
 fun fullscreenOrientation(fullscreen: Boolean, videoPortrait: Boolean, rotationLocked: Boolean, turned: Boolean): Int = when {
     !fullscreen -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-    !rotationLocked && turned -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+    rotationLocked && videoPortrait -> ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
+    rotationLocked -> ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
+    turned -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
     videoPortrait -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
     else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 }
