@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.player
 
+import androidx.compose.foundation.layout.displayCutout
 import android.graphics.Rect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -21,12 +22,20 @@ data class PlayerInsets(
     val levelEnd: Dp,
 )
 
-/** The display cutouts in this window (px), read again after each rotation. */
+/**
+ * The display cutouts in this window (px), read again whenever the window's cutout insets change:
+ * just after a rotation the view could still report the old orientation's rects (a portrait
+ * camera hole read in landscape pushed the top row down), so the rects follow the insets.
+ */
 @Composable
 fun rememberCutouts(landscape: Boolean): List<Rect> {
     val view = LocalView.current
     val config = LocalConfiguration.current
-    return remember(landscape, config.screenWidthDp, config.screenHeightDp) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val dir = androidx.compose.ui.platform.LocalLayoutDirection.current
+    val cut = androidx.compose.foundation.layout.WindowInsets.displayCutout
+    val key = listOf(cut.getLeft(density, dir), cut.getTop(density), cut.getRight(density, dir), cut.getBottom(density))
+    return remember(landscape, config.screenWidthDp, config.screenHeightDp, key) {
         view.rootWindowInsets?.displayCutout?.boundingRects.orEmpty()
     }
 }
