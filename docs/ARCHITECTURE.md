@@ -53,7 +53,7 @@ relative to it unless they start with `app/`, `docs/` or `tools/`).
 | `thumbs` | `ThumbnailStore`, `BakedBlur`, `BlankCheck` |
 | `update` | `UpdateCheck` |
 | `ui` (root files) | `KoanRoot.kt`, `KoanOverlays.kt`, `OverviewMotion.kt`, `DisplayRefresh.kt` (`RefreshBooster`), `SystemBars.kt` |
-| `ui/root` | `RootState` (the root's navigation state, saved value by value) |
+| `ui/root` | Pieces of the root (`KoanRoot.kt` keeps layout, layers and the transitions): `RootState` (navigation state, saved value by value), `PrivateSwitch` (Private on / off), `IncomingLinks` (links and text from other apps), `PlayerActions` (the standalone player's menu) |
 | `ui/overlays` | One file per group of overlays drawn by `KoanOverlays` (menu, permissions, logins, link card, settings, library, tour) |
 | `ui/bar` | The dock: `KoanBar`, `AddressRow` (address field, find bar), `WorkspaceSwitcher`, `SpaceDrawer`, `BarGestures`, `SpaceScrub` |
 | `ui/browser` | `BrowserScreen` (hosts the `GeckoEngineView`), `DockState`, `PageCover`, `PullRefresh`, `TabSwipe`, `Fullscreen`, `ClosingPage`, `TranslateOfferHost`, `observeSlice` |
