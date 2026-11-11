@@ -108,8 +108,6 @@ class SettingsUi(
     val onWhatsNew: (() -> Unit)?,
     /** Opens a page (changelog, licences) in a new tab. */
     val onOpenUrl: (String) -> Unit,
-    /** Debug builds only. */
-    val devActions: List<Pair<String, () -> Unit>>,
     /** Where downloads go: null = the phone's Download folder, else the picked folder's name. */
     val downloadFolder: String?,
     val onPickDownloadFolder: () -> Unit,
@@ -257,14 +255,6 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
         SettingsRow(KoanIcons.Folder, "Save downloads to", on, value = ui.downloadFolder ?: "Download", chevron = true, onClick = { push(SettingsPage.DownloadFolder) })
         SettingsDivider()
         SettingsRow(KoanIcons.Info, "About Koan", on, value = ui.version, chevron = true, onClick = { push(SettingsPage.About) })
-
-        if (ui.devActions.isNotEmpty()) {
-            SettingsSection("Developer")
-            ui.devActions.forEachIndexed { i, (label, action) ->
-                if (i > 0) SettingsDivider()
-                SettingsRow(null, label, on, onClick = action)
-            }
-        }
     }
 }
 

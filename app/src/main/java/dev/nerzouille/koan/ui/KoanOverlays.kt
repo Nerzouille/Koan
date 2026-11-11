@@ -276,7 +276,6 @@ fun KoanOverlays(
     onCloseTab: () -> Unit,
     onOpenNew: (url: String, select: Boolean, nextToCurrent: Boolean) -> Unit,
     onSignIn: () -> Unit,
-    devActions: List<Pair<String, () -> Unit>>,
     /** Quiet confirmations (the shared bottom toast). */
     onToast: (Toast) -> Unit,
     /** A recently closed tab picked in History: back in its space and place. */
@@ -1009,7 +1008,6 @@ fun KoanOverlays(
                     overlays.settingsOpen = false
                     onOpenNew(url, true, false)
                 },
-                devActions = devActions,
                 downloadFolder = folderName,
                 onPickDownloadFolder = { pickFolder.launch(null) },
                 onDefaultDownloadFolder = { scope.launch { components.settings.setDownloadLocation(null) } },

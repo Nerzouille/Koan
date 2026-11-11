@@ -629,7 +629,7 @@ address row; in the overview it grows a space-switcher row and further into the 
 
 **Screenshots needed**
 1. Page view dock, counter showing "3" (light and dark).
-2. Counter at "∞" (a space with more than 99 tabs; use fake tabs from the debug fill).
+2. Counter at "∞" (a space with more than 99 tabs).
 3. Tab menu open above the dock, all three rows enabled.
 4. Tab menu with "Reopen closed tab" greyed out.
 
@@ -2190,7 +2190,7 @@ Alpha `a`: light **0.20** (`WASH_ALPHA_LIGHT`), dark **0.16** (`WASH_ALPHA_DARK`
 
 **Purpose.** Small grey title above a group of settings rows (also used as day headers in History and Downloads).
 
-**Anatomy / sizes** (`SettingsKit.kt`): text `SectionTitleSize` **13sp** SemiBold, colour `TextSecondary`; padding top `SectionTop` **22dp**, bottom `Divider*4` = **4dp**. No icon, no uppercase transform (text as given: "General", "Display", "Privacy", "Koan", "Developer"; `SettingsScreen.kt`).
+**Anatomy / sizes** (`SettingsKit.kt`): text `SectionTitleSize` **13sp** SemiBold, colour `TextSecondary`; padding top `SectionTop` **22dp**, bottom `Divider*4` = **4dp**. No icon, no uppercase transform (text as given: "General", "Display", "Privacy", "Koan"; `SettingsScreen.kt`).
 
 **States.** Static.
 
@@ -2764,7 +2764,7 @@ Definition: `BrandTokens.Colors` = Pink `#FF5FA2` → Violet `#B46BFF` → Blue 
 ---
 
 ### Spec vs code disagreements (brief)
-- `docs/UI_SPEC.md` "Screens" lists Settings as "account, sync, search engine, write-back toggle, add-ons, about". Code: sections General / Display / Privacy / Koan (+ Developer in debug); **no write-back toggle** on the Settings page (`ui/settings/SettingsScreen.kt`).
+- `docs/UI_SPEC.md` "Screens" lists Settings as "account, sync, search engine, write-back toggle, add-ons, about". Code: sections General / Display / Privacy / Koan; **no write-back toggle** on the Settings page (`ui/settings/SettingsScreen.kt`).
 - Typography: UI_SPEC now describes the code (system sans, `KoanType` styles, em line heights); resolved in the 2026-11-10 audit.
 - `docs/UI_SPEC.md` "Visual tokens" "cards 28dp": settings cards are **22dp**, choice cards 22dp, day cards 18dp, tour frame 30dp; the floating card and tour sheet match (28dp / 32dp top).
 - `docs/UI_SPEC.md` "Controls" "Destructive = red text only … never a red fill": the library rows' delete swipe background is a full `Destructive` fill (`ui/kit/SwipeRow.kt`).

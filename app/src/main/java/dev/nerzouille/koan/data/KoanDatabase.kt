@@ -136,9 +136,6 @@ interface KoanDao {
     @Query("DELETE FROM tabs WHERE koanTabId IN (:ids) AND origin = 'LOCAL'")
     suspend fun deleteLocal(ids: List<String>)
 
-    @Query("DELETE FROM tabs WHERE koanTabId LIKE :prefix || '%'")
-    suspend fun deleteTabsWithPrefix(prefix: String)
-
     @Query("UPDATE tabs SET `order` = :order WHERE koanTabId = :koanTabId")
     suspend fun setTabOrder(koanTabId: String, order: Int)
 

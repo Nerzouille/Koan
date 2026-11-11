@@ -1162,16 +1162,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             onToast = toasts::show,
             onRestoreClosed = ::restoreClosed,
             currentSpaceUuid = spaces.getOrNull(currentSpace)?.space?.uuid,
-            // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
-            devActions = if (!BuildConfig.DEBUG) emptyList() else buildList {
-                for (n in listOf(50, 150)) {
-                    add("Fill space to $n tabs" to {
-                        spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
-                        Unit
-                    })
-                }
-                add("Remove fake tabs" to { components.spaces.removeFakeTabs(); Unit })
-            },
         ) }
 
         TranslateOfferHost(
