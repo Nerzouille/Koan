@@ -179,7 +179,7 @@ each group (launch + kill + restore checked).
 
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
-| `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
+| `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3, batch 4 and the fixes list merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
