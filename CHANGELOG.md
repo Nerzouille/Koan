@@ -87,7 +87,8 @@
 - Double-tap to seek no longer flashes the controls; swipes from the top or bottom edge no longer
   move brightness, volume or the timeline.
 - Picture-in-picture on leaving a full-screen video now also starts on sites where it didn't.
-- Video player: hidden controls no longer swallow a tap; portrait full screen keeps the status bar
+- Video player: the play / pause button no longer gets stuck pressed or misses a tap (while the
+  video buffers, or as the controls fade); hidden controls no longer swallow a tap; portrait full screen keeps the status bar
   and its top row clear of the camera; no white flash when a full-screen video turns; with
   auto-rotate off a landscape video flips sides by itself and a rotate button (a few seconds after
   you turn the phone) turns it to portrait.

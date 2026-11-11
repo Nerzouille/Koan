@@ -10,6 +10,33 @@ Start with the **Recheck** section: the owner's second-round feedback (POCO, Hyp
 
 ## Recheck (round 2, 2026-11-12), riskiest first
 
+0. **Play / pause stuck pressed** (`ca15f9a`, the last bug; tests `PressTest`,
+   `PlayerTapsTest`).
+   - **Causes found:**
+     - `pressScale` (and the ⋯ menu rows' `pressable`) restarted their touch handler whenever
+       the caller's click lambda changed. The play button gets a new one with every player state
+       update, so a press that spanned an update was cut off: no click, and the pressed flag never
+       reset.
+     - While the video buffered, the spinner took the centre group out, so a press there was torn
+       down, and a tap in the middle hid the controls instead.
+     - A press could also start just as the controls began hiding.
+   - **Now:**
+     - one handler for a button's whole life;
+     - the pressed state resets however a press ends;
+     - the centre group stays under the spinner (only faded) and still plays / pauses;
+     - controls take taps whenever they are on screen, while fading in or out too, and using one
+       brings them back;
+     - a finger on the player holds the auto-hide;
+     - quick play / pause taps go by the last tap's intent, so two quick taps never both read the
+       same stale "playing".
+   - **Checked on the POCO (Commons, 4K stream), all reached the button and alternated:**
+     - 8 slow presses (400 ms);
+     - 5 quick taps (150 ms apart);
+     - a tap 120 ms into the fade-in;
+     - a tap 100 ms into the fade-out.
+   - **Your checks:** the same, by hand, playing and paused, and while it buffers (the spinner):
+     a tap in the middle pauses, and the button never stays small.
+
 Claude reproduced #5 on the POCO with logcat and checked it there after the fix. Claude also
 checked the menu morph, the PiP row and the tap behaviour on the POCO. Everything else below needs
 your hands, especially anything that needs the phone turned: Claude can't rotate the phone.
@@ -223,9 +250,9 @@ Checks:
 5. The day headers don't move when selection starts or ends.
 
 ## Already checked by Claude
-- Unit tests: 342 JVM tests, green (`./gradlew testDebugUnitTest`).
+- Unit tests: 346 JVM tests, green (`./gradlew testDebugUnitTest`).
 - The dev build was installed on the POCO after phase 1: it launches, no crash.
-- The R8 release build of `7dade9c` (round 2 + the rotate pill on the fullscreen button) is installed on the POCO (real app, release key). It
+- The R8 release build of `ca15f9a` (round 2, the rotate pill, the stuck play button) is installed on the POCO (real app, release key). It
   launches, comes back cold after a background kill (new process), and logcat shows no crash. The
   restored screen itself was not looked at.
 
