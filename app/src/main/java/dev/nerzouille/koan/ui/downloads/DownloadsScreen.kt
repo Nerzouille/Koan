@@ -67,7 +67,7 @@ import mozilla.components.browser.state.state.content.DownloadState.Status
  * the finished ones by day, with the library rules (ui/kit/LibraryRow): a tap opens the file; a
  * swipe left to right hides it from the list (the file stays), right to left deletes the file
  * (both with Undo: the file is only deleted once the toast is gone); a long press enters
- * selection mode (Open, Share, Hide, Delete). Search and Clear sit at the bottom, in thumb reach.
+ * selection mode (Open, Copy link, Share, Delete). Search and Clear sit at the bottom, in thumb reach.
  * [folder] names where files go ("Download", or the picked folder).
  */
 @Composable

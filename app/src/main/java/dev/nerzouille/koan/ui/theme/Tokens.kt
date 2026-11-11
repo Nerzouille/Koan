@@ -42,7 +42,7 @@ class KoanPalette(
     /** Primary buttons: black in light, white in dark. */
     val Primary: Color,
     val OnPrimary: Color,
-    /** Destructive actions: red text only, never a red fill (one exception: History's swipe-to-remove background). ≥ 4.5:1 on every surface. */
+    /** Destructive actions: red text only, never a red fill (one exception: the delete swipe's background on every library page). ≥ 4.5:1 on every surface. */
     val Destructive: Color,
     /** Grouped rows on a sheet or a screen (menu, settings). */
     val GroupedRow: Color,

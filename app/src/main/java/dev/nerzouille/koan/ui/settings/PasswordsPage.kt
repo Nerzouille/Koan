@@ -107,7 +107,7 @@ class PasswordsUi(
  * (ui/kit/LibraryRow): a tap opens the site's accounts (after the fingerprint or the device PIN,
  * once per visit), a swipe right to left deletes, a long press enters selection mode (Visit,
  * Delete). A delete always asks first; then Undo. Locked, a swipe or a long press asks for the
- * fingerprint or PIN first. The round + next to the search adds one by hand.
+ * fingerprint or PIN first. The floating + adds one by hand.
  */
 @Composable
 internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpenSite: (String) -> Unit, onAdd: () -> Unit) {
