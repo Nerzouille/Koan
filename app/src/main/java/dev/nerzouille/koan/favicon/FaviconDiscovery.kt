@@ -2,6 +2,7 @@
 
 package dev.nerzouille.koan.favicon
 
+import dev.nerzouille.koan.search.siteHost
 import java.net.URI
 
 /**
@@ -50,17 +51,7 @@ object FaviconDiscovery {
      * and "www.example.com" share the desktop site's icon (Koan change, not in Z-Sync). A mobile
      * label is dropped anywhere before the site name; a name and a suffix always stay.
      */
-    fun iconHost(host: String): String {
-        val labels = host.lowercase().split('.').toMutableList()
-        if (labels.size > 2 && labels.first() == "www") labels.removeAt(0)
-        var i = 0
-        while (i < labels.size - 2) {
-            if (labels[i] in MOBILE_LABELS) labels.removeAt(i) else i++
-        }
-        return labels.joinToString(".")
-    }
-
-    private val MOBILE_LABELS = setOf("m", "mobile")
+    fun iconHost(host: String): String = siteHost(host)
 
     fun siteKey(uri: URI): String? {
         val scheme = uri.scheme?.lowercase() ?: return null
