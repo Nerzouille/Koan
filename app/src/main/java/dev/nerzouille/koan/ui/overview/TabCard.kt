@@ -147,7 +147,9 @@ fun TabCard(
                 }
             }
         }
-        PlaceholderThumbnail(
+        // Once the screenshot covers it for good, the placeholder leaves the composition.
+        val placeholderShown by remember(shot) { derivedStateOf { shot == null || shot.reveal.value < 1f } }
+        if (placeholderShown) PlaceholderThumbnail(
             card,
             Modifier
                 .fillMaxWidth()
@@ -176,10 +178,12 @@ fun TabCard(
                 },
         )
         if (shot != null) Screenshot(shot, depth, blurFor)
+        // The depth dim: a layer's alpha over a flat colour, so a scroll frame updates one layer
+        // property instead of re-recording the card's content.
         Box(
             Modifier
                 .fillMaxSize()
-                .drawBehind {
+                .graphicsLayer {
                     val d = depth()
                     // Deep enough to blur, but nothing blurred to show (no live blur, copies not
                     // uploaded or not baked): a stronger dim instead.
@@ -190,8 +194,10 @@ fun TabCard(
                     }
                     val extra = if (unblurred) CardTokens.NO_BLUR_DIM * bakedLevel(d, blurFor) else 0f
                     val dim = (dimOf(d) + extra).coerceAtMost(1f)
-                    if (dim > 0.01f) drawRect(dimColor, alpha = dim)
-                },
+                    alpha = if (dim > 0.01f) dim else 0f
+                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                }
+                .background(dimColor),
         )
         CardHeader(card, depth, dimColor)
         CardEdge()
@@ -220,71 +226,79 @@ private val CardShape = RoundedCornerShape(CardTokens.Radius)
 @Composable
 internal fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
     val palette = KoanTheme.colors
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(CardTokens.HeaderHeight)
-            .background(palette.CardStrip)
-            .drawWithContent {
-                drawContent()
-                val dim = (DepthCurve.headerDim(depth()) * palette.DimGain).coerceAtMost(palette.DimMax)
-                if (dim > 0.01f) drawRect(dimColor, alpha = dim)
-            }
-            .padding(start = CardTokens.HeaderPaddingStart, end = CardTokens.HeaderPaddingEnd),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Favicon(card.url, CardTokens.Favicon, icon = card.icon, staticIcon = card.staticIcon)
-        Spacer(Modifier.width(CardTokens.HeaderGap))
-        // Title over host + markers take the free width, so the ✕ always sits at the right edge.
-        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f, fill = false)) {
-                Text(
-                    cardTitle(card.title, card.url),
-                    color = palette.TextPrimary,
-                    fontSize = CardTokens.TitleSize,
-                    lineHeight = CardTokens.TitleLine,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val host = displayHost(card.url)
-                if (host.isNotEmpty()) {
+    Box(Modifier.fillMaxWidth().height(CardTokens.HeaderHeight)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(CardTokens.HeaderHeight)
+                .background(palette.CardStrip)
+                .padding(start = CardTokens.HeaderPaddingStart, end = CardTokens.HeaderPaddingEnd),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Favicon(card.url, CardTokens.Favicon, icon = card.icon, staticIcon = card.staticIcon)
+            Spacer(Modifier.width(CardTokens.HeaderGap))
+            // Title over host + markers take the free width, so the ✕ always sits at the right edge.
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f, fill = false)) {
                     Text(
-                        host,
-                        color = palette.TextSecondary,
-                        fontSize = CardTokens.HostSize,
-                        lineHeight = CardTokens.HostLine,
+                        cardTitle(card.title, card.url),
+                        color = palette.TextPrimary,
+                        fontSize = CardTokens.TitleSize,
+                        lineHeight = CardTokens.TitleLine,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    val host = displayHost(card.url)
+                    if (host.isNotEmpty()) {
+                        Text(
+                            host,
+                            color = palette.TextSecondary,
+                            fontSize = CardTokens.HostSize,
+                            lineHeight = CardTokens.HostLine,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (card.pinned) {
+                    Spacer(Modifier.width(CardTokens.HeaderGap))
+                    Icon(KoanIcons.Pin, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(CardTokens.PinGlyph))
+                }
+                if (card.active) {
+                    Spacer(Modifier.width(CardTokens.HeaderGap))
+                    CurrentTabDot()
                 }
             }
-            if (card.pinned) {
-                Spacer(Modifier.width(CardTokens.HeaderGap))
-                Icon(KoanIcons.Pin, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(CardTokens.PinGlyph))
-            }
-            if (card.active) {
-                Spacer(Modifier.width(CardTokens.HeaderGap))
-                CurrentTabDot()
-            }
-        }
-        // ✕ only on the focused card; the stack's gesture handler does the hit-testing.
-        Box(
-            Modifier
-                .size(CardTokens.CloseTouch)
-                .graphicsLayer {
-                    alpha = (1f - kotlin.math.abs(depth()) * 2f).coerceIn(0f, 1f)
-                    compositingStrategy = CompositingStrategy.ModulateAlpha
-                },
-            contentAlignment = Alignment.Center,
-        ) {
+            // ✕ only on the focused card; the stack's gesture handler does the hit-testing.
             Box(
-                Modifier.size(CardTokens.CloseButton).clip(CircleShape).background(palette.CloseButton),
+                Modifier
+                    .size(CardTokens.CloseTouch)
+                    .graphicsLayer {
+                        alpha = (1f - kotlin.math.abs(depth()) * 2f).coerceIn(0f, 1f)
+                        compositingStrategy = CompositingStrategy.ModulateAlpha
+                    },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(KoanIcons.Close, null, tint = palette.CloseIcon, modifier = Modifier.size(CardTokens.CloseIcon))
+                Box(
+                    Modifier.size(CardTokens.CloseButton).clip(CircleShape).background(palette.CloseButton),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(KoanIcons.Close, null, tint = palette.CloseIcon, modifier = Modifier.size(CardTokens.CloseIcon))
+                }
             }
         }
+        // The depth dim over the header: a layer's alpha, nothing re-recorded per scroll frame.
+        Box(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    val dim = (DepthCurve.headerDim(depth()) * palette.DimGain).coerceAtMost(palette.DimMax)
+                    alpha = if (dim > 0.01f) dim else 0f
+                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                }
+                .background(dimColor),
+        )
     }
 }
 
