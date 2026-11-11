@@ -120,6 +120,40 @@ object ThumbnailStore {
         key to trimDisk(file.length())
     }
 
+    /**
+     * A private tab's screenshot: like [save], but kept in memory only, never written to disk (nor
+     * its blurred copies). Gone when memory runs low or Koan restarts: the card shows its
+     * placeholder until the tab is opened again.
+     */
+    suspend fun keepInMemory(tabId: String, capture: Bitmap, previous: String?): String? = withContext(Dispatchers.IO) {
+        if (looksBlank(capture)) {
+            capture.recycle()
+            return@withContext null
+        }
+        val scaled = scaleDown(capture, DeviceProfile.tier.thumbWidthPx)
+        if (scaled !== capture) capture.recycle()
+        val key = "$MEMORY_PREFIX${hash(tabId)}-${System.currentTimeMillis()}"
+        BakedBlur.bakeInMemory(key, scaled)
+        scaled.copy(Bitmap.Config.HARDWARE, false)?.let { memory.put(key, it.asImageBitmap()) }
+        scaled.recycle()
+        previous?.let { forgetMemory(it) }
+        key
+    }
+
+    /** Drops a [keepInMemory] screenshot. */
+    fun forgetMemory(key: String) {
+        memory.remove(key)
+        BakedBlur.forget(key)
+    }
+
+    /** Every private screenshot goes (the last private tab closed). */
+    fun forgetAllInMemory() {
+        memory.snapshot().keys.filter { it.startsWith(MEMORY_PREFIX) }.forEach(::forgetMemory)
+    }
+
+    /** Keys of [keepInMemory] screenshots start with this; they never have a file. */
+    const val MEMORY_PREFIX = "mem-"
+
     suspend fun delete(key: String) = withContext(Dispatchers.IO) {
         memory.remove(key)
         BakedBlur.forget(key)

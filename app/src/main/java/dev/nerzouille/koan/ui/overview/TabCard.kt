@@ -193,8 +193,25 @@ fun TabCard(
                 },
         )
         CardHeader(card, depth, dimColor)
-        Box(Modifier.fillMaxSize().border(CardTokens.Hairline, palette.CardBorder, CardShape))
+        CardEdge()
     }
+}
+
+/**
+ * The card's edge, over its depth dim so back cards keep it at every depth: a hairline all
+ * around, and in dark a light rim along the top edge, inside (OVERVIEW_PRIVATE.md §2).
+ */
+@Composable
+private fun CardEdge() {
+    val palette = KoanTheme.colors
+    Box(
+        Modifier
+            .fillMaxSize()
+            .drawBehind {
+                if (palette.CardRim.alpha > 0f) drawRect(palette.CardRim, size = androidx.compose.ui.geometry.Size(size.width, CardTokens.Hairline.toPx()))
+            }
+            .border(CardTokens.Hairline, palette.CardHairline, CardShape),
+    )
 }
 
 private val CardShape = RoundedCornerShape(CardTokens.Radius)
@@ -217,17 +234,30 @@ internal fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
     ) {
         Favicon(card.url, CardTokens.Favicon, icon = card.icon, staticIcon = card.staticIcon)
         Spacer(Modifier.width(CardTokens.HeaderGap))
-        // Title + markers take the free width, so the ✕ always sits at the right edge.
+        // Title over host + markers take the free width, so the ✕ always sits at the right edge.
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                card.title,
-                color = KoanTheme.colors.TextPrimary,
-                fontSize = CardTokens.TitleSize,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
+            Column(Modifier.weight(1f, fill = false)) {
+                Text(
+                    cardTitle(card.title, card.url),
+                    color = palette.TextPrimary,
+                    fontSize = CardTokens.TitleSize,
+                    lineHeight = CardTokens.TitleLine,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val host = displayHost(card.url)
+                if (host.isNotEmpty()) {
+                    Text(
+                        host,
+                        color = palette.TextSecondary,
+                        fontSize = CardTokens.HostSize,
+                        lineHeight = CardTokens.HostLine,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
             if (card.pinned) {
                 Spacer(Modifier.width(CardTokens.HeaderGap))
                 Icon(KoanIcons.Pin, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(CardTokens.PinGlyph))
@@ -444,7 +474,7 @@ private fun SkeletonCard(depth: () -> Float, dimColor: Color, dimOf: (Float) -> 
             Spacer(Modifier.width(CardTokens.HeaderGap))
             Box(Modifier.width(CardTokens.SkeletonTitle).height(CardTokens.SkeletonBar).clip(CircleShape).background(KoanTheme.colors.Skeleton))
         }
-        Box(Modifier.fillMaxSize().border(CardTokens.Hairline, KoanTheme.colors.CardBorder, CardShape))
+        CardEdge()
     }
 }
 

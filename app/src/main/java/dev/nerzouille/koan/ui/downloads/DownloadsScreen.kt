@@ -89,7 +89,7 @@ fun DownloadsScreen(
     var query by remember { mutableStateOf("") }
     val hidden by actions.hidden.collectAsState()
     val shown = downloads
-        .filterNot { it.private || it.status == Status.CANCELLED || it.id in hidden }
+        .filterNot { it.status == Status.CANCELLED || it.id in hidden }
         .filter { query.isBlank() || it.fileName.orEmpty().contains(query.trim(), ignoreCase = true) }
         .sortedByDescending { it.createdTime }
     val (running, done) = shown.partition { it.status in RUNNING }
@@ -250,6 +250,7 @@ private fun RunningRow(d: DownloadState, actions: Downloads) {
         Spacer(Modifier.width(DownloadTokens.RowGap))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (d.private) PrivateMark()
                 Text(d.fileName.orEmpty(), color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Text(state, color = palette.TextSecondary, fontSize = SettingsTokens.RowSubtitleSize)
             }
@@ -285,13 +286,29 @@ private fun RunningRow(d: DownloadState, actions: Downloads) {
     }
 }
 
+/**
+ * A download from a private tab: a small mask before its name. It stays in the list until Koan
+ * restarts (the file stays in Download).
+ */
+@Composable
+private fun PrivateMark() {
+    androidx.compose.material3.Icon(
+        KoanIcons.Private, "Private",
+        tint = KoanTheme.colors.TextSecondary,
+        modifier = Modifier.padding(end = DownloadTokens.PrivateGap).size(DownloadTokens.PrivateGlyph),
+    )
+}
+
 @Composable
 private fun DoneRow(d: DownloadState, first: Boolean, checked: Boolean?, onTap: () -> Unit, onLong: () -> Unit) {
     LibraryRowFrame(first, onClick = onTap, onLongClick = onLong, checked = checked) {
         FileTile(d)
         Spacer(Modifier.width(DownloadTokens.RowGap))
         Column(Modifier.weight(1f)) {
-            LibraryRowTitle(d.fileName.orEmpty())
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (d.private) PrivateMark()
+                LibraryRowTitle(d.fileName.orEmpty())
+            }
             LibraryRowSubtitle(listOfNotNull((d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · "))
         }
     }

@@ -20,10 +20,11 @@ fun immersive(window: Window, on: Boolean) {
             WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
     }
-    // No grey scrim behind the (transient) bars over a video.
+    // Never a system scrim behind the bars: not over a video, and not over Koan's own surfaces
+    // either (it showed as a pale strip on Private's colours once a video had played).
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-        window.isNavigationBarContrastEnforced = !on
-        window.isStatusBarContrastEnforced = !on
+        window.isNavigationBarContrastEnforced = false
+        window.isStatusBarContrastEnforced = false
     }
     if (on) hideBars(window)
     window.setBackgroundDrawable(ColorDrawable(if (on) Color.BLACK else ContextCompat.getColor(window.context, R.color.koan_base)))

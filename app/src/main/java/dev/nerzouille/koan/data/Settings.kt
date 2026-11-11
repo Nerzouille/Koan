@@ -191,4 +191,52 @@ class Settings(context: Context) {
     suspend fun setStartPageAfter(value: StartPageAfter) {
         store.edit { it[startAfter] = value.name }
     }
+
+    // ---- private mode (OVERVIEW_PRIVATE.md, owner's decisions 2026-11-11) ----
+
+    private fun flag(name: String, default: Boolean): Pair<Flow<Boolean>, suspend (Boolean) -> Unit> {
+        val key = booleanPreferencesKey(name)
+        return store.data.map { it[key] ?: default } to { on -> store.edit { it[key] = on } }
+    }
+
+    private val lockFlag = flag("private_lock", true)
+    private val screenshotsFlag = flag("private_screenshots", false)
+    private val privateSuggestionsFlag = flag("private_suggestions", false)
+    private val cookieBannersFlag = flag("private_cookie_banners", false)
+    private val ampNormalFlag = flag("amp_normal_tabs", false)
+    private val dohFlag = flag("dns_over_https", false)
+    private val bounceFlag = flag("bounce_tracking", true)
+    private val devSecureOffFlag = flag("dev_flag_secure_off", false)
+
+    /** Opening Private asks for the fingerprint or PIN (after 1 min away or the screen off). On by default. */
+    val privateLock: Flow<Boolean> = lockFlag.first
+    suspend fun setPrivateLock(on: Boolean) = lockFlag.second(on)
+
+    /** Screenshots and screen recordings may show private tabs. Off by default (FLAG_SECURE). */
+    val privateScreenshots: Flow<Boolean> = screenshotsFlag.first
+    suspend fun setPrivateScreenshots(on: Boolean) = screenshotsFlag.second(on)
+
+    /** Search suggestions from the engine while typing in Private. Off by default. */
+    val privateSuggestions: Flow<Boolean> = privateSuggestionsFlag.first
+    suspend fun setPrivateSuggestions(on: Boolean) = privateSuggestionsFlag.second(on)
+
+    /** Private tabs refuse cookie banners where Firefox's rules know the site. Off by default. */
+    val privateCookieBanners: Flow<Boolean> = cookieBannersFlag.first
+    suspend fun setPrivateCookieBanners(on: Boolean) = cookieBannersFlag.second(on)
+
+    /** Google AMP links open the original article in normal tabs too (always in Private). Off by default. */
+    val ampNormalTabs: Flow<Boolean> = ampNormalFlag.first
+    suspend fun setAmpNormalTabs(on: Boolean) = ampNormalFlag.second(on)
+
+    /** DNS over HTTPS (Mozilla's default provider, falls back to the phone's DNS), all tabs. Off by default. */
+    val dnsOverHttps: Flow<Boolean> = dohFlag.first
+    suspend fun setDnsOverHttps(on: Boolean) = dohFlag.second(on)
+
+    /** Bounce-tracking protection, all tabs (GeckoView can't limit it to Private). On by default. */
+    val bounceTracking: Flow<Boolean> = bounceFlag.first
+    suspend fun setBounceTracking(on: Boolean) = bounceFlag.second(on)
+
+    /** Dev builds only (Settings › About, hidden): FLAG_SECURE off so private screens can be captured for checks. */
+    val devFlagSecureOff: Flow<Boolean> = devSecureOffFlag.first
+    suspend fun setDevFlagSecureOff(on: Boolean) = devSecureOffFlag.second(on)
 }

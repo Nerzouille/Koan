@@ -54,6 +54,11 @@ class MainActivity : FragmentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        // Koan draws its own surfaces under the system bars: no system scrim over them.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
 
         DeviceProfile.initialize(this)
         val app = application as KoanApp
@@ -65,6 +70,9 @@ class MainActivity : FragmentActivity() {
         components.spaces.ensureLocalSpace()
         // Engine tabs come back from disk (no-op if this process already has them), then the last tab.
         components.tabs.start(components.sessionStorage)
+        // Privacy settings in the engine, and the private tabs back from their sealed file.
+        components.startPrivacy()
+        watchSecureWindow(components)
         components.autoSave
             .periodicallyInForeground(lifecycle = lifecycle)
             .whenGoingToBackground(lifecycle)
@@ -314,7 +322,28 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        (application as KoanApp).components.sync.onForeground()
+        val components = (application as KoanApp).components
+        components.sync.onForeground()
+        components.privateMode.onShown()
+    }
+
+    /**
+     * Private shown: no screenshots, screen recordings or Recents preview (FLAG_SECURE), unless
+     * "Allow screenshots" is on, or the hidden dev-build switch (never in a release build).
+     */
+    private fun watchSecureWindow(components: dev.nerzouille.koan.engine.Components) {
+        val devBuild = BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "dev"
+        lifecycleScope.launch {
+            kotlinx.coroutines.flow.combine(
+                components.privateMode.on,
+                components.settings.privateScreenshots,
+                components.settings.devFlagSecureOff,
+            ) { on, allowed, devOff -> on && !allowed && !(devBuild && devOff) }
+                .collect { secure ->
+                    if (secure) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                }
+        }
     }
 
     override fun onResume() {
@@ -331,12 +360,18 @@ class MainActivity : FragmentActivity() {
             components.appScope.launch { components.lastPlace.saveHiddenAt(now) }
         }
         components.sync.onBackground()
+        if (!isChangingConfigurations) {
+            components.privateMode.onHidden()
+            components.privateTabs.saveNow()
+        }
         super.onStop()
     }
 
     override fun onPause() {
         // Leaving Koan: screenshot the page, so the next start (or a restore) shows it at once.
-        (application as KoanApp).components.tabs.captureCurrent("app hidden")
+        val components = (application as KoanApp).components
+        if (components.privateMode.on.value) components.privateTabs.tabs.captureCurrent("app hidden")
+        else components.tabs.captureCurrent("app hidden")
         refresh.stop()
         super.onPause()
     }

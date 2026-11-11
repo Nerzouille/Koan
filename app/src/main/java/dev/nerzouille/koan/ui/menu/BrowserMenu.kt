@@ -67,6 +67,10 @@ data class MenuState(
     val openInApp: AppTarget? = null,
     /** "Translate page" / "Show original"; null on a page Gecko can't translate (or no page). */
     val translate: String? = null,
+    /** A private tab: no Essentials row; the site's Protections switch instead. */
+    val private: Boolean = false,
+    /** Private tabs: tracking protection on for this site (false = the owner turned it off here); null = not known yet. */
+    val protections: Boolean? = null,
 )
 
 /** What the menu's root page does. Rows without an action yet show as "Soon". */
@@ -95,6 +99,7 @@ class MenuActions(
     val addSearchEngine: () -> Unit,
     val openInApp: () -> Unit = {},
     val translate: () -> Unit = {},
+    val protections: (Boolean) -> Unit = {},
 )
 
 /**
@@ -144,7 +149,16 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
                 SheetRow(KoanIcons.Translate, label, on, onClick = actions.translate) { RowChevron() }
             }
             SheetDivider()
-            when (state.essentials) {
+            if (state.private) {
+                // Private tabs: tracking protection (and what follows it: fingerprinting protection,
+                // link cleaning) can be turned off for a site that breaks; kept until Private ends.
+                val protected = state.protections != false
+                SheetRow(
+                    KoanIcons.Shield, "Protections", on,
+                    subtitle = if (!hasPage) null else if (protected) "Trackers blocked" else "Off for this site",
+                    onClick = if (hasPage && state.protections != null) ({ actions.protections(!protected) }) else null,
+                ) { if (hasPage) KoanToggle(checked = protected, onCheckedChange = if (on && state.protections != null) actions.protections else null) }
+            } else when (state.essentials) {
                 EssentialsAction.Add -> SheetRow(KoanIcons.Essentials, "Add to Essentials", on, onClick = actions.essentials)
                 EssentialsAction.Remove -> SheetRow(KoanIcons.Essentials, "Remove from Essentials", on, onClick = actions.essentials)
                 EssentialsAction.FromZen -> SheetRow(KoanIcons.Essentials, "In Essentials", on) { RowValue("From Zen") }

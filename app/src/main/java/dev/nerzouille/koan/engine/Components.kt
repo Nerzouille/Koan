@@ -72,13 +72,33 @@ class Components(context: Context) {
     }
 
     /** tel:, intent://, apps' own schemes; the "Open in YouTube?" card and the menu's "Open in …". */
-    val externalLinks: ExternalLinks by lazy { ExternalLinks(appContext) { store.state.selectedTab?.content?.url } }
+    val externalLinks: ExternalLinks by lazy {
+        ExternalLinks(appContext, pageUrl = { store.state.selectedTab?.content?.url }, rewrite = ::rewriteLoad)
+    }
+
+    /** Google AMP links open the article: always in private tabs, in normal tabs if the setting says so. */
+    @Volatile private var ampNormalTabs = false
+
+    private fun rewriteLoad(session: mozilla.components.concept.engine.EngineSession, url: String): String? {
+        val private = store.state.tabs.any { it.engineState.engineSession === session && it.content.private }
+        val amp = dev.nerzouille.koan.privacy.AmpLinks.original(url)?.takeIf { private || ampNormalTabs }
+        // Private: tracking parameters go from every page load, typed ones too.
+        val cleaned = if (private) dev.nerzouille.koan.privacy.LinkCleaner.clean(amp ?: url) else null
+        return cleaned ?: amp
+    }
 
     val engine: GeckoEngine by lazy {
         GeckoEngine(
             appContext,
             DefaultSettings(
-                trackingProtectionPolicy = TrackingProtectionPolicy.recommended(),
+                // Bounce tracking follows its setting (privacy/PrivacyEngine).
+                trackingProtectionPolicy = dev.nerzouille.koan.privacy.PrivacyEngine.policy(bounce = true),
+                // Private tabs (owner's decisions 2026-11-11, docs/FEATURES.md "Private browsing").
+                httpsOnlyMode = mozilla.components.concept.engine.Engine.HttpsOnlyMode.ENABLED_PRIVATE_ONLY,
+                fingerprintingProtectionPrivateBrowsing = true,
+                queryParameterStrippingPrivateBrowsing = true,
+                queryParameterStrippingStripList = dev.nerzouille.koan.privacy.PrivacyEngine.STRIP_LIST.joinToString(" "),
+                emailTrackerBlockingPrivateBrowsing = true,
                 preferredColorScheme = PreferredColorScheme.System,
                 // Visited links, and page titles for history.
                 historyTrackingDelegate = history,
@@ -116,7 +136,12 @@ class Components(context: Context) {
     val defaultDownloadFolder: String
         get() = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path
 
-    val downloadFiles by lazy { DefaultDownloadFileUtils(appContext) { pickedDownloadFolder ?: defaultDownloadFolder } }
+    // A download from a private tab always goes to the phone's Download folder.
+    val downloadFiles by lazy {
+        DefaultDownloadFileUtils(appContext) {
+            if (store.state.selectedTab?.content?.private == true) defaultDownloadFolder else pickedDownloadFolder ?: defaultDownloadFolder
+        }
+    }
     val downloadStorage by lazy { DownloadStorage(appContext) }
     val downloadsUseCases by lazy { DownloadsUseCases(store, downloadFiles) }
     val downloads by lazy { Downloads(appContext, downloadFiles, downloadsUseCases) }
@@ -138,6 +163,36 @@ class Components(context: Context) {
 
     fun watchDownloadLocation() = appScope.launch {
         settings.downloadLocation.collect { pickedDownloadFolder = it }
+    }
+
+    // ---- private mode ----
+
+    /** The private tabs (privacy/PrivateTabs): their own tab manager, saved sealed. */
+    val privateTabs by lazy {
+        dev.nerzouille.koan.privacy.PrivateTabs(appContext, store, tabsUseCases, sessionUseCases, { runtime }, { json ->
+            engine.createSessionStateFrom(JsonReader(StringReader(json)))
+        }, appScope)
+    }
+
+    /** Private tabs' per-site Protections switch (the ⋯ menu). */
+    val trackingProtection by lazy { mozilla.components.feature.session.TrackingProtectionUseCases(store, engine) }
+
+    /** The tab manager of what is shown: the private tabs while Private is on. */
+    fun shownTabs(): TabManager = if (privateMode.on.value) privateTabs.tabs else tabs
+
+    /** Private shown or not, and its lock. */
+    val privateMode by lazy { dev.nerzouille.koan.privacy.PrivateMode(settings, privateTabs.count) }
+
+    private var privacyStarted = false
+
+    /** The engine's privacy settings, the private tabs, the lock. Once per process. */
+    fun startPrivacy() {
+        if (privacyStarted) return
+        privacyStarted = true
+        dev.nerzouille.koan.privacy.PrivacyEngine.start(engine, settings, appScope)
+        appScope.launch { settings.ampNormalTabs.collect { ampNormalTabs = it } }
+        privateMode.start(appContext)
+        privateTabs.start()
     }
 
     /** uBlock Origin (C5). [startExtensions] once per process. */
@@ -242,9 +297,9 @@ class Components(context: Context) {
     val history by lazy { HistoryRecorder(database.dao(), appScope) }
 
     val tabs by lazy {
-        TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, history, appScope) { json ->
+        TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, history, appScope, readState = { json ->
             engine.createSessionStateFrom(JsonReader(StringReader(json)))
-        }
+        })
     }
 }
 

@@ -171,6 +171,11 @@ the last run shows under each switch.
   Cards show a screenshot of the page; tabs that were never opened on the phone show their site's
   icon instead.
 - Koan reopens on your last space and tab after being closed or killed by the system.
+- **Card headers:** the page title over its site (e.g. `en.wikipedia.org`). A title ending with the
+  site's own name ("… - Wikipedia") drops it, since the line below says it already.
+- **Sync failed:** a small amber dot after the space name. Tap it to try again (or to sign in
+  again). Nothing shows while syncing or when all is well.
+- **Private:** the switch at the right of the header. See [Private browsing](#14-private-browsing).
 
 ### The start page
 
@@ -580,6 +585,8 @@ closes it).
 | Downloads | The Downloads page |
 | Save downloads to | The phone's Download folder, or a folder you pick |
 | About Koan | Version, update check, **Take the tour**, links to the changelog, the privacy notice and the open-source licences |
+| Private browsing | Lock private tabs, Allow screenshots, Search suggestions, Refuse cookie banners: see [Private browsing](#14-private-browsing) |
+| All tabs | Bounce-tracking protection (on), Skip Google AMP pages (off), DNS over HTTPS (off): see [Private browsing](#14-private-browsing) |
 
 **As the default browser:** links you open in other apps, web searches, and text or links shared to
 Koan open as a new tab in your current space. So do links apps open "in the app" (Custom Tabs, as
@@ -624,7 +631,83 @@ the background. If the check fails (no network), tap the chip to try again.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
   the page itself) may reload when you pull down at the top of the list.
 - **Not there yet:** web notifications, a bookmarks screen, other add-ons
-  than uBlock Origin, picture-in-picture, private tabs, adding a page to the home screen. Opening
+  than uBlock Origin, picture-in-picture, adding a page to the home screen. Opening
   and closing a tab is a simple crossfade (the motion polish comes later).
 - **Not affiliated** with Zen Browser or Mozilla. Zen is an independent project; "Firefox" and
   "Mozilla" are trademarks of the Mozilla Foundation.
+
+---
+
+## 14. Private browsing
+
+**Turn it on:** the switch at the right of the overview's header. The overview turns lavender
+(light theme) or deep violet (dark theme), with a few stars; the header says **Private · Not
+saved**, and the dock shows a **Private** pill instead of your spaces. Turn the switch off to go
+back to your spaces: the private tabs stay where they are.
+
+**Private tabs are one set, apart from your spaces.** They stay open until you close them, also
+after Koan is closed, killed by the system or the phone restarts. **But sites sign you out when
+Koan restarts:** the engine keeps private cookies and site data in memory only, so they are gone
+whenever Koan's process ends (HyperOS ends it often in the background). What comes back is each
+tab's page and its Back history, saved on the phone **encrypted** with a key from the phone's
+secure hardware (Android Keystore), never in plain text. Their screenshots are never written to
+the phone: a private card shows the site's icon after a restart until you open it.
+
+**When you close the last private tab,** its cookies, site data and cache are deleted, and so is
+the saved file. Koan opens in normal mode after a restart; Private is one tap away.
+
+**Locked:** opening Private asks for your fingerprint or the phone's PIN when you have private
+tabs, after 1 minute away from Koan or once the screen turned off. While locked, Private shows
+only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on by default.)
+
+**What Private does**
+
+- Nothing goes to your history, search suggestions, **Recently closed** or your Mozilla account,
+  and private tabs never sync.
+- **Private search** suggests only your bookmarks and your private tabs; nothing you type is kept.
+  Suggestions from the search engine are off (Settings › Search suggestions, under Private
+  browsing).
+- **No screenshots or screen recordings** of Koan while Private shows, and Android's recent apps
+  show a blank card (Settings › Allow screenshots, off by default).
+- **The keyboard doesn't learn** from what you type, in Koan's own fields and in pages.
+- **HTTPS only:** private tabs open sites over HTTPS. A site without it doesn't open, and a message
+  says so (open it in a normal tab).
+- **Tracking protection:** tracking content, social trackers, email trackers and cryptominers
+  blocked, and every site's cookies kept apart from the others' (Total Cookie Protection). uBlock
+  Origin runs in private tabs too.
+- **Fingerprinting protection:** Firefox's own (canvas and other values slightly randomised per
+  site). Not the Tor Browser-style mode, which breaks many sites.
+- **Cleaner links:** tracking parameters are removed from links you open, type or paste (click IDs
+  such as `fbclid` and `gclid`, and `utm_…` campaign tags).
+- **Google AMP links** open the original article instead of Google's AMP copy (pages a site hosts
+  as AMP itself are left alone).
+- **Global Privacy Control:** each private tab tells sites you don't want your data sold or
+  shared. It is a request: sites may ignore it, and only some laws make it binding.
+- **Protections switch:** ⋯ › **Protections** turns tracking protection off for one site that
+  breaks (it reloads); it stays off for that site until the last private tab closes.
+- **Refuse cookie banners** (Settings, off by default): where Firefox's rules know the site, its
+  cookie banner is answered "reject" for you.
+- **Downloads** from private tabs go to the phone's Download folder and show in Downloads with a
+  small mask, until Koan restarts (the files stay). **Bookmarks** you save stay too.
+
+**What Private doesn't do**
+
+- **It doesn't hide your IP address or your location.** Sites, your network (Wi-Fi owner, mobile
+  carrier) and your employer or school can still see what you visit. For that you need a VPN or
+  Tor Browser.
+- It doesn't stop sites from recognising you if you sign in.
+- It doesn't keep you signed in across restarts (see above).
+- Files you download and bookmarks you save stay on the phone after Private ends.
+
+**For all tabs** (Settings › All tabs)
+
+- **WebRTC** (video calls in a page) never shows your phone's local network addresses to sites.
+  Your public address is the one every site sees anyway (see above). Always on.
+- **Bounce-tracking protection** (on by default): sites you only pass through on a redirect, which
+  are known to track, have their data cleared. The engine can't limit this to private tabs.
+- **Skip Google AMP pages** in normal tabs too (off by default).
+- **DNS over HTTPS** (off by default): Koan looks up site names through Mozilla's resolver (run by
+  Cloudflare) over an encrypted connection, falling back to the phone's DNS if it fails. Your
+  network no longer sees which sites you look up, the resolver does. Android's own **Private DNS**
+  setting does the same for every app.
+

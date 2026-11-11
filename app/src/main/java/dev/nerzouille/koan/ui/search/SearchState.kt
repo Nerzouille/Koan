@@ -56,13 +56,15 @@ fun rememberSearch(
     engine: SearchEngine,
     shortcuts: List<Shortcut>,
     suggest: Boolean,
+    /** Private: no history is read (bookmarks and the private tabs in [spaces] only). */
+    private: Boolean = false,
 ): SearchState {
     val state = remember { SearchState() }
     val latestSpaces by rememberUpdatedState(spaces)
     val latestModels by rememberUpdatedState(models)
     val current by rememberUpdatedState(currentTabId)
     val latestShortcuts by rememberUpdatedState(shortcuts)
-    LaunchedEffect(field.typed, field.edited) {
+    LaunchedEffect(field.typed, field.edited, private) {
         val parsed = parseQuery(field.typed, latestShortcuts)
         if (!field.edited || parsed.picking || parsed.shortcut != null) {
             state.results = Results()
@@ -73,7 +75,7 @@ fun rememberSearch(
         val q = parsed.rest
         // The database narrows on the first word; ranking checks every word.
         val first = q.substringBefore(' ')
-        val visits = (if (q.isEmpty()) dao.recentVisits(LIMIT) else dao.searchVisits(first, LIMIT))
+        val visits = if (private) emptyList() else (if (q.isEmpty()) dao.recentVisits(LIMIT) else dao.searchVisits(first, LIMIT))
             .map { Hit(it.url, it.title, Source.History, visits = it.visitCount, lastUsed = it.lastVisit) }
         val marks = (if (q.isEmpty()) dao.recentBookmarks(LIMIT) else dao.searchBookmarks(first, LIMIT))
             .map { Hit(it.url, it.title, Source.Bookmark, lastUsed = it.createdAt) }

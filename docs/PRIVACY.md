@@ -43,6 +43,7 @@ Apart from the sites you open, Koan only connects to these:
 | Mozilla's translation models (Firefox's Remote Settings servers) | The first time you translate from or to a language | A normal download of that language's model, about 20–30 MB. The page's text is not sent. |
 | GitHub (`github.com`) | Each time you open Settings › About Koan | A request for Koan's public releases feed, to tell you whether an update exists. Never in the background. |
 | Mozilla Add-ons (`addons.mozilla.org`) | On first start, to install uBlock Origin, and for its updates | A normal download request. |
+| Mozilla's DNS over HTTPS resolver (`mozilla.cloudflare-dns.com`, run by Cloudflare) | Only if you turn on Settings › DNS over HTTPS (off by default) | The names of the sites Koan looks up (instead of your network's DNS server). |
 
 A link to a video file (`…/clip.mp4`) that another app opens with Koan first gets a short `HEAD`
 request to that same address, to ask whether it really is a video (Koan's player) or a page (a

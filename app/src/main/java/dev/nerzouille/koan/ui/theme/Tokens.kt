@@ -92,6 +92,18 @@ class KoanPalette(
     /** Short, soft shadow a card casts on the card behind it, just above its top edge. */
     val ContactShadow: Color,
     val ContactShadowLength: Dp,
+    /** 1dp line all around a stack card, drawn over its depth dim so back cards keep their edge. */
+    val CardHairline: Color,
+    /** Dark only: 1dp light line along a stack card's top edge, inside (separates dark header strips). */
+    val CardRim: Color,
+    /** The overview header's "sync failed" dot (OVERVIEW_PRIVATE.md §3.1). */
+    val SyncDot: Color,
+    /** What back cards fade towards (light: Base, a haze; dark: black, or Night's deep violet). */
+    val DimColor: Color,
+    /** Private mode's palettes (Dusk, Night) only: its accent, pill and ink (OVERVIEW_PRIVATE.md §5.1). */
+    val PrivateAccent: Color = Color.Unspecified,
+    val PrivatePill: Color = Color.Unspecified,
+    val PrivateInk: Color = Color.Unspecified,
     // Space colour → accent (hue kept, saturation and lightness pulled into a range that reads on Base).
     val AccentLightness: ClosedFloatingPointRange<Float>,
     val InkLightness: Float,
@@ -140,11 +152,15 @@ class KoanPalette(
             FindMatchText = Color.Black,
             DimToBase = true,
             DimGain = 1.25f,
-            DimMax = 0.85f,
-            CardElevation = 8.dp,
-            CardShadowColor = Color(0xFF1E1E3C).copy(alpha = 0.5f),
-            ContactShadow = Color(0xFF1C1C30).copy(alpha = 0.10f),
-            ContactShadowLength = 14.dp,
+            DimMax = 0.60f,
+            CardElevation = 12.dp,
+            CardShadowColor = Color(0x241C1C30),
+            ContactShadow = Color(0x2E1C1C30),
+            ContactShadowLength = 16.dp,
+            CardHairline = Color(0x1A1C1C30),
+            CardRim = Color.Transparent,
+            SyncDot = Color(0xFFC0841A),
+            DimColor = Color(0xFFF5F5F7),
             AccentLightness = 0.45f..0.62f,
             InkLightness = 0.38f,
             PillAlpha = 0.14f,
@@ -152,7 +168,7 @@ class KoanPalette(
 
         val Dark = KoanPalette(
             isDark = true,
-            Base = Color(0xFF1C1C1E),
+            Base = Color(0xFF121214),
             Glass = Color.White.copy(alpha = 0.08f),
             TextPrimary = Color.White,
             TextSecondary = Color.White.copy(alpha = 0.62f),
@@ -170,8 +186,8 @@ class KoanPalette(
             GroupedRow = Color.White.copy(alpha = 0.07f),
             ToggleOff = Color(0xFF8E8E93),
             FocusRing = Color.White.copy(alpha = 0.30f),
-            Dock = Color(0xFF252527),
-            DockShadow = Color.Black.copy(alpha = 0.35f),
+            Dock = Color(0xFF232326),
+            DockShadow = Color(0x73000000),
             DrawerHandle = Color.White.copy(alpha = 0.20f),
             BarField = Color.White.copy(alpha = 0.08f),
             SegmentPill = Color(0xFF4A4A4D),
@@ -190,14 +206,134 @@ class KoanPalette(
             FindMatchText = Color.White,
             DimToBase = false,
             DimGain = 1f,
-            DimMax = 1f,
+            DimMax = 0.80f,
             CardElevation = 20.dp,
-            CardShadowColor = Color.Black,
-            ContactShadow = Color.Black.copy(alpha = 0.22f),
-            ContactShadowLength = 14.dp,
+            CardShadowColor = Color(0x99000000),
+            ContactShadow = Color(0xA6000000),
+            ContactShadowLength = 18.dp,
+            CardHairline = Color(0x1FFFFFFF),
+            CardRim = Color(0x1AFFFFFF),
+            SyncDot = Color(0xFFE8B45A),
+            DimColor = Color.Black,
             AccentLightness = 0.62f..0.74f,
             InkLightness = 0.80f,
             PillAlpha = 0.18f,
+        )
+
+        /** Private mode in the light theme (OVERVIEW_PRIVATE.md §5.1). Cards stay white on the lavender base. */
+        val Dusk = KoanPalette(
+            isDark = false,
+            Base = Color(0xFFDEDAF0),
+            Glass = Color(0xFFD2CDEA),
+            TextPrimary = Color(0xFF17142E),
+            TextSecondary = Color(0xFF524D70),
+            TextDisabled = Light.TextDisabled,
+            Icon = Color(0xFF524D70),
+            Card = Color(0xFFFFFFFF),
+            CardStrip = Color(0xF0FFFFFF),
+            CardBorder = Color(0xFFCFCAE8),
+            CloseButton = Color(0x0F17142E),
+            CloseIcon = Color(0xFF524D70),
+            DefaultAccent = Light.DefaultAccent,
+            Primary = Color(0xFF17142E),
+            OnPrimary = Color.White,
+            Destructive = Light.Destructive,
+            GroupedRow = Color(0xFFEEECF8),
+            ToggleOff = Light.ToggleOff,
+            FocusRing = Color(0xFF4B3FD6),
+            Dock = Color(0xFFF6F4FD),
+            DockShadow = Color(0x1A281E6E),
+            DrawerHandle = Color(0x2E17142E),
+            BarField = Color(0xFFE9E6F6),
+            SegmentPill = Light.SegmentPill,
+            FieldHint = Color(0xFF6E6990),
+            Skeleton = Light.Skeleton,
+            IconBacking = Light.IconBacking,
+            Notice = Light.Notice,
+            Attention = Light.Attention,
+            DrawerScrim = Light.DrawerScrim,
+            DrawerScrimNoBlur = Light.DrawerScrimNoBlur,
+            DrawerShadowNoBlur = Light.DrawerShadowNoBlur,
+            SheetScrim = Color(0x5717142E),
+            FindCurrent = Light.FindCurrent,
+            FindCurrentText = Light.FindCurrentText,
+            FindMatch = Light.FindMatch,
+            FindMatchText = Light.FindMatchText,
+            DimToBase = true,
+            DimGain = 1.25f,
+            DimMax = 0.60f,
+            CardElevation = Light.CardElevation,
+            CardShadowColor = Light.CardShadowColor,
+            ContactShadow = Light.ContactShadow,
+            ContactShadowLength = Light.ContactShadowLength,
+            CardHairline = Color(0x1A17142E),
+            CardRim = Color.Transparent,
+            SyncDot = Light.SyncDot,
+            DimColor = Color(0xFFDEDAF0),
+            AccentLightness = Light.AccentLightness,
+            InkLightness = Light.InkLightness,
+            PillAlpha = Light.PillAlpha,
+            PrivateAccent = Color(0xFF4B3FD6),
+            PrivatePill = Color(0x294B3FD6),
+            PrivateInk = Color(0xFF2E2399),
+        )
+
+        /** Private mode in the dark theme (OVERVIEW_PRIVATE.md §5.1). */
+        val Night = KoanPalette(
+            isDark = true,
+            Base = Color(0xFF110F24),
+            Glass = Color(0x14FFFFFF),
+            TextPrimary = Color.White,
+            TextSecondary = Color(0xA3FFFFFF),
+            TextDisabled = Dark.TextDisabled,
+            Icon = Color(0xFFA5A1C4),
+            Card = Color(0xFF1E1C38),
+            CardStrip = Color(0xF21E1C38),
+            CardBorder = Color(0x24B9B4FF),
+            CloseButton = Color(0x1AFFFFFF),
+            CloseIcon = Color(0xBFFFFFFF),
+            DefaultAccent = Dark.DefaultAccent,
+            Primary = Color.White,
+            OnPrimary = Color(0xFF17142E),
+            Destructive = Dark.Destructive,
+            GroupedRow = Color(0x12FFFFFF),
+            ToggleOff = Dark.ToggleOff,
+            FocusRing = Color(0xFF9C8CFF),
+            Dock = Color(0xFF18162F),
+            DockShadow = Color(0x73000000),
+            DrawerHandle = Color(0x33FFFFFF),
+            BarField = Color(0x14FFFFFF),
+            SegmentPill = Dark.SegmentPill,
+            FieldHint = Color(0x94FFFFFF),
+            Skeleton = Dark.Skeleton,
+            IconBacking = Dark.IconBacking,
+            Notice = Color(0xF21E1C38),
+            Attention = Dark.Attention,
+            DrawerScrim = Dark.DrawerScrim,
+            DrawerScrimNoBlur = Dark.DrawerScrimNoBlur,
+            DrawerShadowNoBlur = Dark.DrawerShadowNoBlur,
+            SheetScrim = Color(0x99050412),
+            FindCurrent = Dark.FindCurrent,
+            FindCurrentText = Dark.FindCurrentText,
+            FindMatch = Dark.FindMatch,
+            FindMatchText = Dark.FindMatchText,
+            DimToBase = false,
+            DimGain = 1f,
+            DimMax = 0.80f,
+            CardElevation = Dark.CardElevation,
+            CardShadowColor = Dark.CardShadowColor,
+            ContactShadow = Dark.ContactShadow,
+            ContactShadowLength = Dark.ContactShadowLength,
+            CardHairline = Color(0x29B9B4FF),
+            CardRim = Color(0x1AFFFFFF),
+            SyncDot = Dark.SyncDot,
+            DimColor = Color(0xFF050412),
+            AccentLightness = Dark.AccentLightness,
+            InkLightness = Dark.InkLightness,
+            PillAlpha = Dark.PillAlpha,
+            PrivateAccent = Color(0xFF9C8CFF),
+            PrivatePill = Color(0x339C8CFF),
+            PrivateInk = Color(0xFFCFC6FF),
         )
     }
 }
@@ -440,11 +576,18 @@ object CardTokens {
     val SkeletonBar = 10.dp
     val Radius = 28.dp
     val HeaderHeight = 44.dp
-    val HeaderPaddingStart = 14.dp
+    val HeaderPaddingStart = 12.dp
     val HeaderPaddingEnd = 6.dp
     val HeaderGap = 10.dp
-    val Favicon = 22.dp
-    val TitleSize = 15.sp
+    val Favicon = 24.dp
+    /** Two-line header: title over the registrable host (OVERVIEW_PRIVATE.md §3.2). */
+    val TitleSize = 14.5.sp
+    val TitleLine = 18.sp
+    val HostSize = 11.5.sp
+    val HostLine = 14.sp
+    /** A back card's key shadow loses this share per depth step, down to [KEY_SHADOW_MIN]. */
+    const val KEY_SHADOW_STEP = 0.1f
+    const val KEY_SHADOW_MIN = 0.6f
     val CloseTouch = 44.dp
     val CloseButton = 30.dp
     val CloseIcon = 14.dp
@@ -471,6 +614,9 @@ object CardTokens {
 object OverviewTokens {
     val HeaderHeight = 52.dp
     val HeaderPadding = 6.dp
+    val HeaderPaddingEnd = 10.dp
+    /** From the space name to the sync-failed dot. */
+    val SyncDotGap = 8.dp
     val HeaderIcon = 44.dp
     val HeaderGlyph = 22.dp
     val TitleGap = 10.dp
@@ -981,7 +1127,7 @@ object SettingsTokens {
     /** The soft brand wash behind the top of the screen. */
     val WashHeight = 320.dp
     const val WASH_ALPHA_LIGHT = 0.20f
-    const val WASH_ALPHA_DARK = 0.14f
+    const val WASH_ALPHA_DARK = 0.16f
 
     // About.
     val AppIcon = 104.dp
@@ -1076,6 +1222,9 @@ object TranslateTokens {
 
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
 object DownloadTokens {
+    /** A private download's mask before its name. */
+    val PrivateGlyph = 14.dp
+    val PrivateGap = 6.dp
     val FileTile = 40.dp
     val FileTileRadius = 10.dp
     val FileGlyph = 18.dp
@@ -1332,3 +1481,112 @@ object LoginTokens {
     /** The unselected account radio's ring. */
     val RadioRing = 2.dp
 }
+
+/** Private mode (OVERVIEW_PRIVATE.md §4–§7). Colours of the palettes are in [KoanPalette.Dusk] / [KoanPalette.Night]. */
+object PrivateTokens {
+    // §4.2 toggle
+    val ToggleTouchWidth = 56.dp
+    val ToggleTouchHeight = 48.dp
+    val TrackWidth = 56.dp
+    val TrackHeight = 32.dp
+    val Knob = 26.dp
+    val KnobOff = 3.dp
+    val KnobOn = 27.dp
+    val KnobShadow = 3.dp
+    val KnobGlyph = 17.dp
+    val TrackOffLight = Color(0xFF86868B)
+    val TrackOffDark = Color(0xFF636366)
+    val TrackOnLight = Color(0xFF4B3FD6)
+    val TrackOnDark = Color(0xFF7B6CF0)
+    val MaskOffLight = Color(0xFF6E6E73)
+    val MaskOffDark = Color(0xFF636366)
+    val MaskOnLight = Color(0xFF2E2399)
+    val MaskOnDark = Color(0xFF3A2FB8)
+
+    // §4.3 header chip
+    val ChipHeight = 24.dp
+    val ChipPadding = 10.dp
+    val ChipText = 12.sp
+
+    // §4.4 dock pill, §4.5 address
+    val PillHeight = 36.dp
+    val PillPaddingStart = 12.dp
+    val PillPaddingEnd = 16.dp
+    val PillGlyph = 20.dp
+    val PillGap = 7.dp
+    val PillText = 14.sp
+    val AddressGlyph = 18.dp
+    val AddressGap = 8.dp
+
+    // §4.6 search notice
+    val NoticeRadius = 18.dp
+    val NoticePaddingV = 10.dp
+    val NoticePaddingH = 14.dp
+    val NoticeGlyph = 20.dp
+    val NoticeGap = 10.dp
+    val NoticeText = 13.sp
+    val NoticeLine = 18.sp
+    const val SELECTION_LIGHT = 0x384B3FD6
+    const val SELECTION_DARK = 0x599C8CFF
+
+    // §4.7 empty state
+    val EmptyTop = 230.dp
+    val EmptySide = 32.dp
+    val EmptyIconBox = 64.dp
+    val EmptyIconRadius = 20.dp
+    val EmptyIcon = 36.dp
+    val EmptyTitle = 18.sp
+    val EmptyTitleLine = 24.sp
+    val EmptyBody = 14.sp
+    val EmptyBodyLine = 20.sp
+    val EmptyFactLine = 21.sp
+    val EmptyFactDot = 6.dp
+    val EmptyFactDotTop = 8.dp
+    val EmptyFactGap = 8.dp
+    val EmptyButtonHeight = 48.dp
+    val EmptyButtonPadding = 22.dp
+
+    // §5.2 atmosphere
+    val GradientDusk = Color(0xFFAFA4E4)
+    val GradientNight = Color(0xFF1F1A48)
+    val GradientDuskLength = 480.dp
+    val GradientNightLength = 420.dp
+    val GlowBand = 380.dp
+
+    // §5.3 stars
+    const val STARS = 56
+    const val SPARKLES = 7
+    val StarRadii = listOf(0.6f, 0.7f, 0.8f, 1.0f, 1.2f, 1.4f)
+    val SparkleSizes = listOf(8f, 10f, 12f, 14f)
+    val StarArea = 360.dp
+    val StarFade = 380.dp
+    val StarDuskA = Color(0xFF20166F)
+    val StarDuskB = Color(0xFF4A22B0)
+    val StarNightA = Color(0xFFFFFFFF)
+    val StarNightB = Color(0xFFD6CEFF)
+    const val STAR_ALPHA_DUSK = 0.72f
+    const val STAR_ALPHA_NIGHT = 0.58f
+    const val SPARKLE_ALPHA_DUSK = 0.82f
+    const val SPARKLE_ALPHA_NIGHT = 0.66f
+    val StarMargin = 6.dp
+    val DockMargin = 10.dp
+
+    // §6 transition: the space pager's slide (owner, 2026-11-11), not the mist of the spec.
+    /** Animations off: a crossfade this long, no slide, no twinkle. */
+    const val REDUCED_MS = 150
+
+    /** The dock's texts dip out and back in around this point of the slide (0…1). */
+    const val LABELS_AT = 0.35f
+
+    /** Stars appear right to left: the rightmost after FROM, the leftmost SPREAD later, each over IN. */
+    const val STARS_FROM_MS = 140
+    const val STARS_SPREAD_MS = 700
+    const val STAR_IN_MS = 480
+
+    /** The incoming background's soft leading edge. */
+    val EdgeSoftness = 72.dp
+
+    /** A cold card (no private tab yet) fades in this long once the last one closed. */
+    const val EMPTY_FADE_MS = 160
+}
+

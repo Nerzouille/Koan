@@ -4,6 +4,16 @@
 
 ### New
 
+- **Private browsing** (the switch at the right of the overview's header; branch `private`, not
+  merged yet): private tabs in their own set, kept until you close them, also after a restart
+  (sites sign you out then). Locked behind your fingerprint after 1 min away, no screenshots, no
+  history, private search with bookmarks only, HTTPS only, tracking and fingerprinting protection,
+  cleaner links, Google AMP links to the article. It doesn't hide your IP address. Details:
+  [Private browsing](docs/FEATURES.md#14-private-browsing).
+- **Tab cards** show the page title over its site, and keep their edges deep in the pile; dark
+  theme on a deeper `#121214` base. The overview header shows a small amber dot only when sync
+  fails (no more spinner).
+
 - **Two-way sync, if you want it** (Settings › Mozilla account › Send to your Mozilla account):
   passwords saved on the phone go to your account, and History goes both ways (pages you visit,
   and pages you remove). Editing and deleting your account's passwords has its own switch, off by

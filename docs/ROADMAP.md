@@ -25,6 +25,7 @@ Latest release **v0.4.0** (pre-release, 2026-10-30). Branches and how to build/t
 | M4 Motion polish | **Partly done**, no branch | `dev` | Owner picks the next M4 item. Done: card flies page ↔ stack both ways (`ui/overview/CardHero.kt`, v0.4.0), long-press lift, swipe-to-close by distance or fling, Undo toast after a close. Not started: stack compression / elastic trailing, new-tab grow, close collapse, baseline profile, JankStats, search backdrop retry. |
 | M6 Write-back | **In progress** | `dev` | Passwords (add; edits and deletions behind their own switch, off) and history (both ways) done and running on the owner's account since 2026-11-10 (`docs/HANDOFF.md` "Two-way sync"). Bookmarks and Zen Spaces not written yet; Spaces writes come last, behind `writeBackEnabled`. |
 | M7 Delights | **Partly done** | `dev` | Done: `@engine` shortcuts, custom engines, Undo close, Reopen closed tab (last tab only), background audio. Dropped: status bar hidden while scrolling (branch `statusbar`, not merged). Not started: everything else below. |
+| Private mode + overview polish | **Built, untested on the phone** | branch `private` | Owner tests (list in `docs/HANDOFF.md` "Private mode"), then merge into `dev`. Card separation, two-line headers, amber sync dot, `#121214` dark base, permanent encrypted private tabs, lock, FLAG_SECURE, private-only engine protections. |
 | Open items after v0.2.0 | Not started | — | **Long screenshots** first: bump to GeckoView / android-components 160 (released 2026-11-10) on a branch from `dev`, then retest HyperOS scroll screenshots. The other items wait for the owner's choice. |
 
 ## M0 — Skeleton browser (≈ 2–4 days)
@@ -84,7 +85,8 @@ losing data, and the owner has approved and published the release.
 - **Desktop site:** revisit the toggle.
 - **Add to home screen:** a page as a launcher shortcut.
 - **Picture-in-picture** for video when leaving Koan.
-- **Private tab:** a tab that keeps no history, cookies or cache.
+- **Private browsing:** built on branch `private` (2026-11-11) from `docs/design/OVERVIEW_PRIVATE.md`
+  and the owner's decisions; see the Status table.
 - **Pull to refresh in chats:** a site whose list scrolls inside the page (not the page itself) may
   reload on a pull at the top of the list. Gecko doesn't say whether an inner list can scroll up.
 - **Long screenshots:** update to GeckoView/android-components 160 (after Nov 10), then test
