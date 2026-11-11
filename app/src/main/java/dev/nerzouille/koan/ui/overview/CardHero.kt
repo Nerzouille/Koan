@@ -259,7 +259,7 @@ private fun HeroBody(
                 if (header != null && p > 0f) {
                     val v = band
                     drawRoundRect(
-                        palette.CardBorder,
+                        palette.CardHairline,
                         topLeft = Offset(0f, v.top),
                         size = Size(size.width, v.bottom - v.top),
                         cornerRadius = CornerRadius(v.corner),

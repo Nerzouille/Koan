@@ -1,10 +1,18 @@
 package dev.nerzouille.koan.engine
 
+import dev.nerzouille.koan.data.SyncWrite
+import dev.nerzouille.koan.data.HistoryDeletions
+import mozilla.components.browser.state.selector.selectedTab
+import dev.nerzouille.koan.engine.downloads.DuplicateMiddleware
+import mozilla.components.browser.state.engine.middleware.TranslationsMiddleware
+import mozilla.components.browser.state.action.TranslationsAction
 import android.content.Context
 import dev.nerzouille.koan.data.AccountStore
 import dev.nerzouille.koan.data.Bookmarks
 import dev.nerzouille.koan.data.LibrarySync
+import kotlinx.coroutines.flow.first
 import dev.nerzouille.koan.data.LoginStore
+import dev.nerzouille.koan.data.HiddenLogins
 import dev.nerzouille.koan.data.DataStoreBlob
 import dev.nerzouille.koan.data.KeystoreBox
 import dev.nerzouille.koan.data.KoanDatabase
@@ -55,40 +63,65 @@ class Components(context: Context) {
     private val appContext = context.applicationContext
 
     val runtime: GeckoRuntime by lazy {
-        val settings = GeckoRuntimeSettings.Builder()
-            .configFilePath(GeckoPrefs.write(appContext).absolutePath)
-            .build()
+        GeckoPrefs.removeOldConfig(appContext)
+        val settings = GeckoRuntimeSettings.Builder().build()
         GeckoRuntime.create(appContext, settings).also {
             // Pages' login forms are filled from Koan's sealed logins.
             it.autocompleteStorageDelegate = LoginAutofill(logins, appScope)
         }
     }
 
-    val engine by lazy {
+    /** tel:, intent://, apps' own schemes; the "Open in YouTube?" card and the menu's "Open in …". */
+    val externalLinks: ExternalLinks by lazy {
+        ExternalLinks(appContext, pageUrl = { store.state.selectedTab?.content?.url }, rewrite = ::rewriteLoad)
+    }
+
+    /** Google AMP links open the article: always in private tabs, in normal tabs if the setting says so. */
+    @Volatile private var ampNormalTabs = false
+
+    private fun rewriteLoad(session: mozilla.components.concept.engine.EngineSession, url: String): String? {
+        val private = store.state.tabs.any { it.engineState.engineSession === session && it.content.private }
+        val amp = dev.nerzouille.koan.privacy.AmpLinks.original(url)?.takeIf { private || ampNormalTabs }
+        // Private: tracking parameters go from every page load, typed ones too.
+        val cleaned = if (private) dev.nerzouille.koan.privacy.LinkCleaner.clean(amp ?: url) else null
+        return cleaned ?: amp
+    }
+
+    val engine: GeckoEngine by lazy {
         GeckoEngine(
             appContext,
             DefaultSettings(
-                trackingProtectionPolicy = TrackingProtectionPolicy.recommended(),
+                // Bounce tracking follows its setting (privacy/PrivacyEngine).
+                trackingProtectionPolicy = dev.nerzouille.koan.privacy.PrivacyEngine.policy(bounce = true),
+                // Private tabs (owner's decisions 2026-11-11, docs/FEATURES.md "Private browsing").
+                httpsOnlyMode = mozilla.components.concept.engine.Engine.HttpsOnlyMode.ENABLED_PRIVATE_ONLY,
+                fingerprintingProtectionPrivateBrowsing = true,
+                queryParameterStrippingPrivateBrowsing = true,
+                queryParameterStrippingStripList = dev.nerzouille.koan.privacy.PrivacyEngine.STRIP_LIST.joinToString(" "),
+                emailTrackerBlockingPrivateBrowsing = true,
                 preferredColorScheme = PreferredColorScheme.System,
                 // Visited links, and page titles for history.
                 historyTrackingDelegate = history,
                 // tel:, mailto:, intent:// … open in their app.
-                requestInterceptor = ExternalLinks(appContext),
+                requestInterceptor = externalLinks,
             ),
             runtime,
         )
     }
 
-    val store by lazy {
+    val store: BrowserStore by lazy {
         BrowserStore(
             middleware = EngineMiddleware.create(engine) + ReaderViewMiddleware() +
+                DuplicateMiddleware({ downloadFiles }, duplicateAsk) +
                 DownloadMiddleware(
                     appContext, KoanDownloadService::class.java,
                     // Removing a download from the list never deletes the file (Delete does that explicitly).
                     deleteFileFromStorage = { false },
                     downloadFileUtils = downloadFiles, downloadStorage = downloadStorage,
-                ),
-        )
+                ) +
+                // Firefox Translations, on the phone. GeckoView wants its calls on the main thread.
+                TranslationsMiddleware(engine = engine, scope = kotlinx.coroutines.MainScope(), isTranslationsEnabled = { true }),
+        ).also { it.dispatch(TranslationsAction.InitTranslationsBrowserState) }
     }
 
     // ---- downloads ----
@@ -103,13 +136,24 @@ class Components(context: Context) {
     val defaultDownloadFolder: String
         get() = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path
 
-    val downloadFiles by lazy { DefaultDownloadFileUtils(appContext) { pickedDownloadFolder ?: defaultDownloadFolder } }
+    // A download from a private tab always goes to the phone's Download folder.
+    val downloadFiles by lazy {
+        DefaultDownloadFileUtils(appContext) {
+            if (store.state.selectedTab?.content?.private == true) defaultDownloadFolder else pickedDownloadFolder ?: defaultDownloadFolder
+        }
+    }
     val downloadStorage by lazy { DownloadStorage(appContext) }
     val downloadsUseCases by lazy { DownloadsUseCases(store, downloadFiles) }
     val downloads by lazy { Downloads(appContext, downloadFiles, downloadsUseCases) }
 
+    /** The activity's picture-in-picture (MainActivity): whether Koan is in its PiP window. */
+    val pip = MutableStateFlow<PictureInPicture?>(null)
+
     /** A download Koan didn't see a tap for, waiting on its card (KoanOverlays). */
     val downloadAsk = MutableStateFlow<DownloadAsk?>(null)
+
+    /** A download of a file that is already there, waiting on the duplicate card (KoanOverlays). */
+    val duplicateAsk = MutableStateFlow<DuplicateAsk?>(null)
 
     /** When the owner last tapped or pressed a key in Koan (uptime ms): downloads right after one start at once. */
     @Volatile var lastInputAt = 0L
@@ -119,6 +163,36 @@ class Components(context: Context) {
 
     fun watchDownloadLocation() = appScope.launch {
         settings.downloadLocation.collect { pickedDownloadFolder = it }
+    }
+
+    // ---- private mode ----
+
+    /** The private tabs (privacy/PrivateTabs): their own tab manager, saved sealed. */
+    val privateTabs by lazy {
+        dev.nerzouille.koan.privacy.PrivateTabs(appContext, store, tabsUseCases, sessionUseCases, { runtime }, { json ->
+            engine.createSessionStateFrom(JsonReader(StringReader(json)))
+        }, appScope)
+    }
+
+    /** Private tabs' per-site Protections switch (the ⋯ menu). */
+    val trackingProtection by lazy { mozilla.components.feature.session.TrackingProtectionUseCases(store, engine) }
+
+    /** The tab manager of what is shown: the private tabs while Private is on. */
+    fun shownTabs(): TabManager = if (privateMode.on.value) privateTabs.tabs else tabs
+
+    /** Private shown or not, and its lock. */
+    val privateMode by lazy { dev.nerzouille.koan.privacy.PrivateMode(settings, privateTabs.count) }
+
+    private var privacyStarted = false
+
+    /** The engine's privacy settings, the private tabs, the lock. Once per process. */
+    fun startPrivacy() {
+        if (privacyStarted) return
+        privacyStarted = true
+        dev.nerzouille.koan.privacy.PrivacyEngine.start(engine, settings, appScope)
+        appScope.launch { settings.ampNormalTabs.collect { ampNormalTabs = it } }
+        privateMode.start(appContext)
+        privateTabs.start()
     }
 
     /** uBlock Origin (C5). [startExtensions] once per process. */
@@ -140,6 +214,7 @@ class Components(context: Context) {
     fun startMedia() {
         if (mediaStarted) return
         mediaStarted = true
+        enableMediaTimeline()
         MediaSessionFeature(appContext, KoanMediaService::class.java, store).start()
         // The notification shows the tab's icon: Koan's favicons, given to a tab once it plays.
         appScope.launch {
@@ -163,6 +238,13 @@ class Components(context: Context) {
 
     /** The search engine a page declares, for "Add this search engine". */
     val pageEngines by lazy { PageEngines(engine, store, appScope) }
+    val pageImages by lazy { PageImages(engine, store, appScope) }
+
+    /** Koan's player over a page's fullscreen video (assets/extensions/video). */
+    val pageVideo by lazy { PageVideo(engine, store, appScope) }
+
+    /** Koan's video player: the minimised web video, the standalone player (ui/player). */
+    val player by lazy { dev.nerzouille.koan.ui.player.PlayerHost() }
 
     /** A link or text another app sent to Koan (default browser, share): opened as a new tab. */
     val incoming = MutableStateFlow<Incoming?>(null)
@@ -189,9 +271,17 @@ class Components(context: Context) {
     val spaces by lazy { SpacesRepository(database.dao(), appScope) }
     val accounts by lazy { AccountStore(DataStoreBlob(appContext), KeystoreBox()) }
     /** Saved logins, sealed with their own Keystore key. */
-    val logins by lazy { LoginStore(database.dao(), KeystoreBox("koan_logins")) }
+    val hiddenLogins by lazy { HiddenLogins(appContext) }
+    val logins by lazy { LoginStore(database.dao(), KeystoreBox("koan_logins"), hiddenLogins) }
+
+    /** History removed on the phone, waiting to be deleted from the account (two-way sync). */
+    val historyDeletions by lazy { HistoryDeletions(appContext) }
+
+    /** Two-way sync: what the phone sends to the Mozilla account, for the switches turned on. */
+    val syncWrite by lazy { SyncWrite(appContext, settings, database.dao(), logins, hiddenLogins, historyDeletions) }
     val sync by lazy {
-        SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }, library = LibrarySync(database.dao(), logins))
+        SpacesSync(accounts, database.dao(), appScope, liveTabs = { tabs.liveIds() }, library = LibrarySync(database.dao(), logins, historyDeletions),
+            syncWrite = syncWrite)
     }
     val lastPlace by lazy { LastPlace(appContext) }
     val settings by lazy { Settings(appContext) }
@@ -207,11 +297,14 @@ class Components(context: Context) {
     val history by lazy { HistoryRecorder(database.dao(), appScope) }
 
     val tabs by lazy {
-        TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, history, appScope) { json ->
+        TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, history, appScope, readState = { json ->
             engine.createSessionStateFrom(JsonReader(StringReader(json)))
-        }
+        })
     }
 }
+
+/** A download of a file already downloaded: [start] with the (maybe renamed) download, or [cancel]. */
+class DuplicateAsk(val dup: dev.nerzouille.koan.engine.downloads.DuplicateDownload, val start: (DownloadState) -> Unit, val cancel: () -> Unit)
 
 /** A download waiting for "Download" or "Cancel" on its card. */
 class DownloadAsk(val download: DownloadState, val start: () -> Unit, val cancel: () -> Unit)
@@ -232,4 +325,24 @@ data class Incoming(
         /** Text selected in another app ("Search in Koan"): opened if it is a url, else searched. */
         Selected,
     }
+}
+
+/**
+ * feature-media's "media notification improvements" (an experiment Fenix turns on remotely;
+ * Koan has no experiments): the notification's timeline with position, length, speed and
+ * seeking. The position itself comes from the page (PageVideo). Nimbus isn't on Koan's compile
+ * classpath (feature-media's own dependency), hence reflection; proguard-rules.pro keeps the
+ * names. Without it, the notification simply keeps play/pause only.
+ */
+private fun enableMediaTimeline() {
+    runCatching {
+        val nimbus = Class.forName("mozilla.components.feature.media.MediaNimbus")
+        val features = nimbus.getMethod("getFeatures").invoke(nimbus.getField("INSTANCE").get(null))
+        val holder = features.javaClass.getMethod("getMediaNotificationImprovements").invoke(features)
+        val feature = Class.forName("mozilla.components.feature.media.MediaNotificationImprovements")
+        val variables = Class.forName("org.mozilla.experiments.nimbus.Variables")
+        val make = feature.getConstructor(variables, android.content.SharedPreferences::class.java, Boolean::class.javaPrimitiveType)
+        val init: (Any?, Any?) -> Any = { v, prefs -> make.newInstance(v, prefs, true) }
+        holder.javaClass.getMethod("withInitializer", Function2::class.java).invoke(holder, init)
+    }.onFailure { android.util.Log.w("Components", "Media timeline not enabled", it) }
 }

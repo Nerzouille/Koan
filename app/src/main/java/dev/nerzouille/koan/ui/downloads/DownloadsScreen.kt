@@ -38,6 +38,20 @@ import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.DayCard
 import dev.nerzouille.koan.ui.kit.ListPage
+import dev.nerzouille.koan.ui.kit.LibraryRowFrame
+import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
+import dev.nerzouille.koan.ui.kit.LibraryRowTitle
+import dev.nerzouille.koan.ui.kit.SelectionAction
+import dev.nerzouille.koan.ui.kit.SelectionBar
+import dev.nerzouille.koan.ui.kit.SelectionHeader
+import dev.nerzouille.koan.ui.kit.SwipeRow
+import dev.nerzouille.koan.ui.kit.dayRowShape
+import dev.nerzouille.koan.ui.kit.rememberSelection
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.SideEffect
+import dev.nerzouille.koan.ui.kit.Toast
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.key
 import dev.nerzouille.koan.ui.kit.byDay
 import dev.nerzouille.koan.ui.settings.SettingsDivider
 import dev.nerzouille.koan.ui.settings.SettingsSection
@@ -50,8 +64,11 @@ import mozilla.components.browser.state.state.content.DownloadState.Status
 
 /**
  * Downloads (design 7i): what is downloading (gradient progress, pause / resume, cancel), then
- * the finished ones by day; a finished row opens to Open / Share / Delete. Search and Clear sit at
- * the bottom, in thumb reach. [folder] names where files go ("Download", or the picked folder).
+ * the finished ones by day, with the library rules (ui/kit/LibraryRow): a tap opens the file; a
+ * swipe left to right hides it from the list (the file stays), right to left deletes the file
+ * (both with Undo: the file is only deleted once the toast is gone); a long press enters
+ * selection mode (Open, Share, Hide, Delete). Search and Clear sit at the bottom, in thumb reach.
+ * [folder] names where files go ("Download", or the picked folder).
  */
 @Composable
 fun DownloadsScreen(
@@ -60,16 +77,66 @@ fun DownloadsScreen(
     actions: Downloads,
     onClear: () -> Unit,
     onClose: () -> Unit,
+    onToast: (Toast) -> Unit,
+    onCopyLink: (String) -> Unit,
+    /** Asks first (deleting several files): title, text, the confirm button, what it does. */
+    onConfirm: (title: String, text: String, confirm: String, action: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
+    /** A finished video: Koan's player (false = not a video, or it can't). */
+    onPlayVideo: (DownloadState) -> Boolean = { false },
 ) {
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf<String?>(null) }
+    val hidden by actions.hidden.collectAsState()
     val shown = downloads
-        .filterNot { it.private || it.status == Status.CANCELLED }
+        .filterNot { it.status == Status.CANCELLED || it.id in hidden }
         .filter { query.isBlank() || it.fileName.orEmpty().contains(query.trim(), ignoreCase = true) }
         .sortedByDescending { it.createdTime }
     val (running, done) = shown.partition { it.status in RUNNING }
+    val selection = rememberSelection<String>()
+    SideEffect { selection.keepOnly(done.mapTo(HashSet()) { it.id }) }
+    val checked = done.filter { it.id in selection }
+    fun open(d: DownloadState) {
+        if (onPlayVideo(d)) return
+        if (!actions.open(d)) onToast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
+    }
+    fun share(list: List<DownloadState>) {
+        val ok = if (list.size == 1) actions.share(list[0]) else actions.shareAll(list)
+        if (!ok) onToast(Toast(if (list.size == 1) "Couldn't share this file" else "Couldn't share these files"))
+    }
+    fun hide(list: List<DownloadState>) {
+        list.forEach { actions.removeLater(it, deleteFile = false) }
+        val what = if (list.size == 1) "Hidden from the list" else "${list.size} hidden from the list"
+        val detail = if (list.size == 1) "The file stays in $folder" else "The files stay in $folder"
+        onToast(Toast(what, "Undo", detail = detail) { list.forEach(actions::restore) })
+    }
+    fun delete(list: List<DownloadState>) {
+        list.forEach { actions.removeLater(it, deleteFile = true) }
+        onToast(Toast(if (list.size == 1) "File deleted" else "${list.size} files deleted", "Undo") { list.forEach(actions::restore) })
+    }
+    fun act(run: () -> Unit) = { selection.clear(); run() }
+    // Hide is a swipe only (left to right); the bar keeps what a tap can't do.
+    val bar: List<SelectionAction> = if (checked.size == 1) {
+        val d = checked[0]
+        val (icon, label) = openLook(d)
+        listOf(
+            SelectionAction(icon, label, onClick = act { open(d) }),
+            SelectionAction(KoanIcons.Link, "Copy link", onClick = act { onCopyLink(d.url) }),
+            SelectionAction(KoanIcons.Share, "Share", onClick = act { share(listOf(d)) }),
+            SelectionAction(KoanIcons.Trash, "Delete", destructive = true, onClick = act { delete(listOf(d)) }),
+        )
+    } else {
+        listOf(
+            SelectionAction(KoanIcons.Share, "Share", onClick = act { share(checked) }),
+            SelectionAction(KoanIcons.Trash, "Delete", destructive = true) {
+                val list = checked
+                onConfirm("Delete ${list.size} files?", "They're deleted from $folder.", "Delete") {
+                    selection.clear()
+                    delete(list)
+                }
+            },
+        )
+    }
 
     ListPage(
         title = "Downloads",
@@ -94,7 +161,15 @@ fun DownloadsScreen(
                 Text(folder, color = palette.TextSecondary, fontSize = DownloadTokens.ChipTextSize, maxLines = 1)
             }
         },
+        selectionHeader = if (!selection.active) null else {
+            { SelectionHeader(checked.size, interactive = true, onCancel = selection::clear, onSelectAll = { selection.set(done.mapTo(HashSet()) { it.id }) }) }
+        },
+        selectionBar = if (!selection.active) null else {
+            { SelectionBar(bar, interactive = true) }
+        },
     ) {
+        BackHandler(enabled = selection.active, onBack = selection::clear)
+        val selecting = selection.active
         Column(
             Modifier
                 .weight(1f)
@@ -116,10 +191,21 @@ fun DownloadsScreen(
             // One card per day, newest first.
             byDay(done, { it.createdTime }).forEach { (day, items) ->
                 SettingsSection(day)
-                DayCard {
-                    items.forEachIndexed { i, d ->
-                        if (i > 0) SettingsDivider()
-                        DoneRow(d, open = expanded == d.id, actions = actions) { expanded = if (expanded == d.id) null else d.id }
+                items.forEachIndexed { i, d ->
+                    key(d.id) {
+                        SwipeRow(
+                            onDelete = { delete(listOf(d)) },
+                            onHide = { hide(listOf(d)) },
+                            enabled = !selecting,
+                            shape = dayRowShape(first = i == 0, last = i == items.lastIndex),
+                        ) {
+                            DoneRow(
+                                d, first = i == 0,
+                                checked = if (selecting) d.id in selection else null,
+                                onTap = { if (selecting) selection.toggle(d.id) else open(d) },
+                                onLong = { if (selecting) selection.toggle(d.id) else selection.start(d.id) },
+                            )
+                        }
                     }
                 }
             }
@@ -127,6 +213,24 @@ fun DownloadsScreen(
         }
     }
 }
+
+/** What opening [d] does, by its type: play a video or a song, view a picture, install an app, else read it. */
+private fun openLook(d: DownloadState): Pair<ImageVector, String> = fileOpenLook(d.fileName.orEmpty(), d.contentType)
+
+/** Same, from a file's name and type (the duplicate card's Open row too). */
+fun fileOpenLook(fileName: String, contentType: String?): Pair<ImageVector, String> {
+    val type = contentType.orEmpty().lowercase()
+    val ext = fileName.substringAfterLast('.', "").lowercase()
+    return when {
+        type.startsWith("video/") || type.startsWith("audio/") || ext in MEDIA -> KoanIcons.Play to "Open"
+        type.startsWith("image/") || ext in IMAGES -> KoanIcons.Image to "Open"
+        type == "application/vnd.android.package-archive" || ext == "apk" -> KoanIcons.Install to "Install"
+        else -> KoanIcons.File to "Open"
+    }
+}
+
+private val MEDIA = setOf("mp4", "mkv", "webm", "mov", "avi", "m4v", "mp3", "m4a", "aac", "ogg", "opus", "flac", "wav")
+private val IMAGES = setOf("jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "avif", "bmp", "svg")
 
 private val RUNNING = setOf(Status.INITIATED, Status.DOWNLOADING, Status.PAUSED, Status.FAILED)
 
@@ -146,6 +250,7 @@ private fun RunningRow(d: DownloadState, actions: Downloads) {
         Spacer(Modifier.width(DownloadTokens.RowGap))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (d.private) PrivateMark()
                 Text(d.fileName.orEmpty(), color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Text(state, color = palette.TextSecondary, fontSize = SettingsTokens.RowSubtitleSize)
             }
@@ -181,62 +286,31 @@ private fun RunningRow(d: DownloadState, actions: Downloads) {
     }
 }
 
+/**
+ * A download from a private tab: a small mask before its name. It stays in the list until Koan
+ * restarts (the file stays in Download).
+ */
 @Composable
-private fun DoneRow(d: DownloadState, open: Boolean, actions: Downloads, onToggle: () -> Unit) {
-    val palette = KoanTheme.colors
-    Column(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onToggle)
-                .padding(vertical = DownloadTokens.RowPaddingV),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FileTile(d)
-            Spacer(Modifier.width(DownloadTokens.RowGap))
-            Column(Modifier.weight(1f)) {
-                Text(d.fileName.orEmpty(), color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    listOfNotNull((d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · "),
-                    color = palette.TextSecondary,
-                    fontSize = SettingsTokens.RowSubtitleSize,
-                    maxLines = 1,
-                )
-            }
-        }
-        if (open) {
-            Row(
-                Modifier.padding(bottom = DownloadTokens.RowPaddingV),
-                horizontalArrangement = Arrangement.spacedBy(DownloadTokens.ActionGap),
-            ) {
-                Action(KoanIcons.Open, "Open", primary = true, modifier = Modifier.weight(1f)) { actions.open(d) }
-                Action(KoanIcons.Share, "Share", modifier = Modifier.weight(1f)) { actions.share(d) }
-                Action(KoanIcons.Trash, "Delete", destructive = true, modifier = Modifier.weight(1f)) { actions.delete(d) }
-            }
-        }
-    }
+private fun PrivateMark() {
+    androidx.compose.material3.Icon(
+        KoanIcons.Private, "Private",
+        tint = KoanTheme.colors.TextSecondary,
+        modifier = Modifier.padding(end = DownloadTokens.PrivateGap).size(DownloadTokens.PrivateGlyph),
+    )
 }
 
 @Composable
-private fun Action(icon: ImageVector, label: String, modifier: Modifier, primary: Boolean = false, destructive: Boolean = false, onClick: () -> Unit) {
-    val palette = KoanTheme.colors
-    val color = when {
-        primary -> palette.OnPrimary
-        destructive -> palette.Destructive
-        else -> palette.TextPrimary
-    }
-    Row(
-        modifier
-            .height(DownloadTokens.ActionHeight)
-            .clip(CircleShape)
-            .background(if (primary) palette.Primary else palette.GroupedRow)
-            .clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Icon(icon, null, tint = color, modifier = Modifier.size(SettingsTokens.RowGlyph * 0.85f))
-        Spacer(Modifier.width(SettingsTokens.Divider * 6))
-        Text(label, color = color, fontSize = SettingsTokens.RowValueSize, fontWeight = FontWeight.Medium)
+private fun DoneRow(d: DownloadState, first: Boolean, checked: Boolean?, onTap: () -> Unit, onLong: () -> Unit) {
+    LibraryRowFrame(first, onClick = onTap, onLongClick = onLong, checked = checked) {
+        FileTile(d)
+        Spacer(Modifier.width(DownloadTokens.RowGap))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (d.private) PrivateMark()
+                LibraryRowTitle(d.fileName.orEmpty())
+            }
+            LibraryRowSubtitle(listOfNotNull((d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · "))
+        }
     }
 }
 

@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.ui.kit
 
+import androidx.compose.foundation.layout.fillMaxWidth
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,19 +71,54 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
     }
 }
 
-/** A destructive action: red text only, on a neutral row. */
+/**
+ * The one destructive button: red SemiBold text on a neutral pill ([surface]), never a red fill.
+ * Destructive rows ("Sign out") are rows with a red title instead.
+ */
 @Composable
-fun DestructiveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun DestructiveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, surface: Color = KoanTheme.colors.GroupedRow) {
     Row(
         modifier
             .height(ButtonTokens.Height)
             .clip(CircleShape)
-            .background(KoanTheme.colors.GroupedRow)
+            .background(surface)
             .clickable(onClick = onClick)
             .padding(horizontal = ButtonTokens.PaddingH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        Text(text, color = KoanTheme.colors.Destructive, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.Medium)
+        Text(text, color = KoanTheme.colors.Destructive, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.SemiBold)
     }
+}
+
+/*
+ * A card's buttons, one rule everywhere (no text-only Cancel): a card with two choices puts them
+ * side by side, same size, [CardChoices]; a card with a list of choices ends with [CardCancel].
+ */
+
+/** Two choices side by side: [cancel] neutral on the left, the action on the right (red text when [destructive]). */
+@Composable
+fun CardChoices(
+    action: String,
+    interactive: Boolean,
+    onAction: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+    destructive: Boolean = false,
+    cancel: String = "Cancel",
+) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ButtonTokens.ChoiceGap)) {
+        SecondaryButton(cancel, onClick = { if (interactive) onCancel() }, modifier = Modifier.weight(1f))
+        if (destructive) {
+            DestructiveButton(action, onClick = { if (interactive) onAction() }, modifier = Modifier.weight(1f))
+        } else {
+            PrimaryButton(action, onClick = { if (interactive) onAction() }, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+/** A list card's way out: a full-width neutral button under the list. */
+@Composable
+fun CardCancel(interactive: Boolean, onCancel: () -> Unit, modifier: Modifier = Modifier, text: String = "Cancel") {
+    SecondaryButton(text, onClick = { if (interactive) onCancel() }, modifier = modifier.fillMaxWidth())
 }

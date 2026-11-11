@@ -1,5 +1,40 @@
 package dev.nerzouille.koan.ui
 
+import kotlinx.coroutines.flow.first
+import dev.nerzouille.koan.data.SyncBackChoice
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import dev.nerzouille.koan.ui.menu.AppLinkPrompt
+import dev.nerzouille.koan.engine.AppTarget
+import androidx.compose.animation.core.tween
+import dev.nerzouille.koan.ui.theme.SheetTokens
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.SideEffect
+import kotlinx.coroutines.delay
+import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import dev.nerzouille.koan.engine.downloads.DuplicateDownloads
+import dev.nerzouille.koan.ui.menu.DuplicateDownloadPrompt
+import dev.nerzouille.koan.ui.settings.TranslationSettings
+import mozilla.components.concept.engine.translate.LanguageSetting
+import dev.nerzouille.koan.ui.menu.languageName
+import dev.nerzouille.koan.ui.menu.translateUiOf
+import dev.nerzouille.koan.ui.menu.TranslateActions
+import dev.nerzouille.koan.ui.menu.TranslateUi
+import dev.nerzouille.koan.ui.menu.TranslatePage
+import mozilla.components.concept.engine.translate.Language
+import mozilla.components.concept.engine.translate.TranslationOperation
+import mozilla.components.concept.engine.translate.TranslationPageSettingOperation
+import mozilla.components.concept.engine.translate.TranslationOptions
+import mozilla.components.browser.state.action.TranslationsAction
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
@@ -41,10 +76,13 @@ import android.provider.DocumentsContract
 import dev.nerzouille.koan.ui.downloads.DownloadsScreen
 import dev.nerzouille.koan.ui.history.ClearDataCard
 import dev.nerzouille.koan.ui.history.HistoryScreen
+import dev.nerzouille.koan.ui.history.HistoryActions
+import dev.nerzouille.koan.data.VisitEntity
 import dev.nerzouille.koan.ui.menu.FilePrompt
 import dev.nerzouille.koan.ui.menu.PagePrompts
 import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.kit.KoanClipboard
 import dev.nerzouille.koan.ui.kit.copiedToast
 import mozilla.components.browser.state.state.content.DownloadState
 import android.view.HapticFeedbackConstants
@@ -126,6 +164,9 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val linkCard = SheetState(scope, splineBasedDecay(density))
     var link by mutableStateOf<LinkTarget?>(null)
     val signOutCard = SheetState(scope, splineBasedDecay(density))
+    /** Deleting a downloaded translation language asks first. */
+    val languageDeleteCard = SheetState(scope, splineBasedDecay(density))
+    var languageToDelete by mutableStateOf<String?>(null)
 
     /** The tab counter's long-press menu: New tab, Close tab. */
     var tabMenuOpen by mutableStateOf(false)
@@ -138,6 +179,27 @@ class Overlays(scope: CoroutineScope, density: Density) {
 
     /** History opened on its whole "Recently closed" list (long press on the dock's History). */
     var historyShowsClosed by mutableStateOf(false)
+
+    /** History was opened from a page (not the overview): a tap opens the entry in that tab. */
+    var historyFromPage by mutableStateOf(false)
+
+    /** History from anywhere: the same page, its "Recently closed" on top (all of it when [allClosed]). */
+    fun openHistory(fromPage: Boolean, allClosed: Boolean = false) {
+        historyShowsClosed = allClosed
+        historyFromPage = fromPage
+        historyOpen = true
+    }
+
+    /** A library page asks first (deleting passwords, several files), on its floating card. */
+    val askCard = SheetState(scope, splineBasedDecay(density))
+    var ask by mutableStateOf<Ask?>(null)
+
+    fun ask(title: String, text: String, confirm: String, action: () -> Unit) {
+        ask = Ask(title, text, confirm, action)
+        askCard.animateTo(Detent.Compact)
+    }
+
+    class Ask(val title: String, val text: String, val confirm: String, val action: () -> Unit)
     val clearDataCard = SheetState(scope, splineBasedDecay(density))
     val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
     val clearSiteCard = SheetState(scope, splineBasedDecay(density))
@@ -150,8 +212,14 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val permissionCard = SheetState(scope, splineBasedDecay(density))
     var permission by mutableStateOf<Pair<PermissionRequest, SiteAsk>?>(null)
 
-    /** A download Koan didn't see a tap for: "Download" or "Cancel" ([Components.downloadAsk]). */
-    val downloadCard = SheetState(scope, splineBasedDecay(density))
+    /** A page wants an app: "Open in YouTube?" ([ExternalLinks.ask]). */
+    val appLinkCard = SheetState(scope, splineBasedDecay(density))
+
+    /** The link card is also asking about a download (KoanOverlays): a tab change doesn't close it. */
+    var actionBusy by mutableStateOf(false)
+
+    /** Save image on a small preview: waiting for the page's full image. */
+    var imageWaiting by mutableStateOf(false)
 
     /** What the page asks on the card: a <select>, a date, alert/confirm, HTTP sign-in… */
     val promptCard = SheetState(scope, splineBasedDecay(density))
@@ -173,13 +241,13 @@ class Overlays(scope: CoroutineScope, density: Density) {
     /** Something covers the page or the overview (a sheet, a card, a full page): toasts make way. */
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
-            historyOpen || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
-            saveLoginCard.open || permissionCard.open || downloadCard.open || promptCard.open || tourOpen
+            historyOpen || askCard.open || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
+            saveLoginCard.open || permissionCard.open || appLinkCard.open || promptCard.open || tourOpen
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
     fun dismissAll() {
         menu.snapClosed()
-        linkCard.snapClosed()
+        if (!actionBusy) linkCard.snapClosed()
         signOutCard.snapClosed()
         tabMenuOpen = false
         backMenuOpen = false
@@ -192,6 +260,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
  * The overlays, drawn over the page view and the bar. [onOpenNew]: a url as a new tab of the
  * current space ([select] = shown now, next to the current tab when [nextToCurrent]).
  */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun KoanOverlays(
     components: Components,
@@ -213,11 +282,14 @@ fun KoanOverlays(
     onRestoreClosed: (String) -> Unit,
     /** The space on screen (the tab counter's "Reopen closed tab"). */
     currentSpaceUuid: String?,
+    /** Private shown: copies are marked sensitive, no Essentials, the site's Protections switch. */
+    private: Boolean = false,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
     val view = LocalView.current
-    val clipboard = LocalClipboardManager.current
+    // A copy from a private tab is marked sensitive: Android 13+ hides it in its clipboard preview.
+    val clipboard = remember(private) { KoanClipboard(context, sensitive = private) }
     val session = components.sessionUseCases
     val menu = overlays.menu
 
@@ -242,6 +314,10 @@ fun KoanOverlays(
     val startPageAfter by components.settings.startPageAfter.collectAsStateWithLifecycle(StartPageAfter.Hour)
     val suggestionsOn by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val hideStatusBar by components.settings.hideStatusBar.collectAsStateWithLifecycle(false)
+    val syncBack by components.settings.syncBack.collectAsStateWithLifecycle(SyncBackChoice())
+    val syncBackEdits by components.settings.syncBackPasswordEdits.collectAsStateWithLifecycle(false)
+    val syncWriteStatus by components.syncWrite.status.collectAsStateWithLifecycle()
+    val pictureInPicture by components.settings.pictureInPicture.collectAsStateWithLifecycle(true)
     val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
     // uBlock Origin on this page: on or off, and its badge (the tab's own, else the default).
     val ublockUi by components.store.observeSlice(activeTabId) { s ->
@@ -261,6 +337,10 @@ fun KoanOverlays(
             is SecurityInfo.Insecure -> false
             else -> content?.url?.startsWith("https://") == true
         }
+    }
+    // "Open in YouTube": looked up when the menu opens on a page (installed apps can change).
+    val openInApp by produceState<AppTarget?>(null, menu.open, page.url) {
+        value = if (menu.open && page.url.isNotEmpty()) withContext(Dispatchers.Default) { components.externalLinks.appFor(page.url) } else null
     }
     // Site settings' list: loaded when the page shows, again after each change.
     var decisionsVersion by remember { mutableStateOf(0) }
@@ -284,8 +364,50 @@ fun KoanOverlays(
     }
     fun close() = menu.animateTo(Detent.Closed)
 
+    // ---- Firefox Translations, per tab (engine: TranslationsMiddleware) ----
+    val tabTranslations by components.store.observeSlice(activeTabId) { s -> activeTabId?.let { s.findTab(it) }?.translationsState }
+    val translateEngine by components.store.observeSlice(Unit) { s -> s.translationEngine }
+    val phoneLanguage = remember { java.util.Locale.getDefault().language }
+    // The last languages picked on each side (Recent in the lists), on the phone only.
+    val translatePrefs = remember { context.getSharedPreferences("translate", Context.MODE_PRIVATE) }
+    fun recentOf(side: String) = translatePrefs.getString("recent_$side", null)?.split(',')?.filter { it.isNotBlank() }.orEmpty()
+    var recentFrom by remember { mutableStateOf(recentOf("from")) }
+    var recentTo by remember { mutableStateOf(recentOf("to")) }
+    val translateUi = tabTranslations?.let { t -> translateUiOf(t, translateEngine).copy(recentFrom = recentFrom, recentTo = recentTo) }
+    fun dispatchTranslate(action: mozilla.components.browser.state.action.BrowserAction) = components.store.dispatch(action)
+    val translateActions = TranslateActions(
+        translate = { from, to ->
+            activeTabId?.let { dispatchTranslate(TranslationsAction.TranslateAction(it, from, to, TranslationOptions(downloadModel = true))) }
+        },
+        showOriginal = { activeTabId?.let { dispatchTranslate(TranslationsAction.TranslateRestoreAction(it)) } },
+        neverLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_LANGUAGE, on)) } },
+        neverSite = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_SITE, on)) } },
+        deleteLanguage = { code ->
+            overlays.languageToDelete = code
+            overlays.languageDeleteCard.animateTo(Detent.Compact)
+        },
+        alwaysLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_ALWAYS_TRANSLATE_LANGUAGE, on)) } },
+        picked = { side, code ->
+            val list = (listOf(code) + recentOf(side).filter { it != code }).take(dev.nerzouille.koan.ui.theme.TranslateTokens.RECENT)
+            translatePrefs.edit().putString("recent_$side", list.joinToString(",")).apply()
+            if (side == "from") recentFrom = list else recentTo = list
+        },
+        pairChanged = { from, to ->
+            activeTabId?.let { if (from.isNotEmpty() && from != to) dispatchTranslate(TranslationsAction.FetchTranslationDownloadSizeAction(it, Language(from), Language(to))) }
+        },
+    )
+
     // ---- the ⋯ menu ----
+    // Private tabs: is tracking protection on for this site (no exception)?
+    var protections by remember(activeTabId, page.url) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(activeTabId, page.url, private) {
+        val id = activeTabId
+        if (!private || id == null || page.url.isEmpty()) return@LaunchedEffect
+        components.trackingProtection.containsException(id) { excepted -> protections = !excepted }
+    }
     val state = MenuState(
+        private = private,
+        protections = protections,
         bookmarked = page.url in bookmarks,
         readerAvailable = reader.first,
         readerActive = reader.second,
@@ -295,10 +417,18 @@ fun KoanOverlays(
             activeTab.origin == TabOrigin.LOCAL -> EssentialsAction.Remove
             else -> EssentialsAction.FromZen
         },
-        activeDownloads = downloads.count { !it.private && it.status in ACTIVE },
+        activeDownloads = downloads.count { it.status in ACTIVE },
         secure = secure,
         ublock = ublockUi,
         searchEngine = newEngine,
+        openInApp = openInApp,
+        translate = translateUi?.takeIf { page.url.isNotEmpty() && (it.pageLanguage != null || it.translated) }?.let {
+            when {
+                it.translated -> "Translated · show original"
+                it.working -> "Translating…"
+                else -> "Translate page"
+            }
+        },
     )
     KoanSheet(menu, overlays.menuNav) { p, pageScope ->
         when (p) {
@@ -313,6 +443,16 @@ fun KoanOverlays(
                     stop = { session.stopLoading(activeTabId) },
                     editAddress = { close(); onEditAddress() },
                     copyLink = { clipboard.setText(AnnotatedString(page.url)); copiedToast("Link")?.let(onToast); close() },
+                    protections = { on ->
+                        val id = activeTabId
+                        if (id != null) {
+                            // Kept for the private session (until the last private tab closes).
+                            if (on) components.trackingProtection.removeException(id)
+                            else components.trackingProtection.addException(id, persistInPrivateMode = true)
+                            protections = on
+                            session.reload(id)
+                        }
+                    },
                     newTab = { close(); onNewTab() },
                     bookmark = { components.bookmarks.toggle(page.url, title) },
                     share = { close(); share(page.url, title) },
@@ -344,7 +484,7 @@ fun KoanOverlays(
                     },
                     history = {
                         close()
-                        overlays.historyOpen = true
+                        overlays.openHistory(fromPage = activeTabId != null)
                     },
                     siteSettings = { overlays.menuNav.push(MenuPage.SiteSettings) },
                     ublockToggle = components.ublock::setEnabled,
@@ -356,6 +496,21 @@ fun KoanOverlays(
                         (tabAction ?: s.extensions[UBlock.ID]?.browserAction)?.onClick?.invoke()
                     },
                     ublockInstall = components.ublock::install,
+                    openInApp = {
+                        close()
+                        openInApp?.let { app ->
+                            if (!components.externalLinks.openIn(app, page.url)) onToast(Toast("Couldn't open ${app.label}"))
+                        }
+                    },
+                    translate = {
+                        activeTabId?.let { id ->
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_PAGE_SETTINGS))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_SUPPORTED_LANGUAGES))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_LANGUAGE_MODELS))
+                            translateUi?.pageLanguage?.let { from -> translateActions.pairChanged(from, phoneLanguage) }
+                        }
+                        overlays.menuNav.push(MenuPage.Translate)
+                    },
                     addSearchEngine = {
                         val draft = newEngine
                         close()
@@ -372,6 +527,12 @@ fun KoanOverlays(
                 components.store.state.extensions[UBlock.ID]?.popupSession?.close()
                 components.store.dispatch(WebExtensionAction.UpdatePopupSessionAction(UBlock.ID, popupSession = null))
             }
+            MenuPage.Translate -> TranslatePage(
+                translateUi ?: TranslateUi(null, emptyList(), emptyList(), false, false, null, null, false, false, unsupported = false),
+                target = phoneLanguage,
+                actions = translateActions,
+                scope = pageScope,
+            )
             MenuPage.SiteSettings -> SiteSettingsPage(
                 SiteSettingsUi(
                     url = page.url,
@@ -462,28 +623,24 @@ fun KoanOverlays(
             onOnce = { answer(allow = true, always = false) },
         )
     }
-    // ---- a download the page started on its own: Download / Cancel ----
-    val downloadAsk by components.downloadAsk.collectAsStateWithLifecycle()
-    val downloadCard = overlays.downloadCard
-    LaunchedEffect(downloadAsk) { if (downloadAsk != null) downloadCard.animateTo(Detent.Compact) }
-    fun answerDownload(start: Boolean) {
-        val ask = components.downloadAsk.value ?: return
-        components.downloadAsk.value = null
-        downloadCard.animateTo(Detent.Closed)
-        if (start) ask.start() else ask.cancel()
-    }
-    // Dismissed (tap outside, Back): cancelled.
-    LaunchedEffect(downloadCard.open) { if (!downloadCard.open && components.downloadAsk.value != null) answerDownload(start = false) }
-    KoanCard(downloadCard) { interactive ->
-        val ask = downloadAsk ?: return@KoanCard
-        val d = ask.download
-        val site = components.store.state.findTab(d.sessionId.orEmpty())?.content?.url?.let(::displayHost)?.ifBlank { null } ?: host(d)
-        DownloadPrompt(
-            name = d.fileName?.ifBlank { null } ?: "File",
-            detail = listOfNotNull(d.contentLength?.takeIf { it > 0 }?.let(::sizeText), site).joinToString(" · "),
+    // ---- a page wants an app: "Open in YouTube?" ----
+    val appAsk by components.externalLinks.ask.collectAsStateWithLifecycle()
+    val appLinkCard = overlays.appLinkCard
+    LaunchedEffect(appAsk) { if (appAsk != null) appLinkCard.animateTo(Detent.Compact) }
+    LaunchedEffect(appLinkCard.open) { if (!appLinkCard.open) components.externalLinks.ask.value = null }
+    LaunchedEffect(Unit) { components.externalLinks.messages.collect { onToast(Toast(it)) } }
+    KoanCard(appLinkCard) { interactive ->
+        val ask = appAsk ?: return@KoanCard
+        AppLinkPrompt(
+            app = ask.app.label,
+            icon = ask.app.icon,
+            site = ask.site,
             interactive = interactive,
-            onCancel = { answerDownload(start = false) },
-            onDownload = { answerDownload(start = true) },
+            onCancel = { appLinkCard.animateTo(Detent.Closed) },
+            onOpen = { always ->
+                appLinkCard.animateTo(Detent.Closed)
+                ask.open(always)
+            },
         )
     }
 
@@ -588,27 +745,161 @@ fun KoanOverlays(
         overlays.link = target
         overlays.linkCard.animateTo(Detent.Compact)
     }
-    val linkCard = overlays.linkCard
-    KoanCard(linkCard) { interactive ->
-        val target = overlays.link ?: return@KoanCard
-        LinkMenu(
-            target, interactive,
-            LinkActions(
-                openNew = { url -> linkCard.animateTo(Detent.Closed); onOpenNew(url, true, true) },
-                openBackground = { url -> linkCard.animateTo(Detent.Closed); onOpenNew(url, false, true) },
-                copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast); linkCard.animateTo(Detent.Closed) },
-                share = { url -> linkCard.animateTo(Detent.Closed); share(url, "") },
-                saveImage = { url ->
-                    linkCard.animateTo(Detent.Closed)
-                    // Goes through the same downloads as a page's: no dialog, the toast says when it's saved.
-                    activeTabId?.let { id ->
-                        components.store.dispatch(
-                            ContentAction.UpdateDownloadAction(id, DownloadState(url, skipConfirmation = true, referrerUrl = page.url)),
+    // ---- one floating card for a pressed link or image, a download to confirm, a download of a
+    // file already there: when one leads to the next (Save image → already downloaded), the same
+    // card morphs: its height springs to the new size, the image shrinks into the thumbnail, the
+    // content crossfades. ----
+    val actionCard = overlays.linkCard
+    val downloadAsk by components.downloadAsk.collectAsStateWithLifecycle()
+    val dupAsk by components.duplicateAsk.collectAsStateWithLifecycle()
+    LaunchedEffect(downloadAsk) { if (downloadAsk != null) actionCard.animateTo(Detent.Compact) }
+    LaunchedEffect(dupAsk) { if (dupAsk != null) actionCard.animateTo(Detent.Compact) }
+    SideEffect { overlays.actionBusy = downloadAsk != null || dupAsk != null }
+    /** A step that may lead to the duplicate card: the card stays a moment, then closes if nothing came. */
+    fun closeUnlessNext() {
+        scope.launch {
+            delay(SheetTokens.CARD_NEXT_WAIT_MS)
+            if (components.duplicateAsk.value == null && components.downloadAsk.value == null) actionCard.animateTo(Detent.Closed)
+        }
+    }
+    fun answerDownload(start: Boolean) {
+        val ask = components.downloadAsk.value ?: return
+        components.downloadAsk.value = null
+        if (start) {
+            ask.start()
+            closeUnlessNext()
+        } else {
+            ask.cancel()
+            actionCard.animateTo(Detent.Closed)
+        }
+    }
+    fun answerDuplicate(start: DownloadState?) {
+        val ask = components.duplicateAsk.value ?: return
+        components.duplicateAsk.value = null
+        actionCard.animateTo(Detent.Closed)
+        if (start != null) ask.start(start) else ask.cancel()
+    }
+    // Dismissed (tap outside, Back): what it was asking is cancelled.
+    LaunchedEffect(actionCard.open) {
+        if (actionCard.open) return@LaunchedEffect
+        if (components.duplicateAsk.value != null) answerDuplicate(null)
+        if (components.downloadAsk.value != null) answerDownload(start = false)
+    }
+    KoanCard(actionCard) { interactive ->
+        val cardPage: ActionPage? = dupAsk?.let { ActionPage.Duplicate } ?: downloadAsk?.let { ActionPage.Download } ?: overlays.link?.let { ActionPage.Link }
+        SharedTransitionLayout {
+            AnimatedContent(
+                cardPage,
+                transitionSpec = {
+                    (fadeIn(tween(SheetTokens.CARD_MORPH_MS)) togetherWith fadeOut(tween(SheetTokens.CARD_MORPH_MS / 2)))
+                        .using(SizeTransform(clip = false) { _, _ -> spring(dampingRatio = 0.85f, stiffness = 420f) })
+                },
+                label = "card",
+            ) { shown ->
+                // The pressed image and the duplicate's thumbnail are one element across the morph.
+                val image = Modifier.sharedBounds(rememberSharedContentState("card-image"), this@AnimatedContent)
+                when (shown) {
+                    ActionPage.Link -> {
+                        val target = overlays.link ?: return@AnimatedContent
+                        LinkMenu(
+                            target, interactive,
+                            LinkActions(
+                                openNew = { url -> actionCard.animateTo(Detent.Closed); onOpenNew(url, true, true) },
+                                openBackground = { url -> actionCard.animateTo(Detent.Closed); onOpenNew(url, false, true) },
+                                copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast); actionCard.animateTo(Detent.Closed) },
+                                share = { url -> actionCard.animateTo(Detent.Closed); share(url, "") },
+                                playVideo = { url, label ->
+                                    actionCard.animateTo(Detent.Closed)
+                                    components.player.open(dev.nerzouille.koan.ui.player.videoOfLink(url, label, page.url))
+                                },
+                                saveImage = { url ->
+                                    // Goes through the same downloads as a page's: no dialog, the toast says when
+                                    // it's saved; a file already there turns this card into the duplicate card.
+                                    val tab = activeTabId
+                                    fun save(src: String) {
+                                        tab ?: return
+                                        components.store.dispatch(
+                                            ContentAction.UpdateDownloadAction(tab, DownloadState(src, skipConfirmation = true, referrerUrl = page.url)),
+                                        )
+                                        closeUnlessNext()
+                                    }
+                                    if (tab != null && LinkTarget.isPreview(url)) {
+                                        // Google's small preview: the page says which full image is there, once loaded.
+                                        overlays.imageWaiting = true
+                                        scope.launch {
+                                            val full = components.pageImages.fullImage(tab)
+                                            overlays.imageWaiting = false
+                                            when {
+                                                !actionCard.open -> Unit
+                                                full != null -> save(full)
+                                                else -> {
+                                                    actionCard.animateTo(Detent.Closed)
+                                                    onToast(Toast("The full image didn't load", detail = "Try again once it shows"))
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        save(url)
+                                    }
+                                },
+                            ),
+                            imageModifier = image,
+                            waiting = overlays.imageWaiting,
                         )
                     }
-                },
-            ),
-        )
+                    ActionPage.Download -> {
+                        val ask = downloadAsk ?: return@AnimatedContent
+                        val d = ask.download
+                        val site = components.store.state.findTab(d.sessionId.orEmpty())?.content?.url?.let(::displayHost)?.ifBlank { null } ?: host(d)
+                        DownloadPrompt(
+                            name = d.fileName?.ifBlank { null } ?: "File",
+                            detail = listOfNotNull(d.contentLength?.takeIf { it > 0 }?.let(::sizeText), site).joinToString(" · "),
+                            interactive = interactive,
+                            onCancel = { answerDownload(start = false) },
+                            onDownload = { answerDownload(start = true) },
+                        )
+                    }
+                    ActionPage.Duplicate -> {
+                        val ask = dupAsk ?: return@AnimatedContent
+                val dup = ask.dup
+                val files = components.downloadFiles
+                val thumb by produceState<ImageBitmap?>(null, dup.existingName, dup.existingFolder) {
+                    value = withContext(Dispatchers.IO) { fileThumbnail(context, files, dup.existingName, dup.existingFolder, dup.download.contentType) }
+                }
+                val folder = dup.existingFolder.takeIf { it.startsWith("content://") }?.let(::folderLabel) ?: dup.existingFolder.substringAfterLast('/').ifEmpty { "Download" }
+                DuplicateDownloadPrompt(
+                    name = dup.existingName,
+                    // A new name nobody has is kept as it is; else the first free "name (1).ext".
+                    keepBothName = { n -> if (!files.fileExists(dup.existingFolder, n)) n else DuplicateDownloads.keepBothName(n) { files.fileExists(dup.existingFolder, it) } },
+                    folder = folder,
+                    thumbnail = thumb,
+                    contentType = dup.download.contentType,
+                    thumbModifier = image,
+                    size = dup.download.contentLength?.takeIf { it > 0 }?.let(::sizeText),
+                    interactive = interactive,
+                    onOpen = {
+                        val opened = files.openFile(dup.existingName, dup.existingFolder, dup.earlier?.contentType ?: dup.download.contentType)
+                        if (!opened) onToast(Toast("Couldn't open the file"))
+                        answerDuplicate(null)
+                    },
+                    onReplace = { n ->
+                        // The old file goes (and its row), then the new one takes its name.
+                        files.deleteMediaFile(context.contentResolver, dup.existingName, dup.existingFolder)
+                        dup.earlier?.let { components.downloadsUseCases.removeDownload(it.id) }
+                        if (n != dup.existingName && files.fileExists(dup.existingFolder, n)) files.deleteMediaFile(context.contentResolver, n, dup.existingFolder)
+                        answerDuplicate(dup.download.copy(fileName = n))
+                    },
+                    onKeepBoth = { n ->
+                        val name = if (files.fileExists(dup.existingFolder, n)) DuplicateDownloads.keepBothName(n) { files.fileExists(dup.existingFolder, it) } else n
+                        answerDuplicate(dup.download.copy(fileName = name))
+                    },
+                    onCancel = { answerDuplicate(null) },
+                )
+                    }
+                    null -> Unit
+                }
+            }
+        }
     }
 
     // ---- the tab counter's long-press menu ----
@@ -661,6 +952,7 @@ fun KoanOverlays(
         val signedIn = account as? AccountState.SignedIn
         SettingsScreen(
             ui = SettingsUi(
+                settings = components.settings,
                 theme = theme,
                 onTheme = { mode -> scope.launch { components.settings.setThemeMode(mode) } },
                 engine = engine,
@@ -688,8 +980,15 @@ fun KoanOverlays(
                 onStartPageAfter = { v -> scope.launch { components.settings.setStartPageAfter(v) } },
                 suggestions = suggestionsOn,
                 onSuggestions = { on -> scope.launch { components.settings.setSearchSuggestions(on) } },
+                syncBack = syncBack,
+                onSyncBack = { c -> scope.launch { components.settings.setSyncBack(c) } },
+                syncBackPasswordEdits = syncBackEdits,
+                onSyncBackPasswordEdits = { on -> scope.launch { components.settings.setSyncBackPasswordEdits(on) } },
+                syncWriteStatus = syncWriteStatus,
                 hideStatusBar = hideStatusBar,
                 onHideStatusBar = { on -> scope.launch { components.settings.setHideStatusBar(on) } },
+                pictureInPicture = pictureInPicture,
+                onPictureInPicture = { on -> scope.launch { components.settings.setPictureInPicture(on) } },
                 email = signedIn?.email,
                 status = drawerStatus,
                 onSyncNow = { components.sync.syncNow() },
@@ -718,6 +1017,28 @@ fun KoanOverlays(
                 ublockWeek = blockedWeek.values.sum(),
                 onUblock = components.ublock::setEnabled,
                 onInstallUblock = components.ublock::install,
+                translation = TranslationSettings(
+                    always = translateEngine.languageSettings.orEmpty().filterValues { it == LanguageSetting.ALWAYS }.keys.map { it to languageName(it) }.sortedBy { it.second },
+                    never = translateEngine.languageSettings.orEmpty().filterValues { it == LanguageSetting.NEVER }.keys.map { it to languageName(it) }.sortedBy { it.second },
+                    neverSites = translateEngine.neverTranslateSites.orEmpty(),
+                    onRemoveLanguage = { code ->
+                        dispatchTranslate(TranslationsAction.UpdateLanguageSettingsAction(code, LanguageSetting.OFFER))
+                        (activeTabId ?: components.store.state.selectedTabId)?.let { dispatchTranslate(TranslationsAction.OperationRequestedAction(it, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS)) }
+                    },
+                    onRemoveSite = { origin -> dispatchTranslate(TranslationsAction.RemoveNeverTranslateSiteAction(origin)) },
+                    onPhone = translateEngine.languageModels.orEmpty()
+                        .filter { it.status == mozilla.components.concept.engine.translate.ModelState.DOWNLOADED }
+                        .mapNotNull { m -> m.language?.let { Triple(it.code, it.localizedDisplayName?.ifBlank { null } ?: languageName(it.code), m.size) } }
+                        .sortedBy { it.second },
+                    onDeleteLanguage = translateActions.deleteLanguage,
+                    onOpen = {
+                        (activeTabId ?: components.store.state.selectedTabId)?.let { id ->
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_LANGUAGE_MODELS))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS))
+                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_NEVER_TRANSLATE_SITES))
+                        }
+                    },
+                ),
                 passwords = PasswordsUi(
                     summaries = loginSummaries,
                     unlocked = unlockedLogins,
@@ -739,7 +1060,51 @@ fun KoanOverlays(
                             }
                         }
                     },
+                    onUnlockThen = { then ->
+                        (context as? FragmentActivity)?.let { activity ->
+                            authenticate(activity, "Unlock your passwords") {
+                                unlockedLogins = emptyMap()
+                                then()
+                                scope.launch {
+                                    components.logins.openAll { logins ->
+                                        val current = unlockedLogins ?: return@openAll
+                                        unlockedLogins = current + logins.associateBy { it.guid }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     onCopied = { what -> copiedToast(what)?.let(onToast) },
+                    onRemove = { guids ->
+                        scope.launch {
+                            val removed = components.logins.remove(guids)
+                            if (removed.count == 0) return@launch
+                            val what = if (removed.count == 1) "Password deleted" else "${removed.count} passwords deleted"
+                            val detail = if (removed.hidden.isNotEmpty()) "Hidden on this phone; still in your Mozilla account" else null
+                            onToast(Toast(what, "Undo", detail = detail) { scope.launch { components.logins.restore(removed) } })
+                        }
+                    },
+                    onConfirm = overlays::ask,
+                    // Deleting an account login sends its tombstone only with both switches on.
+                    deletesReachAccount = syncBack.passwords && syncBackEdits,
+                    onOpenUrl = { url ->
+                        overlays.settingsOpen = false
+                        onOpenNew(url, true, false)
+                    },
+                    onAdd = { site, username, password ->
+                        val ok = components.logins.addManual(site, username, password)
+                        if (ok) {
+                            onToast(Toast("Password saved"))
+                            // Unlocked: the new one opens too, so its row shows its username.
+                            if (unlockedLogins != null) {
+                                components.logins.openAll { logins ->
+                                    val current = unlockedLogins ?: return@openAll
+                                    unlockedLogins = current + logins.associateBy { it.guid }
+                                }
+                            }
+                        }
+                        ok
+                    },
                 ),
             ),
             nav = overlays.settingsNav,
@@ -759,7 +1124,15 @@ fun KoanOverlays(
             actions = components.downloads,
             onClear = { overlays.clearDownloadsCard.animateTo(Detent.Compact) },
             onClose = { overlays.downloadsOpen = false },
+            onToast = onToast,
+            onCopyLink = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
+            onConfirm = overlays::ask,
             modifier = Modifier.graphicsLayer { translationY = (1f - downloadsSlide.value) * size.height },
+            onPlayVideo = { d ->
+                val video = dev.nerzouille.koan.ui.player.videoOfDownload(d, components.downloads)
+                if (video != null) components.player.open(video)
+                video != null
+            },
         )
     }
     val clearCard = overlays.clearDownloadsCard
@@ -783,23 +1156,41 @@ fun KoanOverlays(
     val historyVisible by remember { derivedStateOf { overlays.historyOpen || historySlide.value > 0f } }
     if (historyVisible) {
         val dao = components.database.dao()
+        val removeVisits = { visits: List<VisitEntity> ->
+            val urls = visits.map { it.url }
+            scope.launch {
+                visits.forEach { dao.removeVisit(it.url) }
+                // Two-way history on: the account deletes them too, at the next sync.
+                if (components.settings.syncBack.first().history) components.historyDeletions.add(urls)
+            }
+            val what = if (visits.size == 1) "Removed from history" else "Removed ${visits.size} pages from history"
+            onToast(Toast(what, "Undo") {
+                components.historyDeletions.remove(urls)
+                scope.launch { visits.forEach { dao.restoreVisit(it) } }
+            })
+        }
         HistoryScreen(
             dao = dao,
             onOpen = { url ->
                 overlays.historyOpen = false
-                onOpenNew(url, true, false)
+                // From a page: the entry opens in that tab (its menu has "Open in new tab").
+                val here = activeTabId?.takeIf { overlays.historyFromPage }
+                if (here != null) session.loadUrl(url, here) else onOpenNew(url, true, false)
             },
-            onRemove = { visits ->
-                scope.launch { visits.forEach { dao.removeVisit(it.url) } }
-                val what = if (visits.size == 1) "Removed from history" else "Removed ${visits.size} pages from history"
-                onToast(Toast(what, "Undo") { scope.launch { visits.forEach { dao.restoreVisit(it) } } })
-            },
+            onRemove = removeVisits,
             onClear = { overlays.clearDataCard.animateTo(Detent.Compact) },
             onClose = { overlays.historyOpen = false },
             onRestore = { id ->
                 overlays.historyOpen = false
                 onRestoreClosed(id)
             },
+            actions = HistoryActions(
+                openNew = { url -> overlays.historyOpen = false; onOpenNew(url, true, false) },
+                copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
+                share = { text -> share(text, "") },
+                remove = removeVisits,
+                restore = { id -> overlays.historyOpen = false; onRestoreClosed(id) },
+            ),
             allClosed = overlays.historyShowsClosed,
             modifier = Modifier.graphicsLayer { translationY = (1f - historySlide.value) * size.height },
         )
@@ -817,6 +1208,54 @@ fun KoanOverlays(
                 }
             },
             onCancel = { clearData.animateTo(Detent.Closed) },
+        )
+    }
+
+    // ---- a library page asks first (History, Downloads, Passwords), over those pages ----
+    val askCard = overlays.askCard
+    KoanCard(askCard) { interactive ->
+        val ask = overlays.ask ?: return@KoanCard
+        Confirm(
+            title = ask.title,
+            text = ask.text,
+            confirm = ask.confirm,
+            interactive = interactive,
+            onConfirm = {
+                askCard.animateTo(Detent.Closed)
+                ask.action()
+            },
+            onCancel = { askCard.animateTo(Detent.Closed) },
+        )
+    }
+
+    // ---- deleting a downloaded translation language asks first ----
+    val languageDeleteCard = overlays.languageDeleteCard
+    KoanCard(languageDeleteCard) { interactive ->
+        val code = overlays.languageToDelete ?: return@KoanCard
+        val name = languageName(code)
+        val bytes = translateEngine.languageModels.orEmpty().firstOrNull { it.language?.code == code }?.size
+        Confirm(
+            title = "Delete $name?",
+            text = listOfNotNull(
+                bytes?.let { "Frees %.0f MB on this phone.".format(it / (1L shl 20).toDouble()) },
+                "It downloads again the next time you translate $name.",
+            ).joinToString(" "),
+            confirm = "Delete",
+            interactive = interactive,
+            onConfirm = {
+                languageDeleteCard.animateTo(Detent.Closed)
+                components.store.dispatch(
+                    TranslationsAction.ManageLanguageModelsAction(
+                        mozilla.components.concept.engine.translate.ModelManagementOptions(
+                            code,
+                            mozilla.components.concept.engine.translate.ModelOperation.DELETE,
+                            mozilla.components.concept.engine.translate.OperationLevel.LANGUAGE,
+                        ),
+                    ),
+                )
+                onToast(Toast("$name deleted from this phone"))
+            },
+            onCancel = { languageDeleteCard.animateTo(Detent.Closed) },
         )
     }
 
@@ -881,6 +1320,35 @@ fun rememberFindUi(components: Components, overlays: Overlays, activeTabId: Stri
 /** Downloads still going (for the menu's "2 active"). */
 private val ACTIVE = setOf(DownloadState.Status.INITIATED, DownloadState.Status.DOWNLOADING, DownloadState.Status.PAUSED)
 
+/**
+ * A small picture of a file already downloaded: the image itself (scaled down), an APK's app icon,
+ * else null (the card shows the file's type).
+ */
+private fun fileThumbnail(context: Context, files: mozilla.components.support.utils.DownloadFileUtils, name: String, folder: String, type: String?): ImageBitmap? = runCatching {
+    val uri = files.findDownloadFileUri(name, folder) ?: return null
+    val lower = name.lowercase()
+    when {
+        type?.startsWith("image/") == true || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp") || lower.endsWith(".gif") -> {
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, bounds) }
+            val sample = generateSequence(1) { it * 2 }.first { maxOf(bounds.outWidth, bounds.outHeight) / it <= 256 }
+            context.contentResolver.openInputStream(uri)?.use {
+                android.graphics.BitmapFactory.decodeStream(it, null, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+            }?.asImageBitmap()
+        }
+        lower.endsWith(".apk") -> {
+            // The package manager reads an archive from a path: the folder's own (not a picked tree).
+            val path = (if (uri.scheme == "file") uri.path else java.io.File(folder, name).takeIf { folder.startsWith("/") && it.canRead() }?.path) ?: return null
+            val pm = context.packageManager
+            val info = pm.getPackageArchiveInfo(path, 0)?.applicationInfo ?: return null
+            info.sourceDir = path
+            info.publicSourceDir = path
+            pm.getApplicationIcon(info).toBitmap(128, 128).asImageBitmap()
+        }
+        else -> null
+    }
+}.getOrNull()
+
 /** A picked folder's name, from its tree uri ("primary:Documents/Books" → "Books"). */
 private fun folderLabel(uri: String): String =
     runCatching { DocumentsContract.getTreeDocumentId(Uri.parse(uri)) }.getOrNull()
@@ -895,3 +1363,6 @@ private fun androidPermissions(p: Permission): List<String> = when (p) {
     is Permission.AppAudio -> listOf(Manifest.permission.RECORD_AUDIO)
     else -> emptyList()
 }
+
+/** What the one action card shows (KoanOverlays): a pressed link / image, a download to confirm, a duplicate. */
+private enum class ActionPage { Link, Download, Duplicate }

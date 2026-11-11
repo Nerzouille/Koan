@@ -102,10 +102,25 @@ object BakedBlur {
         }
     }
 
+    /** A private screenshot's copies, baked into memory only (never to disk). */
+    fun bakeInMemory(key: String, thumb: Bitmap) {
+        val rows = sliceRows.coerceAtMost(thumb.height)
+        if (rows < 2) return
+        val half = Bitmap.createBitmap(thumb, 0, 0, thumb.width, rows, Matrix().apply { setScale(0.5f, 0.5f) }, true)
+        bakes.launch {
+            moving.first { !it }
+            val stacked = bake(half, screenshotRadii)
+            synchronized(inMemory) { inMemory[key] = stacked }
+        }
+    }
+
+    /** [bakeInMemory]'s results, until a card uploads them ([screenshot]). */
+    private val inMemory = HashMap<String, Pair<Bitmap, Int>>()
+
     /** Thumbnail [key]'s copies: from memory, else uploaded from disk (baked there first if missing). */
     suspend fun screenshot(key: String): List<ImageBitmap>? = upload(key) {
         withContext(baking) {
-            val stacked = read(key) ?: run {
+            val stacked = synchronized(inMemory) { inMemory.remove(key) } ?: read(key) ?: run {
                 val half = ThumbnailStore.decodeTop(key, sliceRows, sampleSize = 2) ?: return@withContext null
                 bake(half, screenshotRadii).also { write(key, it) }
             }
@@ -127,6 +142,7 @@ object BakedBlur {
     /** Deletes thumbnail [key]'s copies (the thumbnail itself is gone). */
     fun forget(key: String) {
         memory.remove(key)
+        synchronized(inMemory) { inMemory.remove(key) }
         fileFor(key)?.delete()
     }
 

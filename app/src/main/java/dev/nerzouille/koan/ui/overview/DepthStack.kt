@@ -215,7 +215,7 @@ fun DepthStack(
 
     val palette = KoanTheme.colors
     // Light: back cards fade into the background (a haze); dark: they darken.
-    val dimColor = if (palette.DimToBase) palette.Base else Color.Black
+    val dimColor = palette.DimColor
 
     val hero = LocalCardHero.current
     val coordinates = remember { arrayOfNulls<LayoutCoordinates>(1) }
@@ -601,8 +601,11 @@ private class StackGeometry(
         shape = CardShape
         clip = true
         shadowElevation = (palette.CardElevation.value + a.lift * StackTokens.LiftShadow.value) * density
-        ambientShadowColor = palette.CardShadowColor
-        spotShadowColor = palette.CardShadowColor
+        // Back cards' key shadow softens with depth; the focused and peek cards keep it all.
+        val key = (1f - CardTokens.KEY_SHADOW_STEP * d.coerceAtLeast(0f)).coerceAtLeast(CardTokens.KEY_SHADOW_MIN)
+        val shadow = palette.CardShadowColor.copy(alpha = palette.CardShadowColor.alpha * key)
+        ambientShadowColor = shadow
+        spotShadowColor = shadow
     }
 
     /**

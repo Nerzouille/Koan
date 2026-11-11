@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
 
 /*
@@ -86,15 +87,7 @@ fun SheetRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            Box(
-                Modifier
-                    .size(SheetTokens.RowIconBox)
-                    .clip(RoundedCornerShape(SheetTokens.RowIconRadius))
-                    .background(palette.Dock),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(icon, null, tint = if (enabled) palette.TextPrimary else palette.TextDisabled, modifier = Modifier.size(SheetTokens.RowGlyph))
-            }
+            MenuIconTile(icon, enabled, palette.Dock)
             Spacer(Modifier.width(SheetTokens.RowPadding))
         }
         Column(Modifier.weight(1f)) {
@@ -115,6 +108,24 @@ fun SheetRow(
             }
         }
         if (!enabled) SoonLabel() else trailing()
+    }
+}
+
+/**
+ * The icon of every menu row (sheet menus and dock popups): the glyph on a small rounded tile.
+ * [fill] is the neutral that differs from the surface under it: Dock on a grouped row, GroupedRow
+ * on a dock popup.
+ */
+@Composable
+fun MenuIconTile(icon: ImageVector, enabled: Boolean, fill: Color) {
+    Box(
+        Modifier
+            .size(SheetTokens.RowIconBox)
+            .clip(RoundedCornerShape(SheetTokens.RowIconRadius))
+            .background(fill),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, null, tint = if (enabled) KoanTheme.colors.TextPrimary else KoanTheme.colors.TextDisabled, modifier = Modifier.size(SheetTokens.RowGlyph))
     }
 }
 
@@ -175,7 +186,7 @@ fun SheetHeader(title: String, page: SheetPageScope) {
         ) {
             Icon(KoanIcons.Back, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SheetTokens.TileGlyph))
         }
-        Text(title, color = KoanTheme.colors.TextPrimary, fontSize = SheetTokens.HeaderTitleSize, fontWeight = FontWeight.SemiBold)
+        Text(title, color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.HeaderTitleSize))
     }
 }
 

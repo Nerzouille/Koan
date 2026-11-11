@@ -1,7 +1,11 @@
 package dev.nerzouille.koan.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import dev.nerzouille.koan.ui.kit.SELECTION_FADE_MS
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,12 +22,19 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import dev.nerzouille.koan.ui.kit.CollapsingBar
+import dev.nerzouille.koan.ui.theme.KoanType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,41 +73,56 @@ fun Modifier.settingsWash(dark: Boolean): Modifier = drawBehind {
 }
 
 /**
- * One settings page: ‹ on top, an optional big [title], then [content], scrolling as a whole.
+ * One settings page (docs/UI_SPEC.md "Page header"): the page bar on top, a large [title] under it
+ * that collapses into the bar as [content] scrolls (iOS style), then the content.
  * [interactive]: only the page on top takes taps.
  */
 @Composable
-fun SettingsPageFrame(title: String?, interactive: Boolean, onBack: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            // A form's fields stay above the keyboard.
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .topSafePadding()
-            .navigationBarsPadding()
-            .padding(horizontal = SettingsTokens.Padding),
-    ) {
-        Box(
+fun SettingsPageFrame(
+    title: String,
+    interactive: Boolean,
+    onBack: () -> Unit,
+    /** Selection mode's header is up: the large title fades out under it. */
+    titleHidden: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val scroll = rememberScrollState()
+    val hide by animateFloatAsState(if (titleHidden) 1f else 0f, tween(SELECTION_FADE_MS), label = "title")
+    var largeTitle by remember { mutableIntStateOf(0) }
+    Box(Modifier.fillMaxSize()) {
+        Column(
             Modifier
-                .size(SettingsTokens.TopBar)
-                .clip(CircleShape)
-                .then(if (interactive) Modifier.clickable(onClick = onBack) else Modifier),
-            contentAlignment = Alignment.CenterStart,
+                .fillMaxSize()
+                // A form's fields stay above the keyboard.
+                .imePadding()
+                .verticalScroll(scroll)
+                .topSafePadding()
+                .navigationBarsPadding()
+                .padding(horizontal = SettingsTokens.Padding),
         ) {
-            Icon(KoanIcons.Back, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph + SettingsTokens.Divider * 4))
-        }
-        if (title != null) {
+            Spacer(Modifier.height(SettingsTokens.TopBar))
             Text(
                 title,
                 color = KoanTheme.colors.TextPrimary,
-                fontSize = SettingsTokens.TitleSize,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = SettingsTokens.TitleBottom),
+                style = KoanType.largeTitle(SettingsTokens.TitleSize),
+                maxLines = SettingsTokens.TITLE_MAX_LINES,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .onSizeChanged { largeTitle = it.height }
+                    // Gone before the compact title appears: the two never show at once.
+                    .graphicsLayer {
+                        // Fully opaque through the first bit of scroll (a nudge doesn't grey it).
+                        val h = largeTitle.coerceAtLeast(1)
+                        val from = h * SettingsTokens.TITLE_FADE_FROM
+                        val to = h * SettingsTokens.BAR_TITLE_FROM
+                        alpha = (1f - ((scroll.value - from) / (to - from)).coerceIn(0f, 1f)) * (1f - hide)
+                    }
+                    .padding(bottom = SettingsTokens.TitleBottom),
             )
+            content()
+            Spacer(Modifier.height(SettingsTokens.SectionTop))
         }
-        content()
-        Spacer(Modifier.height(SettingsTokens.SectionTop))
+        CollapsingBar(title, scroll, { largeTitle }, interactive, onBack)
     }
 }
 
@@ -136,6 +162,8 @@ fun SettingsRow(
     enabled: Boolean = true,
     titleColor: Color = Color.Unspecified,
     onClick: (() -> Unit)? = null,
+    /** In place of [icon]: any glyph-sized content (a site's favicon). */
+    leading: (@Composable () -> Unit)? = null,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     val palette = KoanTheme.colors
@@ -145,7 +173,10 @@ fun SettingsRow(
             .height(if (subtitle != null) SettingsTokens.RowTallHeight else SettingsTokens.RowHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (icon != null) {
+        if (leading != null) {
+            leading()
+            Spacer(Modifier.width(SettingsTokens.RowGlyphGap))
+        } else if (icon != null) {
             Icon(icon, null, tint = if (enabled) palette.TextPrimary else palette.TextDisabled, modifier = Modifier.size(SettingsTokens.RowGlyph))
             Spacer(Modifier.width(SettingsTokens.RowGlyphGap))
         }
@@ -183,7 +214,8 @@ fun SettingsRow(
  * each side, rounded, so the pressed highlight always covers the whole row the same way. The
  * content stays aligned with the page's text and dividers.
  */
-private fun Modifier.rowArea(onClick: (() -> Unit)?): Modifier =
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+internal fun Modifier.rowArea(onClick: (() -> Unit)?, onLongClick: (() -> Unit)? = null, wash: Color = Color.Transparent): Modifier =
     layout { measurable, constraints ->
         val inset = SettingsTokens.RowInset.roundToPx()
         val width = constraints.maxWidth + 2 * inset
@@ -191,7 +223,14 @@ private fun Modifier.rowArea(onClick: (() -> Unit)?): Modifier =
         layout(constraints.maxWidth, placeable.height) { placeable.place(-inset, 0) }
     }
         .clip(RoundedCornerShape(SettingsTokens.RowRadius))
-        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .background(wash)
+        .then(
+            when {
+                onClick != null && onLongClick != null -> Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                onClick != null -> Modifier.clickable(onClick = onClick)
+                else -> Modifier
+            },
+        )
         .padding(horizontal = SettingsTokens.RowInset)
 
 /** A few mutually exclusive options side by side; the chosen one sits on a lighter pill, in bold. */

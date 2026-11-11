@@ -90,6 +90,26 @@
 - Zen tabs never opened on the phone have no thumbnail: show favicon + domain on the gradient
   placeholder. (Optional later: low-priority background "pre-render" of pinned tabs on Wi-Fi.)
 
+### Private tabs (`privacy/`, 2026-11-11)
+
+- `PrivateTabs`: their rows live in an **in-memory** Room database (same schema, one space
+  `koan-private`), never on disk, never synced. A second `TabManager(isPrivate = true)` runs their
+  engine tabs (GeckoView private sessions) over the same `BrowserStore`; each manager only touches
+  its own kind of engine tab. No history, no last place, screenshots in memory only
+  (`ThumbnailStore.keepInMemory`, `BakedBlur.bakeInMemory`).
+- `PrivateVault`: each private tab's url, title and engine state (Back history) sealed with a
+  Keystore AES-GCM key (`koan_private`) in `files/private/tabs.sealed`, written a second after a
+  change and when Koan goes to the background; deleted with the last private tab.
+- GeckoView keeps private cookies and site data in memory: a hidden private `GeckoSession`
+  (`keeper`) keeps that context alive while private tabs exist, even with every tab suspended;
+  closing it with the last tab makes GeckoView delete them. After a process death they are gone.
+- `PrivacyEngine`: AC `DefaultSettings` (HTTPS-only, fingerprinting protection, query stripping and
+  email trackers, all private-only), the tracking policy (bounce tracking per setting), DoH, and
+  Gecko prefs through `GeckoPreferenceController` (WebRTC, GPC and tracking content in private,
+  cookie banners).
+- `PrivateMode`: shown or not (per process), and the lock (1 min away, screen off). KoanRoot swaps
+  the spaces and the tab manager it reads; `ui/privacy/PrivateFlip` runs the 760ms transition.
+
 ## Sync scheduling
 
 - Pull on: app start (after showing the cached Room state immediately), returning to foreground

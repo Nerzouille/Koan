@@ -26,6 +26,7 @@ import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.theme.ButtonTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
 
 /** The glyph of a permission (prompt card, Site settings). */
@@ -72,7 +73,7 @@ fun PermissionPrompt(host: String, ask: SiteAsk, interactive: Boolean, onBlock: 
             }
             Spacer(Modifier.width(SheetTokens.RowPadding))
             Column {
-                Text("$host wants to ${ask.wants}", color = palette.TextPrimary, fontSize = SheetTokens.CardTitleSize, fontWeight = FontWeight.SemiBold)
+                Text("$host wants to ${ask.wants}", color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize))
                 Text(ask.why(), color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize)
             }
         }

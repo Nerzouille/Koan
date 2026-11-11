@@ -15,12 +15,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,8 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import dev.nerzouille.koan.R
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SettingsTokens
-import dev.nerzouille.koan.ui.theme.brandOutline
 import dev.nerzouille.koan.update.UpdateStatus
 
 /** Koan's GitHub repository (changelog, releases, licences). */
@@ -50,15 +50,15 @@ internal fun AboutPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
         update = UpdateStatus.Checking
         update = ui.checkUpdate()
     }
-    SettingsPageFrame(null, on, onBack) {
-        Column(Modifier.fillMaxWidth().padding(top = SettingsTokens.SectionTop * 2), horizontalAlignment = Alignment.CenterHorizontally) {
+    SettingsPageFrame("About", on, onBack) {
+        Column(Modifier.fillMaxWidth().padding(top = SettingsTokens.SectionTop), horizontalAlignment = Alignment.CenterHorizontally) {
             Image(
                 painterResource(R.drawable.koan_icon),
                 null,
                 Modifier.size(SettingsTokens.AppIcon).clip(RoundedCornerShape(SettingsTokens.AppIconRadius)),
             )
             Spacer(Modifier.height(SettingsTokens.SectionTop))
-            Text("Koan", color = palette.TextPrimary, fontSize = SettingsTokens.AppNameSize, fontWeight = FontWeight.Bold)
+            Text("Koan", color = palette.TextPrimary, style = KoanType.title(SettingsTokens.AppNameSize))
             Spacer(Modifier.height(SettingsTokens.Divider * 6))
             Text("Version ${ui.version}", color = palette.TextSecondary, fontSize = SettingsTokens.VersionSize)
             Spacer(Modifier.height(SettingsTokens.SectionTop * 0.6f))
@@ -77,7 +77,6 @@ internal fun AboutPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
                 .fillMaxWidth()
                 .clip(shape)
                 .background(palette.Card)
-                .brandOutline(shape)
                 .padding(SettingsTokens.CardPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {

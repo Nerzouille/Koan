@@ -6,6 +6,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
@@ -33,8 +34,42 @@ class LoginSummary(val guid: String, val origin: String, val local: Boolean)
  * Username and password are sealed together with a Keystore key ([box]); only the site is stored
  * in the clear.
  */
-class LoginStore(private val dao: KoanDao, private val box: SecretBox) {
-    val summaries: Flow<List<LoginSummary>> = dao.observeLogins().map { rows -> rows.map { LoginSummary(it.guid, it.origin, it.local) } }
+class LoginStore(private val dao: KoanDao, private val box: SecretBox, private val hidden: HiddenLogins) {
+    val summaries: Flow<List<LoginSummary>> = combine(dao.observeLogins(), hidden.guids) { rows, gone ->
+        rows.filterNot { it.guid in gone }.map { LoginSummary(it.guid, it.origin, it.local) }
+    }
+
+    /**
+     * Deletes [guids]: a login saved on this phone is deleted; one from the Mozilla account is only
+     * hidden here (Koan doesn't change the account's passwords). [restore] undoes it.
+     */
+    suspend fun remove(guids: List<String>): Removed = withContext(Dispatchers.IO) {
+        val rows = dao.loginsByGuid(guids)
+        val (local, synced) = rows.partition { it.local }
+        dao.deleteLogins(local.map { it.guid })
+        hidden.add(synced.map { it.guid })
+        Removed(local, synced.map { it.guid })
+    }
+
+    suspend fun restore(removed: Removed) = withContext(Dispatchers.IO) {
+        dao.upsertLogins(removed.deleted)
+        hidden.remove(removed.hidden)
+    }
+
+    /** What [remove] did: the phone's logins it deleted, the account's it hid. */
+    class Removed(val deleted: List<LoginEntity>, val hidden: List<String>) {
+        val count get() = deleted.size + hidden.size
+    }
+
+    /**
+     * A login typed in by hand (Passwords › +): [site] as typed ("example.com", or a full address),
+     * saved on this phone like "Save in Koan". False when [site] isn't a web address.
+     */
+    suspend fun addManual(site: String, username: String, password: String): Boolean {
+        val origin = originOf(site) ?: return false
+        saveLocal(origin, formActionOrigin = origin, httpRealm = null, usernameField = "", passwordField = "", username = username, password = password)
+        return true
+    }
 
     fun seal(username: String, password: String): ByteArray =
         box.seal(JSONObject().put("u", username).put("p", password).toString().toByteArray(Charsets.UTF_8))
@@ -66,7 +101,8 @@ class LoginStore(private val dao: KoanDao, private val box: SecretBox) {
     /** The logins for a page at [origin] (its site and the site's subdomains), for autofill. */
     suspend fun forOrigin(origin: String): List<Login> = withContext(Dispatchers.Default) {
         val host = android.net.Uri.parse(origin).host ?: return@withContext emptyList()
-        dao.loginsFor(origin.trimEnd('/'), baseDomain(host)).mapNotNull(::open)
+        val gone = hidden.guids.value
+        dao.loginsFor(origin.trimEnd('/'), baseDomain(host)).filterNot { it.guid in gone }.mapNotNull(::open)
     }
 
     suspend fun touch(guid: String) = dao.touchLogin(guid, System.currentTimeMillis())
@@ -108,6 +144,20 @@ class LoginStore(private val dao: KoanDao, private val box: SecretBox) {
 
     companion object {
         private const val BATCH = 12
+
+        /** "example.com" or "https://example.com/login" → "https://example.com"; null for what isn't a site. */
+        fun originOf(site: String): String? {
+            val trimmed = site.trim()
+            if (trimmed.isEmpty() || trimmed.any { it.isWhitespace() }) return null
+            val withScheme = if ("://" in trimmed) trimmed else "https://$trimmed"
+            val uri = runCatching { java.net.URI(withScheme) }.getOrNull() ?: return null
+            val scheme = uri.scheme?.lowercase()
+            val host = uri.host?.lowercase() ?: return null
+            if (scheme != "https" && scheme != "http") return null
+            if ('.' !in host && host != "localhost") return null
+            val port = if (uri.port != -1) ":${uri.port}" else ""
+            return "$scheme://$host$port"
+        }
 
         /** Keystore decryptions in parallel (more just queue in the keystore daemon). */
         @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)

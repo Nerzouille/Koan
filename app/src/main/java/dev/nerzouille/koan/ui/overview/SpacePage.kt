@@ -39,12 +39,27 @@ import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import dev.nerzouille.koan.ui.theme.SpaceColors
-import dev.nerzouille.koan.ui.theme.BrandSpinner
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import kotlin.math.abs
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import dev.nerzouille.koan.ui.privacy.PrivateEmptyState
+import dev.nerzouille.koan.ui.privacy.PrivateTitle
+import dev.nerzouille.koan.ui.privacy.PrivateToggle
+import dev.nerzouille.koan.ui.theme.PrivateTokens
+import dev.nerzouille.koan.ui.topSafe
 
 @Immutable
 data class SpaceModel(
@@ -98,9 +113,12 @@ fun SpacePage(
     modifier: Modifier = Modifier,
     /** The overview's open motion has finished (see [DepthStack]'s `settled`). */
     settled: Boolean = true,
+    private: PrivateOverview? = null,
+    /** This page is Private's (its title, its empty state). */
+    privatePage: Boolean = false,
 ) {
     Column(modifier.fillMaxSize()) {
-        SpaceHeader(space, sync.badge, onBack = onDismiss, onBadge = onBadge)
+        SpaceHeader(space, sync.badge, onBack = onDismiss, onBadge = onBadge, private = private, privatePage = privatePage)
         val connect = sync.connect && !space.zen
         if (connect && space.stack.isNotEmpty()) ConnectCard(onConnect, compact = true)
         Box(
@@ -110,6 +128,7 @@ fun SpacePage(
                 .stackParallax(pageOffset),
         ) {
             when {
+                privatePage && space.stack.isEmpty() -> PrivateEmpty(onNewTab)
                 space.stack.isEmpty() && sync.firstSync -> SkeletonStack()
                 connect && space.stack.isEmpty() -> ConnectCard(onConnect, compact = false, Modifier.align(Alignment.Center))
                 space.stack.isEmpty() -> EmptySpace(space, onNewTab, Modifier.align(Alignment.Center))
@@ -128,6 +147,22 @@ fun SpacePage(
             }
         }
     }
+}
+
+/** No private tabs: the empty state, its top 230dp from the screen's (§4.7), fading in once it shows. */
+@Composable
+private fun BoxScope.PrivateEmpty(onNewTab: () -> Unit) {
+    val density = LocalDensity.current
+    val top = with(density) { WindowInsets.topSafe.getTop(density).toDp() } + OverviewTokens.HeaderHeight
+    val fade = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { fade.animateTo(1f, tween(PrivateTokens.EMPTY_FADE_MS)) }
+    PrivateEmptyState(
+        onNewTab,
+        Modifier
+            .align(Alignment.TopCenter)
+            .padding(top = (PrivateTokens.EmptyTop - top).coerceAtLeast(0.dp))
+            .graphicsLayer { alpha = fade.value },
+    )
 }
 
 /** The incoming stack trails the header (parallax) and grows to full size as it comes in. */
@@ -149,8 +184,7 @@ private fun EmptySpace(space: SpaceModel, onNewTab: () -> Unit, modifier: Modifi
         Text(
             "No open tabs in ${space.name}",
             color = KoanTheme.colors.TextPrimary,
-            fontSize = OverviewTokens.EmptyTitleSize,
-            fontWeight = FontWeight.SemiBold,
+            style = KoanType.headline(OverviewTokens.EmptyTitleSize),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -188,7 +222,7 @@ internal fun SkeletonStack(modifier: Modifier = Modifier) {
 
 /** Compact header: back, space icon + name, sync badge. Swipe down on it = back to the current tab. */
 @Composable
-internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit, onBadge: () -> Unit) {
+internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit, onBadge: () -> Unit, private: PrivateOverview? = null, privatePage: Boolean = false) {
     // Page ↔ overview: slides in from above and fades in with the cards (CardHero), the stand-in
     // space's header (GhostSpace) too. Gone a third of the way out, before it reaches the status bar.
     val hero = LocalCardHero.current
@@ -212,27 +246,31 @@ internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit
                     change.consume()
                 }
             }
-            .padding(horizontal = OverviewTokens.HeaderPadding),
+            .padding(start = OverviewTokens.HeaderPadding, end = OverviewTokens.HeaderPaddingEnd),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HeaderIcon(KoanIcons.Back, onBack)
-        Box(
-            Modifier.size(OverviewTokens.SpaceIconBox).clip(RoundedCornerShape(OverviewTokens.SpaceIconRadius)).background(KoanTheme.colors.Glass),
-            contentAlignment = Alignment.Center,
-        ) { ZenIcon(space.icon, OverviewTokens.SpaceIconGlyph, tint = KoanTheme.colors.TextPrimary) }
-        Spacer(Modifier.width(OverviewTokens.TitleGap))
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                space.name,
-                color = KoanTheme.colors.TextPrimary,
-                fontSize = OverviewTokens.TitleSize,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            SyncBadgeView(badge, onBadge)
+            if (privatePage) {
+                PrivateTitle()
+            } else {
+                Box(
+                    Modifier.size(OverviewTokens.SpaceIconBox).clip(RoundedCornerShape(OverviewTokens.SpaceIconRadius)).background(KoanTheme.colors.Glass),
+                    contentAlignment = Alignment.Center,
+                ) { ZenIcon(space.icon, OverviewTokens.SpaceIconGlyph, tint = KoanTheme.colors.TextPrimary) }
+                Spacer(Modifier.width(OverviewTokens.TitleGap))
+                Text(
+                    space.name,
+                    color = KoanTheme.colors.TextPrimary,
+                    style = KoanType.title(OverviewTokens.TitleSize),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                SyncBadgeView(badge, onBadge)
+            }
         }
+        if (private != null) PrivateToggle(private.flip, private.onToggle)
     }
 }
 
@@ -244,24 +282,22 @@ private fun HeaderIcon(icon: ImageVector, onClick: () -> Unit) {
 }
 
 /**
- * Sync state at a glance, next to the space name: nothing when all is well, a small brand-gradient
- * spinner while syncing, an amber dot when the last sync failed or the account needs signing in again.
- * Tap = sync now (or sign in).
+ * Sync failed at a glance (OVERVIEW_PRIVATE.md §3.1): an amber dot 8dp after the space name when
+ * the last sync failed or the account needs signing in again; nothing while syncing or synced.
+ * Tap = retry (or sign in).
  */
 @Composable
 private fun SyncBadgeView(badge: SyncBadge, onClick: () -> Unit) {
-    if (badge == SyncBadge.None) return
+    if (badge != SyncBadge.Attention) return
+    Spacer(Modifier.width(OverviewTokens.SyncDotGap - (FirstRunTokens.BadgeTouch - FirstRunTokens.BadgeDot) / 2))
     Box(
         Modifier
             .size(FirstRunTokens.BadgeTouch)
             .clip(CircleShape)
+            .semantics { contentDescription = "Sync failed, retry"; role = Role.Button }
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        if (badge == SyncBadge.Syncing) {
-            BrandSpinner(FirstRunTokens.BadgeSpinner)
-        } else {
-            Box(Modifier.size(FirstRunTokens.BadgeDot).clip(CircleShape).background(KoanTheme.colors.Attention))
-        }
+        Box(Modifier.size(FirstRunTokens.BadgeDot).clip(CircleShape).background(KoanTheme.colors.SyncDot))
     }
 }

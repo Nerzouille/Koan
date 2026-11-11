@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.data.StartPageAfter
 import dev.nerzouille.koan.data.ThemeMode
 import dev.nerzouille.koan.search.EngineDraft
+import dev.nerzouille.koan.data.SyncBackChoice
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.bar.label
@@ -56,7 +57,9 @@ sealed interface SettingsPage {
     data object About : SettingsPage
     data object DownloadFolder : SettingsPage
     data object Passwords : SettingsPage
+    data object Translation : SettingsPage
     data class PasswordSite(val site: String) : SettingsPage
+    data object AddPassword : SettingsPage
 }
 
 /** Everything Settings shows and does. [email] null = signed out. */
@@ -76,9 +79,18 @@ class SettingsUi(
     /** Suggestions from the search engine while typing. */
     val suggestions: Boolean,
     val onSuggestions: (Boolean) -> Unit,
+    /** Two-way sync, dry run only: which collections Koan would send. */
+    val syncBack: SyncBackChoice,
+    val onSyncBack: (SyncBackChoice) -> Unit,
+    val syncBackPasswordEdits: Boolean = false,
+    val onSyncBackPasswordEdits: (Boolean) -> Unit = {},
+    /** The last two-way sync outcome per collection (no content). */
+    val syncWriteStatus: Map<String, String> = emptyMap(),
     /** The status bar stays hidden in the page and the overview. */
     val hideStatusBar: Boolean,
     val onHideStatusBar: (Boolean) -> Unit,
+    val pictureInPicture: Boolean = true,
+    val onPictureInPicture: (Boolean) -> Unit = {},
     val email: String?,
     val status: DrawerStatus,
     val onSyncNow: () -> Unit,
@@ -104,12 +116,15 @@ class SettingsUi(
     val onDefaultDownloadFolder: () -> Unit,
     val onShowDownloads: () -> Unit,
     val passwords: PasswordsUi,
+    val translation: TranslationSettings = TranslationSettings(),
     /** uBlock Origin: null = not installed. */
     val ublock: UBlockUi?,
     /** Requests it blocked over the last 7 days. */
     val ublockWeek: Int,
     val onUblock: (Boolean) -> Unit,
     val onInstallUblock: () -> Unit,
+    /** The settings themselves, for the private browsing rows (PrivacySettings reads them). */
+    val settings: dev.nerzouille.koan.data.Settings? = null,
 )
 
 /**
@@ -147,10 +162,13 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.Account -> AccountPage(ui, interactive, back)
                         SettingsPage.About -> AboutPage(ui, interactive, back)
                         SettingsPage.DownloadFolder -> FolderPage(ui, interactive, back)
+                        SettingsPage.Translation -> TranslationPage(ui.translation, interactive, back)
                         SettingsPage.Passwords -> PasswordsPage(
                             ui.passwords, interactive, back,
                             onOpenSite = { nav.push(SettingsPage.PasswordSite(it)) },
+                            onAdd = { nav.push(SettingsPage.AddPassword) },
                         )
+                        SettingsPage.AddPassword -> AddPasswordPage(ui.passwords, interactive, back)
                         is SettingsPage.PasswordSite -> PasswordSitePage(ui.passwords, page.site, interactive, back)
                     }
                 }
@@ -178,6 +196,13 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
         Spacer(Modifier.height(SettingsTokens.Divider * 10))
         SettingsDivider()
         SettingsRow(
+            KoanIcons.Translate, "Translation", on,
+            subtitle = "Always or never, by language and site",
+            chevron = true,
+            onClick = { push(SettingsPage.Translation) },
+        )
+        SettingsDivider()
+        SettingsRow(
             KoanIcons.Globe, "Default browser", on,
             subtitle = if (ui.isDefault) "Links from other apps open in Koan" else "Open links from other apps in Koan",
             value = if (ui.isDefault) "Koan" else "Set",
@@ -198,6 +223,12 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
             subtitle = "Swipe down from the top edge to see it",
             onClick = { ui.onHideStatusBar(!ui.hideStatusBar) },
         ) { KoanToggle(checked = ui.hideStatusBar, onCheckedChange = if (on) ui.onHideStatusBar else null) }
+        SettingsDivider()
+        SettingsRow(
+            KoanIcons.Play, "Picture-in-picture", on,
+            subtitle = "A fullscreen video keeps playing in a small window when you leave Koan",
+            onClick = { ui.onPictureInPicture(!ui.pictureInPicture) },
+        ) { KoanToggle(checked = ui.pictureInPicture, onCheckedChange = if (on) ui.onPictureInPicture else null) }
 
         SettingsSection("Privacy")
         SettingsRow(
@@ -217,6 +248,8 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
                 onClick = { ui.onUblock(!ublock.enabled) },
             ) { KoanToggle(checked = ublock.enabled, onCheckedChange = if (on) ui.onUblock else null) }
         }
+
+        ui.settings?.let { PrivacySettings(it, on) }
 
         SettingsSection("Koan")
         SettingsRow(KoanIcons.Download, "Downloads", on, chevron = true, onClick = ui.onShowDownloads)
@@ -240,12 +273,14 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
 private fun AccountCard(ui: SettingsUi, on: Boolean, onClick: () -> Unit) {
     val palette = KoanTheme.colors
     val shape = RoundedCornerShape(SettingsTokens.CardRadius)
+    // The gradient means "working / active": not while sync is failing (docs/UI_SPEC.md "Brand gradient").
+    val failing = ui.email != null && ui.status.label()?.second == true
     Column(
         Modifier
             .fillMaxWidth()
             .clip(shape)
             .background(palette.Card)
-            .brandOutline(shape)
+            .then(if (failing) Modifier else Modifier.brandOutline(shape))
             .then(if (on) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(SettingsTokens.CardPadding),
     ) {
@@ -312,6 +347,13 @@ private fun FolderPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
 }
 
 @Composable
+private fun SyncBackRow(title: String, checked: Boolean, on: Boolean, onChange: (Boolean) -> Unit) {
+    SettingsRow(null, title, on, subtitle = "Off by default", onClick = { onChange(!checked) }) {
+        KoanToggle(checked = checked, onCheckedChange = if (on) onChange else null)
+    }
+}
+
+@Composable
 private fun AccountPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
     SettingsPageFrame("Mozilla account", on, onBack) {
         SettingsRow(null, ui.email.orEmpty(), on, subtitle = ui.status.label()?.first?.substringBefore(" · Sync now"))
@@ -319,5 +361,27 @@ private fun AccountPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit) {
         SettingsRow(null, "Sync now", on, onClick = ui.onSyncNow)
         SettingsDivider()
         SettingsRow(null, "Sign out", on, titleColor = KoanTheme.colors.Destructive, onClick = ui.onSignOut)
+
+        // Two-way sync (docs/SYNC_WRITE.md): off by default; any surprise turns a switch off again.
+        SettingsSection("Send to your Mozilla account")
+        val choice = ui.syncBack
+        SettingsRow(
+            null, "Passwords saved on this phone", on,
+            subtitle = ui.syncWriteStatus["passwords"] ?: "New ones only, added to the account",
+            onClick = { ui.onSyncBack(choice.copy(passwords = !choice.passwords)) },
+        ) { KoanToggle(checked = choice.passwords, onCheckedChange = if (on) ({ ui.onSyncBack(choice.copy(passwords = it)) }) else null) }
+        SettingsDivider()
+        SettingsRow(
+            null, "Change and delete passwords", on,
+            subtitle = "Edits and deletions made here change the account too",
+            onClick = { ui.onSyncBackPasswordEdits(!ui.syncBackPasswordEdits) },
+        ) { KoanToggle(checked = ui.syncBackPasswordEdits, onCheckedChange = if (on) ui.onSyncBackPasswordEdits else null) }
+        SettingsDivider()
+        SettingsRow(
+            null, "History, both ways", on,
+            subtitle = ui.syncWriteStatus["history"] ?: "Pages visited here; pages removed here are removed there too",
+            onClick = { ui.onSyncBack(choice.copy(history = !choice.history)) },
+        ) { KoanToggle(checked = choice.history, onCheckedChange = if (on) ({ ui.onSyncBack(choice.copy(history = it)) }) else null) }
+        SettingsRow(null, "Before the first change, Koan keeps a copy of each collection on this phone.", false)
     }
 }

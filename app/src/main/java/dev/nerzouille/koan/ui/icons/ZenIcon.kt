@@ -2,6 +2,13 @@
 
 package dev.nerzouille.koan.ui.icons
 
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.platform.LocalDensity
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -31,10 +38,25 @@ fun ZenIcon(icon: String?, size: Dp, tint: Color, modifier: Modifier = Modifier)
     val clean = icon?.trim().orEmpty()
     if (clean.isEmpty()) return
     val context = LocalContext.current
+    // A Zia mod icon: drawn from its bundled Tabler icons (off the main thread, once per icon).
+    if (ZiaIcons.isZia(clean)) {
+        val px = with(LocalDensity.current) { (size * 0.82f).roundToPx() }
+        val image by produceState<ImageBitmap?>(null, clean, px) {
+            value = withContext(Dispatchers.Default) { ZiaIcons.bitmap(context, clean, px)?.asImageBitmap() }
+        }
+        Box(modifier.size(size), contentAlignment = Alignment.Center) {
+            image?.let { Image(it, null, Modifier.size(size * 0.82f), colorFilter = ColorFilter.tint(tint)) }
+        }
+        return
+    }
     val look = remember(clean) {
         emojiFromDataUrl(clean)?.let { ZenIconLook.Emoji(it) }
             ?: assetName(clean)?.let { name ->
                 context.resources.getIdentifier(name, "drawable", context.packageName).takeIf { it != 0 }
+                    // A name Koan doesn't ship (a newer Zen, a mod's own name): the closest one by spelling.
+                    ?: ZiaIcons.closest(name.removePrefix("zen_"), ZEN_ICON_NAMES)?.let { near ->
+                        context.resources.getIdentifier("zen_$near", "drawable", context.packageName).takeIf { it != 0 }
+                    }
             }?.let { ZenIconLook.Vector(it) }
             ?: clean.takeIf { looksLikeEmoji(it) }?.let { ZenIconLook.Emoji(it) }
     } ?: return
@@ -45,6 +67,9 @@ fun ZenIcon(icon: String?, size: Dp, tint: Color, modifier: Modifier = Modifier)
         }
     }
 }
+
+/** Zen's selectable icons Koan ships (res/drawable/zen_<name>.xml), for the closest-name fallback. */
+private val ZEN_ICON_NAMES = listOf("airplane", "american_football", "baseball", "basket", "bed", "bell", "bookmark", "book", "briefcase", "brush", "bug", "build", "cafe", "call", "card", "chat", "checkbox", "circle", "cloud", "code", "coins", "construct", "cutlery", "egg", "extension_puzzle", "eye", "fast_food", "fish", "flag", "flame", "flask", "folder", "game_controller", "globe_1", "globe", "grid_2x2", "grid_3x3", "heart", "ice_cream", "image", "inbox", "key", "layers", "leaf", "lightning", "location", "lock_closed", "logo_github", "logo_rss", "logo_usd", "mail", "map", "megaphone", "moon", "music", "navigate", "nuclear", "page", "palette", "paw", "people", "pizza", "planet", "present", "rocket", "school", "shapes", "shirt", "skull", "squares", "square", "star_1", "star", "stats_chart", "sun", "tada", "terminal", "ticket", "time", "trash", "triangle", "video", "volume_high", "wallet", "warning", "water", "weight")
 
 private sealed interface ZenIconLook {
     data class Emoji(val text: String) : ZenIconLook

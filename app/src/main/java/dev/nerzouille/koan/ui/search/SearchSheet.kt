@@ -92,6 +92,8 @@ fun SearchSheet(
     currentSpace: Int,
     actions: SearchActions,
     modifier: Modifier = Modifier,
+    /** Private: the notice first, bookmarks and private tabs only. */
+    private: Boolean = false,
 ) {
     val fade = remember { Animatable(0f) }
     LaunchedEffect(open) { fade.animateTo(if (open) 1f else 0f, Motion.SearchScrim) }
@@ -103,7 +105,7 @@ fun SearchSheet(
             .drawBehind { drawRect(palette.SheetScrim, alpha = fade.value) }
             .then(if (open) Modifier.pointerInput(Unit) { detectTapGestures { actions.cancel() } } else Modifier),
     ) {
-        if (open) Results(field, search, engine, shortcuts, bottom, currentSpace, actions)
+        if (open) Results(field, search, engine, shortcuts, bottom, currentSpace, actions, private)
     }
 }
 
@@ -117,6 +119,7 @@ private fun BoxScope.Results(
     bottom: Dp,
     currentSpace: Int,
     actions: SearchActions,
+    private: Boolean,
 ) {
     val palette = KoanTheme.colors
     val parsed = parseQuery(field.typed, shortcuts)
@@ -134,7 +137,7 @@ private fun BoxScope.Results(
         Picker(parsed.rest, engine, shortcuts, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom).heightIn(max = cap))
         return
     }
-    val showing = !parsed.picking && (!results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty()))
+    val showing = !parsed.picking && (private || !results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty()))
     if (!showing) return
     Column(
         Modifier
@@ -150,6 +153,7 @@ private fun BoxScope.Results(
     ) {
         // Top to bottom = furthest to closest to the thumb: history and bookmarks, then open
         // tabs, then the engine's suggestions right on the field.
+        if (private) dev.nerzouille.koan.ui.privacy.PrivateSearchNotice()
         if (results.pages.isNotEmpty()) {
             val label = when {
                 results.pages.all { it.source == Source.Bookmark } -> "Bookmarks"
@@ -158,7 +162,7 @@ private fun BoxScope.Results(
             }
             Group(label, KoanIcons.Reload) { results.pages.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
         }
-        if (results.tabs.isNotEmpty()) Group("Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
+        if (results.tabs.isNotEmpty()) Group(if (private) "Switch to private tab" else "Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -> if (i > 0) Divider(); HitRow(h, currentSpace, actions) } }
         if (suggestions.isNotEmpty()) {
             Group(search.suggestionsFrom, null, favicon = search.suggestionsHome) {
                 Row(

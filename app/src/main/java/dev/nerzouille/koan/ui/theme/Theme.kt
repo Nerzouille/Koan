@@ -35,8 +35,27 @@ fun KoanTheme(dark: Boolean, content: @Composable () -> Unit) {
         )
     }
     CompositionLocalProvider(LocalKoanPalette provides palette) {
-        MaterialTheme(colorScheme = scheme, content = content)
+        MaterialTheme(colorScheme = scheme, typography = KoanTypography, content = content)
     }
+}
+
+/**
+ * Private mode's palette over [content] ([KoanPalette.Dusk] in light, [KoanPalette.Night] in dark)
+ * while [private]; the normal one otherwise. Settings, History and Downloads stay normal ([Normal]).
+ */
+@Composable
+fun KoanPrivateTheme(private: Boolean, content: @Composable () -> Unit) {
+    val current = LocalKoanPalette.current
+    val normal = if (current.isDark) KoanPalette.Dark else KoanPalette.Light
+    val palette = if (!private) normal else if (normal.isDark) KoanPalette.Night else KoanPalette.Dusk
+    CompositionLocalProvider(LocalKoanPalette provides palette, content = content)
+}
+
+/** The normal palette again inside private mode (Settings, History, Downloads, ⋯ pages). */
+@Composable
+fun KoanNormalTheme(content: @Composable () -> Unit) {
+    val dark = LocalKoanPalette.current.isDark
+    CompositionLocalProvider(LocalKoanPalette provides if (dark) KoanPalette.Dark else KoanPalette.Light, content = content)
 }
 
 object KoanTheme {

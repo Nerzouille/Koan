@@ -1,4 +1,4 @@
-# Koan — user guide (v0.4.0)
+# Koan — user guide (v0.4.0, plus what's on `dev` since)
 
 Everything that works in this build, how to use it, and what isn't there yet. Koan is a browser
 built on GeckoView (Firefox's engine). Its workspaces are your Zen Browser Spaces, read from your
@@ -64,13 +64,15 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
   computer) to be let into Firefox Sync. This is unofficial: it can break when Mozilla changes
   something and may go against Mozilla's terms. Use it at your own risk.
 
-### What is synced (read-only)
+### What is synced
 
-Koan only reads. Nothing you do on the phone is written to your account or to Zen.
+Koan reads everything below. It writes back only what you turn on in **Settings › Mozilla
+account › Send to your Mozilla account** (all off until you choose; see Two-way sync below).
+Spaces, tabs and bookmarks are never written.
 
 | From your account | What Koan does with it |
 |---|---|
-| Zen Spaces | Spaces, their icons and colours, essentials, pinned tabs, folders, split views, open tabs |
+| Zen Spaces | Spaces, their icons (including icons picked with the Zia mod) and colours, essentials, pinned tabs, folders, split views, open tabs |
 | Passwords | Autofill in pages, and the list in Settings › Passwords |
 | Bookmarks | Search results |
 | History | Search results (the 5000 most recently changed pages) |
@@ -82,6 +84,22 @@ Koan only reads. Nothing you do on the phone is written to your account or to Ze
   **Sync now**.
 - Errors stay quiet: an amber dot on the drawer's status row (and on the overview's badge) when a
   sync failed, or "Sign in again" when the session expired.
+
+### Two-way sync
+
+**Settings › Mozilla account › Send to your Mozilla account**, three switches:
+
+- **Passwords saved on this phone:** logins you save or add on the phone are added to your
+  account (never an edit of one it has).
+- **Change and delete passwords** (off by default): edits and deletions made on the phone change
+  the account too. Off, deleting an account login only hides it on the phone.
+- **History, both ways:** the pages you visit on the phone go to your account, and pages you
+  remove on the phone are removed from it.
+
+Before its first change to your account, Koan keeps a copy of what was there (still encrypted with
+your account's keys) on the phone. Each run checks the account first, sends a small first batch and
+reads it back, then the rest. Anything unexpected stops it and turns that switch off; the result of
+the last run shows under each switch.
 
 ### Signing out
 
@@ -153,6 +171,11 @@ Koan only reads. Nothing you do on the phone is written to your account or to Ze
   Cards show a screenshot of the page; tabs that were never opened on the phone show their site's
   icon instead.
 - Koan reopens on your last space and tab after being closed or killed by the system.
+- **Card headers:** the page title over its site (e.g. `en.wikipedia.org`). A title ending with the
+  site's own name ("… - Wikipedia") drops it, since the line below says it already.
+- **Sync failed:** a small amber dot after the space name. Tap it to try again (or to sign in
+  again). Nothing shows while syncing or when all is well.
+- **Private:** the switch at the right of the header. See [Private browsing](#14-private-browsing).
 
 ### The start page
 
@@ -217,8 +240,8 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
   - a tab another app opened (a link from a chat, an email…) closes, and you're back in that app;
   - a tab opened from a link in another tab closes, and you're back on that tab;
   - any other tab closes and the next one in the stack shows, with a **Tab closed · Undo** toast
-    (Undo brings it back with its page history). After the space's last tab, the overview opens,
-    with the same toast;
+    (Undo brings it back with its page history): the page shrinks into a card that slides away, over
+    the tab underneath. After the space's last tab, the overview opens, with the same toast;
   - a pinned tab or an essential never closes: the overview opens, as before.
 - A full screen video: Back leaves full screen first.
 - In the overview: back to the current tab.
@@ -367,7 +390,11 @@ address):
 
 - **Link:** Open in new tab, **Open in background** (a toast "Opened in background · Switch"; tap
   Switch within 3 seconds to go to it), Copy link, Share link.
-- **Image:** Save image, Open image in new tab, Copy image link.
+- **Image:** Save image, Open image in new tab, Copy image link. On a picture still showing a small
+  preview (Google Images while the full image loads), Save image waits for the full image and saves
+  that one ("Waiting for the full image…").
+- When one card leads to another (Save image on a file you already have, a download confirmation
+  then the duplicate card), the same card changes into the next one.
 
 ### Desktop site
 
@@ -377,13 +404,40 @@ address):
 
 Phone numbers (`tel:`), email addresses (`mailto:`) and links meant for an app (`intent://`, or
 an app's own link) open in that app when you tap them. A page can't open an app by itself, only
-when you tap. An app link with a web fallback opens the web page when the app isn't installed.
+when you tap.
+
+- A page's "Open app" button asks first, on a card with the app's name and icon: **Open in
+  YouTube?**, **Open** or **Cancel**, and "Always for this site". When the link names an app that
+  can't take it (disabled, or replaced by another app), Koan offers the app that really opens it.
+- An app link with a web fallback opens the web page when the app isn't installed; without one, a
+  toast says the app isn't installed. An app Koan can't see is offered as "another app".
+- On a site that has an app on the phone, ⋯ shows **Open in [app]**, with its icon.
+- A plain web link never asks: it opens in Koan.
 
 ### Uploading a file
 
 A site's "choose a file" button opens Android's picker: your files, photos and the camera (for
 fields that take pictures or videos). A field that asks for a capture opens the camera directly.
 Koan asks for the camera permission the first time. Closing the picker leaves the field empty.
+
+### Translate a page
+
+Pages are translated on the phone with Firefox Translations: the text is never sent anywhere.
+Each language is downloaded once (about 20–30 MB) the first time you use it.
+
+- **On a page in another language,** a small card above the dock offers **Translate to
+  [your language]**, with ✕ and quiet links: **Always for [language]**, **Never for [language]**,
+  **Never for this site**. It leaves after 20 seconds. Toasts say when it's translating and when
+  it's done, with **Show original**.
+- **⋯ › Translate page:** **From** and **To** (each opens a list with a search field and the
+  sections Recent, On this phone and All languages, with download sizes; ‹ goes back), **Translate**,
+  **Show original** and **Translate again** once translated, and the switches **Always translate**,
+  **Never translate [language]** and **Never translate this site**.
+- **Always translate [language]:** its pages are translated on their own, with a "Translated from
+  [language]" toast and Show original.
+- Long-press a language under **On this phone** to delete it from the phone (it asks first).
+- **Settings › Translation** lists your Always and Never languages and sites (Remove each), and the
+  languages on the phone with their size (Delete).
 
 ### Full screen video
 
@@ -411,10 +465,18 @@ with Koan in the background or the screen off.
   tab behind.
 - Downloads keep going with Koan in the background. Android shows their progress as a notification
   (Koan asks for the notification permission the first time).
+- **The same file again:** downloading a file that is already there (same address, or the same
+  name in the folder) asks first, on a card with its thumbnail, name and folder: **Open** (the one
+  already there), **Replace**, **Keep both** ("name (1).ext") or **Cancel**. Tap the name (or the
+  pencil) to rename the new one. A file you deleted since doesn't count.
 - **Downloads page** (⋯ › Downloads, the ring, or Settings › Downloads):
   - **In progress:** progress, pause / resume, cancel (or retry when it failed).
-  - Finished downloads, one card per day (Today, Yesterday, then dates). Tap one for **Open**,
-    **Share**, **Delete** (deletes the file).
+  - Finished downloads, one card per day (Today, Yesterday, then dates). Tap one to open it.
+  - Swipe left to right to hide it from the list (the file stays), right to left to delete the
+    file. Both have **Undo**; the file is only deleted once the toast is gone.
+  - Long-press for selection mode: check files, then **Open** (or **Install** for an app),
+    **Copy link**, **Share** or **Delete** for one, **Share** or **Delete** for several (deleting
+    several asks first).
   - **Search downloads** at the bottom, and **Clear** next to it to empty the list (asks first; the
     files stay).
   - The chip at the top shows the folder; tap it for Android's own downloads view.
@@ -430,22 +492,27 @@ with Koan in the background or the screen off.
 - **Filling a login:** tap a login field on a site you have logins for. Your accounts for that site
   appear as chips above the keyboard (usernames partly hidden). Tap one to fill. The key at the
   start of the strip opens the full list: pick one, then **Use** (or **Not now**).
-- **Saving a new login:** after you sign in somewhere new, a card offers **Save in Koan**. It's
-  kept encrypted on the phone only and isn't added to your Mozilla account. The next visit offers
-  it like the others. Saving the same site and username again updates it.
+- **Saving a new login:** after you sign in somewhere new, a card offers **Save in Koan** (or **Not
+  now**). It's kept encrypted on the phone; it goes to your Mozilla account only if you turned on
+  two-way sync for passwords. The next visit offers it like the others. Saving the same site and
+  username again updates it.
 - Android's selected autofill service is allowed in page fields. Its suggestions may appear
   alongside Koan's own login chips; availability depends on the autofill provider.
 - **Settings › Passwords:**
-  - One row per site, with a search field. A site with several accounts says how many ("3
+  - One row per site, with a search field and the site's icon when Koan already has it (never
+    fetched for this list; otherwise a key). A site with several accounts says how many ("3
     accounts"); once unlocked, a site with one account shows its username.
+  - **Add a password:** the round **+** at the bottom right: site, username, password.
+  - Swipe a site right to left to delete it, or long-press for selection mode (**Visit**,
+    **Delete**). A delete always asks first and says what it affects (this phone only, or your
+    Mozilla account too), then offers Undo. On a locked list, Koan asks for your fingerprint first.
   - Tap a site: Koan asks for your fingerprint or the device PIN (once per visit), then shows all
     the site's accounts on one page: where each comes from, its username and its password (hidden).
   - Tap a username or a password to copy it; **Reveal** shows the password, **Hide** hides it again.
     A site with one account also has a big **Copy password** button. A copied password is marked
     sensitive so Android hides it in clipboard previews.
+  - Each account on an unlocked site's page has **Delete password**.
   - Leaving the Passwords pages locks them again.
-- Logins from your account can't be edited or deleted in Koan, and phone-only logins can't be
-  deleted yet either.
 
 ---
 
@@ -462,10 +529,13 @@ with Koan in the background or the screen off.
     single visit stays a normal row; the same page twice in a row shows once.
   - Searching shows every matching page, without groups.
   - **Search history** at the bottom.
-  - Tap a page to open it in a new tab.
-  - Swipe a page left to remove it: a **Removed from history · Undo** toast follows. Swipe a group
-    to remove all its pages at once. A page from your desktop is only hidden on the phone; your
-    account isn't changed.
+  - Tap a page: opened from a page (⋯ › History), it loads in that tab; from the overview, in a new
+    tab.
+  - Swipe a page right to left to remove it: a **Removed from history · Undo** toast follows. Swipe
+    a group to remove all its pages at once. With two-way history sync on, it's removed from your
+    account too; otherwise a page from your desktop is only hidden on the phone.
+  - Long-press for selection mode: **New tab**, **Copy link**, **Share link**, **Remove** for one
+    page, **Share** or **Remove** for several (a group: **Remove N visits**).
   - **Clear** (next to the search field) opens **Clear browsing data**: History (on), Cached images
     and files (on), Cookies and site data (off: it signs you out of most sites). Desktop history is
     only hidden on the phone.
@@ -509,11 +579,14 @@ closes it).
 | Default browser | Opens Android's choice to make Koan the default browser |
 | Theme (Display) | Light, Dark, Follow system (pages follow it too) |
 | Hide status bar (Display) | Off by default. On: pages use the whole screen up to the camera; swipe down from the top edge to see the status bar for a moment. The search sheet, the overview, menus, Settings and the other pages still show it |
+| Translation | Always / Never languages and sites, and the languages on the phone: see [Translate a page](#translate-a-page) |
 | Passwords | See [Passwords and autofill](#8-passwords-and-autofill) |
 | uBlock Origin | On/off, blocked this week, or Install |
 | Downloads | The Downloads page |
 | Save downloads to | The phone's Download folder, or a folder you pick |
 | About Koan | Version, update check, **Take the tour**, links to the changelog, the privacy notice and the open-source licences |
+| Private browsing | Lock private tabs, Allow screenshots, Search suggestions, Refuse cookie banners: see [Private browsing](#14-private-browsing) |
+| All tabs | Bounce-tracking protection (on), Skip Google AMP pages (off), DNS over HTTPS (off): see [Private browsing](#14-private-browsing) |
 
 **As the default browser:** links you open in other apps, web searches, and text or links shared to
 Koan open as a new tab in your current space. So do links apps open "in the app" (Custom Tabs, as
@@ -541,9 +614,9 @@ the background. If the check fails (no network), tap the chip to try again.
 
 ## 13. Known limitations
 
-- **Read-only sync:** nothing is written back to Zen or your Mozilla account. Tabs opened, closed or
-  moved on the phone stay on the phone; Zen desktop never sees them. Logins saved on the phone stay
-  on the phone.
+- **Spaces and tabs are read-only:** only passwords and history can go back to your account (when
+  you turn it on). Tabs opened, closed or moved on the phone stay on the phone; Zen desktop never
+  sees them. Bookmarks aren't sent either.
 - **No editing of Spaces:** no creating, renaming or reordering spaces, no moving a tab to another
   space, no editing folders. Card reordering works within a space only.
 - **Unofficial sign-in:** see [Signing in](#signing-in-with-a-mozilla-account).
@@ -557,8 +630,84 @@ the background. If the check fails (no network), tap the chip to try again.
   keeping a second, unpacked copy.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
   the page itself) may reload when you pull down at the top of the list.
-- **Not there yet:** web notifications, a bookmarks screen, deleting saved logins, other add-ons
-  than uBlock Origin, picture-in-picture, private tabs, adding a page to the home screen. Opening
+- **Not there yet:** web notifications, a bookmarks screen, other add-ons
+  than uBlock Origin, picture-in-picture, adding a page to the home screen. Opening
   and closing a tab is a simple crossfade (the motion polish comes later).
 - **Not affiliated** with Zen Browser or Mozilla. Zen is an independent project; "Firefox" and
   "Mozilla" are trademarks of the Mozilla Foundation.
+
+---
+
+## 14. Private browsing
+
+**Turn it on:** the switch at the right of the overview's header. The overview turns lavender
+(light theme) or deep violet (dark theme), with a few stars; the header says **Private · Not
+saved**, and the dock shows a **Private** pill instead of your spaces. Turn the switch off to go
+back to your spaces: the private tabs stay where they are.
+
+**Private tabs are one set, apart from your spaces.** They stay open until you close them, also
+after Koan is closed, killed by the system or the phone restarts. **But sites sign you out when
+Koan restarts:** the engine keeps private cookies and site data in memory only, so they are gone
+whenever Koan's process ends (HyperOS ends it often in the background). What comes back is each
+tab's page and its Back history, saved on the phone **encrypted** with a key from the phone's
+secure hardware (Android Keystore), never in plain text. Their screenshots are never written to
+the phone: a private card shows the site's icon after a restart until you open it.
+
+**When you close the last private tab,** its cookies, site data and cache are deleted, and so is
+the saved file. Koan opens in normal mode after a restart; Private is one tap away.
+
+**Locked:** opening Private asks for your fingerprint or the phone's PIN when you have private
+tabs, after 1 minute away from Koan or once the screen turned off. While locked, Private shows
+only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on by default.)
+
+**What Private does**
+
+- Nothing goes to your history, search suggestions, **Recently closed** or your Mozilla account,
+  and private tabs never sync.
+- **Private search** suggests only your bookmarks and your private tabs; nothing you type is kept.
+  Suggestions from the search engine are off (Settings › Search suggestions, under Private
+  browsing).
+- **No screenshots or screen recordings** of Koan while Private shows, and Android's recent apps
+  show a blank card (Settings › Allow screenshots, off by default).
+- **The keyboard doesn't learn** from what you type, in Koan's own fields and in pages.
+- **HTTPS only:** private tabs open sites over HTTPS. A site without it doesn't open, and a message
+  says so (open it in a normal tab).
+- **Tracking protection:** tracking content, social trackers, email trackers and cryptominers
+  blocked, and every site's cookies kept apart from the others' (Total Cookie Protection). uBlock
+  Origin runs in private tabs too.
+- **Fingerprinting protection:** Firefox's own (canvas and other values slightly randomised per
+  site). Not the Tor Browser-style mode, which breaks many sites.
+- **Cleaner links:** tracking parameters are removed from links you open, type or paste (click IDs
+  such as `fbclid` and `gclid`, and `utm_…` campaign tags).
+- **Google AMP links** open the original article instead of Google's AMP copy (pages a site hosts
+  as AMP itself are left alone).
+- **Global Privacy Control:** each private tab tells sites you don't want your data sold or
+  shared. It is a request: sites may ignore it, and only some laws make it binding.
+- **Protections switch:** ⋯ › **Protections** turns tracking protection off for one site that
+  breaks (it reloads); it stays off for that site until the last private tab closes.
+- **Refuse cookie banners** (Settings, off by default): where Firefox's rules know the site, its
+  cookie banner is answered "reject" for you.
+- **Downloads** from private tabs go to the phone's Download folder and show in Downloads with a
+  small mask, until Koan restarts (the files stay). **Bookmarks** you save stay too.
+
+**What Private doesn't do**
+
+- **It doesn't hide your IP address or your location.** Sites, your network (Wi-Fi owner, mobile
+  carrier) and your employer or school can still see what you visit. For that you need a VPN or
+  Tor Browser.
+- It doesn't stop sites from recognising you if you sign in.
+- It doesn't keep you signed in across restarts (see above).
+- Files you download and bookmarks you save stay on the phone after Private ends.
+
+**For all tabs** (Settings › All tabs)
+
+- **WebRTC** (video calls in a page) never shows your phone's local network addresses to sites.
+  Your public address is the one every site sees anyway (see above). Always on.
+- **Bounce-tracking protection** (on by default): sites you only pass through on a redirect, which
+  are known to track, have their data cleared. The engine can't limit this to private tabs.
+- **Skip Google AMP pages** in normal tabs too (off by default).
+- **DNS over HTTPS** (off by default): Koan looks up site names through Mozilla's resolver (run by
+  Cloudflare) over an encrypted connection, falling back to the phone's DNS if it fails. Your
+  network no longer sees which sites you look up, the resolver does. Android's own **Private DNS**
+  setting does the same for every app.
+

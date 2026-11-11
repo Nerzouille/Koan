@@ -40,6 +40,7 @@ import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanPalette
+import dev.nerzouille.koan.ui.theme.KoanPrivateTheme
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.SpaceColors
 import dev.nerzouille.koan.ui.theme.PagerTokens
@@ -48,6 +49,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlin.math.abs
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import dev.nerzouille.koan.ui.privacy.PrivateAtmosphere
+import dev.nerzouille.koan.ui.privacy.PrivateFlip
+import dev.nerzouille.koan.ui.theme.PrivateTokens
+import dev.nerzouille.koan.ui.topSafe
 
 /**
  * The Space overview: one page per space, switched only from the workspace switcher in the bottom
@@ -77,6 +92,11 @@ fun OverviewScreen(
     modifier: Modifier = Modifier,
     /** (space uuid, card id) to bring into focus once that stack shows it; consumed here. */
     focusRequest: MutableState<Pair<String, String>?>,
+    /** Private mode's toggle and transition (null = none, e.g. the first run). */
+    private: PrivateOverview? = null,
+    /** Both modes' spaces ([models] is the one shown): Private's page sits beside the normal one. */
+    normalModels: List<SpaceModel>? = null,
+    privateModels: List<SpaceModel>? = null,
 ) {
     BackHandler(onBack = onDismiss)
     if (spaces.isEmpty() || models.size != spaces.size) return
@@ -85,12 +105,13 @@ fun OverviewScreen(
     // was a visible hitch, so pages are composed ahead of time, one per idle moment, and kept
     // while the overview is open: switching spaces then composes nothing. The open's first frame
     // composes only the current space; its neighbours come first once the motion has settled.
-    val precomposed = remember { mutableStateListOf<String>() }
+    // Per mode: back from Private, the neighbouring spaces are composed again one by one.
+    val precomposed = remember(private?.flip?.data == true) { mutableStateListOf<String>() }
     val latestSettled by rememberUpdatedState(settled)
     LaunchedEffect(models.map { it.uuid }) {
         snapshotFlow { latestSettled }.first { it }
         while (true) {
-            snapshotFlow { pager.moving }.first { !it }
+            snapshotFlow { pager.moving || private?.flip?.running == true }.first { !it }
             val here = pager.settled
             val order = models.indices.sortedBy { abs(it - here) }.map { models[it].uuid }
             val next = order.firstOrNull { it !in precomposed } ?: break
@@ -156,7 +177,7 @@ fun OverviewScreen(
         snapshotFlow { pager.settled }.collectLatest {
             // One space per idle frame (a far jump may compose a few cards), never one in view.
             for ((i, space) in latestModels.withIndex()) {
-                snapshotFlow { pager.moving }.first { !it }
+                snapshotFlow { pager.moving || private?.flip?.running == true }.first { !it }
                 if (i != pager.settled) recentre(space)
                 withFrameNanos { }
             }
@@ -165,13 +186,82 @@ fun OverviewScreen(
 
     val palette = KoanTheme.colors
     val hero = LocalCardHero.current
+    val flip = private?.flip
+    // Each mode's base colour (the overview draws Private's with its page).
+    val normalBase = (if (palette.isDark) KoanPalette.Dark else KoanPalette.Light).Base
+    val privateBase = (if (palette.isDark) KoanPalette.Night else KoanPalette.Dusk).Base
+    val density = LocalDensity.current
+    val statusTop = WindowInsets.topSafe.getTop(density).toFloat()
+    val navBottom = WindowInsets.navigationBars.getBottom(density).toFloat()
+    // Private sits beside the space we were on, as one more page: a flip is the pager's own
+    // motion between the two (m = 0 that space … 1 Private). That space stays composed while
+    // Private shows, so coming back composes nothing.
+    val privateShown = flip?.data == true
+    val flipping = flip?.running == true
+    val normalList = normalModels ?: models
+    val privateList = privateModels.orEmpty()
+    val m = { flip?.colour() ?: 0f }
+    val anchor = remember { Anchor() }
+    if (!privateShown && !flipping) normalList.getOrNull(pager.settled)?.let { anchor.uuid = it.uuid }
+    val anchorIndex = normalList.indexOfFirst { it.uuid == anchor.uuid }.takeIf { it >= 0 } ?: pager.settled.coerceIn(0, (normalList.size - 1).coerceAtLeast(0))
+    val current = pager.settled
+    val pages = buildList {
+        fun addPager(list: List<SpaceModel>, private: Boolean) {
+            for (i in list.indices) {
+                // A real page: composed ahead of time, or the settled one (a switch only lands
+                // once the motion is over: composing a page never costs a moving frame). Beside
+                // the settled space, a ghost stands in until then, laid out from the first frame.
+                val real = list[i].uuid in precomposed || i == current
+                val ghost = abs(i - current) <= 1
+                if (real || ghost) add(Page(list[i], i, private, { i - pager.pos }, real, active = i == current))
+            }
+        }
+        val anchored = normalList.getOrNull(anchorIndex)
+        when {
+            flip == null || (!privateShown && !flipping) -> addPager(normalList, private = false)
+            !flipping -> {
+                addPager(privateList, private = true)
+                if (anchored != null) add(Page(anchored, anchorIndex, false, { -1f }, real = true, active = false))
+            }
+            else -> {
+                if (anchored != null) add(Page(anchored, anchorIndex, false, { -m() }, real = true, active = false))
+                privateList.firstOrNull()?.let { add(Page(it, 0, true, { 1f - m() }, real = true, active = false)) }
+            }
+        }
+    }
+    val emptyPrivate = privateList.firstOrNull()?.stack?.isEmpty() == true
     Box(
         modifier
             .fillMaxSize()
             // Inside the open zoom: the stacks measure their cards from here (CardHero).
             .onGloballyPositioned { hero.overview = it }
-            .drawBehind { drawRect(palette.Base) },
+            .drawBehind {
+                drawRect(normalBase)
+                val k = m()
+                if (k <= 0f) return@drawBehind
+                // Private's colour comes with its page (soft edge, in the gap before it).
+                val gap = PagerTokens.PageGap.toPx()
+                val soft = PrivateTokens.EdgeSoftness.toPx()
+                val x = (1f - k) * (size.width + gap) - gap / 2f + soft / 2f
+                if (x < size.width) drawRect(privateBase, topLeft = Offset(x, 0f), size = Size(size.width - x, size.height))
+                if (x > 0f) {
+                    drawRect(
+                        Brush.horizontalGradient(listOf(privateBase.copy(alpha = 0f), privateBase), startX = x - soft, endX = x),
+                        topLeft = Offset(x - soft, 0f),
+                        size = Size(soft, size.height),
+                    )
+                }
+            },
     ) {
+        if (flip != null) {
+            PrivateAtmosphere(
+                flip = flip,
+                dark = palette.isDark,
+                avoid = { size -> skyAvoid(size, density, statusTop, navBottom, dock, emptyPrivate) },
+                // The sky travels with the private page.
+                modifier = Modifier.graphicsLayer { translationX = (1f - m()) * (size.width + PagerTokens.PageGap.toPx()) },
+            )
+        }
         Column(Modifier.fillMaxSize()) {
             Box(
                 Modifier
@@ -179,17 +269,13 @@ fun OverviewScreen(
                     .fillMaxWidth()
                     .topSafePadding(),
             ) {
-                val current = pager.settled
-                for (i in models.indices) {
-                    val space = models[i]
-                    // A real page: composed ahead of time, or the settled one (a switch only lands
-                    // once the motion is over: composing a page never costs a moving frame). Beside
-                    // the settled space, a ghost stands in until then, laid out from the first frame.
-                    val real = space.uuid in precomposed || i == current
-                    val ghost = abs(i - current) <= 1
-                    if (!real && !ghost) continue
+                for (page in pages) {
+                    val space = page.space
+                    val i = page.index
+                    val real = page.real
                     key(space.uuid) {
-                        val offset = { i - pager.pos }
+                        val offset = page.offset
+                        val pageBase = if (page.private) privateBase else normalBase
                         // The whole space moves as one unit, a gap between spaces, and fades into
                         // the backdrop (drawn over it, never an offscreen layer) as it leaves.
                         val motion = Modifier.graphicsLayer {
@@ -200,42 +286,47 @@ fun OverviewScreen(
                         val fade = Modifier.drawWithContent {
                             drawContent()
                             val e = abs(offset()).coerceIn(0f, 1f)
-                            if (e > 0f) drawRect(palette.Base, alpha = e)
+                            if (e > 0f) drawRect(pageBase, alpha = e)
                         }
-                        // Back to a ghost (a page dropped off): its next real page fades in over it again.
-                        var ghostGone by remember(real) { mutableStateOf(false) }
-                        if (real) {
-                            // Composed while on screen (just landed): it fades in over its ghost.
-                            val appear = remember { Animatable(if (!latestSettled || abs(offset()) >= 1f) 1f else 0f) }
-                            LaunchedEffect(Unit) {
-                                appear.animateTo(1f, tween(PagerTokens.PAGE_APPEAR_MS))
-                                ghostGone = true
+                        // Each page in its own mode's palette.
+                        KoanPrivateTheme(page.private && flip != null) {
+                            // Back to a ghost (a page dropped off): its next real page fades in over it again.
+                            var ghostGone by remember(real) { mutableStateOf(false) }
+                            if (real) {
+                                // Composed while on screen (just landed): it fades in over its ghost.
+                                val appear = remember { Animatable(if (!latestSettled || abs(offset()) >= 1f) 1f else 0f) }
+                                LaunchedEffect(Unit) {
+                                    appear.animateTo(1f, tween(PagerTokens.PAGE_APPEAR_MS))
+                                    ghostGone = true
+                                }
+                                if (!ghostGone) GhostSpace(space, sync.badge, currentIndex(space), offset, motion.then(fade))
+                                SpacePage(
+                                    space = space,
+                                    stack = stackFor(space),
+                                    active = page.active,
+                                    sync = sync,
+                                    pageOffset = offset,
+                                    onDismiss = onDismiss,
+                                    onNewTab = { onNewTab(i) },
+                                    onOpenTab = { id -> spaces.getOrNull(i)?.findTab(id)?.let { onOpenTab(i, it) } },
+                                    onCloseTab = onCloseTab,
+                                    onReorder = onReorder,
+                                    onBadge = onBadge,
+                                    onConnect = onConnect,
+                                    settled = settled,
+                                    private = private,
+                                    privatePage = page.private,
+                                    modifier = motion
+                                        .graphicsLayer {
+                                            alpha = appear.value * reveal.value
+                                            // Only the fade-in after a landing uses a layer at partial alpha.
+                                            compositingStrategy = CompositingStrategy.Auto
+                                        }
+                                        .then(fade),
+                                )
+                            } else {
+                                GhostSpace(space, sync.badge, currentIndex(space), offset, motion.then(fade))
                             }
-                            if (!ghostGone) GhostSpace(space, sync.badge, currentIndex(space), offset, motion.then(fade))
-                            SpacePage(
-                                space = space,
-                                stack = stackFor(space),
-                                active = i == current,
-                                sync = sync,
-                                pageOffset = offset,
-                                onDismiss = onDismiss,
-                                onNewTab = { onNewTab(i) },
-                                onOpenTab = { id -> spaces[i].findTab(id)?.let { onOpenTab(i, it) } },
-                                onCloseTab = onCloseTab,
-                                onReorder = onReorder,
-                                onBadge = onBadge,
-                                onConnect = onConnect,
-                                settled = settled,
-                                modifier = motion
-                                    .graphicsLayer {
-                                        alpha = appear.value * reveal.value
-                                        // Only the fade-in after a landing uses a layer at partial alpha.
-                                        compositingStrategy = CompositingStrategy.Auto
-                                    }
-                                    .then(fade),
-                            )
-                        } else {
-                            GhostSpace(space, sync.badge, currentIndex(space), offset, motion.then(fade))
                         }
                     }
                 }
@@ -253,6 +344,39 @@ fun OverviewScreen(
             }
         }
     }
+}
+
+/** One page drawn by the overview: a space of either mode, where it sits and whether it takes taps. */
+private class Page(val space: SpaceModel, val index: Int, val private: Boolean, val offset: () -> Float, val real: Boolean, val active: Boolean)
+
+/** The normal space Private sits next to (the one we were on), by uuid. */
+private class Anchor {
+    var uuid: String? = null
+}
+
+/** The toggle in the header and the flip it runs (KoanRoot owns both). */
+@Immutable
+class PrivateOverview(val flip: PrivateFlip, val onToggle: () -> Unit)
+
+/**
+ * Where the stars may never go (OVERVIEW_PRIVATE.md §5.3), in px of the overview: the header row,
+ * the card pile (its full width, under the header) or the empty state's column, and the dock zone.
+ */
+private fun skyAvoid(size: IntSize, density: Density, statusTop: Float, navBottom: Float, dock: Dp, empty: Boolean): List<Rect> {
+    if (size == IntSize.Zero) return emptyList()
+    val px = density.density
+    val margin = PrivateTokens.StarMargin.value * px
+    val headerBottom = statusTop + OverviewTokens.HeaderHeight.value * px
+    val dockTop = size.height - navBottom - dock.value * px
+    val header = Rect(0f, statusTop - margin, size.width.toFloat(), headerBottom + margin)
+    val dockZone = Rect(0f, dockTop - PrivateTokens.DockMargin.value * px, size.width.toFloat(), size.height.toFloat())
+    val content = if (empty) {
+        Rect(20f * px, 214f * px, size.width - 20f * px, 660f * px)
+    } else {
+        val side = StackTokens.CardSideMargin.value * px - margin
+        Rect(side, headerBottom - margin, size.width - side, dockTop)
+    }
+    return listOf(header, content, dockZone)
 }
 
 /** Frames between two pages composed ahead of time. */

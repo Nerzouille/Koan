@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.menu
 
+import dev.nerzouille.koan.engine.AppTarget
 import dev.nerzouille.koan.search.EngineDraft
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -44,6 +45,7 @@ sealed interface MenuPage {
     data object Root : MenuPage
     data object SiteSettings : MenuPage
     data object UBlock : MenuPage
+    data object Translate : MenuPage
 }
 
 /** What "Add to Essentials" can do for the current tab. */
@@ -61,6 +63,14 @@ data class MenuState(
     val ublock: UBlockUi? = null,
     /** A search engine the page declares and Koan doesn't have yet ("Add this search engine"). */
     val searchEngine: EngineDraft? = null,
+    /** An installed app that opens this page's site (YouTube for youtube.com): "Open in YouTube". */
+    val openInApp: AppTarget? = null,
+    /** "Translate page" / "Show original"; null on a page Gecko can't translate (or no page). */
+    val translate: String? = null,
+    /** A private tab: no Essentials row; the site's Protections switch instead. */
+    val private: Boolean = false,
+    /** Private tabs: tracking protection on for this site (false = the owner turned it off here); null = not known yet. */
+    val protections: Boolean? = null,
 )
 
 /** What the menu's root page does. Rows without an action yet show as "Soon". */
@@ -87,6 +97,9 @@ class MenuActions(
     val ublockOpen: () -> Unit,
     val ublockInstall: () -> Unit,
     val addSearchEngine: () -> Unit,
+    val openInApp: () -> Unit = {},
+    val translate: () -> Unit = {},
+    val protections: (Boolean) -> Unit = {},
 )
 
 /**
@@ -115,6 +128,7 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
             SheetTile(KoanIcons.Share, "Share", on, enabled = hasPage, onClick = actions.share)
             SheetTile(KoanIcons.Search, "Find", on, enabled = hasPage, onClick = actions.find)
         }
+        state.openInApp?.let { app -> OpenInAppRow(app, on, actions.openInApp) }
         SheetGroup {
             SheetRow(
                 KoanIcons.Lock, "Site settings", on,
@@ -130,8 +144,21 @@ fun MenuRoot(page: PageInfo, state: MenuState, actions: MenuActions, scope: Shee
                 KoanIcons.Reader, if (state.readerActive) "Leave reader view" else "Reader view", on,
                 onClick = if (state.readerAvailable || state.readerActive) actions.reader else null,
             ) { RowValue(if (state.readerActive) "On" else if (state.readerAvailable) "Available" else "Not available") }
+            state.translate?.let { label ->
+                SheetDivider()
+                SheetRow(KoanIcons.Translate, label, on, onClick = actions.translate) { RowChevron() }
+            }
             SheetDivider()
-            when (state.essentials) {
+            if (state.private) {
+                // Private tabs: tracking protection (and what follows it: fingerprinting protection,
+                // link cleaning) can be turned off for a site that breaks; kept until Private ends.
+                val protected = state.protections != false
+                SheetRow(
+                    KoanIcons.Shield, "Protections", on,
+                    subtitle = if (!hasPage) null else if (protected) "Trackers blocked" else "Off for this site",
+                    onClick = if (hasPage && state.protections != null) ({ actions.protections(!protected) }) else null,
+                ) { if (hasPage) KoanToggle(checked = protected, onCheckedChange = if (on && state.protections != null) actions.protections else null) }
+            } else when (state.essentials) {
                 EssentialsAction.Add -> SheetRow(KoanIcons.Essentials, "Add to Essentials", on, onClick = actions.essentials)
                 EssentialsAction.Remove -> SheetRow(KoanIcons.Essentials, "Remove from Essentials", on, onClick = actions.essentials)
                 EssentialsAction.FromZen -> SheetRow(KoanIcons.Essentials, "In Essentials", on) { RowValue("From Zen") }
@@ -210,5 +237,26 @@ private fun NavIcon(icon: ImageVector, enabled: Boolean, interactive: Boolean, o
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, null, tint = if (enabled) KoanTheme.colors.Icon else KoanTheme.colors.TextDisabled, modifier = Modifier.size(BarTokens.Icon))
+    }
+}
+
+/** "Open in YouTube": the app's own icon and name, on its own group above the page rows. */
+@Composable
+private fun OpenInAppRow(app: AppTarget, on: Boolean, onClick: () -> Unit) {
+    val palette = KoanTheme.colors
+    SheetGroup {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(SheetTokens.RowHeight)
+                .then(if (on) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(horizontal = SheetTokens.RowPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppIcon(app.icon, SheetTokens.RowIconBox)
+            Spacer(Modifier.width(SheetTokens.RowPadding))
+            Text("Open in ${app.label}", color = palette.TextPrimary, fontSize = SheetTokens.RowTitleSize, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            RowChevron()
+        }
     }
 }

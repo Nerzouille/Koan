@@ -321,11 +321,33 @@ interface KoanDao {
     @Query("SELECT * FROM logins ORDER BY origin")
     suspend fun allLogins(): List<LoginEntity>
 
+    /** Two-way sync: pages of the account's history removed on the phone (hidden here). */
+    @Query("SELECT url FROM visits WHERE hidden")
+    suspend fun hiddenVisitUrls(): List<String>
+
+    /** Two-way sync: pages the account deleted too, gone from the phone for good. */
+    @Query("DELETE FROM visits WHERE url IN (:urls)")
+    suspend fun deleteVisits(urls: List<String>)
+
+    /** Two-way sync (dry run): pages first visited on the phone, not the account's copy. */
+    @Query("SELECT * FROM visits WHERE NOT fromSync AND NOT hidden ORDER BY lastVisit DESC LIMIT :limit")
+    suspend fun phoneVisits(limit: Int): List<VisitEntity>
+
+    /** Two-way sync (dry run): bookmarks added on the phone. */
+    @Query("SELECT * FROM bookmarks WHERE id NOT LIKE 'sync:%'")
+    suspend fun phoneBookmarks(): List<BookmarkEntity>
+
     @Query("SELECT * FROM logins WHERE origin = :origin OR origin LIKE '%.' || :baseDomain OR origin LIKE '%//' || :baseDomain")
     suspend fun loginsFor(origin: String, baseDomain: String): List<LoginEntity>
 
     @Query("UPDATE logins SET timeLastUsed = :at WHERE guid = :guid")
     suspend fun touchLogin(guid: String, at: Long)
+
+    @Query("SELECT * FROM logins WHERE guid IN (:guids)")
+    suspend fun loginsByGuid(guids: List<String>): List<LoginEntity>
+
+    @Query("DELETE FROM logins WHERE guid IN (:guids)")
+    suspend fun deleteLogins(guids: List<String>)
 
     @Query("SELECT * FROM bookmarks WHERE url LIKE '%' || :q || '%' OR title LIKE '%' || :q || '%' ORDER BY createdAt DESC LIMIT :limit")
     suspend fun searchBookmarks(q: String, limit: Int): List<BookmarkEntity>

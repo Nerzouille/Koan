@@ -37,7 +37,20 @@ class UBlock(
             launch { countBlocked() }
             WebExtensionSupport.awaitInitialization()
             if (installed() == null && !settings.ublockOffered()) install()
+            allowInPrivate()
         }
+    }
+
+    /** uBlock runs in private tabs too (owner's decision 2026-11-11); older installs didn't. */
+    private fun allowInPrivate() {
+        val ext = installed() ?: return
+        if (ext.isAllowedInPrivateBrowsing()) return
+        engine.setAllowedInPrivateBrowsing(
+            ext,
+            true,
+            onSuccess = { updated -> WebExtensionSupport.markExtensionAsUpdated(store, updated) },
+            onError = { e -> Log.w(TAG, "private browsing not allowed: ${e.javaClass.simpleName}") },
+        )
     }
 
     fun installed() = WebExtensionSupport.installedExtensions[ID]
@@ -97,7 +110,7 @@ class UBlock(
             when (request) {
                 is WebExtensionPromptRequest.AfterInstallation.Permissions.Required -> {
                     if (request.extension.id != ID) return@collect
-                    request.onConfirm(PermissionPromptResponse(isPermissionsGranted = true, isPrivateModeGranted = false))
+                    request.onConfirm(PermissionPromptResponse(isPermissionsGranted = true, isPrivateModeGranted = true))
                     store.dispatch(WebExtensionAction.ConsumePromptRequestWebExtensionAction)
                 }
                 is WebExtensionPromptRequest.AfterInstallation.PostInstallation -> {

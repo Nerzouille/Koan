@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.ui.bar
 
+import androidx.compose.ui.graphics.lerp
+import dev.nerzouille.koan.ui.theme.KoanPalette
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
@@ -92,6 +94,8 @@ fun KoanBar(
     switcher: @Composable (Modifier) -> Unit,
     address: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
+    /** Private ↔ normal: 0 normal … 1 private, the dock's colour crossfading with the flip (draw only). */
+    privateMix: () -> Float = { -1f },
 ) {
     val view = LocalView.current
     val drawer = bar.drawer
@@ -124,6 +128,8 @@ fun KoanBar(
                 alpha = if (!overviewOpen && dockAway()) 0f else 1f
             }
             .drawWithCache {
+                val normalDock = (if (palette.isDark) KoanPalette.Dark else KoanPalette.Light).Dock
+                val privateDock = (if (palette.isDark) KoanPalette.Night else KoanPalette.Dusk).Dock
                 val shadowPx = BarTokens.DockShadowHeight.toPx()
                 val noBlurShadowPx = DrawerTokens.NoBlurShadowHeight.toPx()
                 val shimmerPx = BarTokens.ShimmerWidth.toPx()
@@ -151,7 +157,8 @@ fun KoanBar(
                             size = Size(size.width, noBlurShadowPx + r),
                         )
                     }
-                    drawPath(dockPath(top, r), palette.Dock)
+                    val mix = privateMix()
+                    drawPath(dockPath(top, r), if (mix in 0f..1f) lerp(normalDock, privateDock, mix) else palette.Dock)
                     // Page load line on the top edge, page view only.
                     val a = line.alpha.value * (1f - row)
                     if (a > 0.01f) drawLoadLine(top, line, a, shimmerPx)

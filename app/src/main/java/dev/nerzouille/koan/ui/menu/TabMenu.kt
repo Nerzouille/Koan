@@ -1,15 +1,14 @@
 package dev.nerzouille.koan.ui.menu
 
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.sheet.MenuIconTile
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.TabMenuTokens
@@ -39,7 +38,7 @@ fun TabMenu(open: Boolean, onDismiss: () -> Unit, onNewTab: () -> Unit, onCloseT
 private fun MenuItem(icon: ImageVector, title: String, interactive: Boolean, onClick: () -> Unit, enabled: Boolean = true) {
     val palette = KoanTheme.colors
     DockPopupRow(interactive, onClick) {
-        Icon(icon, null, tint = if (enabled) palette.Icon else palette.TextDisabled, modifier = Modifier.size(TabMenuTokens.Icon))
+        MenuIconTile(icon, enabled, palette.GroupedRow)
         Spacer(Modifier.width(TabMenuTokens.IconGap))
         Text(title, color = if (enabled) palette.TextPrimary else palette.TextDisabled, fontSize = TabMenuTokens.TextSize, fontWeight = FontWeight.Medium)
     }

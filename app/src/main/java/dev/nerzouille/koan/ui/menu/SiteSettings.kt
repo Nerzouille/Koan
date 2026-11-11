@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.menu
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,11 +18,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.engine.SiteDecision
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.DestructiveButton
 import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.sheet.SheetDivider
@@ -32,6 +31,7 @@ import dev.nerzouille.koan.ui.sheet.SheetPageScope
 import dev.nerzouille.koan.ui.sheet.SheetRow
 import dev.nerzouille.koan.ui.sheet.SheetSectionTitle
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
 
 /** What Site settings shows and does for the page. [decisions] null = still loading. */
@@ -74,7 +74,7 @@ fun SiteSettingsPage(ui: SiteSettingsUi, scope: SheetPageScope) {
             Favicon(ui.url, SheetTokens.RowIconBox + SheetTokens.Gap)
             Spacer(Modifier.width(SheetTokens.RowPadding))
             Column(Modifier.weight(1f)) {
-                Text(displayHost(ui.url), color = palette.TextPrimary, fontSize = SheetTokens.HeaderTitleSize, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(displayHost(ui.url), color = palette.TextPrimary, style = KoanType.headline(SheetTokens.HeaderTitleSize), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(KoanIcons.Lock, null, tint = if (ui.secure) palette.TextSecondary else palette.Attention, modifier = Modifier.size(SheetTokens.NavLockGlyph))
                     Spacer(Modifier.width(SheetTokens.Divider * 4))
@@ -118,16 +118,6 @@ fun SiteSettingsPage(ui: SiteSettingsUi, scope: SheetPageScope) {
             fontSize = SheetTokens.RowSubtitleSize,
             modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = SheetTokens.Gap),
         )
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(SheetTokens.RowHeight)
-                .clip(CircleShape)
-                .background(palette.GroupedRow)
-                .then(if (on) Modifier.clickable(onClick = ui.onClearData) else Modifier),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("Clear site data", color = palette.Destructive, fontSize = SheetTokens.RowTitleSize, fontWeight = FontWeight.Medium)
-        }
+        DestructiveButton("Clear site data", onClick = { if (on) ui.onClearData() }, modifier = Modifier.fillMaxWidth())
     }
 }

@@ -22,7 +22,7 @@ import mozilla.components.browser.state.selector.findTab
  * status bar inset) and the bar (hidden).
  */
 @Composable
-fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boolean): Boolean {
+fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boolean, rotated: Boolean = false): Boolean {
     val fullScreen by components.store.observeSlice(tabId) { s -> tabId?.let { s.findTab(it) }?.content?.fullScreen == true }
     // The video's shape, when the page told it (a landscape video unless it says otherwise).
     val portrait by components.store.observeSlice(tabId) { s ->
@@ -31,17 +31,22 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
         } == true
     }
     val activity = LocalContext.current as? Activity
-    LaunchedEffect(fullScreen, portrait) {
+    // [rotated]: the video layer's rotate button turns it the other way.
+    LaunchedEffect(fullScreen, portrait, rotated) {
         activity?.requestedOrientation = when {
             !fullScreen -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            portrait -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+            portrait != rotated -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
             else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         }
     }
-    LaunchedEffect(fullScreen, hideStatus) {
+    // Again after each rotation: HyperOS brings the bars back (grey, with their contrast scrim)
+    // when a fullscreen video turns the screen.
+    val orientation = androidx.compose.ui.platform.LocalConfiguration.current.orientation
+    LaunchedEffect(fullScreen, hideStatus, orientation) {
         val window = activity?.window ?: return@LaunchedEffect
         val bars = WindowCompat.getInsetsController(window, window.decorView)
         bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        dev.nerzouille.koan.ui.player.immersive(window, fullScreen)
         if (fullScreen) {
             bars.hide(WindowInsetsCompat.Type.systemBars())
         } else {
@@ -53,6 +58,7 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
     DisposableEffect(activity) {
         onDispose {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            activity?.window?.let { dev.nerzouille.koan.ui.player.immersive(it, false) }
             activity?.window?.let { WindowCompat.getInsetsController(it, it.decorView).show(WindowInsetsCompat.Type.systemBars()) }
         }
     }

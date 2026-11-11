@@ -1,9 +1,12 @@
 package dev.nerzouille.koan
 
+import dev.nerzouille.koan.engine.PictureInPicture
+import androidx.lifecycle.lifecycleScope
 import android.app.SearchManager
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationManagerCompat
+import dev.nerzouille.koan.engine.GeckoPrefs
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.engine.downloads.KoanDownloadService
 import mozilla.components.feature.downloads.DownloadsFeature
@@ -41,6 +44,7 @@ import mozilla.components.feature.tabs.WindowFeature
 import mozilla.components.feature.webauthn.WebAuthnFeature
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import mozilla.components.browser.state.selector.findTab
 
 class MainActivity : FragmentActivity() {
     private val refresh = RefreshBooster(this)
@@ -52,6 +56,11 @@ class MainActivity : FragmentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        // Koan draws its own surfaces under the system bars: no system scrim over them.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
 
         DeviceProfile.initialize(this)
         val app = application as KoanApp
@@ -69,6 +78,9 @@ class MainActivity : FragmentActivity() {
         components.spaces.ensureLocalSpace()
         // Engine tabs come back from disk (no-op if this process already has them), then the last tab.
         components.tabs.start(components.sessionStorage)
+        // Privacy settings in the engine, and the private tabs back from their sealed file.
+        components.startPrivacy()
+        watchSecureWindow(components)
         components.autoSave
             .periodicallyInForeground(lifecycle = lifecycle)
             .whenGoingToBackground(lifecycle)
@@ -77,9 +89,26 @@ class MainActivity : FragmentActivity() {
         components.sync.start()
         components.pageTools.start()
         components.pageEngines.start()
+        components.pageImages.start()
+        components.pageVideo.start()
         components.startExtensions()
         components.startMedia()
         components.watchDownloadLocation()
+        pip = PictureInPicture(this, components.store, components.settings, lifecycleScope).also { p ->
+            components.pip.value = p
+            p.audioOnly = {
+                runOnUiThread {
+                    // The video leaves fullscreen, then the PiP window closes (a PiP window can't be
+                    // sent to the back): the engine, the tab and the media notification stay, the
+                    // sound keeps playing, and Koan opens as usual from the notification or its icon.
+                    components.store.state.selectedTabId?.let { id ->
+                        components.pageVideo.release(id)
+                        components.sessionUseCases.exitFullscreen(id)
+                    }
+                    finish()
+                }
+            }
+        }
         startDownloads(components)
         // A fresh start from a link (default browser, share); a recreated activity already had it.
         if (savedInstanceState == null) handleIntent(intent)
@@ -98,6 +127,9 @@ class MainActivity : FragmentActivity() {
             }
             LaunchedEffect(dark) {
                 components.pageTools.setReaderDark(dark)
+                // Find in page in the theme's colours (the engine is running by now).
+                components.runtime
+                GeckoPrefs.applyFind(dark)
                 WindowCompat.getInsetsController(window, window.decorView).apply {
                     isAppearanceLightStatusBars = !dark
                     isAppearanceLightNavigationBars = !dark
@@ -187,6 +219,37 @@ class MainActivity : FragmentActivity() {
             (application as KoanApp).components.pairLink.value = link
             return
         }
+        // A video another app opened (a file, or a link straight to a video file): Koan's player
+        // over the current screen, never a tab.
+        if (intent?.action == Intent.ACTION_VIEW) {
+            val data = intent.data
+            val player = (application as KoanApp).components.player
+            when {
+                data != null && (data.scheme == "content" || data.scheme == "file") && intent.type.orEmpty().startsWith("video/") -> {
+                    openedFromLink = true
+                    val name = runCatching {
+                        contentResolver.query(data, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+                    }.getOrNull()
+                    player.open(dev.nerzouille.koan.ui.player.videoOfFile(data.toString(), name))
+                    return
+                }
+                dev.nerzouille.koan.ui.player.downloadableVideo(intent.dataString) != null -> {
+                    // Looks like a video file: the player if the server says so, else a tab as usual.
+                    openedFromLink = true
+                    val url = intent.dataString!!
+                    val from = referrer?.takeIf { it.scheme == "android-app" }?.host?.takeIf { it != packageName }
+                    val components = (application as KoanApp).components
+                    lifecycleScope.launch {
+                        if (dev.nerzouille.koan.ui.player.isVideoFile(url)) {
+                            player.open(dev.nerzouille.koan.ui.player.videoOfLink(url))
+                        } else {
+                            components.incoming.value = Incoming(url, Incoming.Kind.Url, referrer = from)
+                        }
+                    }
+                    return
+                }
+            }
+        }
         val incoming = when (intent?.action) {
             // Custom Tabs links too: a VIEW with a session extra, opened like any other link.
             Intent.ACTION_VIEW -> intent.dataString?.let { Incoming(it, Incoming.Kind.Url) }
@@ -227,6 +290,31 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    private var pip: PictureInPicture? = null
+
+    /** Back in focus during a fullscreen video (a dialog, the shade, a rotation): bars away again. */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        val components = (application as KoanApp).components
+        val fullscreen = components.store.state.selectedTabId?.let { components.store.state.findTab(it) }?.content?.fullScreen == true
+        if (hasFocus && (fullscreen || components.player.standalone != null)) dev.nerzouille.koan.ui.player.hideBars(window)
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        pip?.onUserLeaveHint()
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        pip?.onModeChanged(isInPictureInPictureMode)
+    }
+
+    override fun onDestroy() {
+        pip?.release()
+        super.onDestroy()
+    }
+
     // High refresh only while the user interacts (and the animations that follow); see RefreshBooster.
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         refresh.onInput()
@@ -243,7 +331,28 @@ class MainActivity : FragmentActivity() {
     override fun onStart() {
         super.onStart()
         webAuthnFeature?.start()
-        (application as KoanApp).components.sync.onForeground()
+        val components = (application as KoanApp).components
+        components.sync.onForeground()
+        components.privateMode.onShown()
+    }
+
+    /**
+     * Private shown: no screenshots, screen recordings or Recents preview (FLAG_SECURE), unless
+     * "Allow screenshots" is on, or the hidden dev-build switch (never in a release build).
+     */
+    private fun watchSecureWindow(components: dev.nerzouille.koan.engine.Components) {
+        val devBuild = BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "dev"
+        lifecycleScope.launch {
+            kotlinx.coroutines.flow.combine(
+                components.privateMode.on,
+                components.settings.privateScreenshots,
+                components.settings.devFlagSecureOff,
+            ) { on, allowed, devOff -> on && !allowed && !(devBuild && devOff) }
+                .collect { secure ->
+                    if (secure) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                }
+        }
     }
 
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -267,12 +376,18 @@ class MainActivity : FragmentActivity() {
             components.appScope.launch { components.lastPlace.saveHiddenAt(now) }
         }
         components.sync.onBackground()
+        if (!isChangingConfigurations) {
+            components.privateMode.onHidden()
+            components.privateTabs.saveNow()
+        }
         super.onStop()
     }
 
     override fun onPause() {
         // Leaving Koan: screenshot the page, so the next start (or a restore) shows it at once.
-        (application as KoanApp).components.tabs.captureCurrent("app hidden")
+        val components = (application as KoanApp).components
+        if (components.privateMode.on.value) components.privateTabs.tabs.captureCurrent("app hidden")
+        else components.tabs.captureCurrent("app hidden")
         refresh.stop()
         super.onPause()
     }

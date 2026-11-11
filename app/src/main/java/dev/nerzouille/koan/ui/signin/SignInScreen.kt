@@ -61,6 +61,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import dev.nerzouille.koan.sync.SyncError
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SignInTokens
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -233,7 +234,7 @@ fun SignInScreen(
             if (mode != SignInMode.Choice) {
                 Spacer(Modifier.width(SignInTokens.HeaderPadding))
                 Column {
-                    Text("Sync your Zen Spaces", color = KoanTheme.colors.TextPrimary, fontSize = SignInTokens.TitleSize, fontWeight = FontWeight.Bold)
+                    Text("Sync your Zen Spaces", color = KoanTheme.colors.TextPrimary, style = KoanType.title(SignInTokens.TitleSize))
                     Text("Mozilla account", color = KoanTheme.colors.TextSecondary, fontSize = SignInTokens.SubtitleSize)
                 }
             }

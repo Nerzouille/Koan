@@ -1,6 +1,7 @@
 package dev.nerzouille.koan.ui.tour
 
 import android.content.Context
+import dev.nerzouille.koan.ui.theme.KoanType
 import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Easing
@@ -218,8 +219,7 @@ fun WelcomePage(card: TourCard, motion: WelcomeMotion, leave: () -> Float) {
             Text(
                 card.title,
                 color = Color.White,
-                fontSize = TourTokens.WelcomeTitleSize,
-                fontWeight = FontWeight.Bold,
+                style = KoanType.title(TourTokens.WelcomeTitleSize),
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()

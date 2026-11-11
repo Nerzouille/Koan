@@ -106,10 +106,12 @@ fun BrowserScreen(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         components.tabs.attach(engineView)
+        components.privateTabs.tabs.attach(engineView)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             sessionFeature.stop()
             components.tabs.attach(null)
+            components.privateTabs.tabs.attach(null)
         }
     }
 
@@ -175,7 +177,7 @@ fun BrowserScreen(
         engineView.verticalScrollPosition.collect { y ->
             if (y < nearTop && !dock.touching) dock.show()
             // Scrolling changes what the card should show: a screenshot follows once it stops.
-            components.tabs.pageScrolled()
+            components.shownTabs().pageScrolled()
         }
     }
 
@@ -186,7 +188,7 @@ fun BrowserScreen(
         pull.triggerPx = PullTokens.Trigger.toPx()
         pull.maxPx = PullTokens.Max.toPx()
     }
-    val currentId by components.tabs.current.collectAsState()
+    val currentId by components.store.observeSlice(Unit) { it.selectedTabId }
     LaunchedEffect(currentId) { pull.done() }
     LaunchedEffect(pull.refreshing) {
         if (!pull.refreshing) return@LaunchedEffect
@@ -203,7 +205,8 @@ fun BrowserScreen(
     Box(
         Modifier
             .fillMaxSize()
-            .background(KoanTheme.colors.Base)
+            // A fullscreen video: black edge to edge, never Koan's background in a band.
+            .background(if (fullScreen) androidx.compose.ui.graphics.Color.Black else KoanTheme.colors.Base)
             .then(if (fullScreen || toTop) Modifier else Modifier.statusBarsPadding())
             .then(if (fullScreen) Modifier else Modifier.padding(bottom = with(density) { maxOf(navPx, keyboardPx).toDp() }))
             .then(if (findOpen && !fullScreen) Modifier.padding(bottom = barZone(overview = false)) else Modifier)
@@ -240,6 +243,13 @@ fun BrowserScreen(
         Box(
             Modifier.fillMaxSize().graphicsLayer {
                 translationX = if (swipe.active) (swipe.live - swipe.pos) * swipe.pageWidthPx else 0f
+                // A fullscreen video follows the player's swipe down and flies to the mini-player.
+                if (fullScreen) {
+                    val p = components.player
+                    translationY = p.webDragY.floatValue
+                    scaleX = p.webScale.floatValue
+                    scaleY = p.webScale.floatValue
+                }
             },
         ) {
             AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())

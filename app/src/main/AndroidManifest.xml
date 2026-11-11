@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -13,8 +14,202 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
-    <!-- The camera apps a page's file field can offer (photo, video). -->
+    <!-- Which app opens a link (the "Open in YouTube?" card, the menu's "Open in …"), its name and
+         icon. A sideloaded single-user app: no store policy to meet. -->
+
+    <!-- android-components (support-utils) asks for every app on the phone; the queries below are enough. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:node="remove" />
+
+    <!--
+      Which apps Koan may see (Android 11+ package visibility), instead of QUERY_ALL_PACKAGES:
+      the camera apps a page's file field can offer; apps that open web links (http/https: an
+      app's own site, like YouTube, and browsers, which "Open in app" leaves out); and the apps
+      behind the custom schemes sites use for their "Open app" buttons. An app outside this list
+      can still be opened (Android starts it), Koan just can't name it.
+    -->
     <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="weixin" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="alipays" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="alipay" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="snssdk1128" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="snssdk1233" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="snssdk143" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="aweme" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tiktok" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="instagram" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="linkedin" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="fb" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="fb-messenger" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="twitter" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="x" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="whatsapp" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tg" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="spotify" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="zhihu" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="taobao" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tbopen" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tmall" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="openapp.jdmobile" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="imeituan" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="baiduboxapp" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="bdapp" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="amapuri" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="androidamap" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="iosamap" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="baidumap" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="bilibili" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="vnd.youtube" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="youtube" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="discord" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="reddit" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="slack" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="zoomus" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="msteams" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="market" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="sms" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="smsto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tel" />
+        </intent>
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
@@ -36,6 +231,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
+            android:supportsPictureInPicture="true"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode|locale|layoutDirection">
@@ -50,6 +246,14 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="http" />
                 <data android:scheme="https" />
+            </intent-filter>
+            <!-- Video files from other apps (a file manager, a chat): Koan's own player. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="video/*" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.WEB_SEARCH" />
