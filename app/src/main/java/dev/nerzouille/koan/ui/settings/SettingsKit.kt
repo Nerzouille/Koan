@@ -1,9 +1,8 @@
 package dev.nerzouille.koan.ui.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import dev.nerzouille.koan.ui.kit.SELECTION_FADE_MS
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,10 +15,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,28 +27,27 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onSizeChanged
-import dev.nerzouille.koan.ui.kit.CollapsingBar
-import dev.nerzouille.koan.ui.theme.KoanType
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.theme.BrandTokens
+import dev.nerzouille.koan.ui.kit.CollapsingBar
+import dev.nerzouille.koan.ui.kit.SELECTION_FADE_MS
+import dev.nerzouille.koan.ui.kit.brandWash
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 import dev.nerzouille.koan.ui.topSafePadding
 
@@ -59,18 +57,8 @@ import dev.nerzouille.koan.ui.topSafePadding
  */
 
 /** The soft pink → violet → blue glow behind the top of a settings page. */
-fun Modifier.settingsWash(dark: Boolean): Modifier = drawBehind {
-    val h = SettingsTokens.WashHeight.toPx()
-    val a = if (dark) SettingsTokens.WASH_ALPHA_DARK else SettingsTokens.WASH_ALPHA_LIGHT
-    val spots = listOf(
-        BrandTokens.Pink to Offset(size.width * 0.1f, h * 0.15f),
-        BrandTokens.Violet to Offset(size.width * 0.55f, h * 0.05f),
-        BrandTokens.Blue to Offset(size.width * 0.95f, h * 0.3f),
-    )
-    for ((color, center) in spots) {
-        drawCircle(Brush.radialGradient(listOf(color.copy(alpha = a), Color.Transparent), center, h * 0.75f), h * 0.75f, center)
-    }
-}
+fun Modifier.settingsWash(dark: Boolean): Modifier =
+    brandWash(SettingsTokens.WashHeight, if (dark) SettingsTokens.WASH_ALPHA_DARK else SettingsTokens.WASH_ALPHA_LIGHT)
 
 /**
  * One settings page (docs/UI_SPEC.md "Page header"): the page bar on top, a large [title] under it

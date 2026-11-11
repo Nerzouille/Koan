@@ -6,19 +6,17 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitVerticalTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.verticalDrag
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,12 +25,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,31 +49,30 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.util.lerp
-import dev.nerzouille.koan.ui.kit.animationsOff
-import dev.nerzouille.koan.ui.theme.BrandTokens
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.brandWash
 import dev.nerzouille.koan.ui.theme.ButtonTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.TourTokens
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
@@ -374,15 +373,5 @@ private fun TourButton(text: String, filled: Boolean, welcome: () -> Float, modi
 }
 
 /** The soft pink → violet → blue glow behind the title (the brand gradient, kept faint). */
-private fun Modifier.titleGlow(dark: Boolean): Modifier = drawBehind {
-    val h = TourTokens.GlowHeight.toPx()
-    val a = if (dark) TourTokens.GLOW_ALPHA_DARK else TourTokens.GLOW_ALPHA_LIGHT
-    val spots = listOf(
-        BrandTokens.Pink to Offset(size.width * 0.1f, h * 0.15f),
-        BrandTokens.Violet to Offset(size.width * 0.55f, h * 0.05f),
-        BrandTokens.Blue to Offset(size.width * 0.95f, h * 0.3f),
-    )
-    for ((color, center) in spots) {
-        drawCircle(Brush.radialGradient(listOf(color.copy(alpha = a), Color.Transparent), center, h * 0.75f), h * 0.75f, center)
-    }
-}
+private fun Modifier.titleGlow(dark: Boolean): Modifier =
+    brandWash(TourTokens.GlowHeight, if (dark) TourTokens.GLOW_ALPHA_DARK else TourTokens.GLOW_ALPHA_LIGHT)
