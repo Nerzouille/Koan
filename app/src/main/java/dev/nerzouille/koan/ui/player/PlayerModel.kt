@@ -94,10 +94,39 @@ class PlayerHost {
 /** A video Koan can download or play as a file: http(s), ending in .mp4 / .webm (not a stream, a blob, a manifest). */
 fun downloadableVideo(source: String?): String? {
     val url = source?.takeIf { it.startsWith("https://") || it.startsWith("http://") } ?: return null
+    if (isFilePage(url)) return null
     val path = url.substringBefore('#').substringBefore('?').lowercase()
-    // A wiki's page about a file ("…/File:Clip.webm") is a page, not the file.
-    if (path.substringAfterLast('/').contains(':') || path.contains("/wiki/")) return null
     return url.takeIf { VIDEO_EXTENSIONS.any { e -> path.endsWith(e) } }
+}
+
+/** Whether a page's video can be saved, for the ⋯ menu's "Download video" (fixes F6). */
+sealed interface VideoSave {
+    /** A video file by its address: download it. */
+    data class File(val url: String) : VideoSave
+
+    /** An http address with no video ending: ask the server on tap ([isVideoFile]), never before. */
+    data class Check(val url: String) : VideoSave
+
+    /** Not a file Koan can save: the row is greyed out, with [reason] under it. */
+    data class No(val reason: String) : VideoSave
+}
+
+fun videoSave(src: String, drm: Boolean, kind: String, live: Boolean): VideoSave {
+    val http = src.startsWith("https://") || src.startsWith("http://")
+    return when {
+        drm -> VideoSave.No("Protected video")
+        live -> VideoSave.No("Live video, can't be saved")
+        kind == "stream" -> VideoSave.No("Streamed video, can't be saved")
+        downloadableVideo(src) != null -> VideoSave.File(src)
+        http && !isFilePage(src) -> VideoSave.Check(src)
+        else -> VideoSave.No("This video can't be saved")
+    }
+}
+
+/** A wiki's page about a file ("…/File:Clip.webm") is a page, not the file. */
+private fun isFilePage(url: String): Boolean {
+    val path = url.substringBefore('#').substringBefore('?').lowercase()
+    return path.substringAfterLast('/').contains(':') || path.contains("/wiki/")
 }
 
 /** The server says [url] is a video (a HEAD request, 2 s at most); false when unsure. */

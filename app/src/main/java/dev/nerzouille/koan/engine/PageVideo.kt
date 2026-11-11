@@ -48,6 +48,12 @@ data class WebVideo(
     val title: String,
     /** The video file's own address (http, not a blob or stream), when it has one. */
     val src: String,
+    /** Protected (DRM: Widevine and the like). */
+    val drm: Boolean = false,
+    /** "stream": MSE (a blob), HLS or DASH; "" otherwise. */
+    val kind: String = "",
+    /** A live stream (no end). */
+    val live: Boolean = false,
 )
 
 /**
@@ -124,6 +130,9 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
         height = j.optInt("height"),
         title = j.optString("title"),
         src = j.optString("src"),
+        drm = j.optBoolean("drm"),
+        kind = j.optString("kind"),
+        live = j.optBoolean("live"),
     )
 
     /**

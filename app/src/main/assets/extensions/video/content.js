@@ -201,6 +201,11 @@ function report() {
     height: v.videoHeight || 0,
     title: titleOf(v),
     src: /^https?:/.test(src) ? src : "",
+    // Why the file can't be saved, for the player's "Download video" (protected, streamed, live).
+    drm: v.mediaKeys != null,
+    kind: src.startsWith("blob:") || src.startsWith("mediasource:") ? "stream"
+      : /\.(m3u8|mpd)([?#]|$)/i.test(src) ? "stream" : "",
+    live: d === Infinity,
   });
 }
 

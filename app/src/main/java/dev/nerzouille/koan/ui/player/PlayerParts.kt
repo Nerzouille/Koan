@@ -200,7 +200,15 @@ internal fun clock(seconds: Double): String {
 }
 
 /** The ⋯ menu's rows (beside the speed row). */
-class MenuRow(val icon: ImageVector, val label: String, val destructive: Boolean = false, val onClick: () -> Unit)
+class MenuRow(
+    val icon: ImageVector,
+    val label: String,
+    val destructive: Boolean = false,
+    /** False: greyed out, a tap does nothing ([subtitle] says why). */
+    val enabled: Boolean = true,
+    val subtitle: String? = null,
+    val onClick: () -> Unit,
+)
 
 /** §2 ⋯ menu: the speed row and its chips, then [rows]. */
 @Composable
@@ -248,14 +256,25 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
         }
         for (row in rows) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(PlayerTokens.Stroke))
-            val color = if (row.destructive) PlayerTokens.Destructive else PlayerTokens.Text
+            val color = when {
+                !row.enabled -> PlayerTokens.TextSecondary
+                row.destructive -> PlayerTokens.Destructive
+                else -> PlayerTokens.Text
+            }
             Row(
-                Modifier.fillMaxWidth().height(PlayerTokens.MenuRow).pressable(onClick = row.onClick).padding(horizontal = 16.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .height(PlayerTokens.MenuRow)
+                    .then(if (row.enabled) Modifier.pressable(onClick = row.onClick) else Modifier.graphicsLayer { alpha = PlayerTokens.DISABLED_ALPHA })
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PlayerIcon(row.icon, 18.dp, tint = color)
                 Spacer(Modifier.width(12.dp))
-                Text(row.label, style = playerText(15.sp, FontWeight.Medium, color))
+                Column {
+                    Text(row.label, style = playerText(15.sp, FontWeight.Medium, color), maxLines = 1)
+                    row.subtitle?.let { Text(it, style = playerText(12.sp, FontWeight.Normal, PlayerTokens.TextSecondary), maxLines = 1) }
+                }
             }
         }
     }

@@ -40,4 +40,15 @@ class PlayerModelTest {
         assertEquals("1.5×", speedLabel(1.5))
         assertEquals("2", speedNumber(2.0))
     }
+
+    @Test fun `download video gives a file, a check, or why not`() {
+        val mp4 = "https://example.com/clip.mp4"
+        org.junit.Assert.assertEquals(VideoSave.File(mp4), videoSave(mp4, drm = false, kind = "", live = false))
+        org.junit.Assert.assertEquals(VideoSave.Check("https://example.com/video?id=3"), videoSave("https://example.com/video?id=3", false, "", false))
+        org.junit.Assert.assertEquals(VideoSave.No("Protected video"), videoSave(mp4, drm = true, kind = "", live = false))
+        org.junit.Assert.assertEquals(VideoSave.No("Live video, can't be saved"), videoSave("", false, "", live = true))
+        org.junit.Assert.assertEquals(VideoSave.No("Streamed video, can't be saved"), videoSave("", false, "stream", false))
+        org.junit.Assert.assertEquals(VideoSave.No("This video can't be saved"), videoSave("", false, "", false))
+        org.junit.Assert.assertEquals(VideoSave.No("This video can't be saved"), videoSave("https://example.org/wiki/File:Clip", false, "", false))
+    }
 }

@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.ui.player
 
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,9 +55,27 @@ fun WebPlayerLayer(
         resetDrag(components)
     }
 
-    val downloadUrl = downloadableVideo(video.src)
+    val save = videoSave(video.src, video.drm, video.kind, video.live)
+    val saveScope = rememberCoroutineScope()
     val rows = buildList {
-        if (downloadUrl != null) add(MenuRow(KoanIcons.Download, "Download video") { leave(); onDownload(downloadUrl) })
+        // Always there (F6): greyed out, with why, when the video isn't a file Koan can save.
+        add(
+            when (save) {
+                is VideoSave.File -> MenuRow(KoanIcons.Download, "Download video") { leave(); onDownload(save.url) }
+                // No video ending: asked the server only now, on the tap.
+                is VideoSave.Check -> MenuRow(KoanIcons.Download, "Download video") {
+                    saveScope.launch {
+                        if (isVideoFile(save.url)) {
+                            leave()
+                            onDownload(save.url)
+                        } else {
+                            onToast("This video can't be downloaded", "It isn't a file the site lets Koan save")
+                        }
+                    }
+                }
+                is VideoSave.No -> MenuRow(KoanIcons.Download, "Download video", enabled = false, subtitle = save.reason) {}
+            },
+        )
         add(
             MenuRow(KoanIcons.SiteControls, "Use the site's controls") {
                 components.pageVideo.release(tabId)
