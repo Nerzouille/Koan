@@ -170,8 +170,34 @@ fun VideoPlayer(
         lastTouch = SystemClock.uptimeMillis()
     }
 
+    /** A visible control was used (maybe while fading out): the controls stay, from now. */
+    fun used() {
+        touched()
+        shown = true
+    }
+
+    // Play / pause from the last tap's intent while the page hasn't reported it yet: quick taps
+    // each turn it the other way instead of two reading the same stale "playing".
+    var intent by remember { mutableStateOf<Boolean?>(null) }
+    var intentAt by remember { mutableLongStateOf(0L) }
+    fun playPause() {
+        val s = live.value
+        val now = SystemClock.uptimeMillis()
+        if (s.ended) {
+            toggle(s, ctl.value)
+            intent = true
+        } else {
+            val play = nextPlay(s.playing, intent, now - intentAt)
+            if (play) ctl.value.play() else ctl.value.pause()
+            intent = play
+        }
+        intentAt = now
+    }
+
     // ---- the mist (§5 controls.in / controls.out) ----
     val mist = remember { Animatable(1f) }
+    // On screen at all (fading in or out included); changes only at the two ends, not per frame.
+    val controlsVisible by remember { derivedStateOf { mist.value > 0f } }
     val settle = remember { Animatable(1f) }
     var entering by remember { mutableStateOf(true) }
     LaunchedEffect(shown) {
@@ -190,8 +216,10 @@ fun VideoPlayer(
         }
     }
     // §5 controls.autoHide
-    LaunchedEffect(shown, lastTouch, state.playing, menuOpen, scrubbing, locked) {
-        if (!shown || locked || !state.playing || menuOpen || scrubbing) return@LaunchedEffect
+    // A finger on the player (a press on a button included): the controls never start hiding under it.
+    var fingerDown by remember { mutableStateOf(false) }
+    LaunchedEffect(shown, lastTouch, state.playing, menuOpen, scrubbing, locked, fingerDown) {
+        if (!shown || locked || !state.playing || menuOpen || scrubbing || fingerDown) return@LaunchedEffect
         delay(PlayerTokens.AUTO_HIDE_MS)
         shown = false
     }
@@ -299,7 +327,25 @@ fun VideoPlayer(
         }
     }
 
-    BoxWithConstraints(modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier
+            .fillMaxSize()
+            // Sees every touch first (never consumes): a finger down holds the auto-hide.
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    fingerDown = true
+                    try {
+                        do {
+                            val e = awaitPointerEvent(PointerEventPass.Initial)
+                        } while (e.changes.any { it.pressed })
+                    } finally {
+                        fingerDown = false
+                        touched()
+                    }
+                }
+            },
+    ) {
         val landscape = maxWidth > maxHeight
         val widthPx = constraints.maxWidth.toFloat()
         val heightPx = constraints.maxHeight.toFloat()
@@ -555,13 +601,14 @@ fun VideoPlayer(
             )
         }
 
-        // Hidden controls take no touches at all (F8 recheck): a tap where a button would be reaches the video.
-        CompositionLocalProvider(LocalControlsLive provides controlsTakeTouches(shown, hidden)) {
+        // Hidden controls take no touches at all (F8 recheck): a tap where a button would be reaches
+        // the video. Visible ones (fading in or out too) always take theirs.
+        CompositionLocalProvider(LocalControlsLive provides controlsTakeTouches(shown || controlsVisible, hidden)) {
             val group: GraphicsLayerScope.(TransformOrigin, Float) -> Unit = { origin, inward ->
                 applyMist(mist.value, settle.value, entering, origin, inward * PlayerTokens.MistShift.toPx(), noMotion, mistBlurs)
                 alpha *= hiddenAlpha(hidden) * (1f - levelShown.value)
             }
-            val buttonsLive = shown && !hidden
+            val buttonsLive = controlsTakeTouches(shown || controlsVisible, hidden)
             // The ⋯ pill grows into the panel (the standalone player's open / close springs); the
             // round pills under it fade out meanwhile, so none shows through the panel.
             val menuIn = rememberPresence(menuOpen, enter = PlayerTokens.OpenSpring, exit = PlayerTokens.CloseSpring, startShown = true)
@@ -607,7 +654,7 @@ fun VideoPlayer(
                     })
                     Spacer(Modifier.width(PlayerTokens.RoundPill))
                 } else {
-                    if (abs(state.rate - 1.0) > 0.01 && !boost) SpeedPill(state.rate) { if (buttonsLive) { menuOpen = true; touched() } }
+                    if (abs(state.rate - 1.0) > 0.01 && !boost) SpeedPill(state.rate) { if (buttonsLive) { menuOpen = true; used() } }
                     PlayerDisc(PlayerTokens.RoundPill, onClick = { if (buttonsLive) onPip() }) { PlayerIcon(KoanIcons.Pip, PlayerTokens.Glyph) }
                     PlayerDisc(PlayerTokens.RoundPill, onClick = {
                         if (buttonsLive) {
@@ -618,25 +665,28 @@ fun VideoPlayer(
                             unlockSerial++
                         }
                     }) { PlayerIcon(KoanIcons.Lock, PlayerTokens.Glyph) }
-                    PlayerDisc(PlayerTokens.RoundPill, onClick = { if (buttonsLive) { menuOpen = !menuOpen; touched() } }) { PlayerIcon(KoanIcons.More, PlayerTokens.Glyph) }
+                    PlayerDisc(PlayerTokens.RoundPill, onClick = { if (buttonsLive) { menuOpen = !menuOpen; used() } }) { PlayerIcon(KoanIcons.More, PlayerTokens.Glyph) }
                 }
             }
 
             if (!locked) {
                 // ---- centre group (hidden while the bar is pressed) ----
                 val centreOut by animateFloatAsState(if (scrubbing) 0f else 1f, Motion.Fade, label = "centreOut")
-                if (!spinner) {
+                val spinnerOut = animateFloatAsState(if (spinner) 0f else 1f, Motion.Fade, label = "spinnerOut")
+                // Always composed (fixes recheck): while the spinner shows it is only faded out, so a
+                // press on it is never torn down mid-way and a tap in the middle still plays / pauses.
+                run {
                     CentreGroup(
                         state = state,
                         landscape = landscape,
-                        onBack10 = { if (buttonsLive) { touched(); seekBy(state, controls, -1) } },
-                        onAhead10 = { if (buttonsLive) { touched(); seekBy(state, controls, 1) } },
-                        onPlay = { if (buttonsLive) { touched(); toggle(state, controls) } },
+                        onBack10 = { if (buttonsLive) { used(); seekBy(state, controls, -1) } },
+                        onAhead10 = { if (buttonsLive) { used(); seekBy(state, controls, 1) } },
+                        onPlay = { if (buttonsLive) { used(); playPause() } },
                         modifier = Modifier
                             .align(Alignment.Center)
                             .graphicsLayer {
                                 group(TransformOrigin.Center, 0f)
-                                alpha *= centreOut
+                                alpha *= centreOut * spinnerOut.value
                             },
                     )
                 }
@@ -658,9 +708,9 @@ fun VideoPlayer(
                         touched()
                     },
                     onSeek = { seconds -> controls.seek(seconds) },
-                    onPlay = { if (buttonsLive) { touched(); toggle(state, controls) } },
-                    onMute = { if (buttonsLive) { touched(); controls.mute(!state.muted) } },
-                    onFullscreen = { if (buttonsLive) { touched(); onFullscreenButton() } },
+                    onPlay = { if (buttonsLive) { used(); playPause() } },
+                    onMute = { if (buttonsLive) { used(); controls.mute(!state.muted) } },
+                    onFullscreen = { if (buttonsLive) { used(); onFullscreenButton() } },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(start = ins.bottomStart, end = ins.bottomEnd, bottom = bottomInset)

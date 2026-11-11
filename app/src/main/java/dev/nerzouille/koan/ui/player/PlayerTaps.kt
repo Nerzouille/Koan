@@ -32,5 +32,17 @@ fun tapAction(locked: Boolean, zone: Int, seekSide: Int, sinceSeekMs: Long, last
     else -> TapAction.ToggleLater
 }
 
-/** Whether the controls' buttons, bar and pills take touches: only while they show. Hidden, every touch reaches the video. */
-fun controlsTakeTouches(shown: Boolean, hidden: Boolean): Boolean = shown && !hidden
+/**
+ * Whether the controls' buttons, bar and pills take touches: whenever they are on screen
+ * ([visible]: shown, or still fading in or out), never in picture-in-picture ([hidden]). Fully
+ * hidden, every touch reaches the video.
+ */
+fun controlsTakeTouches(visible: Boolean, hidden: Boolean): Boolean = visible && !hidden
+
+/**
+ * Play (true) or pause for a tap on play / pause: the opposite of the last tap's [intent] while the
+ * page may not have reported it yet ([sinceIntentMs] under [PlayerTokens.PLAY_INTENT_MS]), else the
+ * opposite of what the page reports.
+ */
+fun nextPlay(reportedPlaying: Boolean, intent: Boolean?, sinceIntentMs: Long): Boolean =
+    if (intent != null && sinceIntentMs < PlayerTokens.PLAY_INTENT_MS) !intent else !reportedPlaying

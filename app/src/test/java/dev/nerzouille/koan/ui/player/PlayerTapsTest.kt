@@ -8,10 +8,10 @@ import org.junit.Test
 class PlayerTapsTest {
     private val long = 10_000L
 
-    @Test fun `hidden controls take no touches, shown ones do`() {
-        assertFalse(controlsTakeTouches(shown = false, hidden = false))
-        assertFalse(controlsTakeTouches(shown = true, hidden = true))
-        assertTrue(controlsTakeTouches(shown = true, hidden = false))
+    @Test fun `hidden controls take no touches, visible ones do (fading out too)`() {
+        assertFalse(controlsTakeTouches(visible = false, hidden = false))
+        assertFalse(controlsTakeTouches(visible = true, hidden = true))
+        assertTrue(controlsTakeTouches(visible = true, hidden = false))
     }
 
     @Test fun `a single tap in the middle toggles at once`() {
@@ -34,5 +34,15 @@ class PlayerTapsTest {
 
     @Test fun `locked, any tap shows Unlock`() {
         assertEquals(TapAction.ShowUnlock, tapAction(true, zone = 1, seekSide = 1, sinceSeekMs = 10, lastTapZone = 1, sinceTapMs = 10))
+    }
+
+    @Test fun `quick play pause taps each turn it the other way`() {
+        // No recent tap: the opposite of what the page says.
+        assertEquals(false, nextPlay(reportedPlaying = true, intent = null, sinceIntentMs = 0))
+        assertEquals(true, nextPlay(reportedPlaying = false, intent = false, sinceIntentMs = 5_000))
+        // A tap just paused it, the page still says playing: the next tap plays.
+        assertEquals(true, nextPlay(reportedPlaying = true, intent = false, sinceIntentMs = 150))
+        // Then pause again.
+        assertEquals(false, nextPlay(reportedPlaying = false, intent = true, sinceIntentMs = 150))
     }
 }

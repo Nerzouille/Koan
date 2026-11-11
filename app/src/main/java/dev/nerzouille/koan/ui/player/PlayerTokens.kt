@@ -141,6 +141,8 @@ object PlayerTokens {
     const val NOTICE_MS = 3500L
     /** Auto-rotate off: Koan's rotate pill stays this long after the phone turns (like the system's). */
     const val ROTATE_OFFER_MS = 3000L
+    /** A play / pause tap counts on its own intent this long, until the page has reported it. */
+    const val PLAY_INTENT_MS = 1000L
     const val SWIPE_RATIO = 1.5f
     const val SWIPE_DOWN_SCALE_AT = 0.4f
     const val SWIPE_DOWN_COMMIT = 0.2f

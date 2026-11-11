@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -46,27 +47,45 @@ suspend fun frameClock(onFrame: (deltaMs: Float) -> Unit): Nothing {
 /**
  * Shrinks to [to] while pressed and springs back; acts on release inside. Consumes the touch. Put
  * it before the surface's own modifiers so the whole button scales.
+ *
+ * One touch handler for the button's life: a caller's new [onClick] (a new lambda on each
+ * recomposition, e.g. the player's play button as the video plays) no longer restarts it in the
+ * middle of a press, which lost the click and left the button pressed. The pressed state is reset
+ * however the press ends ([pressing]).
  */
 @Composable
 fun Modifier.pressScale(enabled: Boolean = true, to: Float = Motion.PRESS_SCALE, onClick: () -> Unit): Modifier {
     var down by remember { mutableStateOf(false) }
+    val click by rememberUpdatedState(onClick)
     val s by animateFloatAsState(if (down) to else 1f, Motion.Press, label = "press")
     return this
         .graphicsLayer { scaleX = s; scaleY = s }
         .then(
-            if (!enabled) Modifier else Modifier.pointerInput(onClick) {
+            if (!enabled) Modifier else Modifier.pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown().consume()
-                    down = true
-                    val up = waitForUpOrCancellation()
-                    down = false
+                    val up = pressing({ down = it }) { waitForUpOrCancellation() }
                     if (up != null) {
                         up.consume()
-                        onClick()
+                        click()
                     }
                 }
             },
         )
+}
+
+/**
+ * A press from finger down to its end: [pressed] true while [waitUp] runs, false again however it
+ * ends (a lift, a cancel, the gesture torn down by a recomposition or the button going away).
+ * Inline, so [waitUp] can wait for pointer events.
+ */
+inline fun <T> pressing(pressed: (Boolean) -> Unit, waitUp: () -> T?): T? {
+    pressed(true)
+    try {
+        return waitUp()
+    } finally {
+        pressed(false)
+    }
 }
 
 /** A full-screen page sliding up from the bottom edge: [progress] 0 (below the screen) … 1 (in place), read in the layer. */

@@ -78,18 +78,23 @@ internal fun Modifier.playerPanel(shape: Shape, color: Color = PlayerTokens.Pane
     this.clip(shape).background(color, shape).border(1.dp, PlayerTokens.Stroke, shape)
 
 /** A press that scales the button down (§5 disc press) and acts on release inside it. */
-internal fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): Modifier = this.then(
-    if (!enabled) Modifier else Modifier.pointerInput(onClick) {
-        awaitEachGesture {
-            awaitFirstDown().consume()
-            val up = waitForUpOrCancellation()
-            if (up != null) {
-                up.consume()
-                onClick()
+@Composable
+internal fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): Modifier {
+    // One handler for the row's life (a new lambda each recomposition must not restart a press).
+    val click by androidx.compose.runtime.rememberUpdatedState(onClick)
+    return this.then(
+        if (!enabled) Modifier else Modifier.pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown().consume()
+                val up = waitForUpOrCancellation()
+                if (up != null) {
+                    up.consume()
+                    click()
+                }
             }
-        }
-    },
-)
+        },
+    )
+}
 
 /** A round 44dp button (or a disc of [size]) on the panel. */
 @Composable
