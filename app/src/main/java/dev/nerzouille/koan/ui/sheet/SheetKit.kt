@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -27,6 +26,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanIconButton
 import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
@@ -178,15 +178,7 @@ fun SheetHeader(title: String, page: SheetPageScope) {
             .height(SheetTokens.HeaderHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(SheetTokens.HeaderHeight)
-                .clip(CircleShape)
-                .then(if (page.interactive) Modifier.clickable(onClick = page.onBack) else Modifier),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(KoanIcons.Back, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SheetTokens.TileGlyph))
-        }
+        KoanIconButton(KoanIcons.Back, page.onBack, SheetTokens.HeaderHeight, SheetTokens.TileGlyph, KoanTheme.colors.TextPrimary, interactive = page.interactive)
         Text(title, color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.HeaderTitleSize))
     }
 }

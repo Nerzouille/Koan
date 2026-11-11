@@ -96,15 +96,10 @@ fun SelectionHeader(count: Int, interactive: Boolean, onCancel: () -> Unit, onSe
             .padding(horizontal = SettingsTokens.Padding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(SettingsTokens.TopBar)
-                .clip(CircleShape)
-                .then(if (interactive) Modifier.clickable(onClick = onCancel) else Modifier),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            Icon(KoanIcons.Close, "Leave selection", tint = palette.TextPrimary, modifier = Modifier.size(SettingsTokens.BackGlyph))
-        }
+        KoanIconButton(
+            KoanIcons.Close, onCancel, SettingsTokens.TopBar, SettingsTokens.BackGlyph, palette.TextPrimary,
+            interactive = interactive, alignment = Alignment.CenterStart, contentDescription = "Leave selection",
+        )
         Text(
             "$count selected",
             color = palette.TextPrimary,

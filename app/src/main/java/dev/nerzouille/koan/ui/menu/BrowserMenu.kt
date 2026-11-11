@@ -3,7 +3,6 @@ package dev.nerzouille.koan.ui.menu
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +27,7 @@ import dev.nerzouille.koan.search.EngineDraft
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.bar.PageInfo
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanIconButton
 import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.sheet.RowChevron
 import dev.nerzouille.koan.ui.sheet.RowValue
@@ -228,15 +228,10 @@ private fun NavRow(page: PageInfo, actions: MenuActions, on: Boolean) {
 
 @Composable
 private fun NavIcon(icon: ImageVector, enabled: Boolean, interactive: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .size(BarTokens.IconTouch)
-            .clip(CircleShape)
-            .then(if (enabled && interactive) Modifier.clickable(onClick = onClick) else Modifier),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, null, tint = if (enabled) KoanTheme.colors.Icon else KoanTheme.colors.TextDisabled, modifier = Modifier.size(BarTokens.Icon))
-    }
+    KoanIconButton(
+        icon, onClick, BarTokens.IconTouch, BarTokens.Icon, KoanTheme.colors.Icon,
+        enabled = enabled, interactive = interactive, disabledTint = KoanTheme.colors.TextDisabled,
+    )
 }
 
 /** "Open in YouTube": the app's own icon and name, on its own group above the page rows. */

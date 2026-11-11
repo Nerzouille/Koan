@@ -1,8 +1,6 @@
 package dev.nerzouille.koan.ui.menu
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,18 +9,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.engine.SiteDecision
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.DestructiveButton
+import dev.nerzouille.koan.ui.kit.KoanIconButton
 import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.sheet.SheetDivider
@@ -63,15 +60,7 @@ fun SiteSettingsPage(ui: SiteSettingsUi, scope: SheetPageScope) {
         verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap),
     ) {
         Row(Modifier.fillMaxWidth().height(SheetTokens.HeaderHeight + SheetTokens.Gap), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .size(SheetTokens.HeaderHeight)
-                    .clip(CircleShape)
-                    .then(if (on) Modifier.clickable(onClick = scope.onBack) else Modifier),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(KoanIcons.Back, null, tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.TileGlyph))
-            }
+            KoanIconButton(KoanIcons.Back, scope.onBack, SheetTokens.HeaderHeight, SheetTokens.TileGlyph, palette.TextPrimary, interactive = on)
             Favicon(ui.url, SheetTokens.RowIconBox + SheetTokens.Gap)
             Spacer(Modifier.width(SheetTokens.RowPadding))
             Column(Modifier.weight(1f)) {
