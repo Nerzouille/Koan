@@ -1,6 +1,6 @@
 package dev.nerzouille.koan.ui.start
 
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.bar.EssentialsGrid
+import dev.nerzouille.koan.ui.kit.rememberPresence
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.overview.SpaceModel
@@ -59,23 +59,20 @@ fun StartPage(
     onOpenTab: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val alpha = remember { Animatable(0f) }
+    val alpha = rememberPresence(open, enter = snap(), exit = tween(StartPageTokens.FADE_OUT_MS), snapIn = true)
     // The last space shown stays while it fades out.
     var shown by remember { mutableStateOf(space) }
     if (open && space != null) shown = space
     var shownLast by remember { mutableStateOf(last) }
     if (open) shownLast = last
-    LaunchedEffect(open) {
-        if (open) alpha.snapTo(1f) else alpha.animateTo(0f, tween(StartPageTokens.FADE_OUT_MS))
-    }
-    if (!open && alpha.value == 0f) return
+    if (!alpha.composed) return
     val current = shown ?: return
     val dismiss by rememberUpdatedState(onDismiss)
     val palette = KoanTheme.colors
     Box(
         Modifier
             .fillMaxSize()
-            .graphicsLayer { this.alpha = alpha.value }
+            .graphicsLayer { this.alpha = alpha.progress }
             .background(palette.Base)
             .then(
                 if (!open) {
