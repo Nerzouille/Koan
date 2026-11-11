@@ -57,7 +57,11 @@ internal fun LibraryOverlays(
             downloads = downloads,
             folder = folderName ?: "Download",
             actions = components.downloads,
-            onClear = { overlays.clearDownloadsCard.animateTo(Detent.Compact) },
+            onClear = {
+                overlays.ask("Clear the download list?", "The files stay in ${folderName ?: "Download"}.", "Clear list") {
+                    components.downloads.clearHistory()
+                }
+            },
             onClose = { overlays.downloadsOpen = false },
             onToast = onToast,
             onCopyLink = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
@@ -68,20 +72,6 @@ internal fun LibraryOverlays(
                 if (video != null) components.player.open(video)
                 video != null
             },
-        )
-    }
-    val clearCard = overlays.clearDownloadsCard
-    KoanCard(clearCard) { interactive ->
-        Confirm(
-            title = "Clear the download list?",
-            text = "The files stay in ${folderName ?: "Download"}.",
-            confirm = "Clear list",
-            interactive = interactive,
-            onConfirm = {
-                clearCard.animateTo(Detent.Closed)
-                components.downloads.clearHistory()
-            },
-            onCancel = { clearCard.animateTo(Detent.Closed) },
         )
     }
 

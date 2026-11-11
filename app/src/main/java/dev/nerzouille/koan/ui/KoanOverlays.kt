@@ -31,9 +31,9 @@ import dev.nerzouille.koan.ui.menu.LinkTarget
 import dev.nerzouille.koan.ui.menu.MenuPage
 import dev.nerzouille.koan.ui.menu.TranslateActions
 import dev.nerzouille.koan.ui.menu.UBlockUi
+import dev.nerzouille.koan.ui.menu.languageName
 import dev.nerzouille.koan.ui.menu.translateUiOf
 import dev.nerzouille.koan.ui.overlays.DockMenus
-import dev.nerzouille.koan.ui.overlays.LanguageDeleteOverlay
 import dev.nerzouille.koan.ui.overlays.LibraryOverlays
 import dev.nerzouille.koan.ui.overlays.LinkCardOverlay
 import dev.nerzouille.koan.ui.overlays.LoginOverlays
@@ -64,9 +64,6 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val linkCard = SheetState(scope, splineBasedDecay(density))
     var link by mutableStateOf<LinkTarget?>(null)
     val signOutCard = SheetState(scope, splineBasedDecay(density))
-    /** Deleting a downloaded translation language asks first. */
-    val languageDeleteCard = SheetState(scope, splineBasedDecay(density))
-    var languageToDelete by mutableStateOf<String?>(null)
 
     /** The tab counter's long-press menu: New tab, Close tab. */
     var tabMenuOpen by mutableStateOf(false)
@@ -102,8 +99,6 @@ class Overlays(scope: CoroutineScope, density: Density) {
 
     class Ask(val title: String, val text: String, val confirm: String, val destructive: Boolean, val action: () -> Unit)
     val clearDataCard = SheetState(scope, splineBasedDecay(density))
-    val clearDownloadsCard = SheetState(scope, splineBasedDecay(density))
-    val clearSiteCard = SheetState(scope, splineBasedDecay(density))
 
     /** Logins: the full "Sign in with" list (7e), and "Save in Koan". */
     val loginCard = SheetState(scope, splineBasedDecay(density))
@@ -142,7 +137,7 @@ class Overlays(scope: CoroutineScope, density: Density) {
     /** Something covers the page or the overview (a sheet, a card, a full page): toasts make way. */
     val anyOpen: Boolean
         get() = menu.open || linkCard.open || signOutCard.open || tabMenuOpen || backMenuOpen || settingsOpen || downloadsOpen ||
-            historyOpen || askCard.open || clearDataCard.open || clearDownloadsCard.open || clearSiteCard.open || loginCard.open ||
+            historyOpen || askCard.open || clearDataCard.open || loginCard.open ||
             saveLoginCard.open || permissionCard.open || appLinkCard.open || promptCard.open || tourOpen
 
     /** The overview opened, or the tab changed: nothing stays open over the old page. */
@@ -229,8 +224,27 @@ fun KoanOverlays(
         neverLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_LANGUAGE, on)) } },
         neverSite = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_SITE, on)) } },
         deleteLanguage = { code ->
-            overlays.languageToDelete = code
-            overlays.languageDeleteCard.animateTo(Detent.Compact)
+            val name = languageName(code)
+            val bytes = translateEngine.languageModels.orEmpty().firstOrNull { it.language?.code == code }?.size
+            overlays.ask(
+                "Delete $name?",
+                listOfNotNull(
+                    bytes?.let { "Frees %.0f MB on this phone.".format(it / (1L shl 20).toDouble()) },
+                    "It downloads again the next time you translate $name.",
+                ).joinToString(" "),
+                "Delete",
+            ) {
+                components.store.dispatch(
+                    TranslationsAction.ManageLanguageModelsAction(
+                        mozilla.components.concept.engine.translate.ModelManagementOptions(
+                            code,
+                            mozilla.components.concept.engine.translate.ModelOperation.DELETE,
+                            mozilla.components.concept.engine.translate.OperationLevel.LANGUAGE,
+                        ),
+                    ),
+                )
+                onToast(Toast("$name deleted from this phone"))
+            }
         },
         alwaysLanguage = { on -> activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_ALWAYS_TRANSLATE_LANGUAGE, on)) } },
         picked = { side, code ->
@@ -269,9 +283,6 @@ fun KoanOverlays(
 
     // ---- Downloads and History, full screen, over Settings too; a library page's ask card ----
     LibraryOverlays(components, overlays, scope, downloads, folderName, clipboard, activeTabId, onToast, onOpenNew, onRestoreClosed, ::share)
-
-    // ---- deleting a downloaded translation language asks first ----
-    LanguageDeleteOverlay(components, overlays, translateEngine, onToast)
 
     // ---- sign out asks first ----
     SignOutOverlay(components, overlays)

@@ -27,7 +27,6 @@ import dev.nerzouille.koan.ui.kit.KoanClipboard
 import dev.nerzouille.koan.ui.kit.Toast
 import dev.nerzouille.koan.ui.kit.copiedToast
 import dev.nerzouille.koan.ui.menu.BackMenu
-import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.menu.EssentialsAction
 import dev.nerzouille.koan.ui.menu.MenuActions
 import dev.nerzouille.koan.ui.menu.MenuPage
@@ -41,10 +40,8 @@ import dev.nerzouille.koan.ui.menu.TranslatePage
 import dev.nerzouille.koan.ui.menu.TranslateUi
 import dev.nerzouille.koan.ui.menu.UBlockPage
 import dev.nerzouille.koan.ui.menu.UBlockUi
-import dev.nerzouille.koan.ui.menu.languageName
 import dev.nerzouille.koan.ui.settings.SettingsPage
 import dev.nerzouille.koan.ui.sheet.Detent
-import dev.nerzouille.koan.ui.sheet.KoanCard
 import dev.nerzouille.koan.ui.sheet.KoanSheet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,7 +53,6 @@ import mozilla.components.browser.state.action.TranslationsAction
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.SecurityInfo
-import mozilla.components.browser.state.state.TranslationsBrowserState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.engine.translate.TranslationOperation
 
@@ -270,32 +266,27 @@ internal fun MenuOverlays(
                     readerAvailable = reader.first,
                     readerActive = reader.second,
                     onReader = { activeTabId?.let(components.pageTools::toggleReader) },
-                    onClearData = { overlays.clearSiteCard.animateTo(Detent.Compact) },
+                    onClearData = {
+                        val host = displayHost(page.url)
+                        val url = page.url
+                        overlays.ask(
+                            "Clear data for $host?",
+                            "Its cookies, stored data and permissions go: you'll be signed out of it, and it asks again next time.",
+                            "Clear site data",
+                        ) {
+                            scope.launch {
+                                val done = components.sitePermissions.clearSiteData(url)
+                                decisionsVersion++
+                                session.reload(activeTabId)
+                                // Success needs no toast: the card asked first and the list empties. Only a failure says so.
+                                if (!done) onToast(Toast("Couldn't clear all of $host's data"))
+                            }
+                        }
+                    },
                 ),
                 pageScope,
             )
         }
-    }
-    val clearSite = overlays.clearSiteCard
-    KoanCard(clearSite) { interactive ->
-        Confirm(
-            title = "Clear data for ${displayHost(page.url)}?",
-            text = "Its cookies, stored data and permissions go: you'll be signed out of it, and it asks again next time.",
-            confirm = "Clear site data",
-            interactive = interactive,
-            onConfirm = {
-                clearSite.animateTo(Detent.Closed)
-                val host = displayHost(page.url)
-                scope.launch {
-                    val done = components.sitePermissions.clearSiteData(page.url)
-                    decisionsVersion++
-                    session.reload(activeTabId)
-                    // Success needs no toast: the card asked first and the list empties. Only a failure says so.
-                    if (!done) onToast(Toast("Couldn't clear all of $host's data"))
-                }
-            },
-            onCancel = { clearSite.animateTo(Detent.Closed) },
-        )
     }
 }
 
@@ -336,38 +327,4 @@ internal fun DockMenus(
             activeTabId?.let { components.sessionUseCases.goToHistoryIndex(index, it) }
         },
     )
-}
-
-/** Deleting a downloaded translation language asks first. */
-@Composable
-internal fun LanguageDeleteOverlay(components: Components, overlays: Overlays, translateEngine: TranslationsBrowserState, onToast: (Toast) -> Unit) {
-    val languageDeleteCard = overlays.languageDeleteCard
-    KoanCard(languageDeleteCard) { interactive ->
-        val code = overlays.languageToDelete ?: return@KoanCard
-        val name = languageName(code)
-        val bytes = translateEngine.languageModels.orEmpty().firstOrNull { it.language?.code == code }?.size
-        Confirm(
-            title = "Delete $name?",
-            text = listOfNotNull(
-                bytes?.let { "Frees %.0f MB on this phone.".format(it / (1L shl 20).toDouble()) },
-                "It downloads again the next time you translate $name.",
-            ).joinToString(" "),
-            confirm = "Delete",
-            interactive = interactive,
-            onConfirm = {
-                languageDeleteCard.animateTo(Detent.Closed)
-                components.store.dispatch(
-                    TranslationsAction.ManageLanguageModelsAction(
-                        mozilla.components.concept.engine.translate.ModelManagementOptions(
-                            code,
-                            mozilla.components.concept.engine.translate.ModelOperation.DELETE,
-                            mozilla.components.concept.engine.translate.OperationLevel.LANGUAGE,
-                        ),
-                    ),
-                )
-                onToast(Toast("$name deleted from this phone"))
-            },
-            onCancel = { languageDeleteCard.animateTo(Detent.Closed) },
-        )
-    }
 }
