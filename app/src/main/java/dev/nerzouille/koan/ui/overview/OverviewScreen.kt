@@ -200,7 +200,18 @@ fun OverviewScreen(
     val flipping = flip?.running == true
     val normalList = normalModels ?: models
     val privateList = privateModels.orEmpty()
-    val m = { flip?.colour() ?: 0f }
+    // The page offsets and callbacks below are kept as the same instances across recompositions,
+    // so a recomposition here (a Room emission, the active tab) doesn't recompose every space.
+    val latestFlip = rememberUpdatedState(flip)
+    val m = remember { { latestFlip.value?.colour() ?: 0f } }
+    val offsets = remember(pager) { HashMap<Int, () -> Float>() }
+    fun offsetOf(i: Int) = offsets.getOrPut(i) { { i - pager.pos } }
+    val besidePrivate = remember { { -1f } }
+    val anchoredFlip = remember { { -m() } }
+    val privateFlip = remember { { 1f - m() } }
+    val latestNewTab = rememberUpdatedState(onNewTab)
+    val latestOpenTab = rememberUpdatedState(onOpenTab)
+    val latestSpaces = rememberUpdatedState(spaces)
     val anchor = remember { Anchor() }
     if (!privateShown && !flipping) normalList.getOrNull(pager.settled)?.let { anchor.uuid = it.uuid }
     val anchorIndex = normalList.indexOfFirst { it.uuid == anchor.uuid }.takeIf { it >= 0 } ?: pager.settled.coerceIn(0, (normalList.size - 1).coerceAtLeast(0))
@@ -213,7 +224,7 @@ fun OverviewScreen(
                 // the settled space, a ghost stands in until then, laid out from the first frame.
                 val real = list[i].uuid in precomposed || i == current
                 val ghost = abs(i - current) <= 1
-                if (real || ghost) add(Page(list[i], i, private, { i - pager.pos }, real, active = i == current))
+                if (real || ghost) add(Page(list[i], i, private, offsetOf(i), real, active = i == current))
             }
         }
         val anchored = normalList.getOrNull(anchorIndex)
@@ -221,11 +232,11 @@ fun OverviewScreen(
             flip == null || (!privateShown && !flipping) -> addPager(normalList, private = false)
             !flipping -> {
                 addPager(privateList, private = true)
-                if (anchored != null) add(Page(anchored, anchorIndex, false, { -1f }, real = true, active = false))
+                if (anchored != null) add(Page(anchored, anchorIndex, false, besidePrivate, real = true, active = false))
             }
             else -> {
-                if (anchored != null) add(Page(anchored, anchorIndex, false, { -m() }, real = true, active = false))
-                privateList.firstOrNull()?.let { add(Page(it, 0, true, { 1f - m() }, real = true, active = false)) }
+                if (anchored != null) add(Page(anchored, anchorIndex, false, anchoredFlip, real = true, active = false))
+                privateList.firstOrNull()?.let { add(Page(it, 0, true, privateFlip, real = true, active = false)) }
             }
         }
     }
@@ -278,16 +289,22 @@ fun OverviewScreen(
                         val pageBase = if (page.private) privateBase else normalBase
                         // The whole space moves as one unit, a gap between spaces, and fades into
                         // the backdrop (drawn over it, never an offscreen layer) as it leaves.
-                        val motion = Modifier.graphicsLayer {
-                            val f = offset()
-                            translationX = f * (size.width + PagerTokens.PageGap.toPx())
-                            alpha = if (abs(f) >= 1f) 0f else 1f
+                        val motion = remember(offset) {
+                            Modifier.graphicsLayer {
+                                val f = offset()
+                                translationX = f * (size.width + PagerTokens.PageGap.toPx())
+                                alpha = if (abs(f) >= 1f) 0f else 1f
+                            }
                         }
-                        val fade = Modifier.drawWithContent {
-                            drawContent()
-                            val e = abs(offset()).coerceIn(0f, 1f)
-                            if (e > 0f) drawRect(pageBase, alpha = e)
+                        val fade = remember(offset, pageBase) {
+                            Modifier.drawWithContent {
+                                drawContent()
+                                val e = abs(offset()).coerceIn(0f, 1f)
+                                if (e > 0f) drawRect(pageBase, alpha = e)
+                            }
                         }
+                        val newTabHere = remember(i) { { latestNewTab.value(i) } }
+                        val openTabHere = remember(i) { { id: String -> latestSpaces.value.getOrNull(i)?.findTab(id)?.let { latestOpenTab.value(i, it) } ?: Unit } }
                         // Each page in its own mode's palette.
                         KoanPrivateTheme(page.private && flip != null) {
                             // Back to a ghost (a page dropped off): its next real page fades in over it again.
@@ -307,8 +324,8 @@ fun OverviewScreen(
                                     sync = sync,
                                     pageOffset = offset,
                                     onDismiss = onDismiss,
-                                    onNewTab = { onNewTab(i) },
-                                    onOpenTab = { id -> spaces.getOrNull(i)?.findTab(id)?.let { onOpenTab(i, it) } },
+                                    onNewTab = newTabHere,
+                                    onOpenTab = openTabHere,
                                     onCloseTab = onCloseTab,
                                     onReorder = onReorder,
                                     onBadge = onBadge,
