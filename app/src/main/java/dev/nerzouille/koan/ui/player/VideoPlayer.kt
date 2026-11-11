@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.scale
@@ -79,6 +80,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -141,8 +143,12 @@ fun VideoPlayer(
     var locked by remember { mutableStateOf(false) }
     var unlockShown by remember { mutableStateOf(false) }
     var unlockSerial by remember { mutableIntStateOf(0) }
-    var scrub by remember { mutableStateOf<Float?>(null) } // fraction while the bar is pressed
+    // The bar pressed: composition reads only this flag; the fraction and the finger's x move every
+    // finger event and are read in draw / layout lambdas and one small time text.
+    var scrubbing by remember { mutableStateOf(false) }
+    val scrubF = remember { mutableFloatStateOf(0f) } // fraction while the bar is pressed
     var scrubX by remember { mutableFloatStateOf(0f) } // finger x in this layer
+    val mistBlurs = remember(density) { mistBlurs(density.density) }
     var boost by remember { mutableStateOf(false) } // long press 2×
     var seekSide by remember { mutableIntStateOf(0) } // -1 left, 1 right, 0 none
     var seekSteps by remember { mutableIntStateOf(0) }
@@ -179,8 +185,8 @@ fun VideoPlayer(
         }
     }
     // §5 controls.autoHide
-    LaunchedEffect(shown, lastTouch, state.playing, menuOpen, scrub != null, locked) {
-        if (!shown || locked || !state.playing || menuOpen || scrub != null) return@LaunchedEffect
+    LaunchedEffect(shown, lastTouch, state.playing, menuOpen, scrubbing, locked) {
+        if (!shown || locked || !state.playing || menuOpen || scrubbing) return@LaunchedEffect
         delay(PlayerTokens.AUTO_HIDE_MS)
         shown = false
     }
@@ -524,7 +530,7 @@ fun VideoPlayer(
 
         CompositionLocalProvider(LocalControlsLive provides (shown && !hidden)) {
             val group: GraphicsLayerScope.(TransformOrigin, Float) -> Unit = { origin, inward ->
-                applyMist(mist.value, settle.value, entering, origin, inward * PlayerTokens.MistShift.toPx(), noMotion)
+                applyMist(mist.value, settle.value, entering, origin, inward * PlayerTokens.MistShift.toPx(), noMotion, mistBlurs)
                 alpha *= hiddenAlpha(hidden) * (1f - levelShown.value)
             }
             val buttonsLive = shown && !hidden
@@ -586,7 +592,7 @@ fun VideoPlayer(
 
             if (!locked) {
                 // ---- centre group (hidden while the bar is pressed) ----
-                val centreOut by animateFloatAsState(if (scrub != null) 0f else 1f, tween(160), label = "centreOut")
+                val centreOut by animateFloatAsState(if (scrubbing) 0f else 1f, tween(160), label = "centreOut")
                 if (!spinner) {
                     CentreGroup(
                         state = state,
@@ -610,9 +616,12 @@ fun VideoPlayer(
                     mode = mode,
                     frameNow = { frameNow.longValue },
                     clockNow = clockNow,
-                    scrub = scrub,
+                    scrubbing = scrubbing,
+                    scrubFraction = { scrubF.floatValue },
                     onScrub = { f, x ->
-                        scrub = f
+                        scrubbing = f != null
+                        // Released: the fraction goes back to 0, as the bubble showed it on its way out.
+                        scrubF.floatValue = f ?: 0f
                         if (f != null) scrubX = x
                         touched()
                     },
@@ -627,22 +636,27 @@ fun VideoPlayer(
                 )
 
                 // ---- time bubble (while dragging the bar) ----
-                val bubble by animateFloatAsState(if (scrub != null) 1f else 0f, tween(if (scrub != null) 120 else 160), label = "bubble")
-                if (bubble > 0f) {
-                    val f = scrub ?: 0f
+                val bubble = rememberPresence(scrubbing, enter = tween(120), exit = tween(160), startShown = true)
+                if (bubble.composed) {
                     val pillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
                     val half = PlayerTokens.BubbleSize.width / 2
-                    val x = with(density) { scrubX.toDp() }.coerceIn(side + half, maxWidth - side - half)
+                    val y = -(bottomInset + pillH + PlayerTokens.BubbleGap)
+                    val minX = side + half
+                    val maxX = maxWidth - side - half
                     Box(
                         Modifier
                             .align(Alignment.BottomStart)
-                            .offset(x = x - half, y = -(bottomInset + pillH + PlayerTokens.BubbleGap))
+                            // Follows the finger in layout only (no recomposition per move).
+                            .offset {
+                                val x = scrubX.coerceIn(minX.toPx(), maxX.toPx().coerceAtLeast(minX.toPx()))
+                                IntOffset((x - half.toPx()).roundToInt(), y.roundToPx())
+                            }
                             .size(PlayerTokens.BubbleSize.width, PlayerTokens.BubbleSize.height)
-                            .graphicsLayer { alpha = bubble }
+                            .graphicsLayer { alpha = bubble.progress }
                             .playerPanel(RoundedCornerShape(18.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(clock(f * state.duration), style = playerText(15.sp, FontWeight.SemiBold))
+                        ScrubTime({ scrubF.floatValue }, state.duration, playerText(15.sp, FontWeight.SemiBold))
                     }
                 }
 
@@ -727,7 +741,7 @@ fun VideoPlayer(
 private fun hiddenAlpha(hidden: Boolean) = if (hidden) 0f else 1f
 
 /** §5 controls.in / out on one group: alpha, blur (Android 12+), scale, a short slide from inward. */
-private fun GraphicsLayerScope.applyMist(m: Float, settle: Float, entering: Boolean, origin: TransformOrigin, inwardPx: Float, noMotion: Boolean) {
+private fun GraphicsLayerScope.applyMist(m: Float, settle: Float, entering: Boolean, origin: TransformOrigin, inwardPx: Float, noMotion: Boolean, blurs: Array<RenderEffect?>) {
     alpha = m
     transformOrigin = origin
     if (noMotion) return
@@ -744,9 +758,35 @@ private fun GraphicsLayerScope.applyMist(m: Float, settle: Float, entering: Bool
     scaleX = s
     scaleY = s
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val r = blurDp * density
-        renderEffect = if (r > 0.5f && m < 0.999f) BlurEffect(r, r, TileMode.Decal) else null
+        // RenderEffects are immutable: one per 0.5dp step, reused every frame (no new effect per frame).
+        renderEffect = if (m < 0.999f) blurs[(blurDp * 2f).roundToInt().coerceIn(0, blurs.size - 1)] else null
     }
+}
+
+/** The mist's blurs, 0 to the largest mist radius in 0.5dp steps (step 0: none). */
+private fun mistBlurs(density: Float): Array<RenderEffect?> {
+    val steps = (maxOf(PlayerTokens.MistBlurIn.value, PlayerTokens.MistBlurOut.value) * 2f).roundToInt() + 1
+    return Array(steps) { step ->
+        if (step == 0 || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) null else BlurEffect(step * 0.5f * density, step * 0.5f * density, TileMode.Decal)
+    }
+}
+
+/** The bubble's time while scrubbing: recomposes when the shown second changes, not per finger move. */
+@Composable
+private fun ScrubTime(fraction: () -> Float, duration: Double, style: TextStyle) {
+    val seconds by remember(duration) { derivedStateOf { (fraction() * duration).toLong() } }
+    Text(clock(seconds.toDouble()), style = style)
+}
+
+/** The elapsed time; while scrubbing, the scrub position's (by the second, not per finger move). */
+@Composable
+private fun ElapsedTime(elapsed: Double, scrubbing: Boolean, fraction: () -> Float, duration: Double, style: TextStyle, modifier: Modifier = Modifier) {
+    if (!scrubbing) {
+        Text(clock(elapsed), style = style, maxLines = 1, modifier = modifier)
+        return
+    }
+    val seconds by remember(duration) { derivedStateOf { (fraction() * duration).toLong() } }
+    Text(clock(seconds.toDouble()), style = style, maxLines = 1, modifier = modifier)
 }
 
 private fun toggle(s: PlayerState, c: PlayerControls) {
@@ -873,7 +913,8 @@ private fun BottomPill(
     mode: PlayerMode,
     frameNow: () -> Long,
     clockNow: Long,
-    scrub: Float?,
+    scrubbing: Boolean,
+    scrubFraction: () -> Float,
     onScrub: (Float?, Float) -> Unit,
     onSeek: (Double) -> Unit,
     onPlay: () -> Unit,
@@ -883,12 +924,12 @@ private fun BottomPill(
 ) {
     val live = LocalControlsLive.current
     val shape = RoundedCornerShape(PlayerTokens.BottomPillRadius)
-    val elapsed = scrub?.let { it * state.duration } ?: state.positionAt(clockNow)
+    val elapsed = state.positionAt(clockNow)
     val fullscreenIcon = if (mode == PlayerMode.Web) KoanIcons.ExitFullscreen else KoanIcons.Fullscreen
     val muteIcon = if (state.muted) KoanIcons.VolumeOff else KoanIcons.Volume
     val timeStyle = playerText(14.sp, FontWeight.Medium, tracking = 0.2.sp)
     val bar: @Composable (Modifier, Dp) -> Unit = { m, touch ->
-        ProgressBar(state, frameNow, scrub, onScrub, onSeek, live, m.height(touch))
+        ProgressBar(state, frameNow, scrubbing, scrubFraction, onScrub, onSeek, live, m.height(touch))
     }
     // The pill's empty parts take touches (they never reach the video under it).
     val swallow = Modifier.pointerInput(Unit) { awaitEachGesture { awaitFirstDown().consume() } }
@@ -904,7 +945,7 @@ private fun BottomPill(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             PlayerDisc(PlayerTokens.RoundPill, onClick = onMute, panel = false) { PlayerIcon(muteIcon, PlayerTokens.Glyph) }
-            Text(clock(elapsed), style = timeStyle, modifier = Modifier.widthIn(min = PlayerTokens.TimeMinWidth))
+            ElapsedTime(elapsed, scrubbing, scrubFraction, state.duration, timeStyle, Modifier.widthIn(min = PlayerTokens.TimeMinWidth))
             bar(Modifier.weight(1f), 44.dp)
             Text(clock(state.duration), style = timeStyle.copy(color = PlayerTokens.TextSecondary), textAlign = TextAlign.End, modifier = Modifier.widthIn(min = PlayerTokens.TimeMinWidth))
             PlayerDisc(PlayerTokens.RoundPill, onClick = onFullscreen, panel = false) { PlayerIcon(fullscreenIcon, PlayerTokens.Glyph) }
@@ -922,10 +963,10 @@ private fun BottomPill(
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 PlayerDisc(PlayerTokens.RoundPill, onClick = onPlay, panel = false) {
-                    PlayGlyph(glyphFor(state, scrub != null), if (state.ended) 22.dp else 24.dp, PlayerTokens.PlayOpticalSmall)
+                    PlayGlyph(glyphFor(state, scrubbing), if (state.ended) 22.dp else 24.dp, PlayerTokens.PlayOpticalSmall)
                 }
                 Row(Modifier.weight(1f).padding(start = 6.dp)) {
-                    Text(clock(elapsed), style = timeStyle, maxLines = 1)
+                    ElapsedTime(elapsed, scrubbing, scrubFraction, state.duration, timeStyle)
                     Text(" / ${clock(state.duration)}", style = timeStyle.copy(color = PlayerTokens.TextSecondary), maxLines = 1)
                 }
                 PlayerDisc(PlayerTokens.RoundPill, onClick = onMute, panel = false) { PlayerIcon(muteIcon, PlayerTokens.Glyph) }
@@ -940,16 +981,18 @@ private fun BottomPill(
 private fun ProgressBar(
     state: PlayerState,
     frameNow: () -> Long,
-    scrub: Float?,
+    scrubbing: Boolean,
+    scrubFraction: () -> Float,
     onScrub: (Float?, Float) -> Unit,
     onSeek: (Double) -> Unit,
     live: Boolean,
     modifier: Modifier,
 ) {
     val density = LocalDensity.current
-    val thick by animateDpAsState(if (scrub != null) PlayerTokens.TrackThicknessPressed else PlayerTokens.TrackThickness, androidx.compose.animation.core.spring(0.8f, 600f), label = "track")
+    val thick by animateDpAsState(if (scrubbing) PlayerTokens.TrackThicknessPressed else PlayerTokens.TrackThickness, androidx.compose.animation.core.spring(0.8f, 600f), label = "track")
     val s = rememberUpdatedState(state)
-    val sc = rememberUpdatedState(scrub)
+    val sc = rememberUpdatedState(scrubbing)
+    val scf = rememberUpdatedState(scrubFraction)
     var rootX by remember { mutableFloatStateOf(0f) }
     Box(
         modifier
@@ -958,7 +1001,7 @@ private fun ProgressBar(
             .progressTrack(
                 thickness = { with(density) { thick.toPx() } },
                 fraction = {
-                    sc.value ?: s.value.let { st -> if (st.duration > 0) (st.positionAt(frameNow()) / st.duration).toFloat() else 0f }
+                    if (sc.value) scf.value() else s.value.let { st -> if (st.duration > 0) (st.positionAt(frameNow()) / st.duration).toFloat() else 0f }
                 },
                 buffered = { s.value.let { st -> if (st.duration > 0) (st.buffered / st.duration).toFloat() else 0f } },
             )
