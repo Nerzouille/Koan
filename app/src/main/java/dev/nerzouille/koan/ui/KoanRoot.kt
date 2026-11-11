@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
@@ -121,6 +122,7 @@ import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
 import dev.nerzouille.koan.ui.start.ContinueTab
 import dev.nerzouille.koan.ui.start.StartPage
+import dev.nerzouille.koan.ui.theme.DownloadTokens
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanNormalTheme
@@ -930,6 +932,16 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 if (running.any { it.contentLength == null } || total <= 0L) Float.NaN else running.sumOf { it.currentBytesCopied }.toFloat() / total
             }
         }
+        // A download finished: the ring's check for DONE_MS (restarted by the next one), unless
+        // another download still runs (the ring then keeps showing progress).
+        var ringDoneTick by remember { mutableIntStateOf(0) }
+        var ringDone by remember { mutableStateOf(false) }
+        LaunchedEffect(ringDoneTick) {
+            if (ringDoneTick == 0) return@LaunchedEffect
+            ringDone = true
+            kotlinx.coroutines.delay(DownloadTokens.DONE_MS.toLong())
+            ringDone = false
+        }
         // A download finished (or failed): say so, with Open (or Retry).
         LaunchedEffect(Unit) {
             components.downloadDone.collect { (download, status) ->
@@ -937,13 +949,16 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 if (!visibleIn(download, components.privateMode.on.value)) return@collect
                 val name = download.fileName ?: "File"
                 when (status) {
-                    DownloadState.Status.COMPLETED -> toasts.show(
-                        Toast(
-                            "$name downloaded", "Open",
-                            detail = listOfNotNull(sizeText(download.contentLength ?: download.currentBytesCopied), host(download)).joinToString(" · "),
-                            moment = true,
-                        ) { components.downloads.open(download) },
-                    )
+                    DownloadState.Status.COMPLETED -> {
+                        ringDoneTick++
+                        toasts.show(
+                            Toast(
+                                "$name downloaded", "Open",
+                                detail = listOfNotNull(sizeText(download.contentLength ?: download.currentBytesCopied), host(download)).joinToString(" · "),
+                                moment = true,
+                            ) { components.downloads.open(download) },
+                        )
+                    }
                     DownloadState.Status.FAILED -> toasts.show(Toast("Couldn't download $name", "Retry") { components.downloads.retry(download) })
                     else -> Unit
                 }
@@ -1073,6 +1088,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     complete = search::complete,
                     completedTitle = { search.results.top?.title },
                     download = downloadProgress,
+                    downloadDone = ringDone && downloadProgress == null,
                     onDownloads = { overlays.downloadsOpen = true },
                     private = flip.labels,
                     flip = flip,

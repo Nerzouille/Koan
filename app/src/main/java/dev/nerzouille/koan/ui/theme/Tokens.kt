@@ -1255,6 +1255,8 @@ object DownloadTokens {
     /** The ring in the address pill while something downloads. */
     val Ring = 18.dp
     val RingStroke = 2.dp
+    /** A finished download: the ring fills, its check draws in, then it fades out (all of it). */
+    const val DONE_MS = 1400
 }
 
 /** The search sheet above the address field (design 7a–7d). */
