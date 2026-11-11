@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui
 
+import dev.nerzouille.koan.ui.kit.animationsOff
 import dev.nerzouille.koan.ui.theme.PageTokens
 import dev.nerzouille.koan.ui.browser.ClosingPage
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -441,7 +442,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 if (fragmentActivity == null || !unlockPrivate(fragmentActivity)) return@launch
             }
             if (on) privateMode.locked.value = false
-            flip.reduced = PrivateFlip.animationsOff(context)
+            flip.reduced = animationsOff(context)
             flip.run(on) { showPrivate(on) }
         }
     }

@@ -86,6 +86,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.animationsOff
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -1028,6 +1029,3 @@ private fun Modifier.drawBehindHalo(density: androidx.compose.ui.unit.Density): 
 private fun Modifier.drawBehindCompat(block: androidx.compose.ui.graphics.drawscope.DrawScope.(Size) -> Unit): Modifier =
     this.drawBehind { block(size) }
 
-/** "Remove animations" is on: no motion at all. */
-fun animationsOff(context: Context): Boolean =
-    Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f

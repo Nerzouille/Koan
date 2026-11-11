@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.ui.bar
 
+import dev.nerzouille.koan.ui.kit.frameClock
+import dev.nerzouille.koan.ui.kit.rememberAnimationsOff
 import dev.nerzouille.koan.ui.privacy.PrivateFlip
 import dev.nerzouille.koan.ui.privacy.mist
 import dev.nerzouille.koan.ui.theme.PrivateTokens
@@ -103,9 +105,6 @@ import dev.nerzouille.koan.ui.theme.BrandHorizontal
 import dev.nerzouille.koan.ui.theme.brandOutline
 import dev.nerzouille.koan.ui.theme.SearchFieldTokens
 import androidx.compose.animation.core.Animatable
-import android.provider.Settings
-import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.platform.LocalContext
 import kotlin.math.abs
 
 /** What the address row shows about the live page. */
@@ -459,14 +458,14 @@ private fun AddressInput(
     // While in "@" mode the gradient turns slowly; only the shader moves (drawn, never recomposed).
     // Off when the system removes animations.
     val turn = remember { mutableFloatStateOf(0f) }
-    val resolver = LocalContext.current.contentResolver
+    val still = rememberAnimationsOff()
     LaunchedEffect(at) {
-        if (!at) return@LaunchedEffect
-        if (Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f) return@LaunchedEffect
-        val start = withFrameNanos { it }
+        if (!at || still) return@LaunchedEffect
         val from = turn.floatValue
-        while (true) {
-            withFrameNanos { now -> turn.floatValue = from + ringTurn((now - start) / 1e9f) }
+        var elapsedMs = 0f
+        frameClock {
+            elapsedMs += it
+            turn.floatValue = from + ringTurn(elapsedMs / 1000f)
         }
     }
     val palette = KoanTheme.colors

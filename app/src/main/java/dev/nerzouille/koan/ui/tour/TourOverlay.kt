@@ -63,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.util.lerp
+import dev.nerzouille.koan.ui.kit.animationsOff
 import dev.nerzouille.koan.ui.theme.BrandTokens
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.ButtonTokens
