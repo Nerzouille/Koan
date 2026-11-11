@@ -973,7 +973,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 PageInfo(
                     url = reader ?: c?.url.orEmpty(),
                     loading = c?.loading == true,
-                    progress = (c?.progress ?: 0) / 100f,
                     canGoBack = c?.canGoBack == true,
                     canGoForward = c?.canGoForward == true,
                     desktopSite = c?.desktopMode == true,
@@ -981,6 +980,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             }
         }
         val currentPage = page
+        // The load's progress on its own: read only by the load line's animation, never here.
+        val pageProgress = store.observeSlice(activeTabId) { state ->
+            activeTabId?.let { state.findTab(it) }?.content?.progress?.let { it / 100f } ?: 0f
+        }
         val findUi = rememberFindUi(components, overlays, activeTabId)
         // Downloads running: their combined progress for the ring in the pill (NaN = size unknown).
         val downloadProgress by store.observeSlice(Unit) { s ->
@@ -1064,7 +1067,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             overview = { motion.progress },
             bar = bar,
             loading = currentPage.loading && !startPage,
-            loadProgress = currentPage.progress,
+            loadProgress = { pageProgress.value },
             dockHide = { dock.offset },
             dockAway = { dock.keyboard },
             drawerContent = { modifier ->
@@ -1101,7 +1104,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             },
             address = { modifier ->
                 AddressRow(
-                    page = if (startPage) PageInfo("", loading = false, progress = 0f, canGoBack = false, canGoForward = false) else currentPage,
+                    page = if (startPage) PageInfo("", loading = false, canGoBack = false, canGoForward = false) else currentPage,
                     tabCount = models.getOrNull(currentSpace)?.stack?.size ?: 0,
                     editing = editing,
                     overviewOpen = overviewOpen,

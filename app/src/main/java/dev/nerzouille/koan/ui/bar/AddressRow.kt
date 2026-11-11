@@ -112,7 +112,6 @@ import kotlin.math.abs
 data class PageInfo(
     val url: String,
     val loading: Boolean,
-    val progress: Float,
     val canGoBack: Boolean,
     val canGoForward: Boolean,
     val desktopSite: Boolean = false,

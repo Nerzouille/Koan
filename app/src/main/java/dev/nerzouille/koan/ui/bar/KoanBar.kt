@@ -85,7 +85,8 @@ fun KoanBar(
     overview: () -> Float,
     bar: BarGestures,
     loading: Boolean,
-    loadProgress: Float,
+    /** The page load's progress 0…1, read only by the load line's animation (it changes every tick). */
+    loadProgress: () -> Float,
     /** Page view: how far the dock has slid down as the page scrolls (px); read in a layer. */
     dockHide: () -> Float,
     /** Page view: a field in the page has the keyboard, the dock is not drawn (read in a layer). */
@@ -247,7 +248,7 @@ private val ProgressEasing = CubicBezierEasing(0.2f, 0.8f, 0.3f, 1f)
  * progress, shimmers while waiting, and on completion runs to the end and fades out.
  */
 @Composable
-private fun rememberLoadLine(loading: Boolean, progress: Float): LoadLine {
+private fun rememberLoadLine(loading: Boolean, progress: () -> Float): LoadLine {
     val line = remember { LoadLine() }
     val target by rememberUpdatedState(progress)
     LaunchedEffect(loading) {
@@ -260,7 +261,7 @@ private fun rememberLoadLine(loading: Boolean, progress: Float): LoadLine {
                     line.shimmer.animateTo(1f, tween(BarTokens.SHIMMER_MS, easing = LinearEasing))
                 }
             }
-            snapshotFlow { target }.collectLatest { p ->
+            snapshotFlow { target() }.collectLatest { p ->
                 val to = max(p, BarTokens.PROGRESS_START).coerceAtLeast(line.progress.value)
                 line.progress.animateTo(to, tween(BarTokens.PROGRESS_MS, easing = ProgressEasing))
             }
