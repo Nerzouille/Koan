@@ -21,7 +21,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
@@ -85,10 +84,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.union
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.search.Shortcut
 import dev.nerzouille.koan.thumbs.BakedBlur
@@ -1020,8 +1015,9 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         fun tabTarget(tab: TabEntity) = SwipeTarget(displayHost(tab.url).ifEmpty { tab.title }, url = tab.url, favicon = tab.iconUrl, staticIcon = tab.staticIcon)
         // A new page load brings the dock back.
         LaunchedEffect(currentPage.loading) { if (currentPage.loading) dock.show() }
-        // Typing in the address field: results above it, below the dock.
-        val searchBottom = barZone(overview = false) + WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
+        // Typing in the address field: results above the dock. The keyboard's inset is added in
+        // layout by the sheet and the start page, never read here (it moves every frame).
+        val searchBottom = barZone(overview = false)
         StartPage(
             open = startPage,
             space = models.getOrNull(currentSpace),

@@ -11,12 +11,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,9 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -76,8 +79,8 @@ class SearchActions(
  * The search sheet above the address field while typing (design 7a): the page dims behind it,
  * the results are laid out bottom-up from the field (the best match right above it, less relevant
  * groups further up), capped below the status bar (it scrolls inside). "@" shows the engines and
- * scopes instead (7d). A tap outside the results closes it. [bottom]: the dock's height above the
- * keyboard. [open]: the address field is being edited; the dim fades in and out with it, whether
+ * scopes instead (7d). A tap outside the results closes it. [bottom]: the dock's height; the
+ * keyboard and navigation bar are added in layout ([keyboardRoom]). [open]: the address field is being edited; the dim fades in and out with it, whether
  * or not there is anything to show yet.
  */
 @Composable
@@ -124,15 +127,17 @@ private fun BoxScope.Results(
     val results = search.results
     val suggestions = search.suggestions
     val shortcut = parsed.shortcut
-    val density = LocalDensity.current
-    val screen = LocalWindowInfo.current.containerSize.height
-    val statusTop = WindowInsets.topSafe.getTop(density)
-    val cap = with(density) { (screen - statusTop - SearchTokens.StatusGap.toPx() - bottom.toPx() - SearchTokens.GroupGap.toPx()).toDp() }
     val pickable = parsed.picking && (
         shortcuts.any { pickMatch(parsed.rest, it.key, it.label) } || Scope.entries.any { pickMatch(parsed.rest, it.key, it.label) }
         )
     if (pickable) {
-        Picker(parsed.rest, engine, shortcuts, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom).heightIn(max = cap))
+        Picker(
+            parsed.rest, engine, shortcuts, actions,
+            Modifier
+                .align(Alignment.BottomCenter)
+                .keyboardRoom()
+                .padding(top = SearchTokens.StatusGap + SearchTokens.GroupGap, bottom = bottom),
+        )
         return
     }
     val showing = !parsed.picking && (private || !results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty()))
@@ -140,9 +145,9 @@ private fun BoxScope.Results(
     Column(
         Modifier
             .align(Alignment.BottomCenter)
-            .padding(bottom = bottom + SearchTokens.GroupGap)
+            .keyboardRoom()
+            .padding(top = SearchTokens.StatusGap, bottom = bottom + SearchTokens.GroupGap)
             .padding(horizontal = SearchTokens.Margin)
-            .heightIn(max = cap)
             // Starts at its bottom (the best results), scrolls up to the rest.
             .verticalScroll(rememberScrollState(), reverseScrolling = true)
             // Taps between groups land here, not on the "close" behind.
@@ -353,3 +358,12 @@ private fun Picker(typed: String, engine: SearchEngine, shortcuts: List<Shortcut
 /** "@wi" picks Wikipedia: what's typed after "@" starts its key or its name. */
 private fun pickMatch(typed: String, key: String, label: String) =
     typed.isEmpty() || key.startsWith(typed, ignoreCase = true) || label.startsWith(typed, ignoreCase = true)
+
+/**
+ * Keeps clear of the keyboard and navigation bar (bottom) and the status bar or camera (top), in
+ * layout: the keyboard's inset animates every frame and is never read in composition.
+ */
+@Composable
+internal fun Modifier.keyboardRoom(): Modifier = this
+    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime).only(WindowInsetsSides.Bottom))
+    .windowInsetsPadding(WindowInsets.topSafe)
