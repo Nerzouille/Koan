@@ -260,6 +260,11 @@ class SyncTransportTests {
         client.postBatch("spaces", listOf(JSONObject().put("id", "tab-1").put("hello", "zen")), "1700000000.00")
 
         val request = fake.requests.single()
+        assertEquals("POST", request.method)
+        assertEquals("/storage/spaces", request.url.file)
+        // The only headers a write sends (the old PUT test pinned the same set, plus the condition).
+        assertEquals(setOf("User-Agent", "Content-Type", "Authorization", "X-If-Unmodified-Since"), request.headers.keys)
+        assertEquals("1700000000.00", request.headers["X-If-Unmodified-Since"])
         assertTrue(request.headers.getValue("Authorization").startsWith("Hawk "))
         assertTrue(request.headers.getValue("Authorization").contains("id=\"hawk-id\""))
         val envelope = JSONArray(String(request.body!!, Charsets.UTF_8)).getJSONObject(0).getString("payload")
