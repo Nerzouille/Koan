@@ -279,12 +279,13 @@ internal fun confirmDelete(ui: PasswordsUi, picked: List<Pair<String, List<Login
 private fun SiteRow(origin: String, site: String, subtitle: String?, value: String?, checked: Boolean?, on: Boolean, onTap: () -> Unit, onLong: () -> Unit) {
     val palette = KoanTheme.colors
     val haptics = LocalHapticFeedback.current
+    val wash = selectionWash(checked == true)
     Row(
         Modifier
             .rowArea(
                 if (on) onTap else null,
                 if (on) { { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onLong() } } else null,
-                wash = selectionWash(checked == true),
+                wash = { wash.value },
             )
             .height(if (subtitle != null) SettingsTokens.RowTallHeight else SettingsTokens.RowHeight),
         verticalAlignment = Alignment.CenterVertically,

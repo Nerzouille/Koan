@@ -215,7 +215,8 @@ fun SettingsRow(
  * content stays aligned with the page's text and dividers.
  */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-internal fun Modifier.rowArea(onClick: (() -> Unit)?, onLongClick: (() -> Unit)? = null, wash: Color = Color.Transparent): Modifier =
+/** [wash]: a background colour read in draw only (the selection wash), or none. */
+internal fun Modifier.rowArea(onClick: (() -> Unit)?, onLongClick: (() -> Unit)? = null, wash: (() -> Color)? = null): Modifier =
     layout { measurable, constraints ->
         val inset = SettingsTokens.RowInset.roundToPx()
         val width = constraints.maxWidth + 2 * inset
@@ -223,7 +224,7 @@ internal fun Modifier.rowArea(onClick: (() -> Unit)?, onLongClick: (() -> Unit)?
         layout(constraints.maxWidth, placeable.height) { placeable.place(-inset, 0) }
     }
         .clip(RoundedCornerShape(SettingsTokens.RowRadius))
-        .background(wash)
+        .then(if (wash != null) Modifier.drawBehind { drawRect(wash()) } else Modifier)
         .then(
             when {
                 onClick != null && onLongClick != null -> Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)

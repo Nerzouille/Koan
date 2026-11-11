@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -169,12 +171,12 @@ fun SelectionBar(actions: List<SelectionAction>, interactive: Boolean, modifier:
 @Composable
 fun SelectionCheck(checked: Boolean) {
     val palette = KoanTheme.colors
-    val fill by animateColorAsState(if (checked) palette.Primary else Color.Transparent, label = "check")
+    val fill = animateColorAsState(if (checked) palette.Primary else Color.Transparent, label = "check")
     Box(
         Modifier
             .size(SelectionTokens.Check)
             .clip(CircleShape)
-            .background(fill)
+            .drawBehind { drawRect(fill.value) }
             .then(if (checked) Modifier else Modifier.border(SelectionTokens.CheckRing, palette.TextSecondary, CircleShape)),
         contentAlignment = Alignment.Center,
     ) {
@@ -182,10 +184,9 @@ fun SelectionCheck(checked: Boolean) {
     }
 }
 
-/** A checked row's background: a light wash over the row's own surface. */
+/** A checked row's background: a light wash over the row's own surface. Read it in draw only. */
 @Composable
-fun selectionWash(checked: Boolean): Color {
+fun selectionWash(checked: Boolean): State<Color> {
     val palette = KoanTheme.colors
-    val wash by animateColorAsState(if (checked) palette.Glass else Color.Transparent, label = "wash")
-    return wash
+    return animateColorAsState(if (checked) palette.Glass else Color.Transparent, label = "wash")
 }

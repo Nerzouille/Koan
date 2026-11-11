@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -56,7 +57,7 @@ fun LibraryRowFrame(
     Column(
         Modifier
             .background(KoanTheme.colors.Card)
-            .background(wash)
+            .drawBehind { drawRect(wash.value) }
             .padding(horizontal = SettingsTokens.RowInset),
     ) {
         if (!first) SettingsDivider()
