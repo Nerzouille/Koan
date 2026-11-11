@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.ui.player
 
+import androidx.compose.foundation.layout.systemGestures
+import androidx.compose.foundation.layout.WindowInsets
 import android.app.Activity
 import android.content.Context
 import android.media.AudioManager
@@ -312,6 +314,12 @@ fun VideoPlayer(
         val levelHeight = levelRoom.coerceIn(PlayerTokens.LevelMin, PlayerTokens.LevelSize.height)
         val levelRangePx = PlayerTokens.LEVEL_RANGE * heightPx
         val slop = with(density) { PlayerTokens.SwipeSlop.toPx() }
+        // The system's gesture edges (the shade from the top, home from the bottom): a press that
+        // starts there never moves a level, swipes the player away or holds for 2× (fixes F4).
+        val gestures = WindowInsets.systemGestures
+        val edgeMin = with(density) { PlayerTokens.EdgeBand.roundToPx() }
+        val topBand = maxOf(gestures.getTop(density), edgeMin).toFloat()
+        val bottomBand = maxOf(gestures.getBottom(density), edgeMin).toFloat()
         val fling = with(density) { PlayerTokens.FlingCommit.toPx() }
         val swipeY = remember { Animatable(0f) }
 
@@ -324,11 +332,12 @@ fun VideoPlayer(
         Box(
             Modifier
                 .fillMaxSize()
-                .pointerInput(landscape, widthPx, heightPx, levelRangePx) {
+                .pointerInput(landscape, widthPx, heightPx, levelRangePx, topBand, bottomBand) {
                     var lastTapUp = 0L
                     var lastTapZone = 0
-                    var shownBeforeTap = true
                     var lastSeekAt = 0L
+                    // A side tap's show / hide waits TAP_PAIR_MS: a second tap makes it a seek instead (F3).
+                    var pendingToggle: Job? = null
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = true)
                         if (hidden) return@awaitEachGesture
@@ -345,6 +354,7 @@ fun VideoPlayer(
                             return@awaitEachGesture
                         }
                         val start = down.position
+                        val atEdge = start.y < topBand || start.y > heightPx - bottomBand
                         val velocity = VelocityTracker()
                         velocity.addPosition(down.uptimeMillis, down.position)
                         var mode = 0 // 0 undecided, 1 level, 2 swipe down, 3 long press, 4 horizontal (ignored)
@@ -352,7 +362,7 @@ fun VideoPlayer(
                         var levelFrom = 0f
                         var lastLevelTick = -1
                         var pressJob: Job? = null
-                        if (!locked && live.value.playing) {
+                        if (!locked && !atEdge && live.value.playing) {
                             pressJob = scope.launch {
                                 delay(PlayerTokens.LONG_PRESS_MS)
                                 if (mode == 0) {
@@ -375,6 +385,11 @@ fun VideoPlayer(
                                 break
                             }
                             val d = change.position - start
+                            if (mode == 0 && (abs(d.x) > slop || abs(d.y) > slop) && atEdge) {
+                                // From a system edge: the system's gesture, not the player's.
+                                mode = 4
+                                pressJob?.cancel()
+                            }
                             if (mode == 0 && !locked && (abs(d.x) > slop || abs(d.y) > slop)) {
                                 mode = when {
                                     // Down from the centre: leave (or close); any other vertical move: the
@@ -447,11 +462,11 @@ fun VideoPlayer(
                                         KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
-                                    // The second tap of a pair on a side: a seek, and the first tap's toggle undone.
+                                    // The second tap of a pair on a side: a seek; the first tap's show / hide never happens.
                                     zone != 0 && zone == lastTapZone && now - lastTapUp < PlayerTokens.TAP_PAIR_MS -> {
                                         lastTapUp = 0L
-                                        shown = false
-                                        if (shownBeforeTap && !live.value.playing) shown = shownBeforeTap
+                                        pendingToggle?.cancel()
+                                        pendingToggle = null
                                         seekSide = zone
                                         seekSteps = 1
                                         seekSerial++
@@ -459,10 +474,21 @@ fun VideoPlayer(
                                         KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
-                                    else -> {
-                                        // A tap shows or hides the controls at once.
-                                        shownBeforeTap = shown
+                                    // A tap in the middle shows or hides the controls at once.
+                                    zone == 0 -> {
+                                        pendingToggle?.cancel()
+                                        pendingToggle = null
                                         shown = !shown
+                                        lastTapUp = now
+                                        lastTapZone = zone
+                                    }
+                                    // On a side, a moment later, unless a second tap comes first.
+                                    else -> {
+                                        pendingToggle?.cancel()
+                                        pendingToggle = scope.launch {
+                                            delay(PlayerTokens.TAP_PAIR_MS)
+                                            shown = !shown
+                                        }
                                         lastTapUp = now
                                         lastTapZone = zone
                                     }
@@ -1011,11 +1037,28 @@ private fun ProgressBar(
                         val w = size.width.toFloat().coerceAtLeast(1f)
                         fun frac(x: Float) = (x / w).coerceIn(0f, 1f)
                         var f = frac(down.position.x)
-                        onScrub(f, rootX + down.position.x)
+                        // Nothing moves until the finger goes sideways (a scrub) or lifts in place (a
+                        // tap seek): a move up or down (home from the bottom edge) leaves the video alone (F4).
+                        val touchSlop = viewConfiguration.touchSlop
+                        var scrubbing = false
                         var lastSent = 0L
                         while (true) {
                             val e = awaitPointerEvent(PointerEventPass.Main)
                             val c = e.changes.firstOrNull { it.id == down.id } ?: break
+                            val d = c.position - down.position
+                            if (!scrubbing) {
+                                if (abs(d.y) > touchSlop && abs(d.y) >= abs(d.x)) return@awaitEachGesture
+                                if (!c.pressed) {
+                                    c.consume()
+                                    onScrub(f, rootX + down.position.x)
+                                    break
+                                }
+                                if (abs(d.x) <= touchSlop) {
+                                    c.consume()
+                                    continue
+                                }
+                                scrubbing = true
+                            }
                             if (!c.pressed) {
                                 c.consume()
                                 break

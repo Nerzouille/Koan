@@ -125,6 +125,8 @@ object PlayerTokens {
     const val DOUBLE_TAP_WINDOW_MS = 700L
     const val LONG_PRESS_MS = 400L
     val SwipeSlop = 12.dp
+    /** The least of a system gesture edge (top and bottom) the player's drags leave alone. */
+    val EdgeBand = 32.dp
     const val SWIPE_RATIO = 1.5f
     const val SWIPE_DOWN_SCALE_AT = 0.4f
     const val SWIPE_DOWN_COMMIT = 0.2f
