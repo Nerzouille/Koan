@@ -83,6 +83,20 @@ losing data, and the owner has approved and published the release.
 - Logins saved on the phone ("Save in Koan, this phone only") stay local and encrypted until M6.
 **Done when:** owner can uninstall Opera.
 
+### Batch 4 leftovers (after the release)
+
+From the batch 4 refactoring (`docs/plans/BATCH4_PLAN.md`, branch `refactor`), left for after the
+0.5 release:
+
+- **E6–E8, gesture merges:** one `NeighbourDrag` for the space pager and the tab swipe (E6), one
+  drag loop (`awaitSlop` / `dragUntilUp`, E7) and one `Modifier.swipeToDismiss` with unified
+  thresholds (E8), each with its JVM test. The plan needs the owner's feel check on a release
+  build after each caller, the stack last (dropped if it feels different at all).
+- **F6, favicons:** one decode path and one memory cache instead of `FaviconLoader`'s and
+  `IconStore`'s; measure `dumpsys meminfo` before / after.
+- **G3, tokens (only if wanted):** a spacing scale, kit-level tokens, then `Tokens.kt` split by
+  feature (a pure move, last).
+
 ### Open items after v0.2.0 (not scheduled yet)
 - **Search backdrop retry:** the old dim plus a subtle blur behind the suggestion cards only (also
   listed under M4).

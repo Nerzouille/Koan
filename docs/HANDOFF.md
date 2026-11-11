@@ -162,7 +162,8 @@ each group (launch + kill + restore checked).
   and the three 18dp group radii; the player's corner radii as `PlayerTokens`. Values unchanged.
   **Check on the phone:** nothing should look different: a sheet, Settings, the search sheet,
   Downloads, the player's pills, bubble, badge and level indicator.
-- **Batch 4 overall:** 299 JVM tests, green. Final R8 release build installed on the POCO (real
+- **Batch 4 overall:** the phone checks, riskiest first: `docs/plans/BATCH4_CHECKS.md`. E6–E8,
+  F6 and G3 are in `docs/ROADMAP.md` "Batch 4 leftovers" (after the release). 299 JVM tests, green. Final R8 release build installed on the POCO (real
   app). Not merged into `dev`. Open for you: E6–E8 (gesture merges, need your feel check per
   caller), G3, F6, the drawer's small perf drift (group C).
 
