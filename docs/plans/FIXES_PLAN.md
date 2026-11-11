@@ -3,7 +3,8 @@
 Branch `fixes` from `dev`. One commit per item (or per step for F10), Conventional Commits. Targeted
 unit tests per item, dev build installed on the POCO per item. At the end of each phase: full suite,
 R8 release build installed on the POCO (launch, kill, restore), then **stop**: give the owner that
-phase's phone checks and wait for their OK. Never merge into `dev` without it. No new dependency,
+phase's phone checks. (Owner, second round: no stop between the phases, checks for both at the
+end.) Never merge into `dev` without it. No new dependency,
 no Room migration.
 
 Paths are under `app/src/main/java/dev/nerzouille/koan/`.
@@ -318,24 +319,22 @@ both touch `Fullscreen.kt`, so F1 lands before F2. F5 comes last because it need
 
 ---
 
-## Decisions for the owner before coding
+## Owner's decisions (2026-11-12, second round)
 
-1. **F7 pill:** Downloads has no filter pills today. The header only has the folder chip. The plan
-   adds the Private pill next to it, styled like it. OK, or do you want a real filter row (All /
-   Private, later file types)?
-2. **F5:** PiP on leave already exists and is on by default, so something in your case stops it. I'll
-   find which condition before changing anything. The ⋯ toggle would be the same setting as Settings ›
-   Picture-in-picture. OK? Should PiP also start for a **paused** fullscreen video?
-3. **F10:** in a private tab, the star shows only private bookmarks (a page you bookmarked normally
-   looks unstarred, and starring adds a private copy). Clear browsing data gets a "Private bookmarks"
-   row, off by default. OK?
-4. **F3:** taps in the side zones show the controls about 250 ms late, so that a double-tap never
-   flashes them. Centre taps stay instant. OK?
-5. **F2:** after you turn a landscape video to portrait, it plays in portrait fullscreen (letterboxed).
-   Confirm that's what you want.
+1. **F7:** a Private pill next to the folder chip only, no filter row.
+2. **F5:** the ⋯ toggle is the same setting as Settings › Picture-in-picture. PiP only for a
+   **playing** video, never a paused one.
+3. **F10:** in a private tab the star shows only private bookmarks; Clear browsing data gets a
+   "Private bookmarks" row, off by default.
+4. **F3:** side taps wait 250 ms, centre taps stay instant.
+5. **F2:** portrait fullscreen (with bars) when the phone is turned and rotation isn't locked.
+
+Both phases run one after the other on `fixes` without a stop in between; no merge into `dev`. At
+the end: R8 build installed on the POCO, checks for both phases in `docs/plans/FIXES_CHECKS.md`,
+riskiest first.
 
 ## End of the batch
 Update `docs/FIXES.md` (status per item), `CHANGELOG.md` "Unreleased", `docs/FEATURES.md`,
 `docs/PRIVACY.md` (F10), `docs/VIDEO_PLAYER.md` (as built), and `docs/HANDOFF.md`. Then run the full
-suite and install the R8 release build on the POCO. Give the owner the checks and wait for their OK.
-Merge `fixes` into `dev` only after that OK.
+suite, install the R8 release build on the POCO and write `docs/plans/FIXES_CHECKS.md`. Merge
+`fixes` into `dev` only after the owner's OK.
