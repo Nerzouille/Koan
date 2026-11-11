@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.settings.SettingsSection
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SelectionTokens
@@ -67,6 +68,19 @@ class Selection<K> {
     fun set(all: Set<K>) {
         keys = all
     }
+
+    /** Checks every key of [some] (a day), keeping what was already checked. */
+    fun addAll(some: Collection<K>) {
+        keys = keys + some
+    }
+
+    /** Unchecks every key of [some] (a day). */
+    fun removeAll(some: Collection<K>) {
+        keys = keys - some.toSet()
+    }
+
+    /** True when every key of [some] is checked (and there is at least one). */
+    fun hasAll(some: Collection<K>): Boolean = some.isNotEmpty() && keys.containsAll(some)
 
     fun clear() {
         keys = emptySet()
@@ -118,6 +132,33 @@ fun SelectionHeader(count: Int, interactive: Boolean, onCancel: () -> Unit, onSe
                     .clip(CircleShape)
                     .then(if (interactive) Modifier.clickable(onClick = onSelectAll) else Modifier)
                     .padding(horizontal = SelectionTokens.SelectAllPadH, vertical = SelectionTokens.SelectAllPadV),
+            )
+        }
+    }
+}
+
+/**
+ * A day's header in selection mode: the day, and at the end "Select all" (or "Deselect" once the
+ * whole day is checked). Same height as the plain day header, so nothing moves when selection
+ * starts. [keys] are the day's rows that can be checked now; empty = no link.
+ */
+@Composable
+fun <K> SelectionDayHeader(day: String, keys: Collection<K>, selection: Selection<K>) {
+    val palette = KoanTheme.colors
+    Box(Modifier.fillMaxWidth()) {
+        SettingsSection(day)
+        if (keys.isNotEmpty()) {
+            val all = selection.hasAll(keys)
+            Text(
+                if (all) "Deselect" else "Select all",
+                color = palette.TextPrimary,
+                fontSize = SettingsTokens.SectionTitleSize,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .clip(CircleShape)
+                    .clickable { if (all) selection.removeAll(keys) else selection.addAll(keys) }
+                    .padding(start = SelectionTokens.SelectAllPadH, end = SelectionTokens.SelectAllPadH, top = SelectionTokens.SelectAllPadV, bottom = SettingsTokens.Divider * 4),
             )
         }
     }

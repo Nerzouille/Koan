@@ -49,6 +49,7 @@ import dev.nerzouille.koan.ui.kit.LibraryRowTitle
 import dev.nerzouille.koan.ui.kit.ListPage
 import dev.nerzouille.koan.ui.kit.SelectionAction
 import dev.nerzouille.koan.ui.kit.SelectionBar
+import dev.nerzouille.koan.ui.kit.SelectionDayHeader
 import dev.nerzouille.koan.ui.kit.SelectionHeader
 import dev.nerzouille.koan.ui.kit.SwipeRow
 import dev.nerzouille.koan.ui.kit.Toast
@@ -191,7 +192,7 @@ fun DownloadsScreen(
             }
             // One card per day, newest first.
             byDay(done, { it.createdTime }).forEach { (day, items) ->
-                SettingsSection(day)
+                if (selecting) SelectionDayHeader(day, items.map { it.id }, selection) else SettingsSection(day)
                 items.forEachIndexed { i, d ->
                     key(d.id) {
                         SwipeRow(

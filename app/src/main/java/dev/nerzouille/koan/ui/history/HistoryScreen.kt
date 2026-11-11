@@ -38,6 +38,7 @@ import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
 import dev.nerzouille.koan.ui.kit.LibraryRowTitle
 import dev.nerzouille.koan.ui.kit.ListPage
 import dev.nerzouille.koan.ui.kit.SelectionBar
+import dev.nerzouille.koan.ui.kit.SelectionDayHeader
 import dev.nerzouille.koan.ui.kit.SelectionHeader
 import dev.nerzouille.koan.ui.kit.SwipeRow
 import dev.nerzouille.koan.ui.kit.byDay
@@ -100,17 +101,22 @@ fun HistoryScreen(
     }
     // Every row that can be checked now, by key (a group's pages only while it is open).
     val checkable = LinkedHashMap<String, Checkable>()
+    // The same keys per day, for the day header's "Select all".
+    val dayKeys = HashMap<String, List<String>>()
     shownClosed.forEach { c -> "closed:${c.koanTabId}".let { checkable[it] = Checkable.Closed(it, c) } }
-    days.forEach { (_, items) ->
+    days.forEach { (day, items) ->
+        val keys = ArrayList<String>()
         items.forEach { row ->
             when (row) {
-                is HistoryItem.Page -> checkable[row.key] = Checkable.Page(row.key, row.visit, row.all)
+                is HistoryItem.Page -> checkable[row.key] = Checkable.Page(row.key, row.visit, row.all).also { keys += row.key }
                 is HistoryItem.Group -> {
                     checkable[row.key] = Checkable.Group(row.key, row.all)
-                    if (row.key in expanded) row.pages.forEach { checkable[it.key] = Checkable.Page(it.key, it.visit, it.all) }
+                    keys += row.key
+                    if (row.key in expanded) row.pages.forEach { checkable[it.key] = Checkable.Page(it.key, it.visit, it.all); keys += it.key }
                 }
             }
         }
+        dayKeys[day] = keys
     }
     SideEffect { selection.keepOnly(checkable.keys) }
     val checked = selection.keys.mapNotNull { checkable[it] }
@@ -190,7 +196,11 @@ fun HistoryScreen(
                 }
             }
             days.forEach { (day, items) ->
-                item(key = "day:$day") { Box(Modifier.animateItem()) { SettingsSection(day) } }
+                item(key = "day:$day") {
+                    Box(Modifier.animateItem()) {
+                        if (selecting) SelectionDayHeader(day, if (closedMode) emptyList() else dayKeys[day].orEmpty(), selection) else SettingsSection(day)
+                    }
+                }
                 items.forEachIndexed { i, row ->
                     val first = i == 0
                     val last = i == items.lastIndex
