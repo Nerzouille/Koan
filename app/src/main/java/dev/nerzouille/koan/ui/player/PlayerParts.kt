@@ -103,7 +103,7 @@ internal fun PlayerDisc(
     Box(
         modifier
             .size(size)
-            .pressScale(onClick = onClick)
+            .pressScale(LocalControlsLive.current, onClick = onClick)
             .then(if (panel) Modifier.playerPanel(CircleShape) else Modifier.clip(CircleShape)),
         contentAlignment = Alignment.Center,
     ) { content() }

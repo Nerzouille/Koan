@@ -449,21 +449,19 @@ fun VideoPlayer(
                             }
                             0 -> if (up) {
                                 val now = SystemClock.uptimeMillis()
-                                when {
-                                    locked -> {
+                                when (tapAction(locked, zone, seekSide, now - lastSeekAt, lastTapZone, now - lastTapUp)) {
+                                    TapAction.ShowUnlock -> {
                                         unlockShown = true
                                         unlockSerial++
                                     }
-                                    // Another tap on the same side while a seek shows: 10 s more.
-                                    zone != 0 && zone == seekSide && now - lastSeekAt < PlayerTokens.DOUBLE_TAP_WINDOW_MS -> {
+                                    TapAction.SeekMore -> {
                                         seekSteps++
                                         seekSerial++
                                         lastSeekAt = now
                                         KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
-                                    // The second tap of a pair on a side: a seek; the first tap's show / hide never happens.
-                                    zone != 0 && zone == lastTapZone && now - lastTapUp < PlayerTokens.TAP_PAIR_MS -> {
+                                    TapAction.SeekPair -> {
                                         lastTapUp = 0L
                                         pendingToggle?.cancel()
                                         pendingToggle = null
@@ -474,16 +472,14 @@ fun VideoPlayer(
                                         KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
-                                    // A tap in the middle shows or hides the controls at once.
-                                    zone == 0 -> {
+                                    TapAction.ToggleNow -> {
                                         pendingToggle?.cancel()
                                         pendingToggle = null
                                         shown = !shown
                                         lastTapUp = now
                                         lastTapZone = zone
                                     }
-                                    // On a side, a moment later, unless a second tap comes first.
-                                    else -> {
+                                    TapAction.ToggleLater -> {
                                         pendingToggle?.cancel()
                                         pendingToggle = scope.launch {
                                             delay(PlayerTokens.TAP_PAIR_MS)
@@ -552,7 +548,8 @@ fun VideoPlayer(
             )
         }
 
-        CompositionLocalProvider(LocalControlsLive provides (shown && !hidden)) {
+        // Hidden controls take no touches at all (F8 recheck): a tap where a button would be reaches the video.
+        CompositionLocalProvider(LocalControlsLive provides controlsTakeTouches(shown, hidden)) {
             val group: GraphicsLayerScope.(TransformOrigin, Float) -> Unit = { origin, inward ->
                 applyMist(mist.value, settle.value, entering, origin, inward * PlayerTokens.MistShift.toPx(), noMotion, mistBlurs)
                 alpha *= hiddenAlpha(hidden) * (1f - levelShown.value)
@@ -589,7 +586,7 @@ fun VideoPlayer(
                 horizontalArrangement = Arrangement.spacedBy(PlayerTokens.RoundGap),
             ) {
                 if (locked) {
-                    UnlockPill(onClick = {
+                    UnlockPill(unlockShown, onClick = {
                         if (unlockShown) {
                             locked = false
                             unlockShown = false
@@ -844,7 +841,7 @@ private fun TitlePill(mode: PlayerMode, title: String, subtitle: String, onLeadi
         modifier
             .height(PlayerTokens.PillHeight)
             .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
-            .blockTouches()
+            .then(if (LocalControlsLive.current) Modifier.blockTouches() else Modifier)
             .padding(end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -887,11 +884,12 @@ private fun SpeedPill(rate: Double, onClick: () -> Unit) {
 }
 
 @Composable
-private fun UnlockPill(onClick: () -> Unit) {
+private fun UnlockPill(shown: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .height(PlayerTokens.RoundPill)
-            .pressScale(onClick = onClick)
+            // Unseen, it takes no touch: the tap reaches the video and shows it.
+            .pressScale(shown, onClick = onClick)
             .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
             .padding(start = 12.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -956,7 +954,7 @@ private fun BottomPill(
         ProgressBar(state, frameNow, scrubbing, scrubFraction, onScrub, onSeek, live, m.height(touch))
     }
     // The pill's empty parts take touches (they never reach the video under it).
-    val swallow = Modifier.blockTouches()
+    val swallow = if (live) Modifier.blockTouches() else Modifier
     if (landscape) {
         Row(
             modifier
