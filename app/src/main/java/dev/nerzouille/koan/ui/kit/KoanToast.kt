@@ -58,6 +58,9 @@ class Toast(
     val action: String? = null,
     val detail: String? = null,
     val moment: Boolean = false,
+    /** Called once when this toast leaves the screen: timed out, swiped away, covered or replaced. */
+    val onGone: (() -> Unit)? = null,
+    /** Last, so `Toast("…", "Undo") { … }` is the action. */
     val onAction: (() -> Unit)? = null,
 )
 
@@ -84,13 +87,23 @@ class ToastState {
         private set
 
     fun show(toast: Toast) {
+        val old = this.toast
+        if (visible && old != null && old !== toast) old.onGone?.invoke()
         this.toast = toast
         serial++
         visible = true
     }
 
     fun dismiss() {
+        if (visible) toast?.onGone?.invoke()
         visible = false
+    }
+
+    /** Its action was tapped: the toast goes without its [Toast.onGone] first (the action decides). */
+    internal fun actionTaken(): Toast? {
+        val t = toast
+        visible = false
+        return t
     }
 }
 
@@ -174,8 +187,9 @@ fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) 
                 toast,
                 actionEnabled = state.visible,
                 onAction = {
-                    state.dismiss()
+                    state.actionTaken()
                     toast.onAction?.invoke()
+                    toast.onGone?.invoke()
                 },
                 modifier = Modifier
                     .graphicsLayer {

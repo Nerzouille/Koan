@@ -110,11 +110,16 @@ fun DownloadsScreen(
         list.forEach { actions.removeLater(it, deleteFile = false) }
         val what = if (list.size == 1) "Hidden from the list" else "${list.size} hidden from the list"
         val detail = if (list.size == 1) "The file stays in $folder" else "The files stay in $folder"
-        onToast(Toast(what, "Undo", detail = detail) { list.forEach(actions::restore) })
+        onToast(Toast(what, "Undo", detail = detail, onAction = { list.forEach(actions::restore) }, onGone = { actions.commit(list) }))
     }
     fun delete(list: List<DownloadState>) {
         list.forEach { actions.removeLater(it, deleteFile = true) }
-        onToast(Toast(if (list.size == 1) "File deleted" else "${list.size} files deleted", "Undo") { list.forEach(actions::restore) })
+        onToast(
+            Toast(
+                if (list.size == 1) "File deleted" else "${list.size} files deleted", "Undo",
+                onAction = { list.forEach(actions::restore) }, onGone = { actions.commit(list) },
+            ),
+        )
     }
     fun act(run: () -> Unit) = { selection.clear(); run() }
     // Hide is a swipe only (left to right); the bar keeps what a tap can't do.
