@@ -33,14 +33,14 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   4. Refactoring (`docs/plans/BATCH4_PLAN.md`): merged into `dev` on 2026-11-12, see "Batch 4";
      leftovers in `docs/ROADMAP.md` "Batch 4 leftovers".
   5. Tests, CI, baseline profile: after batch 4.
-- **The owner's fixes list** (`docs/FIXES.md`, 10 items): all built on branch **`fixes`** (from
-  `dev`, 2026-11-12, one commit per item; F3+F4 share one). Plan `docs/plans/FIXES_PLAN.md`;
-  phone checks riskiest first in **`docs/plans/FIXES_CHECKS.md`**. **Not merged into `dev`**: it
-  waits for the owner's checks and OK (round 2 of their feedback fixed too: start with the
-  "Recheck" section). 346 JVM tests green; the R8 release build is installed on
-  the POCO (launch + kill + cold restore, no crash). Points to watch: F5 (PiP) cause not
-  reproduced, F2 / F4 on the Xiaomi, F10's new sealed file (`files/private/bookmarks.sealed`,
-  Keystore alias `koan_private_bookmarks`).
+- **The owner's fixes list** (`docs/FIXES.md`, 10 items, plus two rounds of the owner's phone
+  feedback and the stuck play button): built on branch `fixes`, the owner's recheck passed,
+  **merged into `dev` on 2026-11-12** (`0477033`, commits kept); `fixes` deleted, not pushed.
+  Plan `docs/plans/FIXES_PLAN.md`; checks and what was verified in `docs/plans/FIXES_CHECKS.md`.
+  346 JVM tests green on `dev`. Still worth watching: F2 / F4 on the Xiaomi (only the POCO was
+  used), the buffering-spinner case of the play button (fixed in code, not seen on the phone),
+  F10's sealed file (`files/private/bookmarks.sealed`, Keystore alias `koan_private_bookmarks`).
+  After the release: the download quality choice (`docs/ROADMAP.md` "Video player follow-ups").
 - Engine: android-components **160.0** / GeckoView **160.0.20261104181552**
   (`gradle/libs.versions.toml`, the two versions move together), compileSdk **37.2** (AC 160
   requires it). Bump notes: ARCHITECTURE "Bumping android-components + GeckoView". Tested on the
@@ -180,7 +180,6 @@ each group (launch + kill + restore checked).
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
-| `fixes` | dev | The owner's fixes list (F1–F10), `docs/plans/FIXES_CHECKS.md`. | **Waiting for the owner's phone checks**; don't merge before their OK |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
@@ -254,8 +253,7 @@ The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and 
 In this order (owner, 2026-11-11, changed the same day):
 
 1. ~~**Batch 4**, refactoring~~: merged into `dev` 2026-11-12.
-2. **The owner's fixes list:** built on `fixes`; the owner runs `docs/plans/FIXES_CHECKS.md`, then
-   merge into `dev` after their OK.
+2. ~~**The owner's fixes list**~~: merged into `dev` 2026-11-12 (not pushed yet).
 3. **Release 0.5** (CLAUDE.md release checklist; versionCode ≥ 10). It was planned for Friday
    2026-11-13, before batch 4 moved ahead of it: confirm the date with the owner. The owner's
    batch 1 phone checks (list under "Untested / unverified") come before it.
