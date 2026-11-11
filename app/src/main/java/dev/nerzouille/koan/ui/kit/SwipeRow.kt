@@ -67,6 +67,7 @@ fun SwipeRow(
     val gesture = remember { Gesture() }
     var width by remember { mutableIntStateOf(0) }
     val nudge = with(LocalDensity.current) { SwipeTokens.Nudge.toPx() }
+    val flingPx = SwipeTokens.FLING_DP_PER_S * LocalDensity.current.density
     val delete by rememberUpdatedState(onDelete)
     val hide by rememberUpdatedState(onHide)
 
@@ -147,7 +148,7 @@ fun SwipeRow(
                         gesture.raw = 0f
                         val action = if (r < 0) delete else hide
                         val far = abs(r) > width * SwipeTokens.COMMIT
-                        val flung = abs(velocity) > SwipeTokens.FLING && (velocity < 0) == (r < 0)
+                        val flung = abs(velocity) > flingPx && (velocity < 0) == (r < 0)
                         if (action != null && r != 0f && width > 0 && (far || flung)) {
                             if (r < 0) KoanHaptics.confirm(view)
                             settle(if (r < 0) -width.toFloat() else width.toFloat()) {

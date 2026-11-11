@@ -1203,8 +1203,11 @@ object SwipeTokens {
     val Nudge = 36.dp
     /** Past this share of the row's width, the swipe acts on release. */
     const val COMMIT = 0.4f
-    /** px/s: a fling this fast acts even when short. */
-    const val FLING = 1800f
+    /**
+     * dp/s: a fling this fast acts even when short (was 1 800 px/s, the same on the POCO's 2.75
+     * density; now the same speed on every screen).
+     */
+    const val FLING_DP_PER_S = 655f
     const val OUT_MS = 160
     val Back: SpringSpec<Float> = spring(dampingRatio = 0.62f, stiffness = 520f)
 }
