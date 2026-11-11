@@ -43,7 +43,7 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 - Milestones done and tagged: `m0`, `m1`, `m2`, `m3`, `m5`. M4 partly done (no tag), M6 passwords
   + history done on `dev` (Spaces, tabs, bookmarks never written), M7 partly done. Details per
   item in `docs/ROADMAP.md`.
-- Unit tests: 301 JVM tests on `dev`, green (`./gradlew testDebugUnitTest`). R8 staging build of
+- Unit tests: 301 JVM tests on `dev`, green (299 on `refactor`: dead-code tests removed, batch 4 tests added) (`./gradlew testDebugUnitTest`). R8 staging build of
   `dev` + 160 launched on the POCO without a crash (2026-11-11).
 
 ## Batch 4 on `refactor` (from `dev`, not merged)
@@ -157,6 +157,14 @@ each group (launch + kill + restore checked).
   "Always" on `m.youtube.com`, then a link on `youtube.com`: no card. ⋯ on a page that declares a
   search engine: "Add this search engine"; long-press an image on Google Images: Save image waits
   for the full one.
+- **Group G, tokens (G1, G2 done; G3 not started, it waits for your yes):** 13 unused tokens
+  deleted; `SharedTokens.Hairline` and `SharedTokens.GroupRadius` behind the five 1dp line tokens
+  and the three 18dp group radii; the player's corner radii as `PlayerTokens`. Values unchanged.
+  **Check on the phone:** nothing should look different: a sheet, Settings, the search sheet,
+  Downloads, the player's pills, bubble, badge and level indicator.
+- **Batch 4 overall:** 299 JVM tests, green. Final R8 release build installed on the POCO (real
+  app). Not merged into `dev`. Open for you: E6–E8 (gesture merges, need your feel check per
+  caller), G3, F6, the drawer's small perf drift (group C).
 
 ## Open branches
 
