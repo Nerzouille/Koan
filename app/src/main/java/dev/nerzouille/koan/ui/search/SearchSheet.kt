@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,28 +31,27 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.search.Hit
-import dev.nerzouille.koan.search.parseQuery
 import dev.nerzouille.koan.search.Scope
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.search.Shortcut
 import dev.nerzouille.koan.search.Source
 import dev.nerzouille.koan.search.bareUrl
 import dev.nerzouille.koan.search.displayHost
+import dev.nerzouille.koan.search.parseQuery
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.kit.KoanDivider
 import dev.nerzouille.koan.ui.kit.rememberPresence
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -228,15 +228,7 @@ private fun Group(label: String?, icon: ImageVector?, favicon: String? = null, c
 }
 
 @Composable
-private fun Divider() {
-    Box(
-        Modifier
-            .padding(start = SearchTokens.RowPadding * 2 + SearchTokens.Favicon)
-            .fillMaxWidth()
-            .height(SearchTokens.ChipGap / 8)
-            .background(KoanTheme.colors.CardBorder),
-    )
-}
+private fun Divider() = KoanDivider(inset = SearchTokens.RowPadding * 2 + SearchTokens.Favicon, thickness = SearchTokens.ChipGap / 8)
 
 /** A page: favicon, title and address; an open tab shows its space. */
 @Composable

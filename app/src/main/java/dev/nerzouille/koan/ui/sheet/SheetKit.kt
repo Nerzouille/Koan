@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanDivider
 import dev.nerzouille.koan.ui.kit.KoanIconButton
 import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -52,15 +53,7 @@ fun SheetGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.(
 
 /** Hairline between two rows of a [SheetGroup], aligned with the titles. */
 @Composable
-fun SheetDivider() {
-    Box(
-        Modifier
-            .padding(start = SheetTokens.RowPadding * 2 + SheetTokens.RowIconBox)
-            .fillMaxWidth()
-            .height(SheetTokens.Divider)
-            .background(KoanTheme.colors.CardBorder),
-    )
-}
+fun SheetDivider() = KoanDivider(inset = SheetTokens.RowPadding * 2 + SheetTokens.RowIconBox, thickness = SheetTokens.Divider)
 
 /**
  * Icon box, title (and a quiet [subtitle]), then [trailing]. [onClick] null = not tappable; a row

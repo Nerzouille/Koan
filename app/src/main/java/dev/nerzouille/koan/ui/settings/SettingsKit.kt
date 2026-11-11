@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.CollapsingBar
+import dev.nerzouille.koan.ui.kit.KoanDivider
 import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.kit.SELECTION_FADE_MS
 import dev.nerzouille.koan.ui.kit.brandWash
@@ -127,14 +128,7 @@ fun SettingsSection(title: String) {
 }
 
 @Composable
-fun SettingsDivider() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(SettingsTokens.Divider)
-            .background(KoanTheme.colors.CardBorder),
-    )
-}
+fun SettingsDivider() = KoanDivider(thickness = SettingsTokens.Divider)
 
 /**
  * Glyph, title (and [subtitle]), then a quiet [value] and a chevron when it opens something.
