@@ -48,8 +48,9 @@ your hands, especially anything that needs the phone turned: Claude can't rotate
      - SENSOR_LANDSCAPE flips the sides, but never gets the button.
    - **Built:**
      - fullscreen keeps SENSOR_LANDSCAPE / SENSOR_PORTRAIT;
-     - turning the phone to the other shape shows Koan's round rotate pill for about 3 s, in the
-       bottom corner on the side AOSP puts its button;
+     - turning the phone to the other shape shows Koan's round rotate pill for about 3 s, exactly
+       where the fullscreen button is; while the controls show it sits above the bottom pill and
+       moves with it (`7dade9c`);
      - a tap turns the player; doing nothing keeps it.
    - **Checks, auto-rotate off:**
      - a landscape video: turn the phone over (one landscape side to the other) and it flips with no
@@ -58,8 +59,8 @@ your hands, especially anything that needs the phone turned: Claude can't rotate
        the phone towards landscape: the pill again, and a tap turns it back;
      - leave it: it fades out after about 3 s and nothing turns;
      - turn back before it goes: it goes at once;
-     - which corner: compare with where HyperOS shows its own button in other apps. If it's the
-       other side, that's one function (`rotatePillOnRight`);
+     - with the controls hidden it sits on the fullscreen button; tap the video to show them and
+       it rises above the bottom pill, then goes back down as they hide;
      - leave fullscreen after rotating: back to portrait; the next fullscreen opens in the video's
        shape again;
      - the standalone player from Downloads: the same;
@@ -222,9 +223,9 @@ Checks:
 5. The day headers don't move when selection starts or ends.
 
 ## Already checked by Claude
-- Unit tests: 343 JVM tests, green (`./gradlew testDebugUnitTest`).
+- Unit tests: 342 JVM tests, green (`./gradlew testDebugUnitTest`).
 - The dev build was installed on the POCO after phase 1: it launches, no crash.
-- The R8 release build of `08a0767` (round 2 + the rotate pill) is installed on the POCO (real app, release key). It
+- The R8 release build of `7dade9c` (round 2 + the rotate pill on the fullscreen button) is installed on the POCO (real app, release key). It
   launches, comes back cold after a background kill (new process), and logcat shows no crash. The
   restored screen itself was not looked at.
 

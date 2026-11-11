@@ -459,8 +459,9 @@ to the video's orientation (landscape, or portrait for a portrait video). With t
 auto-rotate on, once you turn the phone that way the screen follows the phone, portrait included
 (a landscape video then plays with bars above and below). With auto-rotate off, it stays in the
 video's orientation (a landscape video flips by itself between the two landscape sides), and when
-you turn the phone to the other shape a small rotate button shows for about 3 s in a bottom corner
-(the side Android uses for its own): tap it to turn the player, or leave it and nothing changes.
+you turn the phone to the other shape a small rotate button shows for about 3 s where the
+full-screen button is (above the bottom bar while the controls show): tap it to turn the player,
+or leave it and nothing changes.
 The screen stays black while it turns. Swipe from an edge to see the system bars for a moment: swipes that start on
 the top or bottom edge (the notification shade, going home) never move brightness, volume or the
 timeline. Leaving Private, or Private locking, takes a private video out of full screen. Koan's own player then takes over from the site's controls: see

@@ -37,7 +37,7 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   `dev`, 2026-11-12, one commit per item; F3+F4 share one). Plan `docs/plans/FIXES_PLAN.md`;
   phone checks riskiest first in **`docs/plans/FIXES_CHECKS.md`**. **Not merged into `dev`**: it
   waits for the owner's checks and OK (round 2 of their feedback fixed too: start with the
-  "Recheck" section). 343 JVM tests green; the R8 release build is installed on
+  "Recheck" section). 342 JVM tests green; the R8 release build is installed on
   the POCO (launch + kill + cold restore, no crash). Points to watch: F5 (PiP) cause not
   reproduced, F2 / F4 on the Xiaomi, F10's new sealed file (`files/private/bookmarks.sealed`,
   Keystore alias `koan_private_bookmarks`).
