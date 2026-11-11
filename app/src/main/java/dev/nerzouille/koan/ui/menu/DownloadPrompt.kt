@@ -16,10 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.kit.PrimaryButton
+import dev.nerzouille.koan.ui.kit.CardChoices
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -49,9 +48,6 @@ fun DownloadPrompt(name: String, detail: String, interactive: Boolean, onCancel:
             }
         }
         Spacer(Modifier.height(SheetTokens.Gap / 2))
-        Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
-            CardButton("Cancel", interactive, onCancel, Modifier.weight(1f))
-            PrimaryButton("Download", onClick = { if (interactive) onDownload() }, modifier = Modifier.weight(1f))
-        }
+        CardChoices("Download", interactive, onAction = { onDownload() }, onCancel = onCancel)
     }
 }

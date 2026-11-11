@@ -1747,14 +1747,14 @@ corners, 20dp padding, 10dp margins, scrim). Never the brand gradient. Shared pa
   20dp (18 + 2) `TextPrimary` (app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt).
 - **Card title** 18sp SemiBold `TextPrimary` (`CardTitleSize`); **card text** 14sp
   `TextSecondary` (`CardTextSize`).
-- **CardButton** (secondary on permission and download cards): height 50dp, pill, `GroupedRow`,
-  16sp Medium `TextPrimary`, no side padding (fills its weight) (app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt).
+- **Secondary buttons on cards**: the kit's `SecondaryButton` (50dp pill, `GroupedRow`, 16sp
+  SemiBold `TextPrimary`), `enabled = interactive`, no side padding when two share a row by weight.
 
 #### Permission prompt (app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt)
 
 **Anatomy:** column with 10dp gaps: [icon tile + 12dp gap + title "example.com wants to use your
 location" + reason ("It can see where this phone is.")]; 5dp spacer; row of "Block" and
-"Always allow" CardButtons (weight 1 each, 8dp gap); full-width PrimaryButton "Allow once".
+"Always allow" SecondaryButtons (weight 1 each, 10dp gap, `ButtonTokens.ChoiceGap`); full-width PrimaryButton "Allow once".
 Glyph per permission: Location, Camera (camera and camera+mic), Mic, Database (storage), Lock
 (protected media), Link (cross-site cookies), Globe (local network), Desktop (VR).
 **Behaviour:** Block = block and remember; Always allow = allow and remember; Allow once = allow now;
@@ -1766,8 +1766,8 @@ closing the card (tap outside, drag, Back) = blocked this time, nothing remember
 
 Shown when a page starts a download with no tap just before. Icon tile with the Download glyph;
 file name 18sp SemiBold, middle ellipsis; detail "1.2 MB · example.com" 14sp `TextSecondary`
-(size omitted when unknown) (app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt); 5dp spacer; row: "Cancel" CardButton +
-"Download" PrimaryButton, weight 1 each, 8dp gap. Closing the card = Cancel.
+(size omitted when unknown) (app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt); 5dp spacer; `CardChoices`: "Cancel" +
+"Download", weight 1 each, 10dp gap. Closing the card = Cancel.
 **Screenshot:** "example.pdf", "1.2 MB · example.com", light and dark.
 
 #### Duplicate download (app/src/main/java/dev/nerzouille/koan/ui/menu/DuplicateDownloadPrompt.kt)
@@ -1786,7 +1786,7 @@ A page wants to open an app. Floating card, column with 10dp gaps: the app's own
 10; else a `GroupedRow` tile with `Open` 18dp), 12dp, "Open in {app}?" 18sp SemiBold (1 line) over
 "{site} wants to open the app" 14sp `TextSecondary`; a row "Always for this site" (50dp,
 `GroupedRow`, 18dp corners, 16sp `TextPrimary`, trailing `KoanToggle`, the whole row toggles); 5dp;
-"Cancel" `CardButton` + "Open" `PrimaryButton`, weight 1 each, 8dp gap. Closing the card = Cancel.
+`CardChoices`: "Cancel" + "Open", weight 1 each, 10dp gap. Closing the card = Cancel.
 **Screenshot:** a demo page's app link, light and dark.
 
 #### File prompt (app/src/main/java/dev/nerzouille/koan/ui/menu/FilePrompt.kt)
@@ -1882,7 +1882,8 @@ stay." / "Sign out". The same `Confirm` is used for "Clear data for example.com?
 
 ### Buttons (app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt)
 
-**Purpose:** the four kit button styles. All 50dp tall (`ButtonTokens.Height`), pill
+**Purpose:** one `KoanButton(kind = Primary | Secondary | Destructive | Quiet)`; the four named
+buttons below are one-line wrappers. All 50dp tall (`ButtonTokens.Height`), pill
 shape, 28dp side padding (`ButtonTokens.PaddingH`), label 16sp (`ButtonTokens.TextSize`), content centred.
 
 | Variant | Fill | Label | Ref |
@@ -1892,22 +1893,21 @@ shape, 28dp side padding (`ButtonTokens.PaddingH`), label 16sp (`ButtonTokens.Te
 | `SecondaryButton` | `GroupedRow` (`#F2F2F5` / white @ 7%), overridable `surface` | `TextPrimary`, SemiBold | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt |
 | `DestructiveButton` | `GroupedRow`, overridable `surface` (`Card` when it sits on `Base`, e.g. History/Downloads' Clear) | `Destructive` (`#C42A20` / `#FF8077`), **SemiBold**; never a red fill | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt |
 
-Related non-kit buttons: `CardButton` (`GroupedRow`, Medium, no padding;
-app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt), PagePrompts' private secondary (same, 1 line;
-app/src/main/java/dev/nerzouille/koan/ui/menu/PagePrompts.kt). **One destructive button:**
+Cards: two choices side by side are `CardChoices` (Cancel on the left, the action on the right,
+10dp gap, no side padding); the permission card and the page prompts put their secondaries side
+by side the same way above a full-width primary. Labels are one line. **One destructive button:**
 History/Downloads' "Clear", Site settings' "Clear site data", Delete (search engine) and the
 confirm cards all use `DestructiveButton` (their own pills are gone). A destructive *row* ("Sign
 out", "Delete password") is a `SettingsRow` with a red title; a destructive selection-bar action
 has a red glyph and label. The one red fill in the app is the library rows' delete swipe
 background (`ui/kit/SwipeRow.kt`: History, Downloads, Passwords).
 
-**States:** default; pressed = Material 3 ripple clipped to the pill. **No disabled style**: the
-kit buttons have no `enabled` parameter; callers ignore taps when not interactive
-(e.g. app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt). Never the brand gradient (UI_SPEC agrees).
+**States:** default; pressed = Material 3 ripple clipped to the pill. **No disabled style**:
+`enabled = false` (a card closing) only removes the click and the ripple. Never the brand gradient (UI_SPEC agrees).
 
 **Light vs dark:** Primary flips black ↔ white; the others only change their fill/label tokens.
 
-**Screenshot needed:** a permission card (Primary + two CardButtons) and the sign-out card
+**Screenshot needed:** a permission card (Primary + two secondaries) and the sign-out card
 (Destructive + Quiet), light and dark; Primary with a leading icon if one is used on the sign-in
 screen.
 

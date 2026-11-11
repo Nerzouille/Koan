@@ -28,8 +28,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.CardChoices
 import dev.nerzouille.koan.ui.kit.KoanToggle
-import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -69,10 +69,7 @@ fun AppLinkPrompt(app: String, icon: Bitmap?, site: String, interactive: Boolean
             }
         }
         Spacer(Modifier.height(SheetTokens.Gap / 2))
-        Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
-            CardButton("Cancel", interactive, onCancel, Modifier.weight(1f))
-            PrimaryButton("Open", onClick = { if (interactive) onOpen(always) }, modifier = Modifier.weight(1f))
-        }
+        CardChoices("Open", interactive, onAction = { onOpen(always) }, onCancel = onCancel)
     }
 }
 

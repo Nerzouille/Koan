@@ -1,7 +1,6 @@
 package dev.nerzouille.koan.ui.menu
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -20,10 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.engine.SiteAsk
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.PrimaryButton
+import dev.nerzouille.koan.ui.kit.SecondaryButton
 import dev.nerzouille.koan.ui.theme.ButtonTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
@@ -78,25 +77,11 @@ fun PermissionPrompt(host: String, ask: SiteAsk, interactive: Boolean, onBlock: 
             }
         }
         Spacer(Modifier.height(SheetTokens.Gap / 2))
-        Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
-            CardButton("Block", interactive, onBlock, Modifier.weight(1f))
-            CardButton("Always allow", interactive, onAlways, Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(ButtonTokens.ChoiceGap)) {
+            SecondaryButton("Block", onBlock, Modifier.weight(1f), enabled = interactive, paddingH = 0.dp)
+            SecondaryButton("Always allow", onAlways, Modifier.weight(1f), enabled = interactive, paddingH = 0.dp)
         }
         PrimaryButton("Allow once", onClick = { if (interactive) onOnce() }, modifier = Modifier.fillMaxWidth())
     }
 }
 
-/** A card's secondary button (permission, download cards). */
-@Composable
-internal fun CardButton(text: String, interactive: Boolean, onClick: () -> Unit, modifier: Modifier) {
-    Box(
-        modifier
-            .height(ButtonTokens.Height)
-            .clip(CircleShape)
-            .background(KoanTheme.colors.GroupedRow)
-            .then(if (interactive) Modifier.clickable(onClick = onClick) else Modifier),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, color = KoanTheme.colors.TextPrimary, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.Medium)
-    }
-}
