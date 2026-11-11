@@ -228,7 +228,7 @@ class Components(context: Context) {
                 .distinctUntilChanged()
                 .collect { playing ->
                     playing.forEach { (id, url) ->
-                        val icon = FaviconLoader.image(url, null) ?: return@forEach
+                        val icon = FaviconLoader.image(url) ?: return@forEach
                         withContext(Dispatchers.Main) { store.dispatch(ContentAction.UpdateIconAction(id, url, icon)) }
                     }
                 }

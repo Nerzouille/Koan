@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.privacy
 
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -40,12 +39,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.PrivateTokens
 
 /** The dock's texts during the flip: they dip out and back in where they switch (alpha only). */
-fun Modifier.mist(flip: PrivateFlip?): Modifier = if (flip == null) this else graphicsLayer { alpha = flip.textAlpha() }
+fun Modifier.flipTextDip(flip: PrivateFlip?): Modifier = if (flip == null) this else graphicsLayer { alpha = flip.textAlpha() }
 
 /**
  * The Private toggle at the end of the overview header (§4.2): a 56×32 track, a white knob with
@@ -67,7 +67,7 @@ fun PrivateToggle(flip: PrivateFlip, onToggle: () -> Unit, modifier: Modifier = 
             }
             .clickable(remember { MutableInteractionSource() }, indication = null) {
                 if (flip.running) return@clickable
-                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                KoanHaptics.tick(view)
                 onToggle()
             },
         contentAlignment = Alignment.Center,
@@ -196,10 +196,7 @@ val PRIVATE_FACTS = listOf(
 fun PrivateEmptyState(onNewTab: () -> Unit, modifier: Modifier = Modifier) {
     val palette = KoanTheme.colors
     Column(modifier.fillMaxWidth().padding(horizontal = PrivateTokens.EmptySide), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            Modifier.size(PrivateTokens.EmptyIconBox).clip(RoundedCornerShape(PrivateTokens.EmptyIconRadius)).background(palette.PrivatePill),
-            contentAlignment = Alignment.Center,
-        ) { Icon(KoanIcons.Private, null, tint = palette.PrivateInk, modifier = Modifier.size(PrivateTokens.EmptyIcon)) }
+        PrivateIconTile()
         Spacer(Modifier.height(18.dp))
         Text("No private tabs", color = palette.TextPrimary, fontSize = PrivateTokens.EmptyTitle, lineHeight = PrivateTokens.EmptyTitleLine, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(6.dp))
@@ -253,10 +250,7 @@ fun PrivateLockCover(onUnlock: () -> Unit, onLeave: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = PrivateTokens.EmptySide)) {
-            Box(
-                Modifier.size(PrivateTokens.EmptyIconBox).clip(RoundedCornerShape(PrivateTokens.EmptyIconRadius)).background(palette.PrivatePill),
-                contentAlignment = Alignment.Center,
-            ) { Icon(KoanIcons.Private, null, tint = palette.PrivateInk, modifier = Modifier.size(PrivateTokens.EmptyIcon)) }
+            PrivateIconTile()
             Spacer(Modifier.height(18.dp))
             Text("Private tabs are locked", color = palette.TextPrimary, fontSize = PrivateTokens.EmptyTitle, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(24.dp))
@@ -284,4 +278,14 @@ fun PrivateLockCover(onUnlock: () -> Unit, onLeave: () -> Unit) {
             }
         }
     }
+}
+
+/** Private's icon on its pill-coloured tile (empty state, lock cover). */
+@Composable
+private fun PrivateIconTile() {
+    val palette = KoanTheme.colors
+    Box(
+        Modifier.size(PrivateTokens.EmptyIconBox).clip(RoundedCornerShape(PrivateTokens.EmptyIconRadius)).background(palette.PrivatePill),
+        contentAlignment = Alignment.Center,
+    ) { Icon(KoanIcons.Private, null, tint = palette.PrivateInk, modifier = Modifier.size(PrivateTokens.EmptyIcon)) }
 }

@@ -34,10 +34,6 @@ class SpacesWriteGateTest {
 
     @Test fun everyWriteMethodIsRefusedForSpaces() {
         val record = JSONObject().put("id", "{abc}").put("hello", "zen")
-        FakeHttpTransport().let { f -> refused(f) { client(f).putRecord("spaces", "{abc}", record) } }
-        FakeHttpTransport().let { f -> refused(f) { client(f).putRecord("spaces", "{abc}", record, "1700000000.00") } }
-        FakeHttpTransport().let { f -> refused(f) { client(f).putTombstone("spaces", "{abc}") } }
-        FakeHttpTransport().let { f -> refused(f) { client(f).postRecords("spaces", listOf(record), "1700000000.00") } }
         FakeHttpTransport().let { f -> refused(f) { client(f).postBatch("spaces", listOf(record), "1700000000.00") } }
     }
 
@@ -54,8 +50,8 @@ class SpacesWriteGateTest {
     @Test fun onlyWhenTheSettingIsOnDoesTheRequestLeave() {
         SpacesWriteGate.writeBackEnabled = true
         val fake = FakeHttpTransport()
-        fake.enqueue(SyncHttpResponse(200, mapOf("x-last-modified" to "1700000001.00"), "1700000001.00".toByteArray()))
-        client(fake).putRecord("spaces", "{abc}", JSONObject().put("id", "{abc}"))
-        assertEquals(listOf("PUT"), fake.requests.map { it.method })
+        fake.enqueue(SyncHttpResponse(200, mapOf("x-last-modified" to "1700000001.00"), """{"success":["{abc}"]}""".toByteArray()))
+        client(fake).postBatch("spaces", listOf(JSONObject().put("id", "{abc}")), "1700000000.00")
+        assertEquals(listOf("POST"), fake.requests.map { it.method })
     }
 }

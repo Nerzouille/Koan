@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.bar
 
-import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -18,13 +17,13 @@ import androidx.compose.ui.unit.Velocity
 import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.ui.OverviewMotion
 import dev.nerzouille.koan.ui.browser.TabSwipe
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.overview.SpacePager
-import dev.nerzouille.koan.ui.theme.BarTokens
-import dev.nerzouille.koan.ui.theme.DrawerTokens
-import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.sheet.Detent
 import dev.nerzouille.koan.ui.sheet.SheetState
+import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
+import dev.nerzouille.koan.ui.theme.SheetTokens
 import kotlin.math.abs
 
 /**
@@ -84,7 +83,7 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
     val drawerFling = SheetTokens.FlingVelocity.toPx()
     val overviewFling = BarTokens.OverviewFling.toPx()
     // One light tick per committed step, on release (and when space mode starts).
-    fun tick() = view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+    fun tick() = KoanHaptics.tick(view)
 
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)

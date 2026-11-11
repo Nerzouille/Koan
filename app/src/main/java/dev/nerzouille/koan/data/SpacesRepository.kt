@@ -110,16 +110,6 @@ class SpacesRepository(private val dao: KoanDao, private val scope: CoroutineSco
 
     fun setFolderCollapsed(folderId: String, collapsed: Boolean) = scope.launch { dao.setFolderCollapsed(folderId, collapsed) }
 
-    /** Dev: fills the space's stack with fake phone tabs, for the 50/150-card performance checks. */
-    fun fillWithFakeTabs(spaceUuid: String, upTo: Int) = scope.launch {
-        val existing = dao.stackTabs(spaceUuid).size
-        if (existing < upTo) {
-            dao.upsertTabs(SeedData.filler(spaceUuid, dao.maxTabOrder(spaceUuid) + 1, upTo - existing))
-        }
-    }
-
-    fun removeFakeTabs() = scope.launch { dao.deleteTabsWithPrefix(SeedData.FAKE_PREFIX) }
-
     private companion object {
         const val STRIDE = dev.nerzouille.koan.sync.ZenRoomMapper.ORDER_STRIDE
     }

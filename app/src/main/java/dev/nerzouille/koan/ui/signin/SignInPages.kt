@@ -32,13 +32,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
 import dev.nerzouille.koan.DeviceProfile
+import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.frameClock
 import dev.nerzouille.koan.ui.tour.Sparkle
-import dev.nerzouille.koan.ui.tour.animationsOff
 import dev.nerzouille.koan.ui.tour.sparkles
 import kotlin.math.PI
 import kotlin.math.sin
@@ -112,13 +112,7 @@ private fun FloatingK(dark: Boolean) {
     var clock by remember { mutableFloatStateOf(SignInTokens.STILL_CLOCK) }
     LaunchedEffect(still) {
         if (still) return@LaunchedEffect
-        var last = -1L
-        while (true) {
-            withFrameNanos { now ->
-                if (last >= 0) clock += (now - last) / 1_000_000f
-                last = now
-            }
-        }
+        frameClock { clock += it }
     }
     val sparkles = remember { if (DeviceProfile.liveBlur) KSparkles else KSparkles.take(SignInTokens.SPARKLES_SIMPLE) }
     val sparkleColor = if (dark) Color.White else BrandTokens.Violet

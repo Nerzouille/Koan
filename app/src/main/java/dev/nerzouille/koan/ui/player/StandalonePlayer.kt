@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.view.TextureView
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -23,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.blockTouches
+import dev.nerzouille.koan.ui.theme.Motion
 import kotlinx.coroutines.launch
 
 /** What the standalone player's ⋯ menu does outside the player. */
@@ -94,13 +97,15 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
     }
 
     val open = remember { Animatable(if (noMotion) 1f else 0f) }
+    // Controls wait until the morph is mostly done; read through a derived state, not per frame.
+    val early by remember { derivedStateOf { open.value < 0.6f } }
     val backdrop = remember { Animatable(if (noMotion) 1f else 0f) }
     val dragY = remember { mutableFloatStateOf(0f) }
     val dragScale = remember { mutableFloatStateOf(1f) }
     var closing by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        launch { backdrop.animateTo(1f, tween(180)) }
+        launch { backdrop.animateTo(1f, Motion.Fade) }
         open.animateTo(1f, PlayerTokens.OpenSpring)
     }
     fun close() {
@@ -109,8 +114,8 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
         native.pause()
         scope.launch {
             if (!noMotion) {
-                launch { backdrop.animateTo(0f, tween(200)) }
-                open.animateTo(0f, if (video.from != null) PlayerTokens.CloseSpring else tween(200))
+                launch { backdrop.animateTo(0f, Motion.FadeSlow) }
+                open.animateTo(0f, if (video.from != null) PlayerTokens.CloseSpring else Motion.FadeSlow)
             }
             onClosed()
         }
@@ -159,7 +164,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 modifier = Modifier.align(Alignment.Center),
             )
         }
-        val rows = when (video.mode) {
+        val rows = remember(video.mode, video.download, actions, native) { when (video.mode) {
             PlayerMode.File -> listOf(
                 MenuRow(KoanIcons.Share, "Share") { actions.share() },
                 MenuRow(KoanIcons.Open, "Open with another app") { native.pause(); actions.openWith() },
@@ -168,7 +173,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 MenuRow(KoanIcons.Download, "Download video") { actions.download() },
                 MenuRow(KoanIcons.Share, "Share link") { actions.shareLink() },
             )
-        }
+        } }
         VideoPlayer(
             state = st,
             controls = native,
@@ -185,7 +190,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 dragY.floatValue = dy
                 dragScale.floatValue = s
             },
-            hidden = inPip || closing || open.value < 0.6f,
+            hidden = inPip || closing || early,
             modifier = Modifier.graphicsLayer { alpha = if (closing) 0f else 1f },
         )
         if (confirmDelete) {
@@ -216,7 +221,7 @@ private fun DeleteCard(name: String, onCancel: () -> Unit, onDelete: () -> Unit)
             Modifier
                 .width(300.dp)
                 .playerPanel(RoundedCornerShape(PlayerTokens.MenuRadius), PlayerTokens.PanelMenu)
-                .pointerInput(Unit) { awaitEachGesture { awaitFirstDown().consume() } }
+                .blockTouches()
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -235,7 +240,7 @@ private fun CardButton(label: String, color: androidx.compose.ui.graphics.Color,
     Box(
         modifier
             .height(44.dp)
-            .playerPanel(RoundedCornerShape(22.dp), PlayerTokens.Chip)
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius), PlayerTokens.Chip)
             .pressable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

@@ -1,25 +1,28 @@
 package dev.nerzouille.koan.ui.bar
 
-import dev.nerzouille.koan.ui.privacy.PrivateFlip
-import dev.nerzouille.koan.ui.privacy.mist
-import dev.nerzouille.koan.ui.theme.PrivateTokens
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -35,85 +38,80 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
-import android.view.HapticFeedbackConstants
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import dev.nerzouille.koan.ui.theme.DownloadTokens
-import dev.nerzouille.koan.ui.search.SearchField
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreInterceptKeyBeforeSoftKeyboard
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.draw.clipToBounds
-import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.kit.KoanHaptics
+import dev.nerzouille.koan.ui.kit.frameClock
+import dev.nerzouille.koan.ui.kit.rememberAnimationsOff
 import dev.nerzouille.koan.ui.overview.Favicon
+import dev.nerzouille.koan.ui.privacy.PrivateFlip
+import dev.nerzouille.koan.ui.privacy.flipTextDip
+import dev.nerzouille.koan.ui.search.SearchField
 import dev.nerzouille.koan.ui.theme.BarTokens
-import dev.nerzouille.koan.ui.theme.Motion
-import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.BrandHorizontal
-import dev.nerzouille.koan.ui.theme.brandOutline
+import dev.nerzouille.koan.ui.theme.DownloadTokens
+import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.ui.theme.PrivateTokens
 import dev.nerzouille.koan.ui.theme.SearchFieldTokens
-import androidx.compose.animation.core.Animatable
-import android.provider.Settings
-import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.platform.LocalContext
+import dev.nerzouille.koan.ui.theme.brandOutline
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** What the address row shows about the live page. */
 @Immutable
 data class PageInfo(
     val url: String,
     val loading: Boolean,
-    val progress: Float,
     val canGoBack: Boolean,
     val canGoForward: Boolean,
     val desktopSite: Boolean = false,
@@ -242,7 +240,7 @@ fun AddressRow(
                 private = private,
                 flip = flip,
             )
-            Box(Modifier.mist(flip)) { TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu) }
+            Box(Modifier.flipTextDip(flip)) { TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu) }
             Box {
                 BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
                 BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
@@ -301,7 +299,7 @@ private fun AddressField(
                 .cleanTap(onTap = onClick)
                 .padding(horizontal = BarTokens.FieldPadding),
             contentAlignment = Alignment.Center,
-        ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, spaceMode.value, private, flip) }
+        ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, { spaceMode.value }, private, flip) }
         if (download != null) DownloadRing(download, onDownloads, Modifier.align(Alignment.CenterEnd))
     }
 }
@@ -315,7 +313,8 @@ private fun FieldLabels(
     previous: SwipeTarget?,
     next: SwipeTarget?,
     lastSpace: SwipeTarget?,
-    spaceMode: Float,
+    /** 0…1, read in layers only. */
+    spaceMode: () -> Float,
     private: Boolean = false,
     flip: PrivateFlip? = null,
 ) {
@@ -327,13 +326,13 @@ private fun FieldLabels(
             modifier = Modifier.graphicsLayer {
                 val f = swipe()
                 translationX = -f * size.width * SWIPE_TRAVEL
-                alpha = (1f - overview()) * (1f - spaceMode) * swipeOut(f)
+                alpha = (1f - overview()) * (1f - spaceMode()) * swipeOut(f)
             },
         )
         lastSpace?.let { current ->
-            SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode })
+            SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode() })
         }
-        MaskedText(if (private) PRIVATE_HINT else SEARCH_HINT, primary = false, mask = private, modifier = Modifier.graphicsLayer { alpha = overview() }.mist(flip))
+        MaskedText(if (private) PRIVATE_HINT else SEARCH_HINT, primary = false, mask = private, modifier = Modifier.graphicsLayer { alpha = overview() }.flipTextDip(flip))
         previous?.let { SwipeLabel(it, -1f, swipe, overview) }
         next?.let { SwipeLabel(it, 1f, swipe, overview) }
     }
@@ -352,7 +351,7 @@ private fun DownloadRing(progress: Float, onClick: () -> Unit, modifier: Modifie
             .size(BarTokens.IconTouch)
             .clip(CircleShape)
             .cleanTap {
-                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                KoanHaptics.tick(view)
                 onClick()
             },
         contentAlignment = Alignment.Center,
@@ -459,14 +458,14 @@ private fun AddressInput(
     // While in "@" mode the gradient turns slowly; only the shader moves (drawn, never recomposed).
     // Off when the system removes animations.
     val turn = remember { mutableFloatStateOf(0f) }
-    val resolver = LocalContext.current.contentResolver
+    val still = rememberAnimationsOff()
     LaunchedEffect(at) {
-        if (!at) return@LaunchedEffect
-        if (Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f) return@LaunchedEffect
-        val start = withFrameNanos { it }
+        if (!at || still) return@LaunchedEffect
         val from = turn.floatValue
-        while (true) {
-            withFrameNanos { now -> turn.floatValue = from + ringTurn((now - start) / 1e9f) }
+        var elapsedMs = 0f
+        frameClock {
+            elapsedMs += it
+            turn.floatValue = from + ringTurn(elapsedMs / 1000f)
         }
     }
     val palette = KoanTheme.colors
@@ -694,7 +693,7 @@ private fun TabsButton(count: Int, onClick: () -> Unit, onHold: (() -> Unit)?) {
             .holdPress(
                 enabled = onHold != null,
                 onHold = {
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    KoanHaptics.hold(view)
                     onHold?.invoke()
                 },
             ),
@@ -735,7 +734,7 @@ private fun BarIcon(
             .holdPress(
                 enabled = onHold != null && enabled && interactive,
                 onHold = {
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    KoanHaptics.hold(view)
                     onHold?.invoke()
                 },
             ),

@@ -28,9 +28,9 @@ enum class StartPageAfter(val label: String, val millis: Long?) {
     Never("Never", null),
 }
 
-/** Which collections two-way sync would send to the Mozilla account (dry run for now). */
-data class SyncBackChoice(val passwords: Boolean = false, val history: Boolean = false, val bookmarks: Boolean = false) {
-    val any: Boolean get() = passwords || history || bookmarks
+/** Which collections two-way sync sends to the Mozilla account (docs/SYNC_WRITE.md). */
+data class SyncBackChoice(val passwords: Boolean = false, val history: Boolean = false) {
+    val any: Boolean get() = passwords || history
 }
 
 /** The owner's settings. */
@@ -57,12 +57,8 @@ class Settings(context: Context) {
 
     private val sendPasswords = booleanPreferencesKey("send_passwords")
     private val sendHistory = booleanPreferencesKey("send_history")
-    private val sendBookmarks = booleanPreferencesKey("send_bookmarks")
 
-    /**
-     * Two-way sync (docs/SYNC_WRITE.md), per collection, all off by default. For now a dry run
-     * only: Koan logs what it would send, nothing is sent.
-     */
+    /** Two-way sync (docs/SYNC_WRITE.md), per collection, all off by default. */
     private val passwordEdits = booleanPreferencesKey("sync_back_password_edits")
 
     /** Two-way sync may also change and delete the account's passwords (off; the owner turns it on after checking). */
@@ -73,14 +69,13 @@ class Settings(context: Context) {
     }
 
     val syncBack: Flow<SyncBackChoice> = store.safeData.map {
-        SyncBackChoice(it[sendPasswords] ?: false, it[sendHistory] ?: false, it[sendBookmarks] ?: false)
+        SyncBackChoice(it[sendPasswords] ?: false, it[sendHistory] ?: false)
     }
 
     suspend fun setSyncBack(choice: SyncBackChoice) {
         store.edit {
             it[sendPasswords] = choice.passwords
             it[sendHistory] = choice.history
-            it[sendBookmarks] = choice.bookmarks
         }
     }
 

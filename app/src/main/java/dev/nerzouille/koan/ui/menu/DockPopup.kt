@@ -1,7 +1,6 @@
 package dev.nerzouille.koan.ui.menu
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +31,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
+import dev.nerzouille.koan.ui.kit.rememberPresence
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.TabMenuTokens
@@ -57,9 +56,8 @@ fun DockPopup(
 ) {
     // Where the popup landed (px from the left) and the screen's width, for the scale's origin.
     val placed = remember { IntArray(2) }
-    val shown = remember { Animatable(0f) }
-    LaunchedEffect(open) { shown.animateTo(if (open) 1f else 0f, tween(if (open) TabMenuTokens.IN_MS else TabMenuTokens.OUT_MS)) }
-    if (!open && shown.value == 0f) return
+    val shown = rememberPresence(open, enter = tween(TabMenuTokens.IN_MS), exit = tween(TabMenuTokens.OUT_MS))
+    if (!shown.composed) return
     if (open) BackHandler(onBack = onDismiss)
     val shape = RoundedCornerShape(TabMenuTokens.Radius)
     Box(
@@ -102,7 +100,7 @@ fun DockPopup(
                 }
                 .then(modifier)
                 .graphicsLayer {
-                    val p = shown.value
+                    val p = shown.progress
                     alpha = p
                     val s = TabMenuTokens.SCALE_FROM + (1f - TabMenuTokens.SCALE_FROM) * p
                     scaleX = s

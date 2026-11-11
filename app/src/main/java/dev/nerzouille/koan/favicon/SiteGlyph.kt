@@ -28,11 +28,11 @@ class SiteGlyph(
 
         private class Result(val glyph: SiteGlyph?)
 
-        fun cached(url: String): SiteGlyph? = FaviconResolver.cacheKey(url, null, null)?.let { memory.get(it) }?.glyph
+        fun cached(url: String): SiteGlyph? = FaviconResolver.cacheKey(url)?.let { memory.get(it) }?.glyph
 
         /** Null: no usable icon on the phone. Never fetches. */
         suspend fun load(url: String): SiteGlyph? {
-            val key = FaviconResolver.cacheKey(url, null, null) ?: return null
+            val key = FaviconResolver.cacheKey(url) ?: return null
             memory.get(key)?.let { return it.glyph }
             val glyph = withContext(Dispatchers.IO) { FaviconLoader.cachedOnly(url)?.let(::analyse) }
             // A miss isn't kept: the site may get an icon later (a visit).

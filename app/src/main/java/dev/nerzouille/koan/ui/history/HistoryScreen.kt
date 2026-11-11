@@ -1,72 +1,56 @@
 package dev.nerzouille.koan.ui.history
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import kotlinx.coroutines.flow.drop
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nerzouille.koan.data.ClosedTabEntity
 import dev.nerzouille.koan.data.KoanDao
-import dev.nerzouille.koan.ui.kit.dayLabel
-import java.time.LocalDate
 import dev.nerzouille.koan.data.VisitEntity
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.kit.ListPage
+import dev.nerzouille.koan.ui.kit.EmptyLine
+import dev.nerzouille.koan.ui.kit.FaviconTile
 import dev.nerzouille.koan.ui.kit.LibraryRowFrame
 import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
 import dev.nerzouille.koan.ui.kit.LibraryRowTitle
-import dev.nerzouille.koan.ui.kit.FaviconTile
+import dev.nerzouille.koan.ui.kit.ListPage
 import dev.nerzouille.koan.ui.kit.SelectionBar
 import dev.nerzouille.koan.ui.kit.SelectionHeader
 import dev.nerzouille.koan.ui.kit.SwipeRow
-import dev.nerzouille.koan.ui.kit.rememberSelection
-import androidx.activity.compose.BackHandler
-import androidx.compose.runtime.SideEffect
 import dev.nerzouille.koan.ui.kit.byDay
+import dev.nerzouille.koan.ui.kit.dayLabel
 import dev.nerzouille.koan.ui.kit.dayRowShape
-import dev.nerzouille.koan.ui.overview.Favicon
-import dev.nerzouille.koan.ui.settings.SettingsDivider
+import dev.nerzouille.koan.ui.kit.rememberSelection
 import dev.nerzouille.koan.ui.settings.SettingsSection
 import dev.nerzouille.koan.ui.theme.DownloadTokens
 import dev.nerzouille.koan.ui.theme.HistoryTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -199,11 +183,9 @@ fun HistoryScreen(
             }
             if (list != null && list.isEmpty()) {
                 item {
-                    Text(
+                    EmptyLine(
                         if (query.isBlank()) "Pages you visit show up here." else "Nothing in History matches “${query.trim()}”.",
-                        color = palette.TextSecondary,
-                        fontSize = SettingsTokens.RowValueSize,
-                        modifier = Modifier.padding(top = SettingsTokens.SectionTop),
+                        Modifier.padding(top = SettingsTokens.SectionTop),
                     )
                 }
             }

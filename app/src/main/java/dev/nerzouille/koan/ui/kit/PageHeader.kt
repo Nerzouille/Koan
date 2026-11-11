@@ -2,7 +2,6 @@ package dev.nerzouille.koan.ui.kit
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
@@ -11,13 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
@@ -53,15 +49,10 @@ fun PageBar(
             .padding(horizontal = SettingsTokens.Padding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(SettingsTokens.TopBar)
-                .clip(CircleShape)
-                .then(if (interactive) Modifier.clickable(onClick = onBack) else Modifier),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            Icon(KoanIcons.Back, "Back", tint = palette.TextPrimary, modifier = Modifier.size(SettingsTokens.BackGlyph))
-        }
+        KoanIconButton(
+            KoanIcons.Back, onBack, SettingsTokens.TopBar, SettingsTokens.BackGlyph, palette.TextPrimary,
+            interactive = interactive, alignment = Alignment.CenterStart, contentDescription = "Back",
+        )
         Box(Modifier.weight(1f).graphicsLayer { alpha = titleAlpha() }) {
             if (title != null) {
                 Text(

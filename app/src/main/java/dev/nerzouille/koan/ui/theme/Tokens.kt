@@ -1,7 +1,9 @@
 package dev.nerzouille.koan.ui.theme
 
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -42,7 +44,7 @@ class KoanPalette(
     /** Primary buttons: black in light, white in dark. */
     val Primary: Color,
     val OnPrimary: Color,
-    /** Destructive actions: red text only, never a red fill (one exception: History's swipe-to-remove background). ≥ 4.5:1 on every surface. */
+    /** Destructive actions: red text only, never a red fill (one exception: the delete swipe's background on every library page). ≥ 4.5:1 on every surface. */
     val Destructive: Color,
     /** Grouped rows on a sheet or a screen (menu, settings). */
     val GroupedRow: Color,
@@ -339,6 +341,14 @@ class KoanPalette(
 }
 
 /** A Zen space colour → its small accent (the switcher pill and the space's icon). */
+/** Values several surfaces share on purpose: change them here, not per screen. */
+object SharedTokens {
+    /** Every 1dp line: dividers, card hairlines and borders. */
+    val Hairline = 1.dp
+    /** A grouped block's corners (sheet groups, search groups, library day cards). */
+    val GroupRadius = 18.dp
+}
+
 object SpaceColorTokens {
     /** Below this saturation a Zen colour counts as grey: the space uses the default accent. */
     const val MIN_SATURATION = 0.12f
@@ -593,7 +603,7 @@ object CardTokens {
     val CloseIcon = 14.dp
     val ActiveDot = 6.dp
     val PinGlyph = 14.dp
-    val Hairline = 1.dp
+    val Hairline = SharedTokens.Hairline
     const val PLACEHOLDER_TINT = 0.08f
     val PlaceholderFavicon = 64.dp
     val PlaceholderTop = 44.dp // below the header
@@ -667,7 +677,7 @@ object TourTokens {
     const val SCREEN_CLIP_ASPECT = 720f / 1478f
     val FrameRadius = 30.dp
     val FrameBezel = 5.dp
-    val FrameBorder = 1.dp
+    val FrameBorder = SharedTokens.Hairline
     val FrameShadow = 20.dp
 
     /** The soft brand glow behind the title. */
@@ -819,7 +829,7 @@ object SignInTokens {
     val ChoiceInset = 16.dp
     val ChoiceGap = 16.dp
     val ChoiceRadius = 22.dp
-    val CardBorder = 1.dp
+    val CardBorder = SharedTokens.Hairline
     val ChoiceIconBox = 44.dp
     val ChoiceGlyph = 24.dp
     val ChoiceLineGap = 2.dp
@@ -856,7 +866,6 @@ object BarTokens {
     /** Drawer handle at the top of the switcher row. */
     val HandleWidth = 36.dp
     val HandleHeight = 4.dp
-    val HandleTop = 8.dp
     val HandleTouch = 24.dp
     val FieldHeight = 50.dp
     val FieldTextSize = 17.sp
@@ -951,8 +960,6 @@ object DrawerTokens {
     val PinnedFavicon = 22.dp
     val PinnedTitleSize = 15.sp
     val PinnedGlyph = 16.dp
-    val MoreTextSize = 13.sp
-    val MorePadding = 16.dp
 
     val FolderIndent = 18.dp
     val FolderCountSize = 13.sp
@@ -1011,7 +1018,7 @@ object SheetTokens {
     val CardPadding = 20.dp
 
     // Rows, groups and tiles on a sheet (design 7k / 7l).
-    val GroupRadius = 18.dp
+    val GroupRadius = SharedTokens.GroupRadius
     val RowHeight = 50.dp
     val RowTallHeight = 58.dp
     val RowPadding = 12.dp
@@ -1021,7 +1028,7 @@ object SheetTokens {
     val RowTitleSize = 16.sp
     val RowSubtitleSize = 12.sp
     val RowTrailingSize = 14.sp
-    val Divider = 1.dp
+    val Divider = SharedTokens.Hairline
     val TileHeight = 66.dp
     val TileRadius = 16.dp
     val TileGap = 8.dp
@@ -1109,7 +1116,7 @@ object SettingsTokens {
     val RowTitleSize = 16.sp
     val RowSubtitleSize = 12.sp
     val RowValueSize = 14.sp
-    val Divider = 1.dp
+    val Divider = SharedTokens.Hairline
     val CardRadius = 22.dp
     val CardPadding = 16.dp
     val Avatar = 44.dp
@@ -1201,8 +1208,11 @@ object SwipeTokens {
     val Nudge = 36.dp
     /** Past this share of the row's width, the swipe acts on release. */
     const val COMMIT = 0.4f
-    /** px/s: a fling this fast acts even when short. */
-    const val FLING = 1800f
+    /**
+     * dp/s: a fling this fast acts even when short (was 1 800 px/s, the same on the POCO's 2.75
+     * density; now the same speed on every screen).
+     */
+    const val FLING_DP_PER_S = 655f
     const val OUT_MS = 160
     val Back: SpringSpec<Float> = spring(dampingRatio = 0.62f, stiffness = 520f)
 }
@@ -1234,12 +1244,10 @@ object DownloadTokens {
     val ProgressHeight = 4.dp
     val ProgressTop = 8.dp
     val RoundButton = 36.dp
-    val ActionHeight = 40.dp
     val ActionGap = 8.dp
-    val GroupRadius = 18.dp
+    val GroupRadius = SharedTokens.GroupRadius
     val ChipHeight = 32.dp
     val ChipTextSize = 13.sp
-    val SearchHeight = 48.dp
     val BottomGap = 10.dp
 
     /** The ring in the address pill while something downloads. */
@@ -1296,7 +1304,7 @@ object StartPageTokens {
 object SearchTokens {
     val Margin = 10.dp
     val GroupGap = 8.dp
-    val GroupRadius = 18.dp
+    val GroupRadius = SharedTokens.GroupRadius
     val LabelSize = 12.sp
     val LabelPadding = 12.dp
     val RowHeight = 54.dp
@@ -1414,6 +1422,18 @@ object PageTokens {
 }
 
 object Motion {
+    /** Fades, three speeds (a popup in: [Fade], out: [FadeQuick]). */
+    const val FADE_QUICK_MS = 120
+    const val FADE_MS = 160
+    const val FADE_SLOW_MS = 220
+    val FadeQuick: TweenSpec<Float> = tween(FADE_QUICK_MS)
+    val Fade: TweenSpec<Float> = tween(FADE_MS)
+    val FadeSlow: TweenSpec<Float> = tween(FADE_SLOW_MS)
+
+    /** A button pressed: it shrinks to [PRESS_SCALE] and springs back. */
+    const val PRESS_SCALE = 0.92f
+    val Press: SpringSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 700f)
+
     /**
      * Stack snap: exponential glide, no overshoot (prototype: 17% of the remaining distance per
      * 60 Hz frame = time constant ≈ 90 ms). Frame-rate independent here.
@@ -1446,8 +1466,8 @@ object Motion {
     /** Full-screen sheets (sign-in) sliding up and down. */
     val Sheet: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 380f)
 
-    /** The page dimming behind the search sheet. */
-    val SearchScrim: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 700f)
+    /** The page dimming behind the search sheet: the toast's spring. */
+    val SearchScrim: SpringSpec<Float> = Toast
 
     /** Overview open/close; also drives the bar morph. */
     val Overview: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)
@@ -1526,8 +1546,6 @@ object PrivateTokens {
     val NoticeGap = 10.dp
     val NoticeText = 13.sp
     val NoticeLine = 18.sp
-    const val SELECTION_LIGHT = 0x384B3FD6
-    const val SELECTION_DARK = 0x599C8CFF
 
     // §4.7 empty state
     val EmptyTop = 230.dp

@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -32,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,17 +48,20 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.pressScale
+import dev.nerzouille.koan.ui.kit.rememberPresence
+import dev.nerzouille.koan.ui.theme.Motion
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -90,12 +91,6 @@ internal fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): M
     },
 )
 
-@Composable
-internal fun PressScale(pressedFlag: Boolean, content: @Composable (Modifier) -> Unit) {
-    val s by animateFloatAsState(if (pressedFlag) 0.92f else 1f, PlayerTokens.Press, label = "press")
-    content(Modifier.graphicsLayer { scaleX = s; scaleY = s })
-}
-
 /** A round 44dp button (or a disc of [size]) on the panel. */
 @Composable
 internal fun PlayerDisc(
@@ -105,25 +100,11 @@ internal fun PlayerDisc(
     panel: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    var down by remember { mutableStateOf(false) }
-    val s by animateFloatAsState(if (down) 0.92f else 1f, PlayerTokens.Press, label = "disc")
     Box(
         modifier
             .size(size)
-            .graphicsLayer { scaleX = s; scaleY = s }
-            .then(if (panel) Modifier.playerPanel(CircleShape) else Modifier.clip(CircleShape))
-            .pointerInput(onClick) {
-                awaitEachGesture {
-                    awaitFirstDown().consume()
-                    down = true
-                    val up = waitForUpOrCancellation()
-                    down = false
-                    if (up != null) {
-                        up.consume()
-                        onClick()
-                    }
-                }
-            },
+            .pressScale(onClick = onClick)
+            .then(if (panel) Modifier.playerPanel(CircleShape) else Modifier.clip(CircleShape)),
         contentAlignment = Alignment.Center,
     ) { content() }
 }
@@ -169,8 +150,8 @@ internal fun PlayGlyph(state: GlyphState, size: Dp, optical: Dp = 0.dp) {
     }
     Box(Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value }, contentAlignment = Alignment.Center) {
         for (g in GlyphState.entries) {
-            val a by animateFloatAsState(if (g == state) 1f else 0f, tween(120), label = "glyph")
-            if (a > 0f) {
+            val a = rememberPresence(g == state, Motion.FadeQuick, startShown = true)
+            if (a.composed) {
                 val icon = when (g) {
                     GlyphState.Play -> KoanIcons.PlayFilled
                     GlyphState.Pause -> KoanIcons.PauseFilled
@@ -181,7 +162,7 @@ internal fun PlayGlyph(state: GlyphState, size: Dp, optical: Dp = 0.dp) {
                     if (g == GlyphState.Replay) size * 0.92f else size,
                     Modifier
                         .offset(x = if (g == GlyphState.Play) optical else 0.dp)
-                        .graphicsLayer { alpha = a },
+                        .graphicsLayer { alpha = a.progress },
                 )
             }
         }
@@ -252,7 +233,7 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
                     Modifier
                         .weight(1f)
                         .height(PlayerTokens.ChipHeight)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(PlayerTokens.ChipRadius))
                         .background(if (selected) Color.White else PlayerTokens.Chip)
                         .pressable { onRate(s) },
                     contentAlignment = Alignment.Center,
@@ -289,7 +270,7 @@ internal fun speedLabel(s: Double) = if (kotlin.math.abs(s - 1.0) < 0.01) "Norma
  */
 @Composable
 internal fun LevelIndicator(volume: Boolean, level: () -> Float, height: Dp, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(30.dp)
+    val shape = RoundedCornerShape(PlayerTokens.LevelRadius)
     // Fixed parts first; the track takes what is left, so the glyph always sits inside the pill.
     Column(
         modifier

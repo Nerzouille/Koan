@@ -1,36 +1,31 @@
 package dev.nerzouille.koan.ui
 
-import dev.nerzouille.koan.ui.theme.PageTokens
-import dev.nerzouille.koan.ui.browser.ClosingPage
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.ImageBitmap
-import dev.nerzouille.koan.ui.browser.TranslateOfferHost
-import dev.nerzouille.koan.ui.player.WebPlayerLayer
-import dev.nerzouille.koan.ui.player.downloadVideo
-import androidx.compose.runtime.mutableStateSetOf
-import dev.nerzouille.koan.ui.overview.LocalCardHero
-import dev.nerzouille.koan.ui.overview.PageHeroLayer
-import dev.nerzouille.koan.ui.overview.CardHero
-import androidx.compose.runtime.CompositionLocalProvider
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.splineBasedDecay
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,106 +34,106 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.nerzouille.koan.BuildConfig
 import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.data.AccountState
 import dev.nerzouille.koan.data.SyncStatus
 import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.data.TabOrigin
-import android.app.Activity
-import androidx.fragment.app.FragmentActivity
+import dev.nerzouille.koan.engine.ClosedTab
+import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.engine.Opener
+import dev.nerzouille.koan.engine.returnToApp
 import dev.nerzouille.koan.privacy.PrivateTabs
+import dev.nerzouille.koan.search.Hit
+import dev.nerzouille.koan.search.SearchEngine
+import dev.nerzouille.koan.search.Shortcut
+import dev.nerzouille.koan.search.completion
+import dev.nerzouille.koan.search.displayHost
+import dev.nerzouille.koan.search.parseQuery
+import dev.nerzouille.koan.search.resolveInput
+import dev.nerzouille.koan.thumbs.BakedBlur
+import dev.nerzouille.koan.thumbs.ThumbnailStore
+import dev.nerzouille.koan.ui.bar.AddressRow
+import dev.nerzouille.koan.ui.bar.BarGestures
+import dev.nerzouille.koan.ui.bar.DrawerContent
+import dev.nerzouille.koan.ui.bar.DrawerStatus
+import dev.nerzouille.koan.ui.bar.KoanBar
+import dev.nerzouille.koan.ui.bar.PageInfo
+import dev.nerzouille.koan.ui.bar.SpaceScrub
+import dev.nerzouille.koan.ui.bar.SwipeTarget
+import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
+import dev.nerzouille.koan.ui.bar.barZone
+import dev.nerzouille.koan.ui.bar.drawerBackdrop
+import dev.nerzouille.koan.ui.browser.BrowserScreen
+import dev.nerzouille.koan.ui.browser.ClosingPage
+import dev.nerzouille.koan.ui.browser.CoverTarget
+import dev.nerzouille.koan.ui.browser.DockState
+import dev.nerzouille.koan.ui.browser.TabSwipe
+import dev.nerzouille.koan.ui.browser.TranslateOfferHost
+import dev.nerzouille.koan.ui.browser.observeSlice
+import dev.nerzouille.koan.ui.browser.rememberFullscreen
+import dev.nerzouille.koan.ui.downloads.host
+import dev.nerzouille.koan.ui.downloads.sizeText
+import dev.nerzouille.koan.ui.kit.KoanToastHost
+import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.kit.ToastState
+import dev.nerzouille.koan.ui.overview.CardHero
+import dev.nerzouille.koan.ui.overview.LocalCardHero
+import dev.nerzouille.koan.ui.overview.OverviewScreen
+import dev.nerzouille.koan.ui.overview.PageHeroLayer
 import dev.nerzouille.koan.ui.overview.PrivateOverview
+import dev.nerzouille.koan.ui.overview.SpacePager
+import dev.nerzouille.koan.ui.overview.SyncBadge
+import dev.nerzouille.koan.ui.overview.SyncUi
+import dev.nerzouille.koan.ui.overview.findTab
+import dev.nerzouille.koan.ui.overview.toModel
+import dev.nerzouille.koan.ui.player.WebPlayerLayer
+import dev.nerzouille.koan.ui.player.downloadVideo
 import dev.nerzouille.koan.ui.privacy.NoPersonalizedLearning
 import dev.nerzouille.koan.ui.privacy.PrivateDockPill
 import dev.nerzouille.koan.ui.privacy.PrivateFlip
 import dev.nerzouille.koan.ui.privacy.PrivateLockCover
-import dev.nerzouille.koan.ui.privacy.mist
+import dev.nerzouille.koan.ui.privacy.flipTextDip
 import dev.nerzouille.koan.ui.privacy.unlockPrivate
-import dev.nerzouille.koan.ui.theme.KoanNormalTheme
-import dev.nerzouille.koan.ui.theme.KoanPalette
-import dev.nerzouille.koan.ui.theme.KoanPrivateTheme
-import dev.nerzouille.koan.engine.ClosedTab
-import dev.nerzouille.koan.engine.Opener
-import dev.nerzouille.koan.engine.returnToApp
-import dev.nerzouille.koan.engine.Components
-import dev.nerzouille.koan.engine.Incoming
-import dev.nerzouille.koan.search.resolveInput
-import dev.nerzouille.koan.search.resolveShared
-import dev.nerzouille.koan.search.Hit
-import dev.nerzouille.koan.search.completion
-import dev.nerzouille.koan.search.parseQuery
+import dev.nerzouille.koan.ui.root.IncomingLinks
+import dev.nerzouille.koan.ui.root.PrivateSwitch
+import dev.nerzouille.koan.ui.root.ownPlayer
+import dev.nerzouille.koan.ui.root.rememberRootState
+import dev.nerzouille.koan.ui.root.standaloneActions
 import dev.nerzouille.koan.ui.search.SearchActions
 import dev.nerzouille.koan.ui.search.SearchField
 import dev.nerzouille.koan.ui.search.SearchSheet
 import dev.nerzouille.koan.ui.search.TabTarget
 import dev.nerzouille.koan.ui.search.rememberSearch
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.union
-import dev.nerzouille.koan.search.SearchEngine
-import dev.nerzouille.koan.search.Shortcut
-import dev.nerzouille.koan.thumbs.BakedBlur
-import dev.nerzouille.koan.ui.bar.AddressRow
-import dev.nerzouille.koan.ui.bar.DrawerContent
-import dev.nerzouille.koan.ui.bar.drawerBackdrop
-import dev.nerzouille.koan.ui.bar.DrawerStatus
-import dev.nerzouille.koan.ui.sheet.SheetState
-import dev.nerzouille.koan.ui.bar.KoanBar
-import dev.nerzouille.koan.ui.bar.PageInfo
-import dev.nerzouille.koan.ui.bar.WorkspaceSwitcher
-import dev.nerzouille.koan.ui.bar.barZone
-import dev.nerzouille.koan.ui.kit.KoanToastHost
-import dev.nerzouille.koan.ui.kit.Toast
-import dev.nerzouille.koan.ui.downloads.host
-import dev.nerzouille.koan.ui.downloads.sizeText
-import mozilla.components.browser.state.state.content.DownloadState
-import dev.nerzouille.koan.ui.kit.ToastState
-import dev.nerzouille.koan.ui.bar.SwipeTarget
-import dev.nerzouille.koan.ui.bar.BarGestures
-import dev.nerzouille.koan.ui.bar.SpaceScrub
 import dev.nerzouille.koan.ui.sheet.Detent
-import dev.nerzouille.koan.ui.browser.TabSwipe
-import dev.nerzouille.koan.thumbs.ThumbnailStore
-import dev.nerzouille.koan.search.displayHost
-import dev.nerzouille.koan.ui.theme.BarTokens
-import androidx.compose.animation.splineBasedDecay
-import dev.nerzouille.koan.ui.browser.BrowserScreen
-import dev.nerzouille.koan.ui.browser.rememberFullscreen
-import dev.nerzouille.koan.ui.browser.CoverTarget
-import dev.nerzouille.koan.ui.browser.DockState
-import dev.nerzouille.koan.ui.browser.observeSlice
-import androidx.compose.runtime.SideEffect
-import mozilla.components.browser.state.selector.findTab
-import dev.nerzouille.koan.ui.overview.OverviewScreen
-import dev.nerzouille.koan.ui.overview.SpacePager
-import dev.nerzouille.koan.ui.overview.SyncBadge
-import dev.nerzouille.koan.ui.overview.SyncUi
-import dev.nerzouille.koan.ui.overview.findTab
-import kotlinx.coroutines.flow.first
-import dev.nerzouille.koan.ui.overview.toModel
+import dev.nerzouille.koan.ui.sheet.SheetState
 import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
 import dev.nerzouille.koan.ui.start.ContinueTab
 import dev.nerzouille.koan.ui.start.StartPage
+import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
+import dev.nerzouille.koan.ui.theme.KoanNormalTheme
+import dev.nerzouille.koan.ui.theme.KoanPalette
+import dev.nerzouille.koan.ui.theme.KoanPrivateTheme
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.ui.theme.PageTokens
+import dev.nerzouille.koan.ui.theme.PagerTokens
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import dev.nerzouille.koan.ui.theme.Motion
-import dev.nerzouille.koan.ui.theme.PagerTokens
+import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.state.content.DownloadState
 
 /**
  * Page view and Space overview, with the one bottom bar on top of both: it morphs into the
@@ -164,6 +159,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // the place of the spaces. Read through states, so long-lived lambdas always see the current mode.
     val privateMode = components.privateMode
     val privateTabs = components.privateTabs
+    // The navigation state (ui/root/RootState.kt), read below through its properties.
+    val root = rememberRootState()
     // Set together with privateMode.on (showPrivate), so code right after a switch sees the new mode.
     val privateOnState = remember { mutableStateOf(privateMode.on.value) }
     val privateOn by privateOnState
@@ -173,12 +170,12 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val repo by remember { derivedStateOf { if (privateOnState.value) privateTabs.spaces else components.spaces } }
     val account by components.accounts.state.collectAsStateWithLifecycle()
     val syncStatus by components.sync.status.collectAsStateWithLifecycle()
-    var signingIn by rememberSaveable { mutableStateOf(false) }
+    var signingIn by root::signingIn
     // Each space's current tab (uuid → card id last opened there): the overview centres on it.
-    val currentTabs = rememberSaveable { HashMap<String, String>() }
-    var currentSpace by rememberSaveable { mutableIntStateOf(0) }
+    val currentTabs = root.currentTabs
+    var currentSpace by root::currentSpace
     // The space the user is on, by id: spaces added/removed on the desktop never move them.
-    var currentSpaceUuid by rememberSaveable { mutableStateOf<String?>(null) }
+    var currentSpaceUuid by root::currentSpaceUuid
     val tabs by remember { derivedStateOf { if (privateOnState.value) privateTabs.tabs else components.tabs } }
     val normalCurrent = components.tabs.current.collectAsStateWithLifecycle()
     val privateCurrent = privateTabs.tabs.current.collectAsStateWithLifecycle()
@@ -189,13 +186,13 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val normalStarted = components.tabs.started.collectAsStateWithLifecycle()
     val privateStarted = privateTabs.tabs.started.collectAsStateWithLifecycle()
     val tabsStarted by remember { derivedStateOf { if (privateOnState.value) privateStarted.value else normalStarted.value } }
-    var overviewOpen by rememberSaveable { mutableStateOf(false) }
-    var editing by remember { mutableStateOf(false) }
+    var overviewOpen by root::overviewOpen
+    var editing by root::editing
     /** A tab another app just opened, until it is the current one (see the incoming links). */
-    var landing by remember { mutableStateOf<String?>(null) }
+    var landing by root::landing
     // The start page is up (with the field): not a tab until something opens from it. It goes
     // with the field.
-    var startPage by remember { mutableStateOf(false) }
+    var startPage by root::startPage
     LaunchedEffect(editing) { if (!editing) startPage = false }
     // A new tab always starts with the search sheet open.
     LaunchedEffect(blankId) { if (blankId != null) editing = true }
@@ -216,7 +213,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val motion = remember { OverviewMotion(overviewOpen) }
     // The open motion has finished: the overview may now do the work it put off (thumbs/BakedBlur,
     // composing the neighbouring spaces).
-    var overviewSettled by remember { mutableStateOf(false) }
+    var overviewSettled by root::overviewSettled
     LaunchedEffect(overviewOpen, motion.dragging) {
         overviewSettled = false
         BakedBlur.onOverviewMotion(running = true, open = overviewOpen)
@@ -238,7 +235,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // Cold start (e.g. after swiping Koan away): reopen on the space saved on disk (TabManager
     // reopens the tab). After a configuration change or a background kill, the saved instance state
     // already has it.
-    var placeRestored by rememberSaveable { mutableStateOf(false) }
+    var placeRestored by root::placeRestored
     LaunchedEffect(Unit) {
         if (placeRestored) return@LaunchedEffect
         components.lastPlace.read().spaceUuid?.let { currentSpaceUuid = it }
@@ -286,7 +283,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val overviewFocus = remember { mutableStateOf<Pair<String, String>?>(null) }
     // Just signed in: once the first sync has brought Zen's tabs, the overview shows Zen's top tab
     // (the front-most Zen card; tabs opened on the phone sit in front of it).
-    var focusZenTop by remember { mutableStateOf(false) }
+    var focusZenTop by root::focusZenTop
     LaunchedEffect(focusZenTop) {
         if (!focusZenTop) return@LaunchedEffect
         val synced = withTimeoutOrNull(ZEN_TOP_WAIT_MS) {
@@ -316,7 +313,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
 
     // The card the overview flies to or from: the current tab's, unless a tap just picked another
     // (until the current tab follows) or a tab with no card (NO_CARD).
-    var heroPick by remember { mutableStateOf<String?>(null) }
+    var heroPick by root::heroPick
 
     /** Back closing a tab: its page on its way out (ClosingPage), over the next tab coming up. */
     var closingShot by remember { mutableStateOf<ImageBitmap?>(null) }
@@ -327,7 +324,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val gone = remember { mutableStateSetOf<String>() }
     // The current tab was closed in the overview: the space it was in, where back to the page
     // opens the card that came forward (its current card, currentTabs), or the start page.
-    var closedFrom by rememberSaveable { mutableStateOf<String?>(null) }
+    var closedFrom by root::closedFrom
     LaunchedEffect(activeTabId) { if (activeTabId != null) closedFrom = null }
     val dock = remember { DockState(scope) }
     // The shown mode's current tab, for the tab swipe (it waits for the tab it lands on).
@@ -408,86 +405,19 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val fragmentActivity = context as? FragmentActivity
     val flip = remember { PrivateFlip(scope, privateMode.on.value) }
     // The normal space to come back to.
-    var normalSpaceUuid by rememberSaveable { mutableStateOf<String?>(null) }
-    /** Switches what is shown; the flip calls it once the old tabs have left. */
-    fun showPrivate(on: Boolean) {
-        if (privateOnState.value == on) return
-        editing = false
-        startPage = false
-        tabSwipe.cancel()
-        tabs.cancelBlank()
-        overlays.dismissAll()
-        drawer.snapClosed()
-        if (on) normalSpaceUuid = currentSpaceUuid else currentSpaceUuid = normalSpaceUuid
-        privateOnState.value = on
-        privateMode.on.value = on
-        // The engine shows this mode's current tab (under the overview, or on the page).
-        val manager = if (on) privateTabs.tabs else components.tabs
-        val list = if (on) privateTabs.spaces.spaces.value else components.spaces.spaces.value
-        val row = manager.current.value?.let { id -> list.firstNotNullOfOrNull { it.findTab(id) } }
-        if (row != null) {
-            manager.open(row, captureLeaving = false)
-        } else if (!on && components.store.state.selectedTabId?.let { components.store.state.findTab(it) }?.content?.private == true) {
-            // No normal tab to show: a private page must not stay selected under normal mode.
-            components.store.state.tabs.firstOrNull { !it.content.private }?.let { components.tabsUseCases.selectTab(it.id) }
-        }
-    }
-    /** The header's toggle: the fingerprint first if the private tabs are locked, then the flip. */
-    fun togglePrivate() {
-        if (flip.running) return
-        val on = !flip.target
-        scope.launch {
-            if (on && privateMode.needsUnlock()) {
-                if (fragmentActivity == null || !unlockPrivate(fragmentActivity)) return@launch
-            }
-            if (on) privateMode.locked.value = false
-            flip.reduced = PrivateFlip.animationsOff(context)
-            flip.run(on) { showPrivate(on) }
-        }
-    }
-    /** Back to normal tabs at once (a link from another app, "Back to normal tabs" on the lock). */
-    fun leavePrivate() {
-        if (!privateOnState.value) return
-        flip.snap(false)
-        showPrivate(false)
-    }
+    var normalSpaceUuid by root::normalSpaceUuid
+    val privateSwitch = PrivateSwitch(components, root, privateOnState, { tabs }, tabSwipe, overlays, drawer, flip, scope, context)
+    fun showPrivate(on: Boolean) = privateSwitch.show(on)
+    fun togglePrivate() = privateSwitch.toggle()
+    fun leavePrivate() = privateSwitch.leave()
     val latestToggle = androidx.compose.runtime.rememberUpdatedState<() -> Unit> { togglePrivate() }
     val privateOverview = remember(flip) { PrivateOverview(flip) { latestToggle.value() } }
 
     // Links and text other apps send (default browser, share): a new tab in the current space.
-    LaunchedEffect(tabsStarted, spaces.isEmpty(), placeRestored) {
-        if (!tabsStarted || spaces.isEmpty() || !placeRestored) return@LaunchedEffect
-        components.incoming.collect { incoming ->
-            if (incoming == null) return@collect
-            // A link from another app opens as a normal tab, never in Private.
-            leavePrivate()
-            components.incoming.value = null
-            tabSwipe.cancel()
-            tabs.cancelBlank()
-            overlays.dismissAll()
-            overlays.menu.snapClosed()
-            overlays.settingsOpen = false
-            overlays.historyOpen = false
-            overlays.downloadsOpen = false
-            val url = when (incoming.kind) {
-                Incoming.Kind.Url -> incoming.text
-                Incoming.Kind.Shared -> resolveShared(incoming.text, searchEngine)
-                Incoming.Kind.Selected -> resolveInput(incoming.text, searchEngine)
-            }
-            landing = openNewTab(url, select = true, nextToCurrent = false, fromApp = Opener.App(incoming.referrer, url))
-        }
-    }
-    // The app's tab is created a moment later (TabManager): until it is the current one, nothing
-    // may put the overview up (no current tab, at launch), and then it shows, in the page view.
-    LaunchedEffect(landing) {
-        val id = landing ?: return@LaunchedEffect
-        withTimeoutOrNull(LANDING_TIMEOUT_MS) { snapshotFlow { activeTabId }.first { it == id } }
-        if (activeTabId == id && overviewOpen) {
-            heroPick = NO_CARD
-            overviewOpen = false
-        }
-        landing = null
-    }
+    IncomingLinks(
+        components, root, tabsStarted, spaces.isEmpty(), searchEngine, { activeTabId }, tabSwipe, { tabs }, overlays,
+        leavePrivate = ::leavePrivate, openNewTab = ::openNewTab,
+    )
     /** A url from the field: loads in the current tab, or in a new one from the start page. */
     fun loadHere(url: String) {
         if (startPage) openNewTab(url, select = true, nextToCurrent = false) else tabs.load(url)
@@ -665,7 +595,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
     }
     // First run (no account, nothing open yet): start in the overview, on the Connect card.
-    var firstRunHandled by rememberSaveable { mutableStateOf(false) }
+    var firstRunHandled by root::firstRunHandled
     LaunchedEffect(account, spaces) {
         if (firstRunHandled || account == AccountState.Loading || spaces.isEmpty()) return@LaunchedEffect
         firstRunHandled = true
@@ -977,7 +907,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 PageInfo(
                     url = reader ?: c?.url.orEmpty(),
                     loading = c?.loading == true,
-                    progress = (c?.progress ?: 0) / 100f,
                     canGoBack = c?.canGoBack == true,
                     canGoForward = c?.canGoForward == true,
                     desktopSite = c?.desktopMode == true,
@@ -985,6 +914,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             }
         }
         val currentPage = page
+        // The load's progress on its own: read only by the load line's animation, never here.
+        val pageProgress = store.observeSlice(activeTabId) { state ->
+            activeTabId?.let { state.findTab(it) }?.content?.progress?.let { it / 100f } ?: 0f
+        }
         val findUi = rememberFindUi(components, overlays, activeTabId)
         // Downloads running: their combined progress for the ring in the pill (NaN = size unknown).
         val downloadProgress by store.observeSlice(Unit) { s ->
@@ -1019,8 +952,9 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         fun tabTarget(tab: TabEntity) = SwipeTarget(displayHost(tab.url).ifEmpty { tab.title }, url = tab.url, favicon = tab.iconUrl, staticIcon = tab.staticIcon)
         // A new page load brings the dock back.
         LaunchedEffect(currentPage.loading) { if (currentPage.loading) dock.show() }
-        // Typing in the address field: results above it, below the dock.
-        val searchBottom = barZone(overview = false) + WindowInsets.navigationBars.union(WindowInsets.ime).asPaddingValues().calculateBottomPadding()
+        // Typing in the address field: results above the dock. The keyboard's inset is added in
+        // layout by the sheet and the start page, never read here (it moves every frame).
+        val searchBottom = barZone(overview = false)
         StartPage(
             open = startPage,
             space = models.getOrNull(currentSpace),
@@ -1067,7 +1001,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             overview = { motion.progress },
             bar = bar,
             loading = currentPage.loading && !startPage,
-            loadProgress = currentPage.progress,
+            loadProgress = { pageProgress.value },
             dockHide = { dock.offset },
             dockAway = { dock.keyboard },
             drawerContent = { modifier ->
@@ -1086,7 +1020,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             switcher = { modifier ->
                 // Private: one "Private" pill instead (a label, no action for now), on the same
                 // line as the space pills. It dips out and back in with the flip.
-                Box(modifier.mist(flip), contentAlignment = Alignment.BottomCenter) {
+                Box(modifier.flipTextDip(flip), contentAlignment = Alignment.BottomCenter) {
                     if (flip.labels) {
                         PrivateDockPill(Modifier.padding(bottom = BarTokens.SwitcherBottom).height(BarTokens.SwitcherItem))
                     } else {
@@ -1104,7 +1038,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             },
             address = { modifier ->
                 AddressRow(
-                    page = if (startPage) PageInfo("", loading = false, progress = 0f, canGoBack = false, canGoForward = false) else currentPage,
+                    page = if (startPage) PageInfo("", loading = false, canGoBack = false, canGoForward = false) else currentPage,
                     tabCount = models.getOrNull(currentSpace)?.stack?.size ?: 0,
                     editing = editing,
                     overviewOpen = overviewOpen,
@@ -1162,16 +1096,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             onToast = toasts::show,
             onRestoreClosed = ::restoreClosed,
             currentSpaceUuid = spaces.getOrNull(currentSpace)?.space?.uuid,
-            // Dev stress fills: debug builds only (R8 drops them and the fake data from release).
-            devActions = if (!BuildConfig.DEBUG) emptyList() else buildList {
-                for (n in listOf(50, 150)) {
-                    add("Fill space to $n tabs" to {
-                        spaces.getOrNull(currentSpace)?.let { components.spaces.fillWithFakeTabs(it.space.uuid, n) }
-                        Unit
-                    })
-                }
-                add("Remove fake tabs" to { components.spaces.removeFakeTabs(); Unit })
-            },
         ) }
 
         TranslateOfferHost(
@@ -1299,73 +1223,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
 }
 
 /** [heroPick]: the tab shown next has no card to fly from (a new tab, a link from another app). */
-private const val NO_CARD = ""
+internal const val NO_CARD = ""
 
 /** After sign-in, how long the overview waits for the first sync before giving up on showing Zen's top tab. */
 private const val ZEN_TOP_WAIT_MS = 120_000L
 
-/** How long an incoming link's tab may take to become the current one (it is a Room write). */
-private const val LANDING_TIMEOUT_MS = 5_000L
-
-/** Sites whose fullscreen player keeps its own controls over the video (checked on the phone). */
-private fun ownPlayer(url: String?): Boolean {
-    val host = url?.let { android.net.Uri.parse(it).host }?.removePrefix("www.")?.removePrefix("m.") ?: return false
-    return OWN_PLAYER_SITES.any { host == it || host.endsWith(".$it") }
-}
-
-private val OWN_PLAYER_SITES = listOf("youtube.com", "youtube-nocookie.com")
-
-/** The standalone player's ⋯ menu, outside the player: share, open with, delete, download. */
-private fun standaloneActions(
-    components: Components,
-    context: android.content.Context,
-    video: dev.nerzouille.koan.ui.player.StandaloneVideo,
-    activeTabId: String?,
-    toast: (Toast) -> Unit,
-): dev.nerzouille.koan.ui.player.StandaloneActions {
-    val download = video.download
-    return dev.nerzouille.koan.ui.player.StandaloneActions(
-        share = {
-            val ok = if (download != null) components.downloads.share(download) else runCatching {
-                val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("video/*")
-                    .putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse(video.uri))
-                    .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-            }.isSuccess
-            if (!ok) toast(Toast("Couldn't share this file"))
-        },
-        openWith = {
-            val ok = if (download != null) components.downloads.open(download) else runCatching {
-                val view = android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(android.net.Uri.parse(video.uri), "video/*")
-                    .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                context.startActivity(android.content.Intent.createChooser(view, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-            }.isSuccess
-            if (!ok) toast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
-        },
-        delete = {
-            if (download != null) {
-                components.downloads.delete(download)
-                toast(Toast("File deleted"))
-            }
-        },
-        download = {
-            val url = video.uri
-            val tab = activeTabId
-            if (tab != null) {
-                downloadVideo(components, tab, url)
-            } else {
-                components.store.dispatch(
-                    mozilla.components.browser.state.action.DownloadAction.AddDownloadAction(
-                        mozilla.components.browser.state.state.content.DownloadState(url, skipConfirmation = true, referrerUrl = video.pageUrl),
-                    ),
-                )
-            }
-            toast(Toast("Downloading the video"))
-        },
-        shareLink = {
-            val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, video.uri)
-            context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-        },
-        pip = { components.pip.value?.enterNow() },
-    )
-}

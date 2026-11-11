@@ -43,14 +43,136 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 - Milestones done and tagged: `m0`, `m1`, `m2`, `m3`, `m5`. M4 partly done (no tag), M6 passwords
   + history done on `dev` (Spaces, tabs, bookmarks never written), M7 partly done. Details per
   item in `docs/ROADMAP.md`.
-- Unit tests: 301 JVM tests on `dev`, green (`./gradlew testDebugUnitTest`). R8 staging build of
+- Unit tests: 301 JVM tests on `dev`, green (299 on `refactor`: dead-code tests removed, batch 4 tests added) (`./gradlew testDebugUnitTest`). R8 staging build of
   `dev` + 160 launched on the POCO without a crash (2026-11-11).
+
+## Batch 4 on `refactor` (from `dev`, not merged)
+
+Plan: `docs/plans/BATCH4_PLAN.md` (defaults: SemiBold + 10 dp, 3.37 skipped, SeedData deleted). One
+commit per step; full suite + dev build per step; R8 release build installed on the POCO at the end of
+each group (launch + kill + restore checked).
+
+- **Group A, dead code (done, 6 commits):** SyncBack chain + bookmark planner, SyncClient's
+  single-record writes (postBatch is the only write left; its tests replace the postRecords ones),
+  favicon prefetch / synced-icon paths, small unused items + compose tooling + the 10 legacy
+  launcher bitmaps, SeedData + the debug fake-tab menu, three stale KDocs. 301 → 290 tests (all
+  deleted ones covered deleted code). R8 build: launches, restores after a kill, no crash.
+  **Check on the phone:** launcher and Settings › Apps still show the Koan icon (themed icon too);
+  favicons in the overview, search and History after a cold start; Settings › Mozilla account ›
+  Send to your Mozilla account still shows the three switches; a password sync and a history sync
+  still run (Sync now, status line under the switches).
+- **Group B, per-frame recompositions (done, 15 commits):** `ui/kit/MotionKit.kt` (one
+  `animationsOff`, `frameClock`), `ui/kit/Presence.kt` (`rememberPresence`) for the toast, dock
+  popup, search sheet, start page, player overlays and play glyph; the pill's space-mode fade and
+  the selection wash / check read in layers or draw; the standalone player's open morph; the
+  keyboard inset applied in layout (search sheet, start page); page load progress read only by the
+  load line, which now has its own layer and cached brushes; the seek scrub read in draw / layout
+  and the mist's blurs cached; card dims through layer alpha; overview page lambdas kept.
+  Measured on the POCO (staging copies, speed-profile, `tools/perf/frames.sh` + hand scenarios
+  keyboard and pull-to-refresh, local scripts): no scenario got worse beyond noise; reload p90
+  10 → 8–9 ms, space p90 19 → 13 ms at B2. The phone drops to half rate when warm after ~1 h of
+  runs: compare interleaved runs only (A/B/A/B). The player (B6) was not measured on the phone
+  (no player scenario). R8 build: launches, restores after a kill, no crash.
+  **Check on the phone:** toast in and out (and a toast replaced by another); dock popups (tab
+  counter long press, Back long press); typing in the address field on a page and on the start
+  page: results sit just above the keyboard and move with it, the "@" picker too; a page load: the
+  line runs, shimmers and fades as before, above the dock's top edge; Select all on History /
+  Passwords (wash and check marks fade); the player: open from Downloads (morph), tap to show /
+  hide the controls (soft blur), drag the seek bar (bubble follows the finger, time updates),
+  double-tap seek glow, brightness / volume swipe, 2× long press, ⋯ menu; overview scroll (dims
+  unchanged), space switch.
+- **Group C, root and overlays split (done, 6 commits; C4 skipped, optional):** `KoanOverlays`
+  1 370 → 313 lines, one composable per group in `ui/overlays/` (one commit: the groups were cut
+  from one function sharing state; a line-by-line check found every original line, verbatim).
+  `ui/root/`: `RootState` (the navigation values, each still its own `rememberSaveable`; the
+  root reads them through property delegates), `PrivateSwitch`, `IncomingLinks`, `PlayerActions`.
+  **Not done as planned:** the root's transitions stay in `KoanRoot.kt` and there is no
+  `RootStateTest`: the transitions call `TabManager`, `SpacePager`, `OverviewMotion` and the store,
+  so a JVM test needs interfaces over them (a design change, not a move): left for batch 5.
+  Checked on the staging copy: ⋯ menu, Site settings, Back, tab-counter menu, overview, Settings,
+  History, Private on / off, a link from another app while the overview is up, overview restored
+  after a kill. Perf, interleaved end of B / end of C: same or better except the drawer, janky
+  4.3 → 4.7–4.9 % and p99 36 → 40–42 ms in both pairs (inside the noise threshold, but consistent:
+  watch it). R8 build: launches, restores after a kill, no crash.
+  **Check on the phone:** every overlay opens and closes as before (⋯ menu and its pages, clear
+  site data, a site permission, "Open in app", logins chip / list / save, a page's <select> /
+  alert, long press on a link and an image, Save image, a download and a duplicate, tab counter
+  and Back long press, Settings and its pages, sign out card, Downloads, History, Clear data, the
+  tour from Settings › About); Private on / off and the lock; a link shared from another app;
+  kill Koan in the background with the overview open and come back. Open and close the drawer a
+  few times: it should feel the same.
+- **Group D, shared UI components (done, 14 commits; D12 dropped, as the plan allowed):**
+  `DragHandle`, `brandWash`, `SpaceTitle`, `swipeDownToDismiss`; `KoanButton(kind)` under the
+  four buttons (prompt cards' private secondaries gone); `SettingsToggleRow` / `SheetToggleRow`;
+  `KoanIconButton`; `CardHeader` + `CardIconTile`; `FileGlyph`, `PrivateIconTile`; `TextLink`;
+  `EmptyLine`; `KoanDivider`; `RowTexts` in both kit rows; clear site data, delete a language and
+  clear downloads now ask on `Overlays.ask`. **Visible change (decided):** prompt cards' secondary
+  buttons SemiBold (were Medium), 10dp between two buttons (were 8). **Left out:** touch-size
+  alignment (3.3, every icon button keeps its size), the chips (3.7: no two alike), the 4
+  hand-built rows (3.2), the scrim / spinner / field / label merges (3.12), the player's delete
+  dialog (draws over the overlays, so `ask` would sit under it). R8 build: launches, restores
+  after a kill, no crash.
+  **Check on the phone, light, dark and Private:** permission card (Block / Always allow / Allow
+  once), download card, "Open in app" card, a page's alert / confirm / <select> / date: buttons
+  SemiBold and 10dp apart, nothing else moved; sign-out and Clear browsing data cards; ⋯ › Site
+  settings › Clear site data, Settings › Translation › delete a downloaded language, Downloads ›
+  Clear: each asks on the floating card and does the same thing; Settings toggles (search
+  suggestions, hide status bar, picture-in-picture, uBlock, the three sync switches, Private
+  browsing's toggles); the menu's Desktop site, Translate's three switches, Site settings'
+  permission switches; the overview header and start page title, pull down to dismiss both;
+  sheet and drawer handles; empty Downloads / History; the private empty state and lock cover.
+- **Group E, motion and gestures (partly done, 6 commits):** duplicate springs merged (E1); three
+  fade tokens `Motion.FadeQuick / Fade / FadeSlow` for the player, `Modifier.mist` renamed
+  `flipTextDip` (E2); `Modifier.pressScale` and `slideUpPage` in `ui/kit/MotionKit.kt` (E3);
+  `KoanHaptics` everywhere (E4); `SwipeTokens.FLING_DP_PER_S` (E5, `SwipeTokensTest`);
+  `Modifier.blockTouches` (part of E9). **Not done, waiting for you:** E6 (`NeighbourDrag`), E7
+  (one drag loop) and E8 (one `swipeToDismiss`): the plan needs your feel check on a release build
+  after each caller, so they were left for a session with you. E9's system long-press timeout and
+  `tapOutside` would change behaviour (not in the allowed list): skipped. R8 build: launches,
+  restores after a kill, no crash.
+  **Check on the phone:** the player: tap the speed pill, Unlock, Replay (they now shrink on press
+  like the round buttons), the level indicator, spinner and 2× badge fades (20 ms longer or
+  shorter), the standalone player opening from Downloads; delete a History / Downloads /
+  Passwords row with a swipe (now a short haptic), long-press a downloaded language in ⋯ ›
+  Translate (now a haptic); a quick short swipe on a library row still deletes / hides; every
+  other haptic (toggles, dock scrub, stack, long presses) feels the same; Private's flip still
+  dips the dock's text.
+- **Group F, logic helpers (done except F6, 10 commits):** `search/Urls.kt` (`isWebUrl`,
+  `siteHost`, `baseDomain`; `UrlsTest` first) and its three fixes: an IPv6 address shows whole in
+  the pill, a `*.github.io` / `pages.dev`… login stays on its own site, an app-link "Always" holds
+  for `m.` / `www.` hosts (old choices still read); `copyText`; `ui/kit/DeviceAuth.kt` for
+  Private and Passwords (Passwords now open on a phone without a screen lock); Downloads' Undo tied
+  to its toast (`Toast.onGone`, `PendingDeletes`, `UndoWindowTest`): a replaced toast no longer
+  deletes the file seconds later; the player's Delete gains Undo (`undoToast`); `PageBridge` under
+  `PageEngines` / `PageImages`. **Left out:** the other host call sites (player `siteOf`,
+  `ownPlayer`, origins: same results, low value), the size formatters (merging would change shown
+  sizes), F6 (two favicon caches: memory only, needs a fair meminfo A/B). R8 build: launches,
+  restores after a kill, no crash.
+  **Check on the phone:** Downloads: delete a file, then before the toast goes do something that
+  shows another toast (copy a link): the file is gone at once and stays gone; delete then Undo:
+  it's back; hide then Undo; delete and wait: gone after the toast. The player: open a downloaded
+  video, ⋯ › Delete: "File deleted · Undo" brings it back in Downloads. Passwords: unlock with the
+  fingerprint as before; copy a username / password. A login saved on one `*.github.io` site is not
+  offered on another; one on `accounts.example.com` still is on `example.com`. "Open in app" with
+  "Always" on `m.youtube.com`, then a link on `youtube.com`: no card. ⋯ on a page that declares a
+  search engine: "Add this search engine"; long-press an image on Google Images: Save image waits
+  for the full one.
+- **Group G, tokens (G1, G2 done; G3 not started, it waits for your yes):** 13 unused tokens
+  deleted; `SharedTokens.Hairline` and `SharedTokens.GroupRadius` behind the five 1dp line tokens
+  and the three 18dp group radii; the player's corner radii as `PlayerTokens`. Values unchanged.
+  **Check on the phone:** nothing should look different: a sheet, Settings, the search sheet,
+  Downloads, the player's pills, bubble, badge and level indicator.
+- **Batch 4 overall:** the phone checks, riskiest first: `docs/plans/BATCH4_CHECKS.md`. E6–E8,
+  F6 and G3 are in `docs/ROADMAP.md` "Batch 4 leftovers" (after the release). 299 JVM tests, green. Final R8 release build installed on the POCO (real
+  app). Not merged into `dev`. Open for you: E6–E8 (gesture merges, need your feel check per
+  caller), G3, F6, the drawer's small perf drift (group C).
 
 ## Open branches
 
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
+| `refactor` | dev | Audit batch 4 (see "Batch 4 on `refactor`"). | In progress, not merged |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |

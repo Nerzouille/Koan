@@ -197,7 +197,7 @@ private fun loadPreview(url: String): ImageBitmap? = runCatching {
     while (bounds.outWidth / (sample * 2) >= PREVIEW_MAX_PX) sample *= 2
     val raster = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
     // Android can't decode SVG (logos often are): the favicon rasterizer can.
-    val bitmap = raster ?: String(bytes).takeIf { "<svg" in it }?.let { SvgRasterizer.rasterize(it, PREVIEW_MAX_PX, url) }
+    val bitmap = raster ?: String(bytes).takeIf { "<svg" in it }?.let { SvgRasterizer.rasterize(it, PREVIEW_MAX_PX) }
     bitmap?.asImageBitmap()
 }.getOrNull()
 

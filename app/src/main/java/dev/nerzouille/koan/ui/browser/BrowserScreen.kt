@@ -1,30 +1,27 @@
 package dev.nerzouille.koan.ui.browser
 
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.boundsInRoot
-import dev.nerzouille.koan.ui.overview.LocalCardHero
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,31 +29,33 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.viewinterop.AndroidView
-import android.view.HapticFeedbackConstants
-import android.view.View
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.bar.barZone
+import dev.nerzouille.koan.ui.kit.KoanHaptics
+import dev.nerzouille.koan.ui.overview.LocalCardHero
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.PageTokens
 import dev.nerzouille.koan.ui.theme.PullTokens
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
-import mozilla.components.browser.state.selector.findTab
-import mozilla.components.lib.state.ext.flow
 import mozilla.components.browser.engine.gecko.GeckoEngineView
+import mozilla.components.browser.state.selector.findTab
 import mozilla.components.feature.session.SessionFeature
-import kotlin.math.roundToInt
+import mozilla.components.lib.state.ext.flow
 
 /** GeckoView's own keyboard listener (GeckoView.KEYBOARD_WINDOW_INSETS_LISTENER, GeckoView 157). */
 private const val GECKO_KEYBOARD_LISTENER = "KEYBOARD_WINDOW_INSETS_LISTENER"
@@ -221,7 +220,7 @@ fun BrowserScreen(
                 // the page only has to keep its touches (maps, canvases, pages with their own pull).
                 pageKeepsTouch = { engineView.getInputResultDetail().let { it.isTouchHandledByWebsite() || it.isTouchHandlingUnknown() } },
                 onRefresh = { currentId?.let { session.reload(it) } },
-                onTick = { view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK) },
+                onTick = { KoanHaptics.tick(view) },
             )
             .pointerInput(dock) {
                 // Watch (never consume) the fingers on the page: the dock settles when they lift.

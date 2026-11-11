@@ -1,12 +1,9 @@
 package dev.nerzouille.koan.ui.bar
 
-import androidx.compose.ui.graphics.lerp
-import dev.nerzouille.koan.ui.theme.KoanPalette
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -22,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -32,7 +28,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -40,26 +35,32 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.DeviceProfile
+import dev.nerzouille.koan.ui.kit.DragHandle
 import dev.nerzouille.koan.ui.theme.BarTokens
-import dev.nerzouille.koan.ui.theme.DrawerTokens
-import dev.nerzouille.koan.ui.theme.SheetTokens
-import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.BrandTokens
+import dev.nerzouille.koan.ui.theme.DrawerTokens
+import dev.nerzouille.koan.ui.theme.KoanPalette
+import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.SheetTokens
+import dev.nerzouille.koan.ui.topSafe
+import kotlin.math.max
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlin.math.max
-import dev.nerzouille.koan.ui.topSafe
 
 private const val OFFSCREEN_PX = 100_000
 
@@ -85,7 +86,8 @@ fun KoanBar(
     overview: () -> Float,
     bar: BarGestures,
     loading: Boolean,
-    loadProgress: Float,
+    /** The page load's progress 0…1, read only by the load line's animation (it changes every tick). */
+    loadProgress: () -> Float,
     /** Page view: how far the dock has slid down as the page scrolls (px); read in a layer. */
     dockHide: () -> Float,
     /** Page view: a field in the page has the keyboard, the dock is not drawn (read in a layer). */
@@ -118,88 +120,107 @@ fun KoanBar(
         bar.scrub.edgePx = BarTokens.ScrubEdge.toPx()
     }
     val gestures = Modifier.barGestures(bar, view)
+    // The switcher row shows in the overview, and over the page while scrubbing spaces.
+    fun row() = maxOf(overview(), bar.scrub.shown)
+    // The dock surface's top edge (draw only).
+    fun Density.dockTop(row: Float): Float =
+        (if (overviewOpen) drawer.sheetTop() else 0f) + BarTokens.SwitcherRowHeight.toPx() * (1f - row)
 
-    Column(
+    Box(
         modifier
             .fillMaxWidth()
             .graphicsLayer {
                 translationY = if (overviewOpen) 0f else dockHide()
                 // Its shadow would show above the keyboard.
                 alpha = if (!overviewOpen && dockAway()) 0f else 1f
-            }
-            .drawWithCache {
-                val normalDock = (if (palette.isDark) KoanPalette.Dark else KoanPalette.Light).Dock
-                val privateDock = (if (palette.isDark) KoanPalette.Night else KoanPalette.Dusk).Dock
-                val shadowPx = BarTokens.DockShadowHeight.toPx()
-                val noBlurShadowPx = DrawerTokens.NoBlurShadowHeight.toPx()
-                val shimmerPx = BarTokens.ShimmerWidth.toPx()
-                onDrawBehind {
-                    val o = overview()
-                    val d = drawer.progress
-                    val sheetTop = if (overviewOpen) drawer.sheetTop() else 0f
-                    // The switcher row shows in the overview, and over the page while scrubbing spaces.
-                    val row = maxOf(o, bar.scrub.shown)
-                    val top = sheetTop + BarTokens.SwitcherRowHeight.toPx() * (1f - row)
-                    // Square under a page, rounded in the overview, a little more as the drawer.
-                    val r = BarTokens.DockRadius.toPx() * row * (1f - d) + DrawerTokens.TopRadius.toPx() * d
-                    // Soft shadow cast upward over the content (page or cards), attached to the
-                    // surface's edge: no hairline between them. It wraps the rounded corners.
-                    drawRect(
-                        Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DockShadow, startY = top - shadowPx, endY = top + r),
-                        topLeft = Offset(0f, top - shadowPx),
-                        size = Size(size.width, shadowPx + r),
-                    )
-                    // No blur behind the drawer (Android 11): a taller, softer shadow sets it apart instead.
-                    if (!DeviceProfile.liveBlur && d > 0.01f) {
-                        drawRect(
-                            Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DrawerShadowNoBlur.copy(alpha = palette.DrawerShadowNoBlur.alpha * d), startY = top - noBlurShadowPx, endY = top + r),
-                            topLeft = Offset(0f, top - noBlurShadowPx),
-                            size = Size(size.width, noBlurShadowPx + r),
-                        )
-                    }
-                    val mix = privateMix()
-                    drawPath(dockPath(top, r), if (mix in 0f..1f) lerp(normalDock, privateDock, mix) else palette.Dock)
-                    // Page load line on the top edge, page view only.
-                    val a = line.alpha.value * (1f - row)
-                    if (a > 0.01f) drawLoadLine(top, line, a, shimmerPx)
-                }
-            }
-            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
-            .padding(bottom = BarTokens.BottomMargin),
+            },
     ) {
-        if (overviewOpen) {
-            drawerContent(
-                (if (drawer.open) Modifier.barGestures(bar, view, drawerArea = true) else Modifier).layout { measurable, constraints ->
-                    val p = measurable.measure(constraints)
-                    layout(p.width, p.height) {
-                        // Fully closed, the (invisible) sheet still takes its height so drags know
-                        // their distance, but sits off-screen: its pinned list must never catch the
-                        // touches meant for the stack behind it. Placement only, no recomposition.
-                        val shown = drawer.open || drawer.height > 0f
-                        p.place(if (shown) 0 else -OFFSCREEN_PX, 0)
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .drawWithCache {
+                    val normalDock = (if (palette.isDark) KoanPalette.Dark else KoanPalette.Light).Dock
+                    val privateDock = (if (palette.isDark) KoanPalette.Night else KoanPalette.Dusk).Dock
+                    val shadowPx = BarTokens.DockShadowHeight.toPx()
+                    val noBlurShadowPx = DrawerTokens.NoBlurShadowHeight.toPx()
+                    val path = Path()
+                    onDrawBehind {
+                        val d = drawer.progress
+                        val row = row()
+                        val top = dockTop(row)
+                        // Square under a page, rounded in the overview, a little more as the drawer.
+                        val r = BarTokens.DockRadius.toPx() * row * (1f - d) + DrawerTokens.TopRadius.toPx() * d
+                        // Soft shadow cast upward over the content (page or cards), attached to the
+                        // surface's edge: no hairline between them. It wraps the rounded corners.
+                        drawRect(
+                            Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DockShadow, startY = top - shadowPx, endY = top + r),
+                            topLeft = Offset(0f, top - shadowPx),
+                            size = Size(size.width, shadowPx + r),
+                        )
+                        // No blur behind the drawer (Android 11): a taller, softer shadow sets it apart instead.
+                        if (!DeviceProfile.liveBlur && d > 0.01f) {
+                            drawRect(
+                                Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DrawerShadowNoBlur.copy(alpha = palette.DrawerShadowNoBlur.alpha * d), startY = top - noBlurShadowPx, endY = top + r),
+                                topLeft = Offset(0f, top - noBlurShadowPx),
+                                size = Size(size.width, noBlurShadowPx + r),
+                            )
+                        }
+                        val mix = privateMix()
+                        drawPath(dockPath(path, top, r), if (mix in 0f..1f) lerp(normalDock, privateDock, mix) else palette.Dock)
+                    }
+                }
+                .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
+                .padding(bottom = BarTokens.BottomMargin),
+        ) {
+            if (overviewOpen) {
+                drawerContent(
+                    (if (drawer.open) Modifier.barGestures(bar, view, drawerArea = true) else Modifier).layout { measurable, constraints ->
+                        val p = measurable.measure(constraints)
+                        layout(p.width, p.height) {
+                            // Fully closed, the (invisible) sheet still takes its height so drags know
+                            // their distance, but sits off-screen: its pinned list must never catch the
+                            // touches meant for the stack behind it. Placement only, no recomposition.
+                            val shown = drawer.open || drawer.height > 0f
+                            p.place(if (shown) 0 else -OFFSCREEN_PX, 0)
+                        }
+                    },
+                )
+            }
+            Column {
+                Box(
+                    (if (overviewOpen) gestures else Modifier)
+                        .height(BarTokens.SwitcherRowHeight)
+                        .graphicsLayer {
+                            val p = maxOf(overview(), bar.scrub.shown)
+                            alpha = ((p - 0.35f) / 0.65f).coerceIn(0f, 1f)
+                            compositingStrategy = CompositingStrategy.ModulateAlpha
+                            translationY = (1f - p) * BarTokens.MorphSlide.toPx()
+                        },
+                ) {
+                    switcher(Modifier.fillMaxSize())
+                    if (overviewOpen) {
+                        DrawerHandle(onClick = drawer::toggle, modifier = Modifier.align(Alignment.TopCenter))
+                    }
+                }
+                // The same handler instance in both screens: a drag that opens the overview keeps going.
+                address(Modifier.height(BarTokens.AddressRowHeight).then(gestures))
+            }
+        }
+        // Page load line on the dock's top edge, page view only. Its own layer: the shimmer runs every
+        // frame of a load and must not re-record the dock and its rows.
+        Box(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer()
+                .drawWithCache {
+                    val brushes = LoadLineBrushes(size.width, BarTokens.ShimmerWidth.toPx())
+                    onDrawBehind {
+                        val row = row()
+                        val a = line.alpha.value * (1f - row)
+                        if (a > 0.01f) drawLoadLine(dockTop(row), line, a, brushes)
                     }
                 },
-            )
-        }
-        Column {
-            Box(
-                (if (overviewOpen) gestures else Modifier)
-                    .height(BarTokens.SwitcherRowHeight)
-                    .graphicsLayer {
-                        val p = maxOf(overview(), bar.scrub.shown)
-                        alpha = ((p - 0.35f) / 0.65f).coerceIn(0f, 1f)
-                        compositingStrategy = CompositingStrategy.ModulateAlpha
-                        translationY = (1f - p) * BarTokens.MorphSlide.toPx()
-                    },
-            ) {
-                switcher(Modifier.fillMaxSize())
-                if (overviewOpen) {
-                    DrawerHandle(onClick = drawer::toggle, modifier = Modifier.align(Alignment.TopCenter))
-                }
-            }
-            // The same handler instance in both screens: a drag that opens the overview keeps going.
-            address(Modifier.height(BarTokens.AddressRowHeight).then(gestures))
-        }
+        )
     }
 }
 
@@ -212,17 +233,12 @@ private fun DrawerHandle(onClick: () -> Unit, modifier: Modifier = Modifier) {
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
         contentAlignment = Alignment.TopCenter,
     ) {
-        Box(
-            Modifier
-                .padding(top = BarTokens.HandleTop)
-                .size(BarTokens.HandleWidth, BarTokens.HandleHeight)
-                .clip(CircleShape)
-                .background(KoanTheme.colors.DrawerHandle),
-        )
+        DragHandle()
     }
 }
 
-private fun DrawScope.dockPath(top: Float, r: Float) = Path().apply {
+private fun DrawScope.dockPath(path: Path, top: Float, r: Float) = path.apply {
+    rewind()
     val radius = CornerRadius(r)
     addRoundRect(
         RoundRect(
@@ -247,7 +263,7 @@ private val ProgressEasing = CubicBezierEasing(0.2f, 0.8f, 0.3f, 1f)
  * progress, shimmers while waiting, and on completion runs to the end and fades out.
  */
 @Composable
-private fun rememberLoadLine(loading: Boolean, progress: Float): LoadLine {
+private fun rememberLoadLine(loading: Boolean, progress: () -> Float): LoadLine {
     val line = remember { LoadLine() }
     val target by rememberUpdatedState(progress)
     LaunchedEffect(loading) {
@@ -260,7 +276,7 @@ private fun rememberLoadLine(loading: Boolean, progress: Float): LoadLine {
                     line.shimmer.animateTo(1f, tween(BarTokens.SHIMMER_MS, easing = LinearEasing))
                 }
             }
-            snapshotFlow { target }.collectLatest { p ->
+            snapshotFlow { target() }.collectLatest { p ->
                 val to = max(p, BarTokens.PROGRESS_START).coerceAtLeast(line.progress.value)
                 line.progress.animateTo(to, tween(BarTokens.PROGRESS_MS, easing = ProgressEasing))
             }
@@ -272,28 +288,35 @@ private fun rememberLoadLine(loading: Boolean, progress: Float): LoadLine {
     return line
 }
 
+/** The load line's brushes, built once per size: the full-width brand gradient and the shimmer streak. */
+private class LoadLineBrushes(val width: Float, val shimmerPx: Float) {
+    val brand = Brush.horizontalGradient(BrandTokens.Colors, startX = 0f, endX = width)
+    val shimmer = Brush.horizontalGradient(
+        listOf(Color.Transparent, Color.White.copy(alpha = BarTokens.SHIMMER_ALPHA), Color.Transparent),
+        startX = 0f, endX = shimmerPx,
+    )
+}
+
 /** The brand gradient: Koan is working. It spans the filled part, so the blue end leads. */
-private fun DrawScope.drawLoadLine(top: Float, line: LoadLine, alpha: Float, shimmerPx: Float) {
+private fun DrawScope.drawLoadLine(top: Float, line: LoadLine, alpha: Float, brushes: LoadLineBrushes) {
     val w = size.width * line.progress.value
-    if (w < 1f) return
+    if (w < 1f || brushes.width <= 0f) return
     val h = BarTokens.ProgressHeight.toPx()
     val glow = BarTokens.ProgressGlow.toPx()
-    val brush = Brush.horizontalGradient(BrandTokens.Colors, startX = 0f, endX = w)
+    // The gradient over the filled part: the full-width brush squeezed to w (no new shader per frame).
     // A soft glow: two wider, fainter passes of the same gradient under the line.
-    drawRect(brush, topLeft = Offset(0f, top + h / 2f - glow / 2f), size = Size(w, glow), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA * 0.35f)
-    drawRect(brush, topLeft = Offset(0f, top + h / 2f - glow / 4f), size = Size(w, glow / 2f), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA)
-    drawRect(brush, topLeft = Offset(0f, top), size = Size(w, h), alpha = alpha)
+    scale(scaleX = w / brushes.width, scaleY = 1f, pivot = Offset.Zero) {
+        val full = brushes.width
+        drawRect(brushes.brand, topLeft = Offset(0f, top + h / 2f - glow / 2f), size = Size(full, glow), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA * 0.35f)
+        drawRect(brushes.brand, topLeft = Offset(0f, top + h / 2f - glow / 4f), size = Size(full, glow / 2f), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA)
+        drawRect(brushes.brand, topLeft = Offset(0f, top), size = Size(full, h), alpha = alpha)
+    }
     // Shimmer: a lighter streak sweeping the filled part.
+    val shimmerPx = brushes.shimmerPx
     val x = line.shimmer.value * (w + shimmerPx) - shimmerPx
     clipRect(right = w) {
-        drawRect(
-            Brush.horizontalGradient(
-                listOf(Color.Transparent, Color.White.copy(alpha = BarTokens.SHIMMER_ALPHA), Color.Transparent),
-                startX = x, endX = x + shimmerPx,
-            ),
-            topLeft = Offset(x, top),
-            size = Size(shimmerPx, h),
-            alpha = alpha,
-        )
+        translate(left = x) {
+            drawRect(brushes.shimmer, topLeft = Offset(0f, top), size = Size(shimmerPx, h), alpha = alpha)
+        }
     }
 }

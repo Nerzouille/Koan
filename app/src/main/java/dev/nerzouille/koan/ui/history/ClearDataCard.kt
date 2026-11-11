@@ -3,7 +3,6 @@ package dev.nerzouille.koan.ui.history
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,12 +11,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import dev.nerzouille.koan.ui.kit.CardChoices
-import dev.nerzouille.koan.ui.kit.KoanToggle
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
-import dev.nerzouille.koan.ui.sheet.SheetRow
+import dev.nerzouille.koan.ui.sheet.SheetToggleRow
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -37,17 +34,11 @@ fun ClearDataCard(interactive: Boolean, onClear: (ClearChoice) -> Unit, onCancel
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
         Text("Clear browsing data?", color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize))
         SheetGroup {
-            SheetRow(null, "History", interactive, subtitle = "Desktop history is only hidden here", onClick = { history = !history }) {
-                KoanToggle(history, if (interactive) ({ history = it }) else null)
-            }
+            SheetToggleRow(null, "History", interactive, checked = history, onChange = { history = it }, subtitle = "Desktop history is only hidden here")
             SheetDivider()
-            SheetRow(null, "Cookies and site data", interactive, subtitle = "Signs you out of most sites", onClick = { cookies = !cookies }) {
-                KoanToggle(cookies, if (interactive) ({ cookies = it }) else null)
-            }
+            SheetToggleRow(null, "Cookies and site data", interactive, checked = cookies, onChange = { cookies = it }, subtitle = "Signs you out of most sites")
             SheetDivider()
-            SheetRow(null, "Cached images and files", interactive, onClick = { cache = !cache }) {
-                KoanToggle(cache, if (interactive) ({ cache = it }) else null)
-            }
+            SheetToggleRow(null, "Cached images and files", interactive, checked = cache, onChange = { cache = it })
         }
         Spacer(Modifier.height(SheetTokens.Gap / 2))
         CardChoices(

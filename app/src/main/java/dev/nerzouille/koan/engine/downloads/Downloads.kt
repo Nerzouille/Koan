@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -43,25 +44,53 @@ class Downloads(
     }
 
     /** Deletes the file and drops it from the list. */
-    fun delete(download: DownloadState) {
-        files.deleteMediaFile(context.contentResolver, download.fileName, download.directoryPath)
-        useCases.removeDownload(download.id)
+    /**
+     * The file, then its row; the row stays when the file couldn't be deleted ([deleteFailed] then
+     * says which). False in that case.
+     */
+    fun delete(download: DownloadState): Boolean {
+        val name = download.fileName
+        val removed = DownloadRemoval.deleteFileThenRow(
+            deleteFile = { files.deleteMediaFile(context.contentResolver, name, download.directoryPath) },
+            fileStillThere = { name != null && files.fileExists(download.directoryPath, name) },
+            removeRow = { useCases.removeDownload(download.id) },
+        )
+        if (!removed) {
+            // Never the file name in the log (CLAUDE.md: no personal data).
+            android.util.Log.w("KoanDownloads", "delete failed: the file is still there")
+            deleteFailed.tryEmit(name ?: "the file")
+        }
+        return removed
     }
+
+    /** A file that couldn't be deleted (its name, for the toast). Its row is back in the list. */
+    val deleteFailed = MutableSharedFlow<String>(extraBufferCapacity = 4)
 
     /**
      * Hidden or deleted from the page: gone from the list at once. Only once its Undo had its
      * chance ([restore] in time keeps it untouched) is it dropped from the store, and with
      * [deleteFile] its file deleted, so Undo never has to re-add a download (which would start it
-     * again) or bring a file back. If Koan is killed meanwhile, nothing happens: the file stays.
+     * again) or bring a file back. That moment is when its Undo toast leaves the screen ([commit],
+     * the toast's onGone); a long timer is only a safety net. If Koan is killed meanwhile, nothing
+     * happens: the file stays.
      */
     fun removeLater(download: DownloadState, deleteFile: Boolean) {
         pending[download.id]?.cancel()
         _hidden.value = _hidden.value + download.id
+        undo.hold(download.id)
+        removals[download.id] = { if (deleteFile) delete(download) else useCases.removeDownload(download.id) }
         pending[download.id] = scope.launch {
-            delay(UNDO_WINDOW_MS)
-            if (deleteFile) delete(download) else useCases.removeDownload(download.id)
-            pending.remove(download.id)
-            _hidden.value = _hidden.value - download.id
+            delay(SAFETY_MS)
+            commit(listOf(download))
+        }
+    }
+
+    /** Their Undo toast is gone: the ones not restored are removed now. */
+    fun commit(downloads: List<DownloadState>) {
+        for (id in undo.commit(downloads.map { it.id })) {
+            pending.remove(id)?.cancel()
+            removals.remove(id)?.invoke()
+            _hidden.value = _hidden.value - id
         }
     }
 
@@ -78,6 +107,8 @@ class Downloads(
     }
 
     fun restore(download: DownloadState) {
+        undo.cancel(download.id)
+        removals.remove(download.id)
         pending.remove(download.id)?.cancel()
         _hidden.value = _hidden.value - download.id
     }
@@ -86,6 +117,8 @@ class Downloads(
     val hidden: StateFlow<Set<String>> get() = _hidden
     private val _hidden = MutableStateFlow(emptySet<String>())
     private val pending = mutableMapOf<String, Job>()
+    private val undo = PendingDeletes<String>()
+    private val removals = mutableMapOf<String, () -> Unit>()
     private val scope = dev.nerzouille.koan.engine.KoanScopes.guarded("downloads", kotlinx.coroutines.Dispatchers.Main)
 
     /** Clears the list; the files stay where they are. */
@@ -106,8 +139,8 @@ class Downloads(
     }
 
     private companion object {
-        /** The toast's time on screen and its way out: Undo can't come later. */
-        const val UNDO_WINDOW_MS = 4_000L
+        /** If the Undo toast never says it's gone (it was never shown), the removal still happens. */
+        const val SAFETY_MS = 30_000L
 
         /** The id extra the service's receiver reads (AbstractFetchDownloadService). */
         const val EXTRA_DOWNLOAD_ID = "downloadId"

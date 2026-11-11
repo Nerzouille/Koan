@@ -1,7 +1,5 @@
 package dev.nerzouille.koan.ui.privacy
 
-import android.content.Context
-import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -150,9 +148,5 @@ class PrivateFlip(private val scope: CoroutineScope, initial: Boolean) {
 
         /** The star clock's length: the leftmost star's appearance ends here. */
         const val END_MS = (PrivateTokens.STARS_FROM_MS + PrivateTokens.STARS_SPREAD_MS + PrivateTokens.STAR_IN_MS).toFloat()
-
-        /** Animations off in the system settings. */
-        fun animationsOff(context: Context): Boolean =
-            Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     }
 }

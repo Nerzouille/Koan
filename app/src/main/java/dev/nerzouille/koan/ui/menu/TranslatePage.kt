@@ -1,16 +1,17 @@
 package dev.nerzouille.koan.ui.menu
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,26 +35,29 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.kit.KoanField
-import androidx.activity.compose.BackHandler
-import mozilla.components.concept.engine.translate.ModelState
+import dev.nerzouille.koan.ui.kit.KoanHaptics
+import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.kit.SecondaryButton
+import dev.nerzouille.koan.ui.kit.TextLink
+import dev.nerzouille.koan.ui.sheet.RowChevron
+import dev.nerzouille.koan.ui.sheet.RowValue
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.sheet.SheetPageScope
 import dev.nerzouille.koan.ui.sheet.SheetRow
-import dev.nerzouille.koan.ui.sheet.RowValue
-import dev.nerzouille.koan.ui.sheet.RowChevron
+import dev.nerzouille.koan.ui.sheet.SheetToggleRow
 import dev.nerzouille.koan.ui.theme.BrandHorizontal
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.TranslateTokens
 import java.util.Locale
+import mozilla.components.concept.engine.translate.ModelState
 
 /** A language Firefox Translations offers: its code ("zh", "fr") and the name to show. */
 @Immutable
@@ -180,17 +183,11 @@ fun TranslatePage(ui: TranslateUi, target: String, actions: TranslateActions, sc
             )
         }
         SheetGroup {
-            SheetRow(null, "Always translate ${name(from, ui.from)}", on, onClick = { actions.alwaysLanguage(!ui.alwaysLanguage) }) {
-                dev.nerzouille.koan.ui.kit.KoanToggle(ui.alwaysLanguage, if (on) actions.alwaysLanguage else null)
-            }
+            SheetToggleRow(null, "Always translate ${name(from, ui.from)}", on, checked = ui.alwaysLanguage, onChange = actions.alwaysLanguage)
             SheetDivider()
-            SheetRow(null, "Never translate ${name(from, ui.from)}", on, onClick = { actions.neverLanguage(!ui.neverLanguage) }) {
-                dev.nerzouille.koan.ui.kit.KoanToggle(ui.neverLanguage, if (on) actions.neverLanguage else null)
-            }
+            SheetToggleRow(null, "Never translate ${name(from, ui.from)}", on, checked = ui.neverLanguage, onChange = actions.neverLanguage)
             SheetDivider()
-            SheetRow(null, "Never translate this site", on, onClick = { actions.neverSite(!ui.neverSite) }) {
-                dev.nerzouille.koan.ui.kit.KoanToggle(ui.neverSite, if (on) actions.neverSite else null)
-            }
+            SheetToggleRow(null, "Never translate this site", on, checked = ui.neverSite, onChange = actions.neverSite)
         }
     }
 }
@@ -215,6 +212,7 @@ private fun LanguagePicker(
     onPick: (String) -> Unit,
     onDelete: (String) -> Unit = {},
 ) {
+    val view = LocalView.current
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -249,7 +247,7 @@ private fun LanguagePicker(
                 val onPhone = lang.code in downloaded
                 SheetRow(
                     null, lang.name, interactive,
-                    modifier = if (interactive) Modifier.combinedClickable(onClick = { onPick(lang.code) }, onLongClick = if (onPhone) ({ onDelete(lang.code) }) else null) else Modifier,
+                    modifier = if (interactive) Modifier.combinedClickable(onClick = { onPick(lang.code) }, onLongClick = if (onPhone) ({ KoanHaptics.hold(view); onDelete(lang.code) }) else null) else Modifier,
                 ) {
                     when {
                         lang.code == current -> Icon(KoanIcons.Check, null, tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.RowGlyph))
@@ -334,14 +332,8 @@ fun TranslateOffer(
 }
 
 @Composable
-private fun QuietLink(text: String, onClick: () -> Unit) {
-    Text(
-        text,
-        color = KoanTheme.colors.TextSecondary,
-        fontSize = SheetTokens.CardTextSize,
-        modifier = Modifier.clip(CircleShape).clickable(onClick = onClick).padding(horizontal = SheetTokens.Gap / 2, vertical = SheetTokens.Gap / 2),
-    )
-}
+private fun QuietLink(text: String, onClick: () -> Unit) =
+    TextLink(text, onClick, SheetTokens.CardTextSize, PaddingValues(horizontal = SheetTokens.Gap / 2, vertical = SheetTokens.Gap / 2))
 
 private fun sizeLabel(bytes: Long): String = when {
     bytes >= 1L shl 20 -> "%.0f MB".format(bytes / (1L shl 20).toDouble())

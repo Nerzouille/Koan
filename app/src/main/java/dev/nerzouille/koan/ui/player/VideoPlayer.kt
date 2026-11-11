@@ -6,11 +6,9 @@ import android.media.AudioManager
 import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
-import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -25,10 +23,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,12 +50,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.scale
@@ -70,14 +67,14 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,12 +83,18 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanHaptics
+import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.blockTouches
+import dev.nerzouille.koan.ui.kit.pressScale
+import dev.nerzouille.koan.ui.kit.rememberPresence
+import dev.nerzouille.koan.ui.theme.Motion
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.math.abs
-import kotlin.math.roundToInt
 
 /** The controls take touches only while shown (they are composed while fading out too). */
 internal val LocalControlsLive = compositionLocalOf { true }
@@ -138,8 +141,12 @@ fun VideoPlayer(
     var locked by remember { mutableStateOf(false) }
     var unlockShown by remember { mutableStateOf(false) }
     var unlockSerial by remember { mutableIntStateOf(0) }
-    var scrub by remember { mutableStateOf<Float?>(null) } // fraction while the bar is pressed
+    // The bar pressed: composition reads only this flag; the fraction and the finger's x move every
+    // finger event and are read in draw / layout lambdas and one small time text.
+    var scrubbing by remember { mutableStateOf(false) }
+    val scrubF = remember { mutableFloatStateOf(0f) } // fraction while the bar is pressed
     var scrubX by remember { mutableFloatStateOf(0f) } // finger x in this layer
+    val mistBlurs = remember(density) { mistBlurs(density.density) }
     var boost by remember { mutableStateOf(false) } // long press 2×
     var seekSide by remember { mutableIntStateOf(0) } // -1 left, 1 right, 0 none
     var seekSteps by remember { mutableIntStateOf(0) }
@@ -149,6 +156,7 @@ fun VideoPlayer(
     var levelSerial by remember { mutableIntStateOf(0) }
     val levelTarget = remember { mutableFloatStateOf(0f) }
     val levelShown = remember { Animatable(0f) }
+    val levelOn by remember { derivedStateOf { levelShown.value > 0f } }
     val levelAnim = remember { Animatable(0f) }
 
     fun touched() {
@@ -175,8 +183,8 @@ fun VideoPlayer(
         }
     }
     // §5 controls.autoHide
-    LaunchedEffect(shown, lastTouch, state.playing, menuOpen, scrub != null, locked) {
-        if (!shown || locked || !state.playing || menuOpen || scrub != null) return@LaunchedEffect
+    LaunchedEffect(shown, lastTouch, state.playing, menuOpen, scrubbing, locked) {
+        if (!shown || locked || !state.playing || menuOpen || scrubbing) return@LaunchedEffect
         delay(PlayerTokens.AUTO_HIDE_MS)
         shown = false
     }
@@ -246,7 +254,7 @@ fun VideoPlayer(
     }
     LaunchedEffect(levelSerial) {
         if (levelKind == null) return@LaunchedEffect
-        if (noMotion) levelShown.snapTo(1f) else levelShown.animateTo(1f, tween(150))
+        if (noMotion) levelShown.snapTo(1f) else levelShown.animateTo(1f, Motion.Fade)
     }
     LaunchedEffect(Unit) {
         androidx.compose.runtime.snapshotFlow { levelTarget.floatValue }.collect { t ->
@@ -256,20 +264,21 @@ fun VideoPlayer(
     LaunchedEffect(levelDown, levelSerial) {
         if (levelDown || levelKind == null) return@LaunchedEffect
         delay(PlayerTokens.LEVEL_HOLD_MS)
-        if (noMotion) levelShown.snapTo(0f) else levelShown.animateTo(0f, tween(200))
+        if (noMotion) levelShown.snapTo(0f) else levelShown.animateTo(0f, Motion.FadeSlow)
         levelKind = null
     }
     val levelScale by animateFloatAsState(if (levelDown) 1.06f else 1f, PlayerTokens.LevelScale, label = "levelScale")
 
     // ---- double-tap seek feedback (§5 seek.glow) ----
     val glow = remember { Animatable(0f) }
+    val glowOn by remember { derivedStateOf { glow.value > 0f } }
     val pulse = remember { Animatable(1f) }
     val turn = remember { Animatable(0f) }
     LaunchedEffect(seekSerial) {
         if (seekSide == 0) return@LaunchedEffect
         launch { pulse.snapTo(0.96f); pulse.animateTo(1f, PlayerTokens.GlowPulse) }
         launch { turn.snapTo(30f * seekSide); turn.animateTo(0f, PlayerTokens.GlyphTurn) }
-        if (noMotion) glow.snapTo(1f) else glow.animateTo(1f, tween(120))
+        if (noMotion) glow.snapTo(1f) else glow.animateTo(1f, Motion.FadeQuick)
         delay(PlayerTokens.GLOW_HOLD_MS)
         if (noMotion) glow.snapTo(0f) else glow.animateTo(0f, tween(400, easing = LinearOutSlowInEasing))
         seekSide = 0
@@ -349,7 +358,7 @@ fun VideoPlayer(
                                 if (mode == 0) {
                                     mode = 3
                                     boost = true
-                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    KoanHaptics.hold(view)
                                     ctl.value.rate(2.0)
                                 }
                             }
@@ -393,7 +402,7 @@ fun VideoPlayer(
                                     levelTarget.floatValue = f
                                     if (levelKind == true) setVolume(f) else setBrightness(f)
                                     val edge = if (f <= 0f) 0 else if (f >= 1f) 1 else -1
-                                    if (edge >= 0 && edge != lastLevelTick) view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    if (edge >= 0 && edge != lastLevelTick) KoanHaptics.tick(view)
                                     lastLevelTick = edge
                                 }
                                 2 -> {
@@ -435,7 +444,7 @@ fun VideoPlayer(
                                         seekSteps++
                                         seekSerial++
                                         lastSeekAt = now
-                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
                                     // The second tap of a pair on a side: a seek, and the first tap's toggle undone.
@@ -447,7 +456,7 @@ fun VideoPlayer(
                                         seekSteps = 1
                                         seekSerial++
                                         lastSeekAt = now
-                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        KoanHaptics.tick(view)
                                         seekBy(live.value, ctl.value, zone)
                                     }
                                     else -> {
@@ -482,7 +491,7 @@ fun VideoPlayer(
         )
 
         // ---- seek glow and label ----
-        if (seekSide != 0 || glow.value > 0f) {
+        if (seekSide != 0 || glowOn) {
             val sideNow = if (seekSide != 0) seekSide else 1
             Canvas(Modifier.fillMaxSize().graphicsLayer { alpha = glow.value; scaleX = pulse.value; scaleY = pulse.value }) {
                 val boxW = size.width * 0.55f
@@ -519,7 +528,7 @@ fun VideoPlayer(
 
         CompositionLocalProvider(LocalControlsLive provides (shown && !hidden)) {
             val group: GraphicsLayerScope.(TransformOrigin, Float) -> Unit = { origin, inward ->
-                applyMist(mist.value, settle.value, entering, origin, inward * PlayerTokens.MistShift.toPx(), noMotion)
+                applyMist(mist.value, settle.value, entering, origin, inward * PlayerTokens.MistShift.toPx(), noMotion, mistBlurs)
                 alpha *= hiddenAlpha(hidden) * (1f - levelShown.value)
             }
             val buttonsLive = shown && !hidden
@@ -581,7 +590,7 @@ fun VideoPlayer(
 
             if (!locked) {
                 // ---- centre group (hidden while the bar is pressed) ----
-                val centreOut by animateFloatAsState(if (scrub != null) 0f else 1f, tween(160), label = "centreOut")
+                val centreOut by animateFloatAsState(if (scrubbing) 0f else 1f, Motion.Fade, label = "centreOut")
                 if (!spinner) {
                     CentreGroup(
                         state = state,
@@ -605,9 +614,12 @@ fun VideoPlayer(
                     mode = mode,
                     frameNow = { frameNow.longValue },
                     clockNow = clockNow,
-                    scrub = scrub,
+                    scrubbing = scrubbing,
+                    scrubFraction = { scrubF.floatValue },
                     onScrub = { f, x ->
-                        scrub = f
+                        scrubbing = f != null
+                        // Released: the fraction goes back to 0, as the bubble showed it on its way out.
+                        scrubF.floatValue = f ?: 0f
                         if (f != null) scrubX = x
                         touched()
                     },
@@ -622,38 +634,44 @@ fun VideoPlayer(
                 )
 
                 // ---- time bubble (while dragging the bar) ----
-                val bubble by animateFloatAsState(if (scrub != null) 1f else 0f, tween(if (scrub != null) 120 else 160), label = "bubble")
-                if (bubble > 0f) {
-                    val f = scrub ?: 0f
+                val bubble = rememberPresence(scrubbing, enter = Motion.FadeQuick, exit = Motion.Fade, startShown = true)
+                if (bubble.composed) {
                     val pillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
                     val half = PlayerTokens.BubbleSize.width / 2
-                    val x = with(density) { scrubX.toDp() }.coerceIn(side + half, maxWidth - side - half)
+                    val y = -(bottomInset + pillH + PlayerTokens.BubbleGap)
+                    val minX = side + half
+                    val maxX = maxWidth - side - half
                     Box(
                         Modifier
                             .align(Alignment.BottomStart)
-                            .offset(x = x - half, y = -(bottomInset + pillH + PlayerTokens.BubbleGap))
+                            // Follows the finger in layout only (no recomposition per move).
+                            .offset {
+                                val x = scrubX.coerceIn(minX.toPx(), maxX.toPx().coerceAtLeast(minX.toPx()))
+                                IntOffset((x - half.toPx()).roundToInt(), y.roundToPx())
+                            }
                             .size(PlayerTokens.BubbleSize.width, PlayerTokens.BubbleSize.height)
-                            .graphicsLayer { alpha = bubble }
-                            .playerPanel(RoundedCornerShape(18.dp)),
+                            .graphicsLayer { alpha = bubble.progress }
+                            .playerPanel(RoundedCornerShape(PlayerTokens.BubbleRadius)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(clock(f * state.duration), style = playerText(15.sp, FontWeight.SemiBold))
+                        ScrubTime({ scrubF.floatValue }, state.duration, playerText(15.sp, FontWeight.SemiBold))
                     }
                 }
 
                 // ---- ⋯ menu ----
-                val menuIn by animateFloatAsState(if (menuOpen) 1f else 0f, tween(if (menuOpen) 160 else 120), label = "menu")
-                if (menuIn > 0f) {
+                val menuIn = rememberPresence(menuOpen, enter = Motion.Fade, exit = Motion.FadeQuick, startShown = true)
+                if (menuIn.composed) {
+                    val rows = remember(menuRows) { menuRows.map { row -> MenuRow(row.icon, row.label, row.destructive) { menuOpen = false; row.onClick() } } }
                     PlayerMenu(
                         rate = state.rate,
                         onRate = { r -> controls.rate(r); touched() },
-                        rows = menuRows.map { row -> MenuRow(row.icon, row.label, row.destructive) { menuOpen = false; row.onClick() } },
+                        rows = rows,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(end = endInset, top = topInset + PlayerTokens.RoundPill + 8.dp)
                             .graphicsLayer {
-                                alpha = menuIn
-                                val s = 0.92f + 0.08f * menuIn
+                                alpha = menuIn.progress
+                                val s = 0.92f + 0.08f * menuIn.progress
                                 scaleX = s
                                 scaleY = s
                                 transformOrigin = TransformOrigin(1f - (PlayerTokens.RoundPill / 2 / PlayerTokens.MenuWidth), 0f)
@@ -665,21 +683,21 @@ fun VideoPlayer(
         }
 
         // ---- buffering spinner (stays alone when the controls hide) ----
-        val spin by animateFloatAsState(if (spinner) 1f else 0f, tween(200), label = "spinner")
-        if (spin > 0f && !locked) {
-            PlayerSpinner(PlayerTokens.Spinner, PlayerTokens.SpinnerStroke, modifier = Modifier.align(Alignment.Center).graphicsLayer { alpha = spin * hiddenAlpha(hidden) })
+        val spin = rememberPresence(spinner, Motion.FadeSlow, startShown = true)
+        if (spin.composed && !locked) {
+            PlayerSpinner(PlayerTokens.Spinner, PlayerTokens.SpinnerStroke, modifier = Modifier.align(Alignment.Center).graphicsLayer { alpha = spin.progress * hiddenAlpha(hidden) })
         }
 
         // ---- long-press 2× badge ----
-        val badge by animateFloatAsState(if (boost) 1f else 0f, tween(if (boost) 200 else 160), label = "badge")
-        if (badge > 0f) {
+        val badge = rememberPresence(boost, enter = Motion.FadeSlow, exit = Motion.Fade, startShown = true)
+        if (badge.composed) {
             Row(
                 Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = topInset + 6.dp)
-                    .graphicsLayer { alpha = badge }
+                    .graphicsLayer { alpha = badge.progress }
                     .height(PlayerTokens.BadgeHeight)
-                    .playerPanel(RoundedCornerShape(16.dp))
+                    .playerPanel(RoundedCornerShape(PlayerTokens.BadgeRadius))
                     .padding(start = 14.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -691,7 +709,7 @@ fun VideoPlayer(
 
         // ---- brightness / volume level ----
         val kind = levelKind
-        if (kind != null || levelShown.value > 0f) {
+        if (kind != null || levelOn) {
             val right = kind ?: true
             val edge = if (landscape) PlayerTokens.LevelEdgeLandscape else PlayerTokens.LevelEdgePortrait
             LevelIndicator(
@@ -721,7 +739,7 @@ fun VideoPlayer(
 private fun hiddenAlpha(hidden: Boolean) = if (hidden) 0f else 1f
 
 /** §5 controls.in / out on one group: alpha, blur (Android 12+), scale, a short slide from inward. */
-private fun GraphicsLayerScope.applyMist(m: Float, settle: Float, entering: Boolean, origin: TransformOrigin, inwardPx: Float, noMotion: Boolean) {
+private fun GraphicsLayerScope.applyMist(m: Float, settle: Float, entering: Boolean, origin: TransformOrigin, inwardPx: Float, noMotion: Boolean, blurs: Array<RenderEffect?>) {
     alpha = m
     transformOrigin = origin
     if (noMotion) return
@@ -738,9 +756,35 @@ private fun GraphicsLayerScope.applyMist(m: Float, settle: Float, entering: Bool
     scaleX = s
     scaleY = s
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val r = blurDp * density
-        renderEffect = if (r > 0.5f && m < 0.999f) BlurEffect(r, r, TileMode.Decal) else null
+        // RenderEffects are immutable: one per 0.5dp step, reused every frame (no new effect per frame).
+        renderEffect = if (m < 0.999f) blurs[(blurDp * 2f).roundToInt().coerceIn(0, blurs.size - 1)] else null
     }
+}
+
+/** The mist's blurs, 0 to the largest mist radius in 0.5dp steps (step 0: none). */
+private fun mistBlurs(density: Float): Array<RenderEffect?> {
+    val steps = (maxOf(PlayerTokens.MistBlurIn.value, PlayerTokens.MistBlurOut.value) * 2f).roundToInt() + 1
+    return Array(steps) { step ->
+        if (step == 0 || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) null else BlurEffect(step * 0.5f * density, step * 0.5f * density, TileMode.Decal)
+    }
+}
+
+/** The bubble's time while scrubbing: recomposes when the shown second changes, not per finger move. */
+@Composable
+private fun ScrubTime(fraction: () -> Float, duration: Double, style: TextStyle) {
+    val seconds by remember(duration) { derivedStateOf { (fraction() * duration).toLong() } }
+    Text(clock(seconds.toDouble()), style = style)
+}
+
+/** The elapsed time; while scrubbing, the scrub position's (by the second, not per finger move). */
+@Composable
+private fun ElapsedTime(elapsed: Double, scrubbing: Boolean, fraction: () -> Float, duration: Double, style: TextStyle, modifier: Modifier = Modifier) {
+    if (!scrubbing) {
+        Text(clock(elapsed), style = style, maxLines = 1, modifier = modifier)
+        return
+    }
+    val seconds by remember(duration) { derivedStateOf { (fraction() * duration).toLong() } }
+    Text(clock(seconds.toDouble()), style = style, maxLines = 1, modifier = modifier)
 }
 
 private fun toggle(s: PlayerState, c: PlayerControls) {
@@ -773,8 +817,8 @@ private fun TitlePill(mode: PlayerMode, title: String, subtitle: String, onLeadi
     Row(
         modifier
             .height(PlayerTokens.PillHeight)
-            .playerPanel(RoundedCornerShape(22.dp))
-            .pointerInput(Unit) { awaitEachGesture { awaitFirstDown().consume() } }
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
+            .blockTouches()
             .padding(end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -807,8 +851,8 @@ private fun SpeedPill(rate: Double, onClick: () -> Unit) {
     Box(
         Modifier
             .height(PlayerTokens.RoundPill)
-            .playerPanel(RoundedCornerShape(22.dp))
-            .pressable(LocalControlsLive.current, onClick)
+            .pressScale(LocalControlsLive.current, onClick = onClick)
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -821,8 +865,8 @@ private fun UnlockPill(onClick: () -> Unit) {
     Row(
         Modifier
             .height(PlayerTokens.RoundPill)
-            .playerPanel(RoundedCornerShape(22.dp))
-            .pressable(onClick = onClick)
+            .pressScale(onClick = onClick)
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius))
             .padding(start = 12.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -838,8 +882,8 @@ private fun CentreGroup(state: PlayerState, landscape: Boolean, onBack10: () -> 
         Row(
             modifier
                 .height(PlayerTokens.ReplayHeight)
-                .playerPanel(RoundedCornerShape(28.dp))
-                .pressable(LocalControlsLive.current, onPlay)
+                .pressScale(LocalControlsLive.current, onClick = onPlay)
+                .playerPanel(RoundedCornerShape(PlayerTokens.ReplayRadius))
                 .padding(start = 18.dp, end = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -867,7 +911,8 @@ private fun BottomPill(
     mode: PlayerMode,
     frameNow: () -> Long,
     clockNow: Long,
-    scrub: Float?,
+    scrubbing: Boolean,
+    scrubFraction: () -> Float,
     onScrub: (Float?, Float) -> Unit,
     onSeek: (Double) -> Unit,
     onPlay: () -> Unit,
@@ -877,15 +922,15 @@ private fun BottomPill(
 ) {
     val live = LocalControlsLive.current
     val shape = RoundedCornerShape(PlayerTokens.BottomPillRadius)
-    val elapsed = scrub?.let { it * state.duration } ?: state.positionAt(clockNow)
+    val elapsed = state.positionAt(clockNow)
     val fullscreenIcon = if (mode == PlayerMode.Web) KoanIcons.ExitFullscreen else KoanIcons.Fullscreen
     val muteIcon = if (state.muted) KoanIcons.VolumeOff else KoanIcons.Volume
     val timeStyle = playerText(14.sp, FontWeight.Medium, tracking = 0.2.sp)
     val bar: @Composable (Modifier, Dp) -> Unit = { m, touch ->
-        ProgressBar(state, frameNow, scrub, onScrub, onSeek, live, m.height(touch))
+        ProgressBar(state, frameNow, scrubbing, scrubFraction, onScrub, onSeek, live, m.height(touch))
     }
     // The pill's empty parts take touches (they never reach the video under it).
-    val swallow = Modifier.pointerInput(Unit) { awaitEachGesture { awaitFirstDown().consume() } }
+    val swallow = Modifier.blockTouches()
     if (landscape) {
         Row(
             modifier
@@ -898,7 +943,7 @@ private fun BottomPill(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             PlayerDisc(PlayerTokens.RoundPill, onClick = onMute, panel = false) { PlayerIcon(muteIcon, PlayerTokens.Glyph) }
-            Text(clock(elapsed), style = timeStyle, modifier = Modifier.widthIn(min = PlayerTokens.TimeMinWidth))
+            ElapsedTime(elapsed, scrubbing, scrubFraction, state.duration, timeStyle, Modifier.widthIn(min = PlayerTokens.TimeMinWidth))
             bar(Modifier.weight(1f), 44.dp)
             Text(clock(state.duration), style = timeStyle.copy(color = PlayerTokens.TextSecondary), textAlign = TextAlign.End, modifier = Modifier.widthIn(min = PlayerTokens.TimeMinWidth))
             PlayerDisc(PlayerTokens.RoundPill, onClick = onFullscreen, panel = false) { PlayerIcon(fullscreenIcon, PlayerTokens.Glyph) }
@@ -916,10 +961,10 @@ private fun BottomPill(
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 PlayerDisc(PlayerTokens.RoundPill, onClick = onPlay, panel = false) {
-                    PlayGlyph(glyphFor(state, scrub != null), if (state.ended) 22.dp else 24.dp, PlayerTokens.PlayOpticalSmall)
+                    PlayGlyph(glyphFor(state, scrubbing), if (state.ended) 22.dp else 24.dp, PlayerTokens.PlayOpticalSmall)
                 }
                 Row(Modifier.weight(1f).padding(start = 6.dp)) {
-                    Text(clock(elapsed), style = timeStyle, maxLines = 1)
+                    ElapsedTime(elapsed, scrubbing, scrubFraction, state.duration, timeStyle)
                     Text(" / ${clock(state.duration)}", style = timeStyle.copy(color = PlayerTokens.TextSecondary), maxLines = 1)
                 }
                 PlayerDisc(PlayerTokens.RoundPill, onClick = onMute, panel = false) { PlayerIcon(muteIcon, PlayerTokens.Glyph) }
@@ -934,16 +979,18 @@ private fun BottomPill(
 private fun ProgressBar(
     state: PlayerState,
     frameNow: () -> Long,
-    scrub: Float?,
+    scrubbing: Boolean,
+    scrubFraction: () -> Float,
     onScrub: (Float?, Float) -> Unit,
     onSeek: (Double) -> Unit,
     live: Boolean,
     modifier: Modifier,
 ) {
     val density = LocalDensity.current
-    val thick by animateDpAsState(if (scrub != null) PlayerTokens.TrackThicknessPressed else PlayerTokens.TrackThickness, androidx.compose.animation.core.spring(0.8f, 600f), label = "track")
+    val thick by animateDpAsState(if (scrubbing) PlayerTokens.TrackThicknessPressed else PlayerTokens.TrackThickness, androidx.compose.animation.core.spring(0.8f, 600f), label = "track")
     val s = rememberUpdatedState(state)
-    val sc = rememberUpdatedState(scrub)
+    val sc = rememberUpdatedState(scrubbing)
+    val scf = rememberUpdatedState(scrubFraction)
     var rootX by remember { mutableFloatStateOf(0f) }
     Box(
         modifier
@@ -952,7 +999,7 @@ private fun ProgressBar(
             .progressTrack(
                 thickness = { with(density) { thick.toPx() } },
                 fraction = {
-                    sc.value ?: s.value.let { st -> if (st.duration > 0) (st.positionAt(frameNow()) / st.duration).toFloat() else 0f }
+                    if (sc.value) scf.value() else s.value.let { st -> if (st.duration > 0) (st.positionAt(frameNow()) / st.duration).toFloat() else 0f }
                 },
                 buffered = { s.value.let { st -> if (st.duration > 0) (st.buffered / st.duration).toFloat() else 0f } },
             )
@@ -995,7 +1042,7 @@ private fun ProgressBar(
 @Composable
 private fun SeekLabel(forward: Boolean, steps: Int, turn: () -> Float, modifier: Modifier) {
     val density = LocalDensity.current
-    val shape = RoundedCornerShape(36.dp)
+    val shape = RoundedCornerShape(PlayerTokens.SeekLabelRadius)
     Row(
         modifier
             .drawBehindHalo(density)
@@ -1028,6 +1075,3 @@ private fun Modifier.drawBehindHalo(density: androidx.compose.ui.unit.Density): 
 private fun Modifier.drawBehindCompat(block: androidx.compose.ui.graphics.drawscope.DrawScope.(Size) -> Unit): Modifier =
     this.drawBehind { block(size) }
 
-/** "Remove animations" is on: no motion at all. */
-fun animationsOff(context: Context): Boolean =
-    Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f

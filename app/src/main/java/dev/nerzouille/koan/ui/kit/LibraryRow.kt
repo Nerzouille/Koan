@@ -18,8 +18,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,12 +51,12 @@ fun LibraryRowFrame(
     checked: Boolean? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val haptics = LocalHapticFeedback.current
+    val view = LocalView.current
     val wash = selectionWash(checked == true)
     Column(
         Modifier
             .background(KoanTheme.colors.Card)
-            .background(wash)
+            .drawBehind { drawRect(wash.value) }
             .padding(horizontal = SettingsTokens.RowInset),
     ) {
         if (!first) SettingsDivider()
@@ -67,7 +67,7 @@ fun LibraryRowFrame(
                     onClick = onClick,
                     onLongClick = onLongClick?.let { long ->
                         {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            KoanHaptics.hold(view)
                             long()
                         }
                     },

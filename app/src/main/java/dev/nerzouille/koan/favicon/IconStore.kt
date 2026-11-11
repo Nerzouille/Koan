@@ -46,7 +46,7 @@ object IconStore {
     /** Memory key for a tab icon: the inline key, or the site's key. Null = no icon possible. */
     fun keyFor(url: String, icon: String?): String? =
         icon?.takeIf { it.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX) }
-            ?: FaviconResolver.cacheKey(url, null, null)
+            ?: FaviconResolver.cacheKey(url)
 
     fun cached(key: String): Icon? = memory.get(key)
 
@@ -75,9 +75,9 @@ object IconStore {
             val bitmap = if (key.startsWith(ZenRoomMapper.INLINE_ICON_PREFIX)) {
                 fileFor(key)?.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.path) }
                     // Synced inline icon not on disk (cleared storage): try the site instead.
-                    ?: FaviconLoader.image(url, null, null)?.let(::normalized)
+                    ?: FaviconLoader.image(url)?.let(::normalized)
             } else {
-                FaviconLoader.image(url, null, null)?.let(::normalized)
+                FaviconLoader.image(url)?.let(::normalized)
             }
             bitmap?.let { Icon(it.asImageBitmap(), isDark(it)) }?.also { memory.put(key, it) }
         }
@@ -102,7 +102,7 @@ object IconStore {
         for ((key, dataUrl) in icons) {
             val file = fileFor(key) ?: continue
             if (file.exists()) continue
-            val bitmap = decodeDataUrl(dataUrl, key) ?: continue
+            val bitmap = decodeDataUrl(dataUrl) ?: continue
             val tmp = File(folder, file.name + ".tmp")
             runCatching {
                 tmp.outputStream().use { normalized(bitmap).compress(Bitmap.CompressFormat.PNG, 100, it) }
@@ -121,12 +121,12 @@ object IconStore {
         return File(folder, "$hash.$FILE_VERSION.png")
     }
 
-    private fun decodeDataUrl(dataUrl: String, key: String): Bitmap? {
+    private fun decodeDataUrl(dataUrl: String): Bitmap? {
         val bytes = FaviconLoader.dataBytes(dataUrl) ?: return null
         FaviconDecoder.image(bytes)?.let { return it }
         if (!FaviconLoader.isSvg(dataUrl)) return null
         val svg = runCatching { String(bytes, Charsets.UTF_8) }.getOrNull() ?: return null
-        return SvgRasterizer.rasterize(svg, size = MAX_PX, cacheKey = key)
+        return SvgRasterizer.rasterize(svg, size = MAX_PX)
     }
 
     /**

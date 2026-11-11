@@ -38,11 +38,6 @@ object FaviconDecoder {
     /** Mirrors the Swift `guard data.count > 8` guard. */
     internal fun isPlausible(data: ByteArray): Boolean = data.size > 8
 
-    internal fun isPng(data: ByteArray): Boolean =
-        data.size > 8 &&
-            data[0] == 0x89.toByte() && data[1] == 0x50.toByte() &&
-            data[2] == 0x4E.toByte() && data[3] == 0x47.toByte()
-
     /** ICONDIR: reserved==0, type==1. */
     internal fun isIco(data: ByteArray): Boolean =
         data.size > 6 &&

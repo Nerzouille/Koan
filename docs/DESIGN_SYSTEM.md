@@ -187,7 +187,7 @@ Type scale (every text size token, sp):
 | **15** | `TourTokens.LineSize`, `FirstRunTokens.ButtonSize`, `SignInTokens.BodySize`, `DrawerTokens.PinnedTitleSize`, `ToastTokens.TextSize`, `TabMenuTokens.TextSize`, `StartPageTokens.ContinueTitleSize`, `SearchTokens.TitleSize` |
 | **14.5** | `CardTokens.TitleSize` (tab card title, line 18sp) |
 | **14** | `CardTokens.PlaceholderDomainSize`, `OverviewTokens.EmptyBodySize`, `FirstRunTokens.BodySize`, `SignInTokens.NoticeSize`, `SignInTokens.LinkSize`, `BarTokens.SwitcherNameSize`, `SheetTokens.RowTrailingSize`, `SheetTokens.CardTextSize`, `SettingsTokens.RowValueSize`, `SettingsTokens.SegmentTextSize`, `SettingsTokens.VersionSize`, `SearchTokens.ChipTextSize` |
-| **13** | `SignInTokens.SubtitleSize`, `SignInTokens.StepNumberSize`, `DrawerTokens.MoreTextSize`, `DrawerTokens.FolderCountSize`, `DrawerTokens.StatusTextSize`, `SheetTokens.TileLabelSize`, `SettingsTokens.SectionTitleSize`, `SettingsTokens.ChipTextSize`, `DownloadTokens.ChipTextSize`, `StartPageTokens.ContinueSubtitleSize`, `StartPageTokens.LabelSize` |
+| **13** | `SignInTokens.SubtitleSize`, `SignInTokens.StepNumberSize`, `DrawerTokens.FolderCountSize`, `DrawerTokens.StatusTextSize`, `SheetTokens.TileLabelSize`, `SettingsTokens.SectionTitleSize`, `SettingsTokens.ChipTextSize`, `DownloadTokens.ChipTextSize`, `StartPageTokens.ContinueSubtitleSize`, `StartPageTokens.LabelSize` |
 | **12** | `BarTokens.TabsCountSize`, `SheetTokens.RowSubtitleSize`, `SettingsTokens.RowSubtitleSize`, `SettingsTokens.FooterSize`, `ToastTokens.DetailSize`, `SearchTokens.LabelSize`, `SearchTokens.UrlSize` |
 | **11.5** | `CardTokens.HostSize` (tab card host line, line 14sp) |
 | **11** | `SignInTokens.BadgeSize` |
@@ -247,6 +247,8 @@ drawer, sheets, first run), 16dp (start page), 20dp (settings, sign-in pages), 2
 | Depth-stack thumbnails | radius by depth `[0, 0, 0, 0.9, 1.9, 2.9, 4]` dp (CSS σ `[0, 0, .5, 1, 1.6, 2.2, 2.8]`); only the top 512 px slice is blurred |
 
 ### 1.7 Hairlines
+
+All 1dp lines share `SharedTokens.Hairline` (`SheetTokens.Divider`, `SettingsTokens.Divider`, `CardTokens.Hairline`, `SignInTokens.CardBorder`, `TourTokens.FrameBorder` point at it); grouped blocks share `SharedTokens.GroupRadius` 18dp (sheet, search and Downloads groups).
 
 1dp everywhere: card outline (`CardBorder`, light `#E4E4EA`, dark white 8%), sheet and settings
 dividers, sign-in choice cards' border, tour clip frame border. Focus rings are thicker: search
@@ -353,6 +355,16 @@ Gesture thresholds:
 | Pull to refresh | indicator moves 0.5× the finger; reloads past 72dp (max 120dp) |
 | Dismiss overview / start page by pulling down | 48dp / 64dp |
 | Dock on page scroll | always shown within 48dp of the top |
+
+Motion helpers in `ui/kit` (use them instead of writing the pattern again):
+
+- `rememberPresence(open, enter, exit, snapIn, startShown)` (`kit/Presence.kt`): anything that shows
+  and hides with a 0…1 animation. `progress` is read in layer / draw / layout lambdas only;
+  `composed` decides whether it is in the composition and changes only at the two ends (rule 9).
+  A second overload wraps an `Animatable` the caller drives itself (the toast). `startShown`
+  starts at the first target, like `animateFloatAsState`.
+- `animationsOff(context)` / `rememberAnimationsOff()` and `frameClock { deltaMs -> }`
+  (`kit/MotionKit.kt`): the system's "Remove animations", and an idle clock for illustrations.
 
 ### 1.9 Icons
 
@@ -517,7 +529,7 @@ address row; in the overview it grows a space-switcher row and further into the 
 | Dock top corner radius as drawer | 28dp | `DrawerTokens.TopRadius` |
 | Dock corner radius in page view | 0 (square) | `bar/KoanBar.kt` (`r` = 24·row·(1−d) + 28·d; row = 0 in page view) |
 | Upward shadow height | 28dp, vertical gradient transparent → `DockShadow`, also spans the corner radius | `BarTokens.DockShadowHeight`, `bar/KoanBar.kt` |
-| Drawer handle | bar 36 × 4dp, pill-shaped, 8dp from top, `DrawerHandle` colour; touch area 72 × 24dp | `BarTokens.HandleWidth`, `BarTokens.HandleHeight`, `BarTokens.HandleTop`, `BarTokens.HandleTouch`, `bar/KoanBar.kt` |
+| Drawer handle | bar 36 × 4dp, pill-shaped, 8dp from top, `DrawerHandle` colour; touch area 72 × 24dp | `BarTokens.HandleWidth`, `BarTokens.HandleHeight`, `SheetTokens.HandleTop`, `BarTokens.HandleTouch`, `kit/DragHandle.kt` |
 
 **Page load line** (page view only; fades out as the switcher row shows, `bar/KoanBar.kt`)
 
@@ -629,7 +641,7 @@ address row; in the overview it grows a space-switcher row and further into the 
 
 **Screenshots needed**
 1. Page view dock, counter showing "3" (light and dark).
-2. Counter at "∞" (a space with more than 99 tabs; use fake tabs from the debug fill).
+2. Counter at "∞" (a space with more than 99 tabs).
 3. Tab menu open above the dock, all three rows enabled.
 4. Tab menu with "Reopen closed tab" greyed out.
 
@@ -1737,14 +1749,14 @@ corners, 20dp padding, 10dp margins, scrim). Never the brand gradient. Shared pa
   20dp (18 + 2) `TextPrimary` (app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt).
 - **Card title** 18sp SemiBold `TextPrimary` (`CardTitleSize`); **card text** 14sp
   `TextSecondary` (`CardTextSize`).
-- **CardButton** (secondary on permission and download cards): height 50dp, pill, `GroupedRow`,
-  16sp Medium `TextPrimary`, no side padding (fills its weight) (app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt).
+- **Secondary buttons on cards**: the kit's `SecondaryButton` (50dp pill, `GroupedRow`, 16sp
+  SemiBold `TextPrimary`), `enabled = interactive`, no side padding when two share a row by weight.
 
 #### Permission prompt (app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt)
 
 **Anatomy:** column with 10dp gaps: [icon tile + 12dp gap + title "example.com wants to use your
 location" + reason ("It can see where this phone is.")]; 5dp spacer; row of "Block" and
-"Always allow" CardButtons (weight 1 each, 8dp gap); full-width PrimaryButton "Allow once".
+"Always allow" SecondaryButtons (weight 1 each, 10dp gap, `ButtonTokens.ChoiceGap`); full-width PrimaryButton "Allow once".
 Glyph per permission: Location, Camera (camera and camera+mic), Mic, Database (storage), Lock
 (protected media), Link (cross-site cookies), Globe (local network), Desktop (VR).
 **Behaviour:** Block = block and remember; Always allow = allow and remember; Allow once = allow now;
@@ -1756,8 +1768,8 @@ closing the card (tap outside, drag, Back) = blocked this time, nothing remember
 
 Shown when a page starts a download with no tap just before. Icon tile with the Download glyph;
 file name 18sp SemiBold, middle ellipsis; detail "1.2 MB · example.com" 14sp `TextSecondary`
-(size omitted when unknown) (app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt); 5dp spacer; row: "Cancel" CardButton +
-"Download" PrimaryButton, weight 1 each, 8dp gap. Closing the card = Cancel.
+(size omitted when unknown) (app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt); 5dp spacer; `CardChoices`: "Cancel" +
+"Download", weight 1 each, 10dp gap. Closing the card = Cancel.
 **Screenshot:** "example.pdf", "1.2 MB · example.com", light and dark.
 
 #### Duplicate download (app/src/main/java/dev/nerzouille/koan/ui/menu/DuplicateDownloadPrompt.kt)
@@ -1776,7 +1788,7 @@ A page wants to open an app. Floating card, column with 10dp gaps: the app's own
 10; else a `GroupedRow` tile with `Open` 18dp), 12dp, "Open in {app}?" 18sp SemiBold (1 line) over
 "{site} wants to open the app" 14sp `TextSecondary`; a row "Always for this site" (50dp,
 `GroupedRow`, 18dp corners, 16sp `TextPrimary`, trailing `KoanToggle`, the whole row toggles); 5dp;
-"Cancel" `CardButton` + "Open" `PrimaryButton`, weight 1 each, 8dp gap. Closing the card = Cancel.
+`CardChoices`: "Cancel" + "Open", weight 1 each, 10dp gap. Closing the card = Cancel.
 **Screenshot:** a demo page's app link, light and dark.
 
 #### File prompt (app/src/main/java/dev/nerzouille/koan/ui/menu/FilePrompt.kt)
@@ -1872,7 +1884,8 @@ stay." / "Sign out". The same `Confirm` is used for "Clear data for example.com?
 
 ### Buttons (app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt)
 
-**Purpose:** the four kit button styles. All 50dp tall (`ButtonTokens.Height`), pill
+**Purpose:** one `KoanButton(kind = Primary | Secondary | Destructive | Quiet)`; the four named
+buttons below are one-line wrappers. All 50dp tall (`ButtonTokens.Height`), pill
 shape, 28dp side padding (`ButtonTokens.PaddingH`), label 16sp (`ButtonTokens.TextSize`), content centred.
 
 | Variant | Fill | Label | Ref |
@@ -1882,22 +1895,21 @@ shape, 28dp side padding (`ButtonTokens.PaddingH`), label 16sp (`ButtonTokens.Te
 | `SecondaryButton` | `GroupedRow` (`#F2F2F5` / white @ 7%), overridable `surface` | `TextPrimary`, SemiBold | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt |
 | `DestructiveButton` | `GroupedRow`, overridable `surface` (`Card` when it sits on `Base`, e.g. History/Downloads' Clear) | `Destructive` (`#C42A20` / `#FF8077`), **SemiBold**; never a red fill | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt |
 
-Related non-kit buttons: `CardButton` (`GroupedRow`, Medium, no padding;
-app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt), PagePrompts' private secondary (same, 1 line;
-app/src/main/java/dev/nerzouille/koan/ui/menu/PagePrompts.kt). **One destructive button:**
+Cards: two choices side by side are `CardChoices` (Cancel on the left, the action on the right,
+10dp gap, no side padding); the permission card and the page prompts put their secondaries side
+by side the same way above a full-width primary. Labels are one line. **One destructive button:**
 History/Downloads' "Clear", Site settings' "Clear site data", Delete (search engine) and the
 confirm cards all use `DestructiveButton` (their own pills are gone). A destructive *row* ("Sign
 out", "Delete password") is a `SettingsRow` with a red title; a destructive selection-bar action
 has a red glyph and label. The one red fill in the app is the library rows' delete swipe
 background (`ui/kit/SwipeRow.kt`: History, Downloads, Passwords).
 
-**States:** default; pressed = Material 3 ripple clipped to the pill. **No disabled style**: the
-kit buttons have no `enabled` parameter; callers ignore taps when not interactive
-(e.g. app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt). Never the brand gradient (UI_SPEC agrees).
+**States:** default; pressed = Material 3 ripple clipped to the pill. **No disabled style**:
+`enabled = false` (a card closing) only removes the click and the ripple. Never the brand gradient (UI_SPEC agrees).
 
 **Light vs dark:** Primary flips black ↔ white; the others only change their fill/label tokens.
 
-**Screenshot needed:** a permission card (Primary + two CardButtons) and the sign-out card
+**Screenshot needed:** a permission card (Primary + two secondaries) and the sign-out card
 (Destructive + Quiet), light and dark; Primary with a leading icon if one is used on the sign-in
 screen.
 
@@ -2108,6 +2120,18 @@ square with corners at 24% of its size (`TILE_RADIUS`). `colour = true` crossfad
 colours in 220ms (`COLOUR_MS`, two stacked images, layer alpha only). No usable icon (none cached,
 or one that can't be seen on this theme): the fallback glyph in `TextPrimary`, never a letter tile.
 
+### Small shared pieces (`ui/kit`, batch 4)
+
+Use these instead of rebuilding them: `DragHandle` (sheet and drawer grab handle),
+`Modifier.brandWash(height, alpha)` (the three-spot brand glow; `settingsWash`, the tour's title
+glow), `Modifier.swipeDownToDismiss(threshold, onDismiss)`, `KoanIconButton` (glyph on a round
+target, touch / glyph sizes passed), `CardHeader` + `CardIconTile` (floating cards' header),
+`EmptyLine` (one-line "nothing here"), `FileGlyph` (file glyph over its extension), `TextLink`
+(secondary text with a round ripple), `KoanDivider(inset, thickness)`, `RowTexts` (a row's title
+over subtitle, shared by `SheetRow` and `SettingsRow`), `SettingsToggleRow` / `SheetToggleRow`. In
+`ui/overview`: `SpaceTitle`. Confirmations go through `Overlays.ask` (one card) rather than their
+own `SheetState`.
+
 ### KoanClipboard (app/src/main/java/dev/nerzouille/koan/ui/kit/KoanClipboard.kt)
 
 Koan's own copies ("Copy link"). In private mode the clip is flagged sensitive, so Android 13+
@@ -2190,7 +2214,7 @@ Alpha `a`: light **0.20** (`WASH_ALPHA_LIGHT`), dark **0.16** (`WASH_ALPHA_DARK`
 
 **Purpose.** Small grey title above a group of settings rows (also used as day headers in History and Downloads).
 
-**Anatomy / sizes** (`SettingsKit.kt`): text `SectionTitleSize` **13sp** SemiBold, colour `TextSecondary`; padding top `SectionTop` **22dp**, bottom `Divider*4` = **4dp**. No icon, no uppercase transform (text as given: "General", "Display", "Privacy", "Koan", "Developer"; `SettingsScreen.kt`).
+**Anatomy / sizes** (`SettingsKit.kt`): text `SectionTitleSize` **13sp** SemiBold, colour `TextSecondary`; padding top `SectionTop` **22dp**, bottom `Divider*4` = **4dp**. No icon, no uppercase transform (text as given: "General", "Display", "Privacy", "Koan"; `SettingsScreen.kt`).
 
 **States.** Static.
 
@@ -2729,7 +2753,6 @@ Without live blur only the first **3** (`SPARKLES_SIMPLE`).
 | Image, Install | Downloads' Open by type: picture, APK ("Install") `downloads/DownloadsScreen.kt` (22dp in the selection bar) |
 | Private | dock and address pill in private mode `bar/AddressRow.kt`; private parts `privacy/PrivateParts.kt`; Settings `settings/PrivacySettings.kt`; private download mark `downloads/DownloadsScreen.kt` (14dp, `DownloadTokens.PrivateGlyph`) |
 | Video player: Volume, VolumeOff, Fullscreen, ExitFullscreen, Pip, Unlock, Speed, SiteControls, PlayFilled, PauseFilled, SkipBackFilled, SkipAheadFilled, ReplayFilled | `player/VideoPlayer.kt`, `player/PlayerParts.kt`, `player/WebPlayer.kt` (sizes in `PlayerTokens`, see `docs/VIDEO_PLAYER.md`) |
-| Book, Rotate, Headphones | defined (`icons/KoanIcons.kt`) but **not used** anywhere |
 
 Rendered sizes come from: `BarTokens.Icon` 24dp, `SheetTokens.RowGlyph` 18dp, `SheetTokens.TileGlyph` 22dp, `SettingsTokens.RowGlyph` 20dp, `SearchTokens.ChipIcon` 14dp, `TabMenuTokens.Icon` 18dp, and the multipliers noted per row (e.g. `RowGlyph·0.8` = 16dp, `RowGlyph·0.85` = 17dp).
 
@@ -2765,7 +2788,7 @@ Definition: `BrandTokens.Colors` = Pink `#FF5FA2` → Violet `#B46BFF` → Blue 
 ---
 
 ### Spec vs code disagreements (brief)
-- `docs/UI_SPEC.md` "Screens" lists Settings as "account, sync, search engine, write-back toggle, add-ons, about". Code: sections General / Display / Privacy / Koan (+ Developer in debug); **no write-back toggle** on the Settings page (`ui/settings/SettingsScreen.kt`).
+- `docs/UI_SPEC.md` "Screens" lists Settings as "account, sync, search engine, write-back toggle, add-ons, about". Code: sections General / Display / Privacy / Koan; **no write-back toggle** on the Settings page (`ui/settings/SettingsScreen.kt`).
 - Typography: UI_SPEC now describes the code (system sans, `KoanType` styles, em line heights); resolved in the 2026-11-10 audit.
 - `docs/UI_SPEC.md` "Visual tokens" "cards 28dp": settings cards are **22dp**, choice cards 22dp, day cards 18dp, tour frame 30dp; the floating card and tour sheet match (28dp / 32dp top).
 - `docs/UI_SPEC.md` "Controls" "Destructive = red text only … never a red fill": the library rows' delete swipe background is a full `Destructive` fill (`ui/kit/SwipeRow.kt`).

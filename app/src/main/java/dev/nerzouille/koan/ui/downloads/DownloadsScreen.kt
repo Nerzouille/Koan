@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.downloads
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,10 +20,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,22 +41,21 @@ import dev.nerzouille.koan.engine.downloads.Downloads
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.DayCard
-import dev.nerzouille.koan.ui.kit.ListPage
+import dev.nerzouille.koan.ui.kit.EmptyLine
+import dev.nerzouille.koan.ui.kit.FileGlyph
 import dev.nerzouille.koan.ui.kit.LibraryRowFrame
 import dev.nerzouille.koan.ui.kit.LibraryRowSubtitle
 import dev.nerzouille.koan.ui.kit.LibraryRowTitle
+import dev.nerzouille.koan.ui.kit.ListPage
 import dev.nerzouille.koan.ui.kit.SelectionAction
 import dev.nerzouille.koan.ui.kit.SelectionBar
 import dev.nerzouille.koan.ui.kit.SelectionHeader
 import dev.nerzouille.koan.ui.kit.SwipeRow
+import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.kit.byDay
 import dev.nerzouille.koan.ui.kit.dayRowShape
 import dev.nerzouille.koan.ui.kit.rememberSelection
-import androidx.activity.compose.BackHandler
-import androidx.compose.runtime.SideEffect
-import dev.nerzouille.koan.ui.kit.Toast
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.key
-import dev.nerzouille.koan.ui.kit.byDay
+import dev.nerzouille.koan.ui.kit.undoToast
 import dev.nerzouille.koan.ui.settings.SettingsDivider
 import dev.nerzouille.koan.ui.settings.SettingsSection
 import dev.nerzouille.koan.ui.theme.BrandHorizontal
@@ -67,7 +70,7 @@ import mozilla.components.browser.state.state.content.DownloadState.Status
  * the finished ones by day, with the library rules (ui/kit/LibraryRow): a tap opens the file; a
  * swipe left to right hides it from the list (the file stays), right to left deletes the file
  * (both with Undo: the file is only deleted once the toast is gone); a long press enters
- * selection mode (Open, Share, Hide, Delete). Search and Clear sit at the bottom, in thumb reach.
+ * selection mode (Open, Copy link, Share, Delete). Search and Clear sit at the bottom, in thumb reach.
  * [folder] names where files go ("Download", or the picked folder).
  */
 @Composable
@@ -108,11 +111,11 @@ fun DownloadsScreen(
         list.forEach { actions.removeLater(it, deleteFile = false) }
         val what = if (list.size == 1) "Hidden from the list" else "${list.size} hidden from the list"
         val detail = if (list.size == 1) "The file stays in $folder" else "The files stay in $folder"
-        onToast(Toast(what, "Undo", detail = detail) { list.forEach(actions::restore) })
+        onToast(undoToast(what, detail, onGone = { actions.commit(list) }) { list.forEach(actions::restore) })
     }
     fun delete(list: List<DownloadState>) {
         list.forEach { actions.removeLater(it, deleteFile = true) }
-        onToast(Toast(if (list.size == 1) "File deleted" else "${list.size} files deleted", "Undo") { list.forEach(actions::restore) })
+        onToast(undoToast(if (list.size == 1) "File deleted" else "${list.size} files deleted", onGone = { actions.commit(list) }) { list.forEach(actions::restore) })
     }
     fun act(run: () -> Unit) = { selection.clear(); run() }
     // Hide is a swipe only (left to right); the bar keeps what a tap can't do.
@@ -177,11 +180,9 @@ fun DownloadsScreen(
                 .padding(horizontal = SettingsTokens.Padding),
         ) {
             if (shown.isEmpty()) {
-                Text(
+                EmptyLine(
                     if (query.isBlank()) "Files you download show up here." else "No download matches “${query.trim()}”.",
-                    color = palette.TextSecondary,
-                    fontSize = SettingsTokens.RowValueSize,
-                    modifier = Modifier.padding(top = SettingsTokens.SectionTop),
+                    Modifier.padding(top = SettingsTokens.SectionTop),
                 )
             }
             if (running.isNotEmpty()) {
@@ -331,7 +332,6 @@ private fun RoundButton(icon: ImageVector, onClick: () -> Unit) {
 /** A file's type at a glance: a document glyph over its extension. */
 @Composable
 fun FileTile(d: DownloadState, background: Color = KoanTheme.colors.GroupedRow) {
-    val ext = d.fileName.orEmpty().substringAfterLast('.', "").take(4).uppercase()
     Column(
         Modifier
             .size(DownloadTokens.FileTile)
@@ -340,8 +340,7 @@ fun FileTile(d: DownloadState, background: Color = KoanTheme.colors.GroupedRow) 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(KoanIcons.File, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(DownloadTokens.FileGlyph))
-        if (ext.isNotEmpty()) Text(ext, color = KoanTheme.colors.TextSecondary, fontSize = DownloadTokens.FileExtSize, fontWeight = FontWeight.SemiBold)
+        FileGlyph(d.fileName.orEmpty(), DownloadTokens.FileGlyph, DownloadTokens.FileExtSize)
     }
 }
 
