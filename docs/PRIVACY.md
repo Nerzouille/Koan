@@ -58,7 +58,9 @@ Besides the sites you open, Koan connects to these:
 
 A link to a video file (`…/clip.mp4`) that another app opens with Koan first gets a short `HEAD`
 request to that same address, to ask whether it really is a video (Koan's player) or a page (a
-tab). It goes to the site you opened, nowhere else.
+tab). It goes to the site you opened, nowhere else. The video player's **Download video**, on a
+video whose address doesn't end like a video file, sends the same `HEAD` request to the video's
+address when you tap it (never before), to check it is a file.
 
 When you long-press an image, Koan downloads it again from its address (up to 4 MB) to show the
 preview. When you play a video link in Koan's player ("Play video" on a long-pressed link, or a

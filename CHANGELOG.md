@@ -4,6 +4,16 @@
 
 ### New
 
+- **Private bookmarks:** the star in a private tab saves a bookmark kept apart from your normal
+  ones, shown only in Private, encrypted on the phone and never synced. Clear browsing data (in
+  Private) can delete them all. Bookmarks starred in Private before this version stay normal
+  bookmarks.
+- **Select all per day** in History and Downloads selection mode.
+- **Download video** always in the video player's ⋯ menu, greyed out with the reason when the
+  video can't be saved; **Picture-in-picture on leave** switch there too.
+- Full-screen video **follows the phone's rotation**, portrait included, unless auto-rotate is off.
+- A finished download: the address bar's ring fills and shows a check before it goes.
+
 - **Private browsing** (the switch at the right of the overview's header): private tabs in their
   own set, kept until you close them, also after a restart (sites sign you out then). Locked
   behind your fingerprint after 1 min away, no screenshots, no history, private search with
@@ -68,6 +78,13 @@
   the system's "Capture more" now takes a long screenshot of a page.
 
 ### Fixed
+
+- Private downloads no longer show in normal mode (list, ring, menu count, toast); Private has a
+  **Private** pill in Downloads.
+- Coming back to Private after a full-screen video no longer leaves it locked in landscape.
+- Double-tap to seek no longer flashes the controls; swipes from the top or bottom edge no longer
+  move brightness, volume or the timeline.
+- Picture-in-picture on leaving a full-screen video now also starts on sites where it didn't.
 
 - Space icons picked from Zen's built-in icons were missing in release builds (0.4.0 and before).
 - **Downloads keep the name the site gives them** (for example "report.pdf"), instead of a name

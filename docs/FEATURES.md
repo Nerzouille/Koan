@@ -454,8 +454,12 @@ Each language is downloaded once (about 20–30 MB) the first time you use it.
 ### Full screen video
 
 When a video goes full screen, the status bar, navigation bar and dock hide, and the screen turns
-to the video's orientation (landscape, or portrait for a portrait video). Swipe from an edge to
-see the system bars for a moment. Koan's own player then takes over from the site's controls: see
+to the video's orientation (landscape, or portrait for a portrait video). With the phone's
+auto-rotate on, once you turn the phone that way the screen follows the phone, portrait included
+(a landscape video then plays with bars above and below); with auto-rotate off, it stays on the
+video's orientation. Swipe from an edge to see the system bars for a moment: swipes that start on
+the top or bottom edge (the notification shade, going home) never move brightness, volume or the
+timeline. Leaving Private, or Private locking, takes a private video out of full screen. Koan's own player then takes over from the site's controls: see
 [Video player](#video-player). YouTube keeps its own controls.
 
 ### Video player
@@ -465,18 +469,23 @@ Koan's player, always dark, over a page's full-screen video and for videos Koan 
 - **Tap** shows or hides the controls; they hide on their own while the video plays. Play/pause,
   10 s back and ahead, the timeline (press and slide to move), mute, picture-in-picture, lock and
   ⋯.
-- **Double-tap** the left or right side: 10 s back or ahead; each more tap on that side adds 10 s.
+- **Double-tap** the left or right side: 10 s back or ahead, without showing the controls; each
+  more tap on that side adds 10 s. (A single tap on a side shows the controls a moment later; in
+  the middle, at once.)
 - **Long press** while it plays: 2× speed while you hold (a "2×" badge shows).
 - **Swipe up or down** on the left half for brightness, on the right half for volume.
 - **Lock:** the controls and gestures stop until you tap **Unlock** (a tap shows it for 3 s).
-- **⋯:** **Playback speed** (0.5×, 0.75×, Normal, 1.25×, 1.5×, 2×), and, on a page,
-  **Download video** (when the video is a plain file) and **Use the site's controls** (Koan's come
-  back the next time the video goes full screen).
+- **⋯:** **Playback speed** (0.5×, 0.75×, Normal, 1.25×, 1.5×, 2×), **Picture-in-picture on
+  leave** (On / Off, the same setting as Settings › Picture-in-picture), and, on a page,
+  **Download video** and **Use the site's controls** (Koan's come back the next time the video
+  goes full screen). **Download video** is greyed out, with why, when the video can't be saved:
+  a protected video (DRM), a streamed one (most big video sites) or a live one. For an address
+  that doesn't end like a video file, Koan asks the site on the tap whether it is one.
 - **Swipe down** from the middle, the exit-full-screen button or Back leave full screen; the page
   is where it was and the video keeps playing there.
 - **YouTube** keeps its own controls.
 
-**Picture-in-picture:** go home while a full-screen video plays, and it keeps playing in a small
+**Picture-in-picture:** go home while a full-screen video plays (not a paused one), and it keeps playing in a small
 window, with 10 s back, play/pause and 10 s ahead. Tap the window to come back. On a page's video
 the window also has **Audio only**: the window closes, the video leaves full screen and its sound
 keeps playing in the background with the media notification. (On phones that show only three

@@ -14,6 +14,13 @@ Hand-over for Claude Code, from the owner's design canvas (boards: Landscape, Po
 - Picture-in-picture with 10 s back, play/pause, 10 s ahead and, for a web video, **Audio only** (the PiP window closes and the sound keeps playing; `engine/PictureInPicture.kt`). Switch: Settings › Display › **Picture-in-picture**.
 - The media notification shows the video's position, length and poster (`engine/PageVideo.kt`; the timeline is on by default since AC 160).
 - YouTube keeps its own controls: Koan's player is not used there.
+- Fixes of 2026-11-12 (`docs/plans/FIXES_PLAN.md`):
+  - Double tap: a side tap's show / hide waits `TAP_PAIR_MS` (250 ms) so a pair never flashes the controls; a centre tap toggles at once.
+  - Gestures starting in the system's top or bottom gesture edge (`WindowInsets.systemGestures`, at least `PlayerTokens.EdgeBand` 32dp) never start a level, swipe-away or 2× hold; the progress bar scrubs only after a sideways move (or a tap), a vertical move on it is left to the system.
+  - Orientation (`ui/player/FullscreenOrientation.kt`): the video's shape first; with auto-rotate on, once the phone is held that way, `SENSOR` (portrait included). Auto-rotate off: the video's shape. The standalone player: `SENSOR`, or the video's shape when auto-rotate is off.
+  - A mode switch (Private on / off) and the private lock take every (private) page out of fullscreen (`leaveFullscreen`).
+  - ⋯ › **Download video** always shown, greyed out with a reason (protected, streamed, live, not a file); an http address with no video ending is checked (HEAD) only on the tap. ⋯ › **Picture-in-picture on leave** (On / Off) writes Settings' switch.
+  - PiP on leave: only a playing fullscreen video; Koan's own view of the video (the extension's size and play state) counts when Gecko's media session has none.
 
 Conventions
 - Units: dp for sizes, sp for text. On the canvas 1dp = 1px (reference phone 403 × 875dp, landscape 875 × 403dp).

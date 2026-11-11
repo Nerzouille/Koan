@@ -3,7 +3,7 @@
 The owner's list of fixes and small features, written 2026-11-11. It comes after batch 4
 (`docs/plans/BATCH4_PLAN.md`) and before release 0.5 (`docs/HANDOFF.md`, "Next concrete steps").
 
-**Status: planned, see `docs/plans/FIXES_PLAN.md` (nothing implemented yet).**
+**Status: all 10 built on branch `fixes` (2026-11-12), not merged into `dev`. Plan: `docs/plans/FIXES_PLAN.md`; phone checks: `docs/plans/FIXES_CHECKS.md`.**
 
 ## Video player
 
