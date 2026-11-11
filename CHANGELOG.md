@@ -9,8 +9,10 @@
   Private) can delete them all. Bookmarks starred in Private before this version stay normal
   bookmarks.
 - **Select all per day** in History and Downloads selection mode.
-- **Download video** always in the video player's ⋯ menu, greyed out with the reason when the
-  video can't be saved; **Picture-in-picture on leave** switch there too.
+- **Download video** always in the video player's ⋯ menu: it says in the player how the download
+  goes, saves a streamed video's plain file when its page offers one (Wikimedia Commons), and is
+  greyed out with the reason otherwise; a **PiP on leave** switch there too. The ⋯ menu grows
+  out of its pill.
 - Full-screen video **follows the phone's rotation**, portrait included, unless auto-rotate is off.
 - A finished download: the address bar's ring fills and shows a check before it goes.
 
@@ -85,6 +87,9 @@
 - Double-tap to seek no longer flashes the controls; swipes from the top or bottom edge no longer
   move brightness, volume or the timeline.
 - Picture-in-picture on leaving a full-screen video now also starts on sites where it didn't.
+- Video player: hidden controls no longer swallow a tap; portrait full screen keeps the status bar
+  and its top row clear of the camera; no white flash when a full-screen video turns; with
+  auto-rotate off the phone's rotate button works in full screen.
 
 - Space icons picked from Zen's built-in icons were missing in release builds (0.4.0 and before).
 - **Downloads keep the name the site gives them** (for example "report.pdf"), instead of a name

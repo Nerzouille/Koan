@@ -453,11 +453,13 @@ Each language is downloaded once (about 20–30 MB) the first time you use it.
 
 ### Full screen video
 
-When a video goes full screen, the status bar, navigation bar and dock hide, and the screen turns
+When a video goes full screen, the navigation bar and dock hide (and the status bar in landscape;
+in portrait it stays, white on black, with the player's top row under it), and the screen turns
 to the video's orientation (landscape, or portrait for a portrait video). With the phone's
 auto-rotate on, once you turn the phone that way the screen follows the phone, portrait included
-(a landscape video then plays with bars above and below); with auto-rotate off, it stays on the
-video's orientation. Swipe from an edge to see the system bars for a moment: swipes that start on
+(a landscape video then plays with bars above and below); with auto-rotate off, it opens in the
+video's orientation and the phone's own rotate button (HyperOS's floating one) still shows when you
+turn the phone. The screen stays black while it turns. Swipe from an edge to see the system bars for a moment: swipes that start on
 the top or bottom edge (the notification shade, going home) never move brightness, volume or the
 timeline. Leaving Private, or Private locking, takes a private video out of full screen. Koan's own player then takes over from the site's controls: see
 [Video player](#video-player). YouTube keeps its own controls.
@@ -479,9 +481,14 @@ Koan's player, always dark, over a page's full-screen video and for videos Koan 
   leave** (On / Off at the end, the icon crossed out when off; the same setting as Settings ›
   Picture-in-picture), and, on a page,
   **Download video** and **Use the site's controls** (Koan's come back the next time the video
-  goes full screen). **Download video** is greyed out, with why, when the video can't be saved:
-  a protected video (DRM), a streamed one (most big video sites) or a live one. For an address
-  that doesn't end like a video file, Koan asks the site on the tap whether it is one.
+  goes full screen). The ⋯ menu grows out of its pill. **Download video** stays in the player
+  and says how it goes there ("Downloading · 2.8 GB" with the file's name, or that it failed). A
+  streamed video still downloads when its page offers the same video as a plain file (a
+  `<source>` of the video, or a link to the file, as on Wikimedia Commons, where the original
+  file is picked). Otherwise it is greyed out, with why: a protected video (DRM), a streamed one
+  (most big video sites) or a live one. For an address that doesn't end like a video file, Koan
+  asks the site on the tap whether it is one. With the controls hidden, a tap anywhere shows them
+  (a double tap on a side seeks).
 - **Swipe down** from the middle, the exit-full-screen button or Back leave full screen; the page
   is where it was and the video keeps playing there.
 - **YouTube** keeps its own controls.

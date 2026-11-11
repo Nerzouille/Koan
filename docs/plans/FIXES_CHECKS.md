@@ -5,8 +5,81 @@ build is installed on the POCO. The checks are ordered riskiest first. Use demo 
 tabs only. The video checks need a plain `.mp4` test page, one big streaming site, one DRM page
 and one live stream.
 
-None of this was driven on the phone by Claude. Only the launch / kill / restore of the R8 build
-was checked (see the end).
+Start with the **Recheck** section: the owner's second-round feedback (POCO, HyperOS 2), fixed on
+`fixes`, riskiest first. The tiers after it are the first round, still to check.
+
+## Recheck (round 2, 2026-11-12), riskiest first
+
+Claude reproduced #5 on the POCO with logcat and checked it there after the fix. Claude also
+checked the menu morph, the PiP row and the tap behaviour on the POCO. Everything else below needs
+your hands, especially anything that needs the phone turned: Claude can't rotate the phone.
+
+1. **Private lock and PiP** (`cd71fe8`, your #3). A private video in PiP:
+   - keep the window over 1 min, then tap it back to full screen: **no** lock;
+   - close the window, wait over 1 min, open Koan: locked; come back within 1 min: not locked;
+   - Audio only, wait over 1 min, open Koan: locked;
+   - turn the screen off during PiP: locked on return.
+   PRIVACY.md and FEATURES.md say this now.
+2. **Download video** (`cf60787`, `7f7eb84`, `061beaa`, your #5).
+   - **Cause:** Commons now plays its videos as a DASH stream (the element's address is a `blob:`).
+     Koan classed it "Streamed video, can't be saved", but the menu rows lost their greyed-out
+     state on the way into the player (#1's bug), so the row looked normal and its tap ran an
+     empty action.
+   - **Now:** when a video is streamed, Koan saves a plain file the page offers for it. It looks,
+     in order, at:
+     1. the video's own `<source>`s;
+     2. the page's renditions of that one video;
+     3. MediaWiki's original file, when the page links it;
+     4. a page link to a file whose name the video carries.
+   - **Checked on the POCO:** on Commons, Big Buck Bunny 4K picked the original 2.76 GB `.webm`.
+     The player said "Big_Buck_Bunny_4K.webm · Downloading · 2.8 GB", and the download ran (28 %
+     in Downloads; Claude cancelled it there).
+   - **Your checks:**
+     - the same page, and a plain `.mp4` test page: the notice in the player, and the file in
+       Downloads;
+     - a big streaming site and a DRM page: greyed out with the reason;
+     - airplane mode just after the tap: "Couldn't download the video" in the player;
+     - a file already there: the player leaves fullscreen and the duplicate card shows.
+3. **Rotation with auto-rotate off** (`ae0a8e5`, your #7). Fullscreen asks for `USER_LANDSCAPE` /
+   `USER_PORTRAIT` (the video's shape) instead of `SENSOR_*`, which turned the system's rotate
+   button off.
+   - Turn the phone during fullscreen: HyperOS's floating rotate button should show, and tapping it
+     should turn the screen.
+   - **Android limit:** while fullscreen holds a landscape video, the button can only switch
+     between the two landscape sides. Allowing portrait there would drop back to portrait at once,
+     because your lock holds portrait. If you want portrait in fullscreen with auto-rotate off, the
+     way is a rotate button in Koan's player (its code has an unused hook for one).
+   - Also check the standalone player from Downloads with auto-rotate off.
+4. **Hidden controls and taps** (`0f601af`, your #8; test `PlayerTapsTest`).
+   - With the controls hidden, tap where ⋯, lock, the play button or the progress bar would be:
+     the controls show, and nothing else happens.
+   - With them shown, every button works.
+   - Double-tap a side: it seeks without showing them.
+   - Locked: a tap anywhere shows Unlock.
+   - **Checked on the POCO:** a tap on the hidden ⋯ showed the controls 250 ms later (a side tap),
+     and ⋯ opened the menu once they were shown.
+   - Note: the controls hide on their own 3 s after the last touch.
+5. **White flash on rotation** (`722041c`, your #6). Portrait → landscape and back while
+   fullscreen: the screen stays black (Gecko's clear colour is black while fullscreen). Check light
+   and dark theme.
+6. **Portrait fullscreen** (`4889b99`, `1d71103`, your #4). A portrait video, or a landscape one
+   turned to portrait with auto-rotate on:
+   - the status bar shows, white icons on black, and the top row sits just under it, clear of the
+     camera;
+   - turn to landscape: both bars go and the 20 dp margins are back;
+   - leave fullscreen: Koan's status bar icons are back to the theme's colour.
+   Found on the way: the cutout rects could be the previous orientation's after a rotation, which
+   pushed the landscape top row about 25 dp down. They are read again now when the cutout changes.
+7. **⋯ menu morph** (`3c348e7`, `7f7eb84`, your #2).
+   - The panel grows out of the ⋯ pill, its top edge level with the top row, and shrinks back into
+     the pill when it closes.
+   - The PiP and lock pills fade out under it.
+   - **Checked on the POCO:** the open morph and the panel's place. The feel needs a release build:
+     this one is.
+8. **PiP on leave row** (`7819781`, your #1).
+   - The row reads "PiP on leave" with On / Off at the right, and its icon is crossed out when Off.
+   - Toggle it and check Settings › Picture-in-picture follows.
+   - **Checked on the POCO:** "PiP on leave · On" with the PiP icon.
 
 ## Tier 1: private data and things unit tests can't see
 
@@ -40,7 +113,7 @@ Checks:
 2. A paused fullscreen video, then home: **no** PiP (your rule).
 3. ⋯ › **Picture-in-picture on leave** → Off. Home: no PiP. Settings › Picture-in-picture shows Off;
    turn it back on there and the ⋯ row says On.
-4. A private video in PiP (`5f6b4ab`, reworked in the PiP lock commit of the recheck, below):
+4. A private video in PiP (`cd71fe8`):
    - Keep the window on screen for over 1 min, then tap it back to full screen: **no** lock (the
      window counts as Private open).
    - Close the window (✕), wait over 1 min, open Koan: locked. Close it and come back within 1 min:
