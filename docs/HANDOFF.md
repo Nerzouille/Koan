@@ -121,6 +121,22 @@ each group (launch + kill + restore checked).
   browsing's toggles); the menu's Desktop site, Translate's three switches, Site settings'
   permission switches; the overview header and start page title, pull down to dismiss both;
   sheet and drawer handles; empty Downloads / History; the private empty state and lock cover.
+- **Group E, motion and gestures (partly done, 6 commits):** duplicate springs merged (E1); three
+  fade tokens `Motion.FadeQuick / Fade / FadeSlow` for the player, `Modifier.mist` renamed
+  `flipTextDip` (E2); `Modifier.pressScale` and `slideUpPage` in `ui/kit/MotionKit.kt` (E3);
+  `KoanHaptics` everywhere (E4); `SwipeTokens.FLING_DP_PER_S` (E5, `SwipeTokensTest`);
+  `Modifier.blockTouches` (part of E9). **Not done, waiting for you:** E6 (`NeighbourDrag`), E7
+  (one drag loop) and E8 (one `swipeToDismiss`): the plan needs your feel check on a release build
+  after each caller, so they were left for a session with you. E9's system long-press timeout and
+  `tapOutside` would change behaviour (not in the allowed list): skipped. R8 build: launches,
+  restores after a kill, no crash.
+  **Check on the phone:** the player: tap the speed pill, Unlock, Replay (they now shrink on press
+  like the round buttons), the level indicator, spinner and 2× badge fades (20 ms longer or
+  shorter), the standalone player opening from Downloads; delete a History / Downloads /
+  Passwords row with a swipe (now a short haptic), long-press a downloaded language in ⋯ ›
+  Translate (now a haptic); a quick short swipe on a library row still deletes / hides; every
+  other haptic (toggles, dock scrub, stack, long presses) feels the same; Private's flip still
+  dips the dock's text.
 
 ## Open branches
 
