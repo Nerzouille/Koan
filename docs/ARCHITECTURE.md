@@ -53,6 +53,7 @@ relative to it unless they start with `app/`, `docs/` or `tools/`).
 | `thumbs` | `ThumbnailStore`, `BakedBlur`, `BlankCheck` |
 | `update` | `UpdateCheck` |
 | `ui` (root files) | `KoanRoot.kt`, `KoanOverlays.kt`, `OverviewMotion.kt`, `DisplayRefresh.kt` (`RefreshBooster`), `SystemBars.kt` |
+| `ui/overlays` | One file per group of overlays drawn by `KoanOverlays` (menu, permissions, logins, link card, settings, library, tour) |
 | `ui/bar` | The dock: `KoanBar`, `AddressRow` (address field, find bar), `WorkspaceSwitcher`, `SpaceDrawer`, `BarGestures`, `SpaceScrub` |
 | `ui/browser` | `BrowserScreen` (hosts the `GeckoEngineView`), `DockState`, `PageCover`, `PullRefresh`, `TabSwipe`, `Fullscreen`, `ClosingPage`, `TranslateOfferHost`, `observeSlice` |
 | `ui/overview` | `OverviewScreen`, `SpacePage`, `SpacePager`, `DepthStack`, `StackState`, `DepthCurve`, `TabCard`, `CardHero`, `Favicon`, first-run card |
@@ -285,7 +286,12 @@ native port per engine session. Bump the manifest version when a script changes.
   → hero morph layer → `StartPage` → `SearchSheet` → `KoanBar` (dock) → `KoanOverlays` → translate
   offer → standalone player → toasts → sign-in → private lock cover.
 - `ui/KoanOverlays.kt`: `Overlays` is the state of everything that opens over the page (⋯ menu,
-  prompt cards, Settings, Downloads, History, tour); `KoanOverlays` draws them.
+  prompt cards, Settings, Downloads, History, tour); `KoanOverlays` holds the state they share and
+  calls one composable per group, in z-order, from `ui/overlays/`: `MenuOverlays` (⋯ menu, clear
+  site data, `DockMenus`, `LanguageDeleteOverlay`), `PermissionOverlays`, `LoginOverlays` (logins,
+  file field, page prompts), `LinkCardOverlay` (link / image / download / duplicate card),
+  `SettingsOverlays` (+ `SignOutOverlay`), `LibraryOverlays` (Downloads, History, ask card),
+  `TourOverlays`.
 - Overview ↔ page: the hero morph animates the tab's screenshot between its card and the page
   rectangle; the live GeckoView is swapped in once it lands. A page cover shows the screenshot
   until the engine reports a first paint.
