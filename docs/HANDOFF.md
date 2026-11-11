@@ -30,8 +30,8 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
      `docs/ARCHITECTURE.md` rewritten; `NIGHT_REPORT.md` and `REVIEW_NIGHT.md` removed (their
      rules are in `docs/UI_SPEC.md`).
   3. `geckoview-160` (merged into `dev`): GeckoView / android-components 160, see "Engine".
-  4. Refactoring, from **`docs/plans/BATCH4_BRIEF.md`** (branch `refactor` from `dev`): **after
-     the release** (see "Next concrete steps").
+  4. Refactoring, from **`docs/plans/BATCH4_BRIEF.md`** (branch `refactor` from `dev`): **next**,
+     before the release (see "Next concrete steps").
   5. Tests, CI, baseline profile: after batch 4.
 - Engine: android-components **160.0** / GeckoView **160.0.20261104181552**
   (`gradle/libs.versions.toml`, the two versions move together), compileSdk **37.2** (AC 160
@@ -121,17 +121,19 @@ The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and 
 
 ## Next concrete steps
 
-In this order (owner, 2026-11-11):
+In this order (owner, 2026-11-11, changed the same day):
 
-1. **Two-way Spaces sync plan:** write `docs/plans/SPACES_WRITE_PLAN.md` (not written yet): how
-   Koan would write the Zen `spaces` collection behind `writeBackEnabled` (CLAUDE.md rule 4), from
-   `docs/SYNC.md` "Write-back to Spaces" and `docs/SYNC_WRITE.md`. Plan only, no code until the
-   owner approves it.
+1. **Batch 4**, refactoring, from `docs/plans/BATCH4_BRIEF.md` (branch `refactor` from `dev`).
 2. **The owner's fixes list** (the owner brings it).
-3. **Release 0.5 on Friday 2026-11-13** (CLAUDE.md release checklist; versionCode ≥ 10). The
-   owner's batch 1 phone checks (list under "Untested / unverified") come before it.
-4. After the release: **batch 4**, refactoring (`docs/plans/BATCH4_BRIEF.md`), then **batch 5**
-   (tests, CI, baseline profile).
+3. **Release 0.5** (CLAUDE.md release checklist; versionCode ≥ 10). It was planned for Friday
+   2026-11-13, before batch 4 moved ahead of it: confirm the date with the owner. The owner's
+   batch 1 phone checks (list under "Untested / unverified") come before it.
+4. After the release: **two-way Spaces sync**, starting at step 0 of
+   `docs/plans/SPACES_WRITE_PLAN.md` (reading Zen's own sync source, no code). The plan is written
+   and the owner's decisions are in its §9; no code before that step 0.
+
+**Batch 5** (tests, CI, baseline profile) still comes after batch 4; the owner hasn't placed it
+relative to the release and the Spaces sync: ask.
 
 Watch on GeckoView 160 meanwhile: the rare bugs above, the space switch p90.
 
