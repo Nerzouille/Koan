@@ -43,7 +43,7 @@ def click(tree, text):
 
 def wait_flow(fill=False):
     deadline = time.monotonic() + 180
-    canceled_phases = set()
+    cancel_sent_at = 0.0
     selected = False
     last_phase = None
     while time.monotonic() < deadline:
@@ -71,9 +71,13 @@ def wait_flow(fill=False):
             else:
                 click(tree, 'Focus username')
         elif status['phase'] == 'cancel' and picker:
-            if status['phase'] not in canceled_phases:
+            # The preceding login sheet can still be animating away after the website has
+            # entered the cancellation phase. Back there would navigate/close the page.
+            cancel_sheet = any(n.get('text', '').startswith('cancel-fixture') for n in tree)
+            if cancel_sheet and time.monotonic() - cancel_sent_at > 3:
                 adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
-                canceled_phases.add(status['phase'])
+                cancel_sent_at = time.monotonic()
+                print('Canceled the identified fixture sheet', flush=True)
         elif picker:
             for label in ('Continue', 'Create', 'Save', 'Koan test account'):
                 if click(tree, label):

@@ -44,6 +44,9 @@ try:
     resolved = adb('shell', 'cmd', 'package', 'resolve-activity', '--brief', '-a', 'android.intent.action.VIEW',
                    '-d', 'http://localhost:8786/')
     assert args.browser + '/' in resolved, 'System default link resolution did not select Koan'
+    # Isolate the run from abandoned documents/system requests left by an interrupted test.
+    # Keep the same browser process for every mode and every retry within this run.
+    adb('shell', 'am', 'force-stop', args.browser)
     subprocess.run([sys.executable, str(here / 'drive.py'), '--adb', args.adb, '--serial', args.serial,
                     '--browser', args.browser, '--mode', args.mode, '--default-browser'], check=True)
 finally:

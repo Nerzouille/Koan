@@ -19,11 +19,12 @@ import mozilla.components.concept.engine.activity.ActivityDelegate
 /** Owns a pending engine result, without retaining the Activity that launched the provider. */
 class PendingPasskeyResult : ViewModel() {
     private var pending: ((Intent?) -> Unit)? = null
+    private var cleared = false
     var requestId: String? = null
         private set
 
     fun begin(callback: (Intent?) -> Unit): String? {
-        if (pending != null) {
+        if (cleared || pending != null) {
             callback(null)
             return null
         }
@@ -41,6 +42,7 @@ class PendingPasskeyResult : ViewModel() {
     }
 
     override fun onCleared() {
+        cleared = true
         requestId?.let { complete(it, null) }
     }
 }
@@ -51,52 +53,70 @@ class WebAuthnController(
     private val engine: Engine,
     private val beforeLaunch: () -> Unit,
     private val registry: ActivityResultRegistry = activity.activityResultRegistry,
+    restoredRequestIds: List<String> = emptyList(),
 ) : ActivityDelegate {
     private val pending = ViewModelProvider(activity)[PendingPasskeyResult::class.java]
-    private var registration: Pair<String, ActivityResultLauncher<IntentSenderRequest>>? = null
-    private var started = false
+    private val registrations = mutableMapOf<String, ActivityResultLauncher<IntentSenderRequest>>()
+    private enum class HostState { STOPPED, STARTED, DESTROYED }
+    private var hostState = HostState.STOPPED
 
     init {
-        // Rebind the same request after rotation. A fresh ViewModel after process death has no
-        // live engine callback; later requests use new keys and cannot consume that old result.
-        pending.requestId?.let(::register)
+        CredentialUiHost.attach(activity)
+        // Rotation retains a live callback; after process death these keys only drain old
+        // results. Never leave a credential response sitting in AndroidX's pending-result state.
+        (restoredRequestIds + listOfNotNull(pending.requestId)).distinct().forEach(::register)
         activity.lifecycle.addObserver(LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_DESTROY) registration?.first?.let(::unregister)
+            when (event) {
+                Lifecycle.Event.ON_START -> {
+                    CredentialUiHost.attach(activity)
+                    start()
+                }
+                Lifecycle.Event.ON_STOP -> stop()
+                Lifecycle.Event.ON_DESTROY -> {
+                    stop()
+                    hostState = HostState.DESTROYED
+                    CredentialUiHost.detach(activity)
+                    registrations.keys.toList().forEach(::unregister)
+                }
+                else -> Unit
+            }
         })
     }
 
+    /** Saved state contains opaque routing IDs only, never an Intent or credential response. */
+    fun pendingRequestIds(): List<String> = registrations.keys.toList()
+
     fun start() {
-        if (started) return
-        started = true
+        if (hostState != HostState.STOPPED) return
+        hostState = HostState.STARTED
         engine.registerActivityDelegate(this)
     }
 
     fun stop() {
-        if (!started) return
-        started = false
+        if (hostState != HostState.STARTED) return
+        hostState = HostState.STOPPED
         engine.unregisterActivityDelegate()
         // The provider normally stops the host Activity; keep its pending result alive.
     }
 
     private fun unregister(id: String) {
-        registration?.takeIf { it.first == id }?.let {
-            registration = null
-            it.second.unregister()
-        }
+        registrations.remove(id)?.unregister()
     }
 
     private fun register(id: String): ActivityResultLauncher<IntentSenderRequest> {
+        var delivered = false
         val launcher = registry.register("koan.webauthn.$id", ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            delivered = true
             unregister(id)
             pending.complete(id, result.data.takeIf { result.resultCode == Activity.RESULT_OK })
         }
         // register() may synchronously deliver a result queued during Activity recreation.
-        if (pending.requestId == id) registration = id to launcher else launcher.unregister()
+        if (!delivered) registrations[id] = launcher else launcher.unregister()
         return launcher
     }
 
     override fun startIntentSenderForResult(intent: IntentSender, onResult: (Intent?) -> Unit) {
-        if (!started) {
+        if (hostState != HostState.STARTED) {
             onResult(null)
             return
         }

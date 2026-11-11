@@ -59,6 +59,10 @@
 - WebAuthn results reach the page after an Activity recreation; canceled or overlapping prompts
   no longer leave an abandoned callback. Each Activity result is tied to its own request so a
   late result cannot complete a retry; stopped hosts reject new launches.
+- Abandoned Activity results are drained after callback loss so credential responses do not
+  remain queued for a new sign-in. Destroyed hosts cannot restart the bridge.
+- Credential Manager uses the browser Activity's task. Results wait for the page to resume
+  before a website can start its next credential request, avoiding overlapping closing panels.
 - Devices with Android Credential Manager no longer depend on Google FIDO for their platform
   passkey capability check. Missing/disabled Google services fail promptly on legacy fallback.
 - Legacy Google FIDO login tasks now return failures/cancellations to the page; canceling their

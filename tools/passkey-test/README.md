@@ -30,6 +30,10 @@ The runner temporarily selects the fixture services and default browser, disable
 Play Services, and sets up the localhost reverse tunnel. A `finally` block restores those
 settings and stops the local server. Use a disposable AVD regardless; interrupted processes
 or a disconnected emulator can prevent cleanup. Stop only this AVD when done.
+The runner force-stops the selected test browser once before the run. All requests, retries
+and entry modes then share that process. Fixture PendingIntents have unique identities so
+overlapping candidate queries cannot invalidate a displayed entry; the cancellation driver
+waits for the specifically named cancellation entry before pressing Back.
 
 The web test checks real browser-returned client data, RP hash, origin, challenge, credential
 ID and a real P-256 signature on the local server. It covers platform capability detection
@@ -54,3 +58,6 @@ origin. This deliberately tests origin delegation instead of bypassing it.
 
 These tests do not establish compatibility with 1Password's trusted-browser policy, real
 biometrics, physical USB/NFC keys or cross-device QR authentication.
+The Android integration suite also checks Activity-backed credential contexts, outcome delivery
+after resume or destruction, and draining queued/late results after callback-owner loss. The
+latter simulates loss of the callback owner; it is not an end-to-end process-kill test.

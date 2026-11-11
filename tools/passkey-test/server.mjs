@@ -54,7 +54,7 @@ document.getElementById('run').onclick=async()=>{document.getElementById('run').
  const discoverable=await navigator.credentials.get({publicKey:{rpId:'localhost',challenge:dec(options.challenge),userVerification:'required',timeout:30000}});
  await send('/assert',serialize(discoverable));
  await send('/phase',{phase:'cancel'});
- let rejected=false;try{await navigator.credentials.create({publicKey:creation})}catch(e){rejected=e.name==='AbortError'||e.name==='NotAllowedError'}
+ let rejected=false;try{await navigator.credentials.create({publicKey:{...creation,user:{...creation.user,name:'cancel-fixture'}}})}catch(e){rejected=e.name==='AbortError'||e.name==='NotAllowedError'}
  if(!rejected)throw Error('Cancel did not reject the request');
  await send('/phase',{phase:'unavailable'});
  const started=performance.now();let unavailable=false;

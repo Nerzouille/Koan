@@ -17,31 +17,32 @@ import java.util.Set;
  * GeckoView 157 uses GMS for isUVPAA even when authentication uses Android Credential Manager.
  * Add the platform check before its GMS fallback, and fail promptly if that service is absent.
  * No website APIs, origin validation, or Credential Manager signing flows are replaced.
- * Remove this adapter when GeckoView handles Credential Manager in its own capability probe.
+ * Remove each compatibility behavior when GeckoView implements it natively.
  */
 public abstract class PasskeyCapabilityVisitorFactory
         implements AsmClassVisitorFactory<InstrumentationParameters.None> {
     static final String TARGET = "org.mozilla.geckoview.WebAuthnTokenManager";
     static final String METHOD = "webAuthnIsUserVerifyingPlatformAuthenticatorAvailable";
     static final String DESCRIPTOR = "()Lorg/mozilla/geckoview/GeckoResult;";
-    static final String ACTIVITY_FAILURE = "lambda$getAssertion$11";
     static final Map<String, String> METHODS = Map.of(
             METHOD, DESCRIPTOR,
             "makeCredential", "(Lorg/mozilla/gecko/util/GeckoBundle;[B[B[Lorg/mozilla/gecko/util/WebAuthnUtils$WebAuthnPublicCredential;Lorg/mozilla/gecko/util/GeckoBundle;Lorg/mozilla/gecko/util/GeckoBundle;)Lorg/mozilla/geckoview/GeckoResult;",
             "getAssertion", "([B[Lorg/mozilla/gecko/util/WebAuthnUtils$WebAuthnPublicCredential;Lorg/mozilla/gecko/util/GeckoBundle;Lorg/mozilla/gecko/util/GeckoBundle;)Lorg/mozilla/geckoview/GeckoResult;",
-            "hasCredentialInGMS", "(Ljava/lang/String;[Lorg/mozilla/gecko/util/WebAuthnUtils$WebAuthnPublicCredential;)Lorg/mozilla/geckoview/GeckoResult;",
-            ACTIVITY_FAILURE, "(Lorg/mozilla/geckoview/GeckoResult;Ljava/lang/Throwable;)V");
+            "hasCredentialInGMS", "(Ljava/lang/String;[Lorg/mozilla/gecko/util/WebAuthnUtils$WebAuthnPublicCredential;)Lorg/mozilla/geckoview/GeckoResult;");
 
     @Override public boolean isInstrumentable(ClassData data) {
-        return TARGET.equals(data.getClassName());
+        return TARGET.equals(data.getClassName()) || CredentialContextVisitor.TARGET.equals(data.getClassName());
     }
 
     @Override public ClassVisitor createClassVisitor(ClassContext context, ClassVisitor next) {
+        if (CredentialContextVisitor.TARGET.equals(context.getCurrentClassData().getClassName())) {
+            return CredentialContextVisitor.patch(next);
+        }
         return patch(next);
     }
 
     static ClassVisitor patch(ClassVisitor next) {
-        return new ClassVisitor(Opcodes.ASM9, next) {
+        return LegacyFidoCallbacks.patch(new ClassVisitor(Opcodes.ASM9, next) {
             private final Set<String> found = new HashSet<>();
 
             @Override public MethodVisitor visitMethod(
@@ -52,18 +53,6 @@ public abstract class PasskeyCapabilityVisitorFactory
                     throw new IllegalStateException("GeckoView WebAuthn probe changed; review the adapter");
                 }
                 found.add(name);
-                if (ACTIVITY_FAILURE.equals(name)) return new MethodVisitor(Opcodes.ASM9, nextMethod) {
-                    private int replacements = 0;
-                    @Override public void visitLdcInsn(Object value) {
-                        // Match registration's cancellation mapping, including RESULT_CANCELED.
-                        if ("UNKNOWN_ERR".equals(value)) { value = "ABORT_ERR"; replacements++; }
-                        super.visitLdcInsn(value);
-                    }
-                    @Override public void visitEnd() {
-                        if (replacements != 1) throw new IllegalStateException("GeckoView activity failure mapping changed");
-                        super.visitEnd();
-                    }
-                };
                 return new MethodVisitor(Opcodes.ASM9, nextMethod) {
                     private int lastLoaded = -1;
                     private int resultLocal = -1;
@@ -160,6 +149,6 @@ public abstract class PasskeyCapabilityVisitorFactory
                         "GeckoView WebAuthn methods changed; review/remove the credential adapter");
                 super.visitEnd();
             }
-        };
+        });
     }
 }

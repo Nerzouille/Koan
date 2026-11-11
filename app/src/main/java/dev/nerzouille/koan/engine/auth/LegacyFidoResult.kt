@@ -6,6 +6,12 @@ import org.mozilla.geckoview.GeckoResult
 
 /** GeckoView 157's legacy getAssertion task attaches success only. Always settle failures too. */
 object LegacyFidoResult {
+    /** Shared by registration and login; successful native response parsing remains unchanged. */
+    @JvmStatic
+    fun activityFailure(result: GeckoResult<*>): GeckoResult.Consumer<Throwable> = GeckoResult.Consumer {
+        result.completeExceptionally(WebAuthnUtils.Exception("ABORT_ERR"))
+    }
+
     @JvmStatic
     fun observe(task: Task<*>, result: GeckoResult<*>): Task<*> {
         // Direct listeners also handle an already-completed task; no Activity is retained.

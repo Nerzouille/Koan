@@ -19,15 +19,17 @@ import androidx.credentials.exceptions.CreateCredentialUnknownException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.provider.*
 import java.security.MessageDigest
+import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
 
 /** Localhost-only fixture. This service and its keys are never included in a user APK. */
 class TestCredentialProvider : CredentialProviderService() {
     private fun action(kind: String): PendingIntent = PendingIntent.getActivity(
-        this, if (kind == "create") 1 else 2,
-        Intent(this, TestCredentialActivity::class.java).setData(Uri.parse("koan-test://$kind")),
-        PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_MUTABLE,
+        this, 0,
+        // Candidate queries may overlap. Never cancel an entry handed to an earlier query.
+        Intent(this, TestCredentialActivity::class.java).setData(Uri.parse("koan-test://$kind/${UUID.randomUUID()}")),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
     )
 
     override fun onBeginCreateCredentialRequest(

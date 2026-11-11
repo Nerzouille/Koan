@@ -15,6 +15,7 @@ import dev.nerzouille.koan.KoanApp
 import dev.nerzouille.koan.MainActivity
 import dev.nerzouille.koan.engine.auth.WebAuthnController
 import dev.nerzouille.koan.engine.auth.LegacyFidoResult
+import dev.nerzouille.koan.engine.auth.CredentialUiHost
 import com.google.android.gms.tasks.Tasks
 import org.mozilla.gecko.util.WebAuthnUtils
 import org.mozilla.geckoview.GeckoResult
@@ -28,6 +29,42 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class PasskeyIntegrationTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
+
+    @Test fun credentialUiContextTracksTheHostWithoutRetainingDestroyedActivities() {
+        var old: MainActivity? = null
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                old = activity
+                assertSame(activity, (CredentialUiHost.context(activity.applicationContext) as android.content.ContextWrapper).baseContext)
+            }
+            scenario.recreate()
+            scenario.onActivity { activity ->
+                CredentialUiHost.detach(requireNotNull(old))
+                assertSame(activity, (CredentialUiHost.context(activity.applicationContext) as android.content.ContextWrapper).baseContext)
+                old = null
+            }
+        }
+        assertSame(instrumentation.targetContext.applicationContext,
+            CredentialUiHost.context(instrumentation.targetContext.applicationContext))
+    }
+
+    @Test fun credentialOutcomeWaitsForResumeAndStillSettlesOnDestroy() {
+        for (resume in listOf(false, true)) {
+            ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+                scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+                val done = CompletableFuture<Boolean>()
+                instrumentation.runOnMainSync {
+                    CredentialUiHost.context(instrumentation.targetContext.applicationContext).mainExecutor.execute {
+                        done.complete(true)
+                    }
+                }
+                instrumentation.waitForIdleSync()
+                assertFalse(done.isDone)
+                scenario.moveToState(if (resume) androidx.lifecycle.Lifecycle.State.RESUMED else androidx.lifecycle.Lifecycle.State.DESTROYED)
+                assertTrue(done.get(20, TimeUnit.SECONDS))
+            }
+        }
+    }
     @Test fun pendingCallbackSurvivesActivityRecreation() {
         val registry = ControlledRegistry()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -66,6 +103,42 @@ class PasskeyIntegrationTest {
                 registry.dispatchResult(retry, Activity.RESULT_OK, Intent().putExtra("fixture-result", "retry"))
                 assertEquals(1, firstCalls)
                 assertEquals(1, retryCalls)
+            }
+        }
+    }
+
+    @Test fun abandonedResultsAreDrainedAfterCallbackOwnerIsLost() {
+        for (queuedBeforeRestore in listOf(false, true)) {
+            val registry = ControlledRegistry()
+            ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+                var savedIds = emptyList<String>()
+                var rejected = 0
+                scenario.onActivity { activity ->
+                    val old = controller(activity, registry)
+                    old.startIntentSenderForResult(sender().intentSender) { assertNull(it); rejected++ }
+                    savedIds = old.pendingRequestIds()
+                    // Simulate loss of the in-memory callback, while Android retains its result.
+                    activity.viewModelStore.clear()
+                }
+                scenario.recreate()
+                scenario.onActivity { activity ->
+                    val oldCode = registry.codes.single()
+                    if (queuedBeforeRestore) registry.dispatchResult(oldCode, Activity.RESULT_OK, Intent().putExtra("fixture-result", "orphan"))
+                    val restored = WebAuthnController(activity, (activity.application as KoanApp).components.engine,
+                        {}, registry, savedIds + savedIds).also { it.start() }
+                    if (queuedBeforeRestore) assertTrue(restored.pendingRequestIds().isEmpty())
+                    var retryCalls = 0
+                    restored.startIntentSenderForResult(sender().intentSender) {
+                        assertEquals("retry", it?.getStringExtra("fixture-result")); retryCalls++
+                    }
+                    if (!queuedBeforeRestore) registry.dispatchResult(oldCode, Activity.RESULT_OK, Intent().putExtra("fixture-result", "orphan"))
+                    assertEquals(0, retryCalls)
+                    assertEquals(1, rejected)
+                    assertEquals(1, restored.pendingRequestIds().size)
+                    registry.dispatchResult(registry.codes.last(), Activity.RESULT_OK, Intent().putExtra("fixture-result", "retry"))
+                    assertEquals(1, retryCalls)
+                    assertTrue(restored.pendingRequestIds().isEmpty())
+                }
             }
         }
     }
@@ -114,14 +187,27 @@ class PasskeyIntegrationTest {
         assertThrows(WebAuthnUtils.Exception::class.java) { canceled.poll(1000) }
     }
 
-    @Test fun actualEngineMapsCanceledLegacyActivityToAbort() {
+    @Test fun activityFailureMapsToAbort() {
         val result = GeckoResult<Any>()
-        val method = Class.forName("org.mozilla.geckoview.WebAuthnTokenManager").getDeclaredMethod(
-            "lambda\$getAssertion\$11", GeckoResult::class.java, Throwable::class.java,
-        ).apply { isAccessible = true }
-        method.invoke(null, result, IllegalStateException("synthetic canceled activity"))
+        LegacyFidoResult.activityFailure(result).accept(IllegalStateException("synthetic canceled activity"))
         val error = assertThrows(WebAuthnUtils.Exception::class.java) { result.poll(1000) }
         assertEquals("ABORT_ERR", error.message)
+    }
+
+    @Test fun destroyedHostCannotLaunchAnotherProvider() {
+        val registry = ControlledRegistry()
+        lateinit var controller: WebAuthnController
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { controller = controller(it, registry) }
+            scenario.moveToState(androidx.lifecycle.Lifecycle.State.DESTROYED)
+            instrumentation.runOnMainSync {
+                var calls = 0
+                controller.start()
+                controller.startIntentSenderForResult(sender().intentSender) { assertNull(it); calls++ }
+                assertEquals(1, calls)
+                assertTrue(registry.codes.isEmpty())
+            }
+        }
     }
 
     @Test fun nativeActivityDelegateReceivesSuccessAndCancellation() {

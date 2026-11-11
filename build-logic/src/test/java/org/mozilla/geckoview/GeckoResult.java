@@ -1,6 +1,7 @@
 package org.mozilla.geckoview;
 
 public class GeckoResult {
+    public interface Consumer<T> { void accept(T value); }
     public final Object value;
     public Throwable error;
     private GeckoResult(Object value) { this.value = value; }

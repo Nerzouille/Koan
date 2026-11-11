@@ -84,4 +84,19 @@ class PendingPasskeyResultTest {
         assertEquals(1, calls)
         assertNull(state.requestId)
     }
+
+    @Test fun clearedOwnerCannotBeResurrectedByItsCallback() {
+        val store = ViewModelStore()
+        val state = PendingPasskeyResult()
+        store.put("passkey", state)
+        var rejected = 0
+        state.begin {
+            assertNull(state.begin { assertNull(it); rejected++ })
+        }
+        store.clear()
+        assertNull(state.requestId)
+        assertEquals(1, rejected)
+        assertNull(state.begin { assertNull(it); rejected++ })
+        assertEquals(2, rejected)
+    }
 }

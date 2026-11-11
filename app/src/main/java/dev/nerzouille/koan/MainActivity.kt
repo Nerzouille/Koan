@@ -70,6 +70,7 @@ class MainActivity : FragmentActivity() {
             activity = this,
             engine = components.engine,
             beforeLaunch = { components.sessionUseCases.exitFullscreen(components.store.state.selectedTabId) },
+            restoredRequestIds = savedInstanceState?.getStringArrayList(WEB_AUTHN_PENDING).orEmpty(),
         )
         IconStore.initialize(this)
         ThumbnailStore.initialize(this)
@@ -150,7 +151,13 @@ class MainActivity : FragmentActivity() {
 
     private var downloads: DownloadsFeature? = null
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putStringArrayList(WEB_AUTHN_PENDING, ArrayList(webAuthn?.pendingRequestIds().orEmpty()))
+        super.onSaveInstanceState(outState)
+    }
+
     private companion object {
+        const val WEB_AUTHN_PENDING = "koan.webauthn.pending"
         /** Per process, not per activity (a recreated activity must not restore twice). */
         val savedDownloadsRestored = java.util.concurrent.atomic.AtomicBoolean(false)
 
@@ -329,7 +336,6 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
-        webAuthn?.start()
         val components = (application as KoanApp).components
         components.sync.onForeground()
         components.privateMode.onShown()
@@ -360,7 +366,6 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onStop() {
-        webAuthn?.stop()
         val components = (application as KoanApp).components
         // Not for a rotation: the activity comes straight back.
         if (!isChangingConfigurations) {
