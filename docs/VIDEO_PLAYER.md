@@ -19,7 +19,7 @@ Hand-over for Claude Code, from the owner's design canvas (boards: Landscape, Po
   - Gestures starting in the system's top or bottom gesture edge (`WindowInsets.systemGestures`, at least `PlayerTokens.EdgeBand` 32dp) never start a level, swipe-away or 2× hold; the progress bar scrubs only after a sideways move (or a tap), a vertical move on it is left to the system.
   - Orientation (`ui/player/FullscreenOrientation.kt`): the video's shape first; with auto-rotate on, once the phone is held that way, `SENSOR` (portrait included). Auto-rotate off: the video's shape. The standalone player: `SENSOR`, or the video's shape when auto-rotate is off.
   - A mode switch (Private on / off) and the private lock take every (private) page out of fullscreen (`leaveFullscreen`).
-  - ⋯ › **Download video** always shown, greyed out with a reason (protected, streamed, live, not a file); an http address with no video ending is checked (HEAD) only on the tap. ⋯ › **Picture-in-picture on leave** (On / Off) writes Settings' switch.
+  - ⋯ › **Download video** always shown, greyed out with a reason (protected, streamed, live, not a file); an http address with no video ending is checked (HEAD) only on the tap. ⋯ › **PiP on leave** (On / Off at the end, icon crossed out when off) writes Settings' switch.
   - PiP on leave: only a playing fullscreen video; Koan's own view of the video (the extension's size and play state) counts when Gecko's media session has none.
 
 Conventions

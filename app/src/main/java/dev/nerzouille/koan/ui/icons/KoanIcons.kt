@@ -250,6 +250,14 @@ object KoanIcons {
             moveTo(13f, 14f); lineTo(20f, 14f); lineTo(20f, 19f); lineTo(13f, 19f); close()
         }
     }
+    /** [Pip] crossed out: picture-in-picture off. */
+    val PipOff: ImageVector by lazy {
+        stroked("pip_off") {
+            moveTo(20f, 11f); lineTo(20f, 6f); lineTo(4f, 6f); lineTo(4f, 18f); lineTo(10f, 18f)
+            moveTo(13f, 14f); lineTo(20f, 14f); lineTo(20f, 19f); lineTo(13f, 19f); close()
+            moveTo(3f, 3f); lineTo(21f, 21f)
+        }
+    }
     val Unlock: ImageVector by lazy {
         stroked("unlock") {
             moveTo(6f, 11f); lineTo(18f, 11f); lineTo(18f, 20f); lineTo(6f, 20f); close()

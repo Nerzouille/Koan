@@ -684,7 +684,8 @@ fun VideoPlayer(
                 // ---- ⋯ menu ----
                 val menuIn = rememberPresence(menuOpen, enter = Motion.Fade, exit = Motion.FadeQuick, startShown = true)
                 if (menuIn.composed) {
-                    val rows = remember(menuRows) { menuRows.map { row -> MenuRow(row.icon, row.label, row.destructive) { menuOpen = false; row.onClick() } } }
+                    // Every field kept (a switch's state, a greyed-out row and its reason); a tap also closes the menu.
+                    val rows = remember(menuRows) { menuRows.map { row -> row.after { menuOpen = false } } }
                     PlayerMenu(
                         rate = state.rate,
                         onRate = { r -> controls.rate(r); touched() },

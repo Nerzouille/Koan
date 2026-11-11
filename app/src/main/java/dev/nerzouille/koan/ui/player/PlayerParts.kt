@@ -210,11 +210,17 @@ class MenuRow(
     /** A switch row: "On" / "Off" at the end (null = an action). */
     val on: Boolean? = null,
     val onClick: () -> Unit,
-)
+) {
+    /** The same row (state, greyed out, reason) doing [also] first, then its own action. */
+    fun after(also: () -> Unit) = MenuRow(icon, label, destructive, enabled, subtitle, on) { also(); onClick() }
+}
 
-/** The ⋯ row for Settings › Picture-in-picture (the same setting): leaving Koan in fullscreen opens PiP. */
+/**
+ * The ⋯ row for Settings › Picture-in-picture (the same setting): leaving Koan in fullscreen opens
+ * PiP. Its state at the end ("On" / "Off", like "Normal" on Playback speed), its icon crossed out when off.
+ */
 fun pipOnLeaveRow(on: Boolean, onChange: (Boolean) -> Unit) =
-    MenuRow(dev.nerzouille.koan.ui.icons.KoanIcons.Pip, "Picture-in-picture on leave", on = on) { onChange(!on) }
+    MenuRow(if (on) dev.nerzouille.koan.ui.icons.KoanIcons.Pip else dev.nerzouille.koan.ui.icons.KoanIcons.PipOff, "PiP on leave", on = on) { onChange(!on) }
 
 /** §2 ⋯ menu: the speed row and its chips, then [rows]. */
 @Composable
@@ -281,7 +287,7 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
                     Text(row.label, style = playerText(15.sp, FontWeight.Medium, color), maxLines = 1)
                     row.subtitle?.let { Text(it, style = playerText(12.sp, FontWeight.Normal, PlayerTokens.TextSecondary), maxLines = 1) }
                 }
-                row.on?.let { Text(if (it) "On" else "Off", style = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary)) }
+                row.on?.let { Text(if (it) "On" else "Off", style = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1) }
             }
         }
     }

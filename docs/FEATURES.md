@@ -475,8 +475,9 @@ Koan's player, always dark, over a page's full-screen video and for videos Koan 
 - **Long press** while it plays: 2× speed while you hold (a "2×" badge shows).
 - **Swipe up or down** on the left half for brightness, on the right half for volume.
 - **Lock:** the controls and gestures stop until you tap **Unlock** (a tap shows it for 3 s).
-- **⋯:** **Playback speed** (0.5×, 0.75×, Normal, 1.25×, 1.5×, 2×), **Picture-in-picture on
-  leave** (On / Off, the same setting as Settings › Picture-in-picture), and, on a page,
+- **⋯:** **Playback speed** (0.5×, 0.75×, Normal, 1.25×, 1.5×, 2×), **PiP on
+  leave** (On / Off at the end, the icon crossed out when off; the same setting as Settings ›
+  Picture-in-picture), and, on a page,
   **Download video** and **Use the site's controls** (Koan's come back the next time the video
   goes full screen). **Download video** is greyed out, with why, when the video can't be saved:
   a protected video (DRM), a streamed one (most big video sites) or a live one. For an address
