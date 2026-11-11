@@ -107,10 +107,12 @@ fun BrowserScreen(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         components.tabs.attach(engineView)
+        components.privateTabs.tabs.attach(engineView)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             sessionFeature.stop()
             components.tabs.attach(null)
+            components.privateTabs.tabs.attach(null)
         }
     }
 
@@ -176,7 +178,7 @@ fun BrowserScreen(
         engineView.verticalScrollPosition.collect { y ->
             if (y < nearTop && !dock.touching) dock.show()
             // Scrolling changes what the card should show: a screenshot follows once it stops.
-            components.tabs.pageScrolled()
+            components.shownTabs().pageScrolled()
         }
     }
 
@@ -187,7 +189,7 @@ fun BrowserScreen(
         pull.triggerPx = PullTokens.Trigger.toPx()
         pull.maxPx = PullTokens.Max.toPx()
     }
-    val currentId by components.tabs.current.collectAsState()
+    val currentId by components.store.observeSlice(Unit) { it.selectedTabId }
     LaunchedEffect(currentId) { pull.done() }
     LaunchedEffect(pull.refreshing) {
         if (!pull.refreshing) return@LaunchedEffect

@@ -45,6 +45,9 @@ class BarGestures(
 ) {
     var overviewOpen: () -> Boolean = { false }
 
+    /** Private shown: one set of tabs, so no space switching, no scrub and no drawer. */
+    var privateMode: () -> Boolean = { false }
+
     /** Set by the address pill as a press lands on it: only a long press there scrubs the spaces. */
     var pressOnPill = false
 
@@ -91,10 +94,11 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
         val tracker = VelocityTracker()
         tracker.addPosition(down.uptimeMillis, down.position)
         val inOverview = g.overviewOpen()
+        val private = g.privateMode()
         val outside = drawerArea && down.position.y < g.drawer.sheetTop()
 
         var scrubbing = false
-        val start: Slop? = if (inOverview || !onPill) {
+        val start: Slop? = if (inOverview || !onPill || private) {
             awaitSlop(down.id, tracker, PointerEventPass.Main)
         } else {
             val first = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
@@ -119,6 +123,8 @@ fun Modifier.barGestures(g: BarGestures, view: View, drawerArea: Boolean = false
         val drawerShown = g.drawer.open || g.drawer.height > 0f
         val kind = when {
             scrubbing || start == null -> Drag.Scrub
+            private && inOverview && start.horizontal -> return@awaitEachGesture
+            private && inOverview && start.total.y <= 0f -> return@awaitEachGesture
             start.horizontal -> if (inOverview) Drag.Space else Drag.Tab
             inOverview && drawerShown -> Drag.Drawer
             inOverview -> if (start.total.y > 0f) Drag.OverviewClose else Drag.Drawer

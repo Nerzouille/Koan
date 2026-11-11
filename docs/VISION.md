@@ -43,13 +43,18 @@ workspaces **are** your Zen desktop Spaces.
 8. Folders shown as collapsible groups of cards; Zen split views shown as one card with a split
    indicator.
 9. "Open on desktop": send the current page to a Zen Space so it's there on the PC (needs write-back).
+10. **Private browsing** (in scope since 2026-11-11, spec `docs/design/OVERVIEW_PRIVATE.md`): a mode
+    of the overview with its own set of permanent private tabs (saved encrypted; sites sign you
+    out on restart), a fingerprint lock, no screenshots, and the engine's private-only
+    protections (HTTPS-only, fingerprinting protection, link cleaning, Global Privacy Control). It
+    never claims to hide the IP address: that needs a VPN or Tor Browser.
 
 ## Out of scope (for now, possibly forever)
 
 - iOS, tablets, landscape-first layouts.
 - Play Store release, onboarding for strangers, localisation.
 - AI features (Arc's "Browse for me"). Maybe later as a toy.
-- Private browsing beyond a basic private tab.
+- Hiding the IP address or location (Tor, a built-in VPN): out of scope, Private says so.
 - Syncing Zen mods, themes beyond the space gradient, containers (Zen doesn't sync containers yet).
 
 ## Success criteria

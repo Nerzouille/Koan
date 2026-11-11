@@ -33,14 +33,14 @@ Two themes, **Light** (fully neutral) and **Dark**, chosen in Settings › Displ
 Rules (docs/UI_SPEC.md "Themes", "Visual restraint"):
 - Light: base `#F5F5F7`, white surfaces (cards, dock, sheets), grey grouped rows, near-black text.
   No space-colour wash anywhere.
-- Dark: base `#1C1C1E`, surfaces `#2C2C2E`, dock `#252527`.
+- Dark: base `#121214` (since 2026-11-11, was `#1C1C1E`), surfaces `#2C2C2E`, dock `#232326`. Back to front: Base < Dock < Card < GroupedRow / SegmentPill.
 - Cards stay neutral: the page thumbnails are the colour.
 - Destructive actions are red **text** only, never a red fill.
 - Quiet sync notices use amber (`Attention`), never red.
 
 | Token | Light | Dark | Where it is used |
 |---|---|---|---|
-| `Base` | `#F5F5F7FF` | `#1C1C1EFF` | Page background behind everything, and what the stack fades to above the dock. |
+| `Base` | `#F5F5F7FF` | `#121214FF` | Page background behind everything, and what the stack fades to above the dock. |
 | `Glass` | `#EBEBEFFF` | `#FFFFFF14` | Small surfaces on Base: the header's space icon box, essentials tiles, pinned list. |
 | `TextPrimary` | `#1C1C1EFF` | `#FFFFFFFF` |  |
 | `TextSecondary` | `#66666BFF` | `#FFFFFF9E` |  |
@@ -58,8 +58,8 @@ Rules (docs/UI_SPEC.md "Themes", "Visual restraint"):
 | `GroupedRow` | `#F2F2F5FF` | `#FFFFFF12` | Grouped rows on a sheet or a screen (menu, settings). |
 | `ToggleOff` | `#848489FF` | `#8E8E93FF` | Off state of a control: toggle track, unselected radio ring. ≥ 3:1 against every row surface. |
 | `FocusRing` | `#B4B4BAFF` | `#FFFFFF4C` | The address input's ring while typing (neutral; "@" turns it into the brand gradient). |
-| `Dock` | `#FFFFFFFF` | `#252527FF` | The dock: the bottom bar's own surface (also the drawer sheet). |
-| `DockShadow` | `#3C281E12` | `#00000059` | Soft shadow the dock casts upward over the content. |
+| `Dock` | `#FFFFFFFF` | `#232326FF` | The dock: the bottom bar's own surface (also the drawer sheet). |
+| `DockShadow` | `#3C281E12` | `#00000073` | Soft shadow the dock casts upward over the content. |
 | `DrawerHandle` | `#00000029` | `#FFFFFF33` |  |
 | `BarField` | `#F1F1F4FF` | `#FFFFFF14` |  |
 | `SegmentPill` | `#FFFFFFFF` | `#4A4A4DFF` | The chosen option's pill in a segmented selector (on a [Glass] track). |
@@ -76,8 +76,8 @@ Rules (docs/UI_SPEC.md "Themes", "Visual restraint"):
 | `FindCurrentText` | `#FFFFFFFF` | `#FFFFFFFF` | Its text (`ui.textSelectAttentionForeground`). |
 | `FindMatch` | `#D0DDF5FF` | `#1C396EFF` | Every other match (`ui.textHighlightBackground`). |
 | `FindMatchText` | `#000000FF` | `#FFFFFFFF` | Their text (`ui.textHighlightForeground`), so Gecko never forces its own white. |
-| `CardShadowColor` | `#1E1E3C80` | `#000000FF` |  |
-| `ContactShadow` | `#1C1C301A` | `#00000038` | Short, soft shadow a card casts on the card behind it, just above its top edge. |
+| `CardShadowColor` | `#1C1C3024` | `#00000099` | Key shadow of stack cards (ambient and spot); alpha × (1 − 0.1 d), min 0.6, behind the focus. |
+| `ContactShadow` | `#1C1C302E` | `#000000A6` | Short, soft shadow a card casts on the card behind it, just above its top edge. |
 
 #### Contrast
 
@@ -109,7 +109,7 @@ active, or holds your focus**.
 | Syncing indicator: a turning gradient arc (2dp stroke, 270° sweep, one turn per 900 ms) | Permission prompts |
 | Toggles ON (gradient track at 90%) | Destructive actions |
 | The "@" search mode: ring (2dp) and cursor | Body text |
-| Settings' wash behind the top of the screen (320dp, 20% light / 14% dark, also on About); the account card outline (1.5dp), **not while it says "Couldn't sync"** | Behind web content |
+| Settings' wash behind the top of the screen (320dp, 20% light / 16% dark, also on About); the account card outline (1.5dp), **not while it says "Couldn't sync"** | Behind web content |
 | First-run "Connect your Zen Spaces" card outline (1.5dp) | Primary buttons (always black / white) |
 | Find in page: the find field's ring (1.5dp) while find is open; the matches in the page in Koan's find blues (`FindCurrent`, `FindMatch`) | Static, non-tappable cards (About "Built to pair with Zen" is a plain card) |
 | "Moment" toasts (outline) | A failure state (the account card while sync fails) |
@@ -208,7 +208,7 @@ drawer, sheets, first run), 16dp (start page), 20dp (settings, sign-in pages), 2
 
 | What | Light | Dark |
 |---|---|---|
-| Stack card shadow (`CardElevation`, `CardShadowColor`) | 8dp, `#1E1E3C` at 50% | 20dp, black |
+| Stack card shadow (`CardElevation`, `CardShadowColor`) | 12dp, `#1C1C30` at 14% | 20dp, black at 60% |
 | Contact shadow (a card on the card behind it, just above its top edge) | `#1C1C30` at 10%, 14dp long, at most 35% of the visible sliver | black at 22%, 14dp |
 | Dock's upward shadow (`DockShadow`, 28dp tall, no hairline) | `#3C281E` at 7% | black at 35% |
 | Drawer sheet shadow over the cards without blur (Android 11, 56dp) | `#1C1C28` at 16% | black at 45% |
@@ -433,7 +433,7 @@ Light palette starts at `T:93`, dark at `T:139`. "@ n%" = that colour at alpha n
 
 | Token | Light | Dark | Ref (L / D) | Used for |
 |---|---|---|---|---|
-| `Dock` | `#FFFFFF` | `#252527` | T:113 / T:159 | dock surface, drawer sheet, dock popups |
+| `Dock` | `#FFFFFF` | `#232326` | T:113 / T:159 | dock surface, drawer sheet, dock popups |
 | `DockShadow` | `#3C281E @ 7%` | `#000000 @ 35%` | T:114 / T:160 | upward shadow on the dock's top edge |
 | `BarField` | `#F1F1F4` | `#FFFFFF @ 8%` | T:116 / T:162 | address pill fill |
 | `FieldHint` | `#66666B` | `#FFFFFF @ 60%` | T:118 / T:164 | "Search or type URL", search glyph, completion title |
@@ -777,7 +777,7 @@ Status texts (`bar/SpaceDrawer.kt:298-308`): "Connect your Zen Spaces", "Syncing
 - Dismiss: tap anywhere else, or Back (`menu/DockPopup.kt:63,69-75`).
 - Opened with a `LONG_PRESS` haptic from the button (`bar/AddressRow.kt:669,710`).
 
-**Light vs dark:** card `Dock` (`#FFFFFF` / `#252527`); text and icon tokens per palette; the shadow is the platform elevation shadow (no palette colour).
+**Light vs dark:** card `Dock` (`#FFFFFF` / `#232326`); text and icon tokens per palette; the shadow is the platform elevation shadow (no palette colour).
 
 **Screenshots needed**
 1. Page view, light: Tab menu open above the dock at the right (New tab, Close tab, Reopen closed tab).
@@ -808,7 +808,7 @@ Palette tokens used in this file (resolved once):
 
 | Token | Light | Dark | Ref |
 |---|---|---|---|
-| Base | #F5F5F7 | #1C1C1E | T:95 / T:141 |
+| Base | #F5F5F7 | #121214 | T:95 / T:141 |
 | Glass | #EBEBEF | white @ 0.08 | T:96 / T:142 |
 | TextPrimary | #1C1C1E | #FFFFFF | T:97 / T:143 |
 | TextSecondary | #66666B | white @ 0.62 | T:98 / T:144 |
@@ -818,17 +818,17 @@ Palette tokens used in this file (resolved once):
 | CloseButton | black @ 0.06 | white @ 0.10 | T:104 / T:150 |
 | CloseIcon | #6E6E73 | white @ 0.75 | T:105 / T:151 |
 | Primary / OnPrimary | #1C1C1E / #FFFFFF | #FFFFFF / #1C1C1E | T:107-108 / T:153-154 |
-| Dock | #FFFFFF | #252527 | T:113 / T:159 |
+| Dock | #FFFFFF | #232326 | T:113 / T:159 |
 | Skeleton | black @ 0.06 | white @ 0.07 | T:119 / T:165 |
 | IconBacking | Unspecified (never used) | #E9E9EE | T:120 / T:166 |
 | Attention | #8A5C00 | #E8B45A | T:122 / T:168 |
 | DimToBase | true (back cards haze towards Base) | false (they darken towards black) | T:127 / T:173 |
 | DimGain | 1.25 | 1.0 | T:128 / T:174 |
-| DimMax | 0.85 | 1.0 | T:129 / T:175 |
-| CardElevation | 8dp | 20dp | T:130 / T:176 |
-| CardShadowColor | #1E1E3C @ 0.5 | #000000 | T:131 / T:177 |
-| ContactShadow | #1C1C30 @ 0.10 | black @ 0.22 | T:132 / T:178 |
-| ContactShadowLength | 14dp | 14dp | T:133 / T:179 |
+| DimMax | 0.60 | 0.80 | T:129 / T:175 |
+| CardElevation | 12dp | 20dp | T:130 / T:176 |
+| CardShadowColor | #1C1C30 @ 0.14 | black @ 0.60 | T:131 / T:177 |
+| ContactShadow | #1C1C30 @ 0.18 | black @ 0.65 | T:132 / T:178 |
+| ContactShadowLength | 16dp | 18dp | T:133 / T:179 |
 
 Brand gradient (`BrandTokens`, T:241-254): Pink #FF5FA2 → Violet #B46BFF → Blue #4F8DFF, same in both themes.
 `BrandSpinner` (`UI/theme/Brand.kt:37-62`): sweep-gradient arc of those colours, stroke 2dp (T:248), sweep 270° (T:249), one turn every 900ms, linear, repeating (T:250, Brand.kt:39-43), round caps.
@@ -872,7 +872,7 @@ Parameters: r = `R` = 0.45 (T:306), r_s = `SCALE_R` = 0.52 (T:309), sMin = `S_MI
 | ✕ alpha | clamp(1 − 2·abs(d), 0, 1) | same | same | TabCard.kt:245 |
 
 Keyframes at d = 0, 1, 2, … joined linearly and held at the last value (`DepthCurve.kt:56-61`):
-- `Dim` = [0, 0.16, 0.28, 0.38, 0.48, 0.58, 0.66] (T:340). Effective dim = min(dim × DimGain, DimMax) → Light ×1.25 capped 0.85, Dark ×1.0 capped 1.0 (`TabCard.kt:105`). Overlay colour: Light = `Base` (haze), Dark = black (`DepthStack.kt:218`).
+- `Dim` = [0, 0.16, 0.28, 0.38, 0.48, 0.58, 0.66] (T:340). Effective dim = min(dim × DimGain, DimMax) → Light ×1.25 capped 0.60, Dark ×1.0 capped 0.80 (`TabCard.kt:105`). Overlay colour: Light = `Base` (haze), Dark = black (`DepthStack.kt:218`).
 - `BlurDp` = [0, 0, 0, 0.9, 1.9, 2.9, 4.0] dp (T:346); quantised to 0.5dp steps (`DepthStack.kt:200-213`). Only a top slice of 512px of the thumbnail is blurred (T:448, `TabCard.kt:419`). Without live blur (Android 11) or before baked copies exist, an extra dim of `NO_BLUR_DIM` 0.22 × (blurDp/4dp) is added instead (T:418, `TabCard.kt:181-193`).
 - `Alpha` = [1, 1, 1, 1, 1, 0.85, 0.6, 0.3, 0] (T:347) → cards fade from d = 5 and are invisible at d = 8 (`MAX_VISIBLE_D` = 8, DepthCurve.kt:47). In front, cards are invisible below d = −2 (`MIN_VISIBLE_D`, DepthCurve.kt:53). Invisible cards get alpha 0 and are not hit-tested.
 - Header dim: the result is then also × DimGain capped DimMax (`TabCard.kt:212`), so the header strip is dimmed at most 0.20 in Dark and 0.25 in Light.
@@ -881,7 +881,7 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 **Corner radius vs depth:** the card's shape is a constant `RoundedCornerShape(28dp)` (T:421, `DepthStack.kt:490, 601`) applied before the layer scale, so on screen the corner is 28dp × scale(d) (e.g. ≈ 22.3dp at d = 1, 29.4dp at the peek). Not animated separately.
 
-**Shadow:** every visible card has `shadowElevation = CardElevation + lift × 16dp` (Light 8dp, Dark 20dp; LiftShadow T:391), ambient and spot colour `CardShadowColor` (`DepthStack.kt:603-605`).
+**Shadow:** every visible card has `shadowElevation = CardElevation + lift × 16dp` (Light 12dp, Dark 20dp; LiftShadow T:391), ambient and spot colour `CardShadowColor`, its alpha × (1 − 0.1 d) for back cards (min 0.6; the peek card keeps it all) (`DepthStack.kt:603-605`).
 
 **Swipe tilt / fade** (applied to the same layer, `DepthStack.kt:574-595, 622-625`): tilt = swipeX(dp) × 0.03°/dp (T:395), pivot at the card's bottom centre; alpha × max(1 − abs(swipeX)/420dp, 0.3) (T:398-399).
 
@@ -921,15 +921,16 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 2. Placeholder thumbnail (only while there is no screenshot; see Placeholder thumbnail).
 3. Screenshot: full width, top-aligned under the header (starts at y = 44dp), scaled to the card width, cropped at the bottom (`TabCard.kt:342-402`). Fades in over the placeholder in 140ms (`ThumbTokens.FADE_MS`, T:1155); a fresher screenshot crossfades over the old one in the same 140ms.
 4. Dim overlay: rect of the dim colour at the depth dim (`TabCard.kt:178-194`).
-5. Header strip (`CardHeader`, `TabCard.kt:202-258`): height 44dp (T:422), background `CardStrip`, padding start 14dp / end 6dp (T:423-424), vertically centred row:
-   - Favicon 22dp (T:426).
-   - 10dp gap (`HeaderGap`, T:425).
-   - Title: 15sp (T:427), FontWeight.Medium, `TextPrimary`, 1 line, ellipsis. (UI_SPEC "Visual tokens" says card titles 16sp semibold; code is 15sp Medium, matching UI_SPEC "Visual restraint".) Split view cards join pane titles with "  |  " (`OverviewScreen.kt:316`).
+5. Header strip (`CardHeader`, `TabCard.kt`): height 44dp, background `CardStrip`, no blur, padding start 12dp / end 6dp, vertically centred row (two lines since 2026-11-11, `docs/design/OVERVIEW_PRIVATE.md` §3.2):
+   - Favicon 24dp (corner 28% of its size).
+   - 10dp gap (`HeaderGap`).
+   - Title 14.5sp / 18 SemiBold `TextPrimary`, 1 line, ellipsis; a trailing " - <site name>" that repeats one of the host's labels is dropped (`cardTitle`, `OV/CardTitle.kt`). Split view cards join pane titles with "  |  ".
+   - Under it, the host 11.5sp / 14 Regular `TextSecondary`, 1 line (`displayHost`: no scheme, no "www.").
    - Pinned marker (live pinned/essential tab): 10dp gap + pin glyph 14dp (T:432) tinted `TextSecondary`.
    - Current-tab marker: 10dp gap + 6dp circle (T:431) in `TextSecondary` (`CurrentTabDot`, `TabCard.kt:452-455`). Never the brand gradient.
    - ✕: 44dp touch box (T:428) holding a 30dp circle (T:429) of `CloseButton` with a 14dp close icon (T:430) tinted `CloseIcon`. Alpha = clamp(1 − 2·abs(d)), so it shows only on the focused card.
    - Header dim overlay (see depth table).
-6. Hairline: 1dp border (T:433) in `CardBorder` with the 28dp card shape, all around (`TabCard.kt:196`).
+6. Edge (`CardEdge`), over the depth dim so back cards keep it at every depth: a 1dp hairline all around in `CardHairline` (light `#1C1C301A`, dark `#FFFFFF1F`; replaces `CardBorder` on stack cards), and in dark a 1dp rim inside the top edge in `CardRim` (`#FFFFFF1A`), which separates stacked dark header strips.
 
 **Sizes:** width/height from the stack frame (Depth stack). Corner radius 28dp (T:421). Clipped to the shape.
 
@@ -1010,7 +1011,7 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 - Length = min(14dp, 0.35 × the visible sliver of the card behind) (`CONTACT_SHADOW_MAX_FRACTION`, T:441; `DepthStack.kt:554-561`); 0 if either card is invisible or the card behind is closed. Not drawn under 0.5px.
 - Fades with the card (same alpha incl. swipe fade).
 
-**Light vs dark:** colour `ContactShadow`: Light #1C1C30 @ 0.10, Dark black @ 0.22; length 14dp in both.
+**Light vs dark:** colour `ContactShadow`: Light #1C1C30 @ 0.18, Dark black @ 0.65; length 16dp light, 18dp dark (still ≤ 35% of the sliver behind).
 
 **Screenshot needed:** close crop of the focused card's top edge over the pile card behind it (Light, where it is subtle, and Dark).
 
@@ -1027,12 +1028,13 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 - **Essentials grid and pinned row are not on the overview**: they live in the bar's drawer (`SpacePage.kt:79-83`; drawer in `UI/bar/SpaceDrawer.kt`). The start page reuses the essentials grid (see Start page).
 
 **SpaceHeader** (`SpacePage.kt:189-244`)
-- Height 52dp (T:452), horizontal padding 6dp (T:453), row centred vertically.
+- Height 52dp (T:452), padding start 6dp / end 10dp, row centred vertically. No meta line.
 - Back button: 44dp circular touch (T:454), back glyph 22dp (T:455) `TextPrimary`, ripple via `clickable`.
 - Space icon box: 32dp (T:457), corner 10dp (T:458), `Glass` fill, Zen icon 20dp (T:459) tinted `TextPrimary`.
 - 10dp gap (T:456).
 - Space name: 20sp (T:460) Bold `TextPrimary`, 1 line, ellipsis.
-- Sync badge (`SyncBadgeView`, `SpacePage.kt:251-267`): 36dp circular touch (T:592); None = nothing; Syncing = `BrandSpinner` 12dp (T:594); Attention = 7dp dot (T:593) in `Attention` (Light #8A5C00, Dark #E8B45A). Tap = sync now / sign in.
+- Sync badge (`SyncBadgeView`): only when sync failed or the account needs signing in again, a 7dp dot in `SyncDot` (light `#C0841A`, dark `#E8B45A`) 8dp after the name, in a 36dp touch target; contentDescription "Sync failed, retry". Tap = retry / sign in. Syncing and synced show nothing (the spinner is gone).
+- Private toggle (`PrivateToggle`) at the end of the row: see "Private mode" below.
 - Gesture: vertical drag down on the header > 48dp (T:462) dismisses the overview back to the page.
 - (UI_SPEC lists "tap space name → space menu"; the current header has no tap action on the name.)
 
@@ -1042,7 +1044,7 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 **Light vs dark:** palette tokens only.
 
-**Screenshot needed:** (1) overview at rest on a space with fake tabs, header with icon + name; (2) the empty-space state; (3) header with the syncing spinner; (4) header with the amber attention dot. Light and Dark for (1).
+**Screenshot needed:** (1) overview at rest on a space with fake tabs, header with icon + name; (2) the empty-space state; (3) header with the amber sync-failed dot; (4) the Private toggle off and on. Light and Dark for (1).
 
 ---
 
@@ -1107,7 +1109,7 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
   - Visible band: top lerps from 44dp (header hidden just above the screen) to 0 (header shown); bottom lerps from the page bottom to the card bottom.
   - Corner radius lerps 0 → 28dp on screen (`CardHero.kt:241`).
   - Hairline `CardBorder` 1dp drawn at alpha p (`CardHero.kt:257-269`).
-  - Elevation = `CardElevation` (8dp Light / 20dp Dark), shadow colour `CardShadowColor`.
+  - Elevation = `CardElevation` (12dp Light / 20dp Dark), shadow colour `CardShadowColor`.
   - The real card is hidden while it flies (`CardHero.kt:96`).
 - Other cards (`DepthStack.kt:614-620`, e = p while flying): cards behind the focus rise out from under the focused slot (translationY from topOf(0) to their place) and fade in (alpha × e); cards in front slide up from below the screen's bottom edge, opaque.
 - Space header: alpha = clamp(1.5e − 0.5, 0, 1), translationY = −(1 − e) × header height (slides in from above; gone a third of the way out) (`SpacePage.kt:192-201`).
@@ -1159,7 +1161,7 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 **Purpose:** pull down on a page at its top to reload; a small circle under the top edge shows the pull and then a brand-gradient spinner.
 
-**Anatomy** (`UI/browser/PullRefresh.kt:136-173`): a 40dp circle (T:1080) with a 4dp shadow (T:1083), `Dock` fill (Light #FFFFFF, Dark #252527), aligned top centre of the page (`BrowserScreen.kt:248`).
+**Anatomy** (`UI/browser/PullRefresh.kt:136-173`): a 40dp circle (T:1080) with a 4dp shadow (T:1083), `Dock` fill (Light #FFFFFF, Dark #232326), aligned top centre of the page (`BrowserScreen.kt:248`).
 - Pulling: an arc in a 20dp box (T:1081), stroke 2.5dp (T:1082), round caps, starting at 12 o'clock, sweep = 300° × f, f = pull / trigger clamped 0..1; colour `TextSecondary` until f reaches 1, then `TextPrimary`.
 - Refreshing: `BrandSpinner` 20dp (stroke 2dp, 270° sweep, 900ms/turn).
 
@@ -1213,7 +1215,7 @@ code disagree, the code is documented and the difference is noted. A bare `:line
 
 | Token | Light | Dark | Ref (light / dark) |
 |---|---|---|---|
-| Base | `#F5F5F7` | `#1C1C1E` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:95 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:141 |
+| Base | `#F5F5F7` | `#121214` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:95 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:141 |
 | Glass | `#EBEBEF` | `#FFFFFF` @ 8% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:96 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:142 |
 | TextPrimary | `#1C1C1E` | `#FFFFFF` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:97 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:143 |
 | TextSecondary | `#66666B` | `#FFFFFF` @ 62% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:98 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:144 |
@@ -1227,7 +1229,7 @@ code disagree, the code is documented and the difference is noted. A bare `:line
 | GroupedRow | `#F2F2F5` | `#FFFFFF` @ 7% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:110 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:156 |
 | ToggleOff | `#848489` | `#8E8E93` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:111 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:157 |
 | FocusRing | `#B4B4BA` | `#FFFFFF` @ 30% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:112 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:158 |
-| Dock (sheet and card surface) | `#FFFFFF` | `#252527` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:113 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:159 |
+| Dock (sheet and card surface) | `#FFFFFF` | `#232326` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:113 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:159 |
 | DrawerHandle | `#000000` @ 16% | `#FFFFFF` @ 20% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:115 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:161 |
 | BarField | `#F1F1F4` | `#FFFFFF` @ 8% | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:116 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:162 |
 | SegmentPill | `#FFFFFF` | `#4A4A4D` | app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:117 / app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:163 |
@@ -1315,7 +1317,7 @@ app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetState.kt)
   app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:833; app/src/main/java/dev/nerzouille/koan/ui/sheet/KoanSheet.kt:195); pages more than one step away are alpha 0 (:196). Spring
   `Motion.SheetPush` (1.0 / 520) (:105). Closing resets to the root page (:136).
 
-**Light vs dark:** surface `#FFFFFF` vs `#252527`; scrim `#1C1C28` @ 30% vs black @ 50%; handle
+**Light vs dark:** surface `#FFFFFF` vs `#232326`; scrim `#1C1C28` @ 30% vs black @ 50%; handle
 black @ 16% vs white @ 20%.
 
 **Screenshot needed:** the ⋯ menu open at the compact detent over a page of `example.com`,
@@ -1344,7 +1346,7 @@ driven by `Motion.Drawer` (0.9 / 420). Same `sheetGestures` as the sheet: drag d
 treated as "Cancel" / "Block this time" by the prompts (e.g. app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt:453, :476,
 app/src/main/java/dev/nerzouille/koan/ui/menu/PagePrompts.kt:172-182).
 
-**Light vs dark:** card `#FFFFFF` vs `#252527` over the scrim.
+**Light vs dark:** card `#FFFFFF` vs `#232326` over the scrim.
 
 **Screenshot needed:** a permission card ("example.com wants to use your location") over a page,
 light and dark; one card with a text field and the keyboard up (the JS prompt) to show it riding
@@ -1357,7 +1359,7 @@ above the keyboard.
 | `SheetGroup` | full-width column, `GroupedRow` fill, 18dp corners | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:40-49, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:841 |
 | `SheetDivider` | 1dp `CardBorder` hairline, inset 54dp from the left (12 + 30 + 12, aligned with titles) | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:52-61, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:844-851 |
 | `MenuIconTile` | the icon of every menu row (sheet menus and dock popups): 30dp tile, 9dp corners, 18dp glyph `TextPrimary` (`TextDisabled` disabled); fill = the neutral that differs from the surface under it (`Dock` on a grouped row, `GroupedRow` on a dock popup) | `ui/sheet/SheetKit.kt` |
-| `SheetRow` | height 50dp, 58dp with a subtitle; 12dp side padding; icon = `MenuIconTile` with `Dock` fill (white tile on the grey group in light; `#252527` on white 7% in dark), glyph 18dp `TextPrimary`; 12dp gap; title 16sp Medium `TextPrimary` (or a caller colour), 1 line ellipsis; subtitle 12sp `TextSecondary`; trailing slot | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:67-119, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:842-850 |
+| `SheetRow` | height 50dp, 58dp with a subtitle; 12dp side padding; icon = `MenuIconTile` with `Dock` fill (white tile on the grey group in light; `#232326` on white 7% in dark), glyph 18dp `TextPrimary`; 12dp gap; title 16sp Medium `TextPrimary` (or a caller colour), 1 line ellipsis; subtitle 12sp `TextSecondary`; trailing slot | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:67-119, app/src/main/java/dev/nerzouille/koan/ui/theme/Tokens.kt:842-850 |
 | `SheetRow` disabled (`enabled = false`) | icon and title `TextDisabled`, trailing replaced by "Soon" (14sp `TextDisabled`), not clickable | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:96, :104, :117, :134-137 |
 | `SheetRow` without `onClick` | not tappable, no ripple | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:84 |
 | `RowValue` | trailing text 14sp `TextSecondary` | app/src/main/java/dev/nerzouille/koan/ui/sheet/SheetKit.kt:122-125 |
@@ -1453,7 +1455,7 @@ results; "@" picker; "@engine query" (suggestions from that engine + the "Search
 Rows: default / pressed (ripple). No selected or disabled row states.
 
 **Light vs dark:** groups `#FFFFFF` vs `#2C2C2E` (`Card`); chips and space chips `#F2F2F5` vs white
-@ 7%; picker panel `#FFFFFF` vs `#252527` (`Dock`); dim `#1C1C28` @ 30% vs black @ 50%; neutral
+@ 7%; picker panel `#FFFFFF` vs `#232326` (`Dock`); dim `#1C1C28` @ 30% vs black @ 50%; neutral
 ring `#B4B4BA` vs white @ 30%.
 
 **Screenshots needed:** (1) typing "exa" on a page: history group + switch-to-tab group (fake
@@ -1498,8 +1500,8 @@ active downloads. Rows: default / pressed ripple / disabled.
 **Motion:** the sheet's (see Sheet container). Most rows close the menu, then act
 (app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt:314-367).
 
-**Light vs dark:** sheet `#FFFFFF` vs `#252527`; groups and tiles `#F2F2F5` vs white @ 7%; row icon
-boxes `#FFFFFF` vs `#252527`; address pill `#F1F1F4` vs white @ 8%.
+**Light vs dark:** sheet `#FFFFFF` vs `#232326`; groups and tiles `#F2F2F5` vs white @ 7%; row icon
+boxes `#FFFFFF` vs `#232326`; address pill `#F1F1F4` vs white @ 8%.
 
 **Screenshot needed:** the menu at compact on `https://example.com` (lock shown), uBlock card
 peeking at the bottom; then full; then the same over a new blank tab (disabled tiles). Light and dark.
@@ -1886,7 +1888,7 @@ app/src/main/java/dev/nerzouille/koan/ui/history/HistoryScreen.kt:96, app/src/ma
 `Motion.Sheet` (1.0 / 380) (app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt:753, :782); Back closes (:64).
 
 **Light vs dark:** base `#F5F5F7` vs `#1C1C1E`; day cards `#FFFFFF` vs `#2C2C2E`; search field
-`#EBEBEF` vs white @ 8%; wash 20% vs 14%.
+`#EBEBEF` vs white @ 8%; wash 20% vs 16%.
 
 **Screenshot needed:** History with fake visits (`example.com`, `example.org`) grouped under Today
 / Yesterday, search empty, light and dark; Downloads with one fake file; keyboard up with a query.
@@ -1922,7 +1924,7 @@ Token values are resolved from `ui/theme/Tokens.kt` (abbreviated **T**), `ui/the
 | Destructive | `#C42A20` (T:109) | `#FF8077` (T:155) |
 | GroupedRow | `#F2F2F5` (T:110) | White @ 0.07 (T:156) |
 | ToggleOff | `#848489` (T:111) | `#8E8E93` (T:157) |
-| Dock | `#FFFFFF` (T:113) | `#252527` (T:159) |
+| Dock | `#FFFFFF` (T:113) | `#232326` (T:159) |
 | BarField | `#F1F1F4` (T:116) | White @ 0.08 (T:162) |
 | SegmentPill | `#FFFFFF` (T:117) | `#4A4A4D` (T:163) |
 | FieldHint | `#66666B` (T:118) | White @ 0.60 (T:164) |
@@ -1951,7 +1953,7 @@ collapse. The title is required (About is titled "About"). Horizontal page paddi
 | 1 | Brand Pink `#FF5FA2` | (0.10·width, 0.15·h) |
 | 2 | Brand Violet `#B46BFF` | (0.55·width, 0.05·h) |
 | 3 | Brand Blue `#4F8DFF` | (0.95·width, 0.30·h) |
-Alpha `a`: light **0.20** (`WASH_ALPHA_LIGHT`, T:946), dark **0.14** (`WASH_ALPHA_DARK`, T:947).
+Alpha `a`: light **0.20** (`WASH_ALPHA_LIGHT`, T:946), dark **0.16** (`WASH_ALPHA_DARK`, T:947; 0.14 before the `#121214` base).
 
 **States.** `interactive` false (a page under the top one, or sliding): the back button and every row lose their click handler (`SettingsKit.kt:84`, `:144`).
 
@@ -2290,7 +2292,7 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 
 **Anatomy** (`ui/tour/TourOverlay.kt:85-177`)
 1. **Scrim**: full screen, `SheetScrim` (light `#1C1C28` @ 0.30, dark Black @ 0.50) × open progress × (1 − drag/height); swallows all touches (`:117-123`).
-2. **Sheet**: bottom-aligned, full width, height **92%** of the screen (`TourTokens.SHEET_FRACTION` 0.92, T:477); top corners **32dp** (`SheetTokens.TopRadius`, T:826); background `Dock` (light `#FFFFFF`, dark `#252527`); then the **title glow**, then the **welcome backdrop**; nav-bar padded (`:124-141`).
+2. **Sheet**: bottom-aligned, full width, height **92%** of the screen (`TourTokens.SHEET_FRACTION` 0.92, T:477); top corners **32dp** (`SheetTokens.TopRadius`, T:826); background `Dock` (light `#FFFFFF`, dark `#232326`); then the **title glow**, then the **welcome backdrop**; nav-bar padded (`:124-141`).
 3. **Skip** row: top padding **6dp** (`SkipTop`, T:480), height **44dp** (`SkipHeight`, T:479), horizontal padding 12dp (Padding/2); `TourButton` "Skip" unfilled, aligned end (`:142-144`).
 4. What's new only: "What's new in X.Y" **15sp** Medium `TextSecondary` centred, 6dp below; alpha = 1 − welcome (fades in as the intro card leaves) (`:145-155`).
 5. **HorizontalPager** (weight 1, `beyondViewportPageCount = 0`) of cards (`:156-165`).
@@ -2308,7 +2310,7 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 - **Swipe down to close** (`swipeDownToClose`, `:179-211`): vertical drag moves the sheet 1:1 (never above 0); closes if dragged past **25%** of the sheet height (`SheetTokens.COMMIT_FRACTION` 0.25, T:820) or released faster than **600dp/s** downward (`SheetTokens.FlingVelocity`, T:823); else springs back with `Motion.Sheet`. A sideways drag belongs to the pager.
 - Open/close: `Motion.Sheet` spring(1.0, 380) (`:87-88`); `translationY = drag + (1 − shown)·(height − drag)` (`:130-135`).
 
-**Light vs dark.** Sheet `Dock` white vs `#252527`; glow 0.16 vs 0.12; scrim strength.
+**Light vs dark.** Sheet `Dock` white vs `#232326`; glow 0.16 vs 0.12; scrim strength.
 
 **Screenshot.** About › Take the tour, card 2 ("Your Zen Spaces, on your phone") at rest, light and dark; a mid-swipe from card 1 to 2 showing the gradient fading into the sheet; the last card showing "Get started".
 
@@ -2514,4 +2516,49 @@ Definition: `BrandTokens.Colors` = Pink `#FF5FA2` → Violet `#B46BFF` → Blue 
 
 Every main screen, light and dark. Phone: 1208×2624 px (403×875dp).
 
+---
+
+## Private mode (2026-11-11)
+
+Spec: `docs/design/OVERVIEW_PRIVATE.md` (§4 model, §5 palettes and atmosphere, §6 transition).
+Code: `ui/privacy/` (toggle, header title and chip, dock pill, empty state, search notice, lock
+cover, atmosphere, the flip driver), `privacy/` (private tabs, vault, engine settings).
+
+**Palettes** (`KoanPalette.Dusk` in the light theme, `KoanPalette.Night` in the dark theme): the
+full table is in the spec §5.1. Main values: Base `#DEDAF0` / `#110F24`, Card `#FFFFFF` /
+`#1E1C38`, Dock `#F6F4FD` / `#18162F`, text `#17142E` / white, `PrivateAccent` `#4B3FD6` /
+`#9C8CFF`, `PrivatePill` accent at 16% / 20%, `PrivateInk` `#2E2399` / `#CFC6FF`. Stack dim to
+`DimColor` (`#DEDAF0` haze, gain 1.25, max 0.60 / `#050412`, gain 1.0, max 0.80). Settings, History,
+Downloads and the ⋯ sheet keep the normal palette (`KoanNormalTheme`).
+
+**Toggle** (`PrivateTokens`): 56×48 touch, 56×32 track (radius 16), 26dp white knob at x 3 → 27dp,
+mask 17dp inside. Track off `#86868B` / `#636366`, on `#4B3FD6` / `#7B6CF0`; mask off `#6E6E73` /
+`#636366`, on `#2E2399` / `#3A2FB8`. `Role.Switch`, "Private browsing". `CLOCK_TICK` on tap; taps
+ignored during the flip. (The other toggles keep `ToggleOff` `#848489` / `#8E8E93`: the spec's
+`#636366` would be 2.2:1 on a dark grouped row, under the 3:1 rule.)
+
+**Header:** back · "Private" 20sp Bold · 10dp · "Not saved" chip (24dp, radius 12, padding 10,
+`PrivatePill`, 12sp SemiBold `PrivateInk`) · toggle. **Dock:** one centred "Private" pill (36dp,
+radius 18, mask 20 + 7dp + 14sp SemiBold `PrivateInk`), a label with no action; address pill with
+the mask 18 + 8dp + "Search privately" (overview) or the host (page). **Search sheet:** the notice
+first (radius 18, Card + PrivatePill, 13sp / 18 Medium `PrivateInk`), "Bookmarks", "Switch to
+private tab"; field ring `PrivateAccent`. **Empty state:** §4.7, with a fourth fact: "Private tabs
+stay open, but sites sign you out when Koan restarts".
+
+**Atmosphere** (`PrivateAtmosphere`): gradient `#AFA4E4` → transparent over 480dp / `#1F1A48` over
+420dp; three radial glows (§5.2); 56 stars and 7 sparkles in the top 360dp, never over the header,
+the card pile (its full width under the header) or the empty-state column, nor the dock zone; seed
+per install. Static at rest.
+
+**Transition** (`PrivateFlip`, owner's change 2026-11-11, replaces the spec's §6 mist): Private
+is one more page beside the space you were on, and a flip is the space pager's own motion between
+the two (`Motion.PagerSettle`, page + 40dp gap, same parallax and fade): into Private from the
+right, back to normal from the left. The overview gets both modes' models; during a flip it draws
+only those two pages, each in its own palette, and the normal one stays composed while Private
+shows (nothing composes on the way back). The tabs switch first and the slide waits for two quick
+frames (at most 12) while the incoming page composes off screen. Private's base colour (72dp soft
+edge) and its sky travel with its page; entering, stars and sparkles appear right to left (from
+140ms, spread 700ms, 480ms each, small twinkle). Knob 200ms. Dock: colour crossfades with the slide;
+its texts dip out and back in around 35% of it, where they switch. Reduced motion: a 150ms slide,
+no twinkle.
 

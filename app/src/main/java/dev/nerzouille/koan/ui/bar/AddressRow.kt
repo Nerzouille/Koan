@@ -1,5 +1,8 @@
 package dev.nerzouille.koan.ui.bar
 
+import dev.nerzouille.koan.ui.privacy.PrivateFlip
+import dev.nerzouille.koan.ui.privacy.mist
+import dev.nerzouille.koan.ui.theme.PrivateTokens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -117,6 +120,7 @@ data class PageInfo(
 )
 
 private const val SEARCH_HINT = "Search or type URL"
+private const val PRIVATE_HINT = "Search privately"
 
 /** Find in page, while it is open: what it found and what it can do. */
 @Immutable
@@ -192,6 +196,9 @@ fun AddressRow(
     complete: (String) -> String? = { null },
     /** The completed page's title, shown after it ("— Title"). */
     completedTitle: () -> String? = { null },
+    /** Private's texts (the mask, "Search privately"), and the flip they mist with. */
+    private: Boolean = false,
+    flip: PrivateFlip? = null,
 ) {
     val pageOnly = Modifier.graphicsLayer { alpha = 1f - overview() }
     val overviewOnly = Modifier.graphicsLayer { alpha = overview() }
@@ -232,8 +239,10 @@ fun AddressRow(
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 onPress = pillPressed,
                 modifier = Modifier.weight(1f),
+                private = private,
+                flip = flip,
             )
-            TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu)
+            Box(Modifier.mist(flip)) { TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu) }
             Box {
                 BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
                 BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
@@ -262,6 +271,8 @@ private fun AddressField(
     /** A finger lands on the pill (before the bar's drags see it). */
     onPress: () -> Unit,
     modifier: Modifier = Modifier,
+    private: Boolean = false,
+    flip: PrivateFlip? = null,
 ) {
     val host = displayHost(shownUrl ?: page.url)
     val press by rememberUpdatedState(onPress)
@@ -290,7 +301,7 @@ private fun AddressField(
                 .cleanTap(onTap = onClick)
                 .padding(horizontal = BarTokens.FieldPadding),
             contentAlignment = Alignment.Center,
-        ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, spaceMode.value) }
+        ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, spaceMode.value, private, flip) }
         if (download != null) DownloadRing(download, onDownloads, Modifier.align(Alignment.CenterEnd))
     }
 }
@@ -305,12 +316,15 @@ private fun FieldLabels(
     next: SwipeTarget?,
     lastSpace: SwipeTarget?,
     spaceMode: Float,
+    private: Boolean = false,
+    flip: PrivateFlip? = null,
 ) {
     Box(contentAlignment = Alignment.Center) {
-        FieldText(
-            host.ifEmpty { SEARCH_HINT },
+        MaskedText(
+            host.ifEmpty { if (private) PRIVATE_HINT else SEARCH_HINT },
             primary = host.isNotEmpty(),
-            Modifier.graphicsLayer {
+            mask = private,
+            modifier = Modifier.graphicsLayer {
                 val f = swipe()
                 translationX = -f * size.width * SWIPE_TRAVEL
                 alpha = (1f - overview()) * (1f - spaceMode) * swipeOut(f)
@@ -319,7 +333,7 @@ private fun FieldLabels(
         lastSpace?.let { current ->
             SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode })
         }
-        FieldText(SEARCH_HINT, primary = false, Modifier.graphicsLayer { alpha = overview() })
+        MaskedText(if (private) PRIVATE_HINT else SEARCH_HINT, primary = false, mask = private, modifier = Modifier.graphicsLayer { alpha = overview() }.mist(flip))
         previous?.let { SwipeLabel(it, -1f, swipe, overview) }
         next?.let { SwipeLabel(it, 1f, swipe, overview) }
     }
@@ -392,6 +406,17 @@ private const val SWIPE_TRAVEL = 0.6f
  */
 private fun swipeOut(f: Float) = (1f - abs(f) * 4f).coerceIn(0f, 1f)
 private fun swipeIn(f: Float) = ((f - 0.18f) * 4f).coerceIn(0f, 1f)
+
+/** Private (OVERVIEW_PRIVATE.md §4.4–§4.5): the mask in private.ink before the pill's text. */
+@Composable
+private fun MaskedText(text: String, primary: Boolean, mask: Boolean, modifier: Modifier) {
+    if (!mask) return FieldText(text, primary, modifier)
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(KoanIcons.Private, null, tint = KoanTheme.colors.PrivateInk, modifier = Modifier.size(PrivateTokens.AddressGlyph))
+        Spacer(Modifier.width(PrivateTokens.AddressGap))
+        FieldText(text, primary, Modifier.weight(1f, fill = false))
+    }
+}
 
 @Composable
 private fun FieldText(text: String, primary: Boolean, modifier: Modifier) {

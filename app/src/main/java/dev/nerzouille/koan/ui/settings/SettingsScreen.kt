@@ -123,6 +123,8 @@ class SettingsUi(
     val ublockWeek: Int,
     val onUblock: (Boolean) -> Unit,
     val onInstallUblock: () -> Unit,
+    /** The settings themselves, for the private browsing rows (PrivacySettings reads them). */
+    val settings: dev.nerzouille.koan.data.Settings? = null,
 )
 
 /**
@@ -246,6 +248,8 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
                 onClick = { ui.onUblock(!ublock.enabled) },
             ) { KoanToggle(checked = ublock.enabled, onCheckedChange = if (on) ui.onUblock else null) }
         }
+
+        ui.settings?.let { PrivacySettings(it, on) }
 
         SettingsSection("Koan")
         SettingsRow(KoanIcons.Download, "Downloads", on, chevron = true, onClick = ui.onShowDownloads)

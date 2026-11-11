@@ -38,7 +38,12 @@ class AppLinkAsk(val app: AppTarget, val site: String, private val launch: () ->
  * No app installed: the link's fallback address (intent://… browser_fallback_url) if it has one,
  * else the page stays and a toast says so ([messages]).
  */
-class ExternalLinks(context: Context, private val pageUrl: () -> String?) : RequestInterceptor {
+class ExternalLinks(
+    context: Context,
+    private val pageUrl: () -> String?,
+    /** A page load to send elsewhere first (Google AMP links → the article, privacy/AmpLinks); null = as is. */
+    private val rewrite: (EngineSession, String) -> String? = { _, _ -> null },
+) : RequestInterceptor {
     private val context = context.applicationContext
     private val pm = context.packageManager
     private val prefs = context.getSharedPreferences("app_links", Context.MODE_PRIVATE)
@@ -63,6 +68,9 @@ class ExternalLinks(context: Context, private val pageUrl: () -> String?) : Requ
         isSubframeRequest: Boolean,
     ): InterceptionResponse? {
         val scheme = uri.substringBefore(':', "").lowercase()
+        if (!isSubframeRequest && (scheme == "https" || scheme == "http")) {
+            rewrite(engineSession, uri)?.let { return InterceptionResponse.Url(it) }
+        }
         if (scheme in ENGINE_SCHEMES) return null
         val page = lastUri?.takeIf { it.isNotBlank() } ?: pageUrl()
         val site = page?.let { Uri.parse(it).host }?.removePrefix("www.").orEmpty()
@@ -95,6 +103,21 @@ class ExternalLinks(context: Context, private val pageUrl: () -> String?) : Requ
         }
         ask.value = AppLinkAsk(app, site, launch = { launch(intent) }, remember = { on -> if (on) setAlways(site, app.pkg) })
         return InterceptionResponse.Deny
+    }
+
+    /**
+     * Private tabs are HTTPS-only: a site without HTTPS fails, and GeckoView shows nothing (the
+     * page stays). A toast says why.
+     */
+    override fun onErrorRequest(
+        session: EngineSession,
+        errorType: mozilla.components.browser.errorpages.ErrorType,
+        uri: String?,
+    ): RequestInterceptor.ErrorResponse? {
+        if (errorType == mozilla.components.browser.errorpages.ErrorType.ERROR_HTTPS_ONLY) {
+            messages.tryEmit("Not opened in Private: no HTTPS")
+        }
+        return null
     }
 
     /** Whether [url] is for an app, not the engine (weixin://…, intent://…, tel:…). */

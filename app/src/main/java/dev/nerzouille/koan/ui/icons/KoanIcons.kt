@@ -386,6 +386,29 @@ object KoanIcons {
             curveTo(14f, 18.5f, 17f, 18f, 20f, 18.5f); lineTo(20f, 5f); curveTo(17f, 4.5f, 14f, 5f, 12f, 6.5f); lineTo(12f, 20f)
         }
     }
+    /** Private mode (OVERVIEW_PRIVATE.md §7): a domino mask with two eye slits. */
+    val Private: ImageVector by lazy {
+        stroked("private") {
+            moveTo(2.5f, 9.2f)
+            curveTo(2.5f, 7.3f, 4.3f, 6f, 6.8f, 6f)
+            curveTo(9f, 6f, 10.4f, 7.2f, 12f, 7.2f)
+            curveTo(13.6f, 7.2f, 15f, 6f, 17.2f, 6f)
+            curveTo(19.7f, 6f, 21.5f, 7.3f, 21.5f, 9.2f)
+            curveTo(21.5f, 13.4f, 19.4f, 17f, 16.4f, 17f)
+            curveTo(14.4f, 17f, 13.4f, 14.6f, 12f, 14.6f)
+            curveTo(10.6f, 14.6f, 9.6f, 17f, 7.6f, 17f)
+            curveTo(4.6f, 17f, 2.5f, 13.4f, 2.5f, 9.2f)
+            close()
+            moveTo(6.2f, 11f)
+            curveTo(6.9f, 10f, 8.5f, 10f, 9.3f, 11f)
+            curveTo(8.5f, 11.9f, 6.9f, 11.9f, 6.2f, 11f)
+            close()
+            moveTo(14.7f, 11f)
+            curveTo(15.5f, 10f, 17.1f, 10f, 17.8f, 11f)
+            curveTo(17.1f, 11.9f, 15.5f, 11.9f, 14.7f, 11f)
+            close()
+        }
+    }
     val Shield: ImageVector by lazy {
         stroked("shield") {
             moveTo(12f, 3.5f); lineTo(19f, 6f); lineTo(19f, 11f)

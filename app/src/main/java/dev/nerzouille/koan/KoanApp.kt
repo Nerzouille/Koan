@@ -12,7 +12,10 @@ class KoanApp : Application() {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (componentsReady) components.tabs.onTrimMemory(level)
+        if (componentsReady) {
+            components.tabs.onTrimMemory(level)
+            components.privateTabs.tabs.onTrimMemory(level)
+        }
     }
 
     /** Set by MainActivity: only the main process ever builds the components. */

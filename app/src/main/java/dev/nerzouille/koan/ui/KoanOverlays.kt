@@ -82,6 +82,7 @@ import dev.nerzouille.koan.ui.menu.FilePrompt
 import dev.nerzouille.koan.ui.menu.PagePrompts
 import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.kit.Toast
+import dev.nerzouille.koan.ui.kit.KoanClipboard
 import dev.nerzouille.koan.ui.kit.copiedToast
 import mozilla.components.browser.state.state.content.DownloadState
 import android.view.HapticFeedbackConstants
@@ -281,11 +282,14 @@ fun KoanOverlays(
     onRestoreClosed: (String) -> Unit,
     /** The space on screen (the tab counter's "Reopen closed tab"). */
     currentSpaceUuid: String?,
+    /** Private shown: copies are marked sensitive, no Essentials, the site's Protections switch. */
+    private: Boolean = false,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
     val view = LocalView.current
-    val clipboard = LocalClipboardManager.current
+    // A copy from a private tab is marked sensitive: Android 13+ hides it in its clipboard preview.
+    val clipboard = remember(private) { KoanClipboard(context, sensitive = private) }
     val session = components.sessionUseCases
     val menu = overlays.menu
 
@@ -394,7 +398,16 @@ fun KoanOverlays(
     )
 
     // ---- the ⋯ menu ----
+    // Private tabs: is tracking protection on for this site (no exception)?
+    var protections by remember(activeTabId, page.url) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(activeTabId, page.url, private) {
+        val id = activeTabId
+        if (!private || id == null || page.url.isEmpty()) return@LaunchedEffect
+        components.trackingProtection.containsException(id) { excepted -> protections = !excepted }
+    }
     val state = MenuState(
+        private = private,
+        protections = protections,
         bookmarked = page.url in bookmarks,
         readerAvailable = reader.first,
         readerActive = reader.second,
@@ -404,7 +417,7 @@ fun KoanOverlays(
             activeTab.origin == TabOrigin.LOCAL -> EssentialsAction.Remove
             else -> EssentialsAction.FromZen
         },
-        activeDownloads = downloads.count { !it.private && it.status in ACTIVE },
+        activeDownloads = downloads.count { it.status in ACTIVE },
         secure = secure,
         ublock = ublockUi,
         searchEngine = newEngine,
@@ -430,6 +443,16 @@ fun KoanOverlays(
                     stop = { session.stopLoading(activeTabId) },
                     editAddress = { close(); onEditAddress() },
                     copyLink = { clipboard.setText(AnnotatedString(page.url)); copiedToast("Link")?.let(onToast); close() },
+                    protections = { on ->
+                        val id = activeTabId
+                        if (id != null) {
+                            // Kept for the private session (until the last private tab closes).
+                            if (on) components.trackingProtection.removeException(id)
+                            else components.trackingProtection.addException(id, persistInPrivateMode = true)
+                            protections = on
+                            session.reload(id)
+                        }
+                    },
                     newTab = { close(); onNewTab() },
                     bookmark = { components.bookmarks.toggle(page.url, title) },
                     share = { close(); share(page.url, title) },
@@ -929,6 +952,7 @@ fun KoanOverlays(
         val signedIn = account as? AccountState.SignedIn
         SettingsScreen(
             ui = SettingsUi(
+                settings = components.settings,
                 theme = theme,
                 onTheme = { mode -> scope.launch { components.settings.setThemeMode(mode) } },
                 engine = engine,

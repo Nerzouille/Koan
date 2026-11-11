@@ -36,6 +36,7 @@ import mozilla.components.browser.state.action.CrashAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.findTab
+import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
@@ -57,6 +58,10 @@ import kotlin.coroutines.resume
  *
  * Also: the current tab (persisted, so Koan reopens on it), navigation written back to Room, tabs
  * opened by pages (target=_blank, window.open) placed next to their opener, and page screenshots.
+ *
+ * [isPrivate]: this manager runs the private tabs (privacy/PrivateTabs), a second instance over the
+ * same engine store. Each one only ever touches its own kind of engine tab. The private one keeps
+ * no history and no last place ([history] and [lastPlace] null), and its screenshots stay in memory.
  */
 class TabManager(
     private val store: BrowserStore,
@@ -64,13 +69,19 @@ class TabManager(
     private val sessionUseCases: SessionUseCases,
     private val dao: KoanDao,
     private val spaces: StateFlow<List<SpaceWithTabs>>,
-    private val lastPlace: LastPlace,
-    private val history: HistoryRecorder,
+    private val lastPlace: LastPlace?,
+    private val history: HistoryRecorder?,
     /** For Room writes and file work that must outlive any screen. */
     private val appScope: CoroutineScope,
     /** The engine's saved state back from its JSON (recently closed tabs). */
     private val readState: (String) -> EngineSessionState,
+    private val isPrivate: Boolean = false,
 ) {
+    /** This manager's engine tabs: the normal ones, or the private ones. */
+    private fun mine(state: BrowserState = store.state): List<TabSessionState> = state.tabs.filter { it.content.private == isPrivate }
+
+    private fun isMine(id: String?) = id != null && store.state.findTab(id)?.content?.private == isPrivate
+
     private val main = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val _current = MutableStateFlow<String?>(null)
@@ -116,26 +127,39 @@ class TabManager(
      * Restores the engine tabs saved before the process died (history and scroll included), then
      * reopens on the last tab. Call once per process, before the UI opens anything.
      */
-    fun start(storage: SessionStorage) = main.launch {
+    fun start(storage: SessionStorage) = start { tabsUseCases.restore(storage); null }
+
+    /**
+     * [restore] brings back this manager's engine tabs and returns the tab to reopen on (null = the
+     * last place on disk). The private manager doesn't select its tab in the engine: Koan starts in
+     * normal mode, and turning Private on opens it.
+     */
+    fun start(restore: suspend () -> String?) = main.launch {
         if (_started.value) return@launch
         dao.deleteBlankTabs()
-        tabsUseCases.restore(storage)
-        val place = lastPlace.read()
+        val restored = restore()
+        val place = lastPlace?.read()
         val rooms = spaces.first { it.isNotEmpty() }
         val byId = rooms.allTabs().associateBy { it.koanTabId }
         // Engine tabs whose Room row is gone (closed in Zen while Koan was away) go now.
-        val orphans = store.state.tabs.map { it.id }.filter { it !in byId || !byId.getValue(it).hasCard() }
+        val orphans = mine().map { it.id }.filter { it !in byId || !byId.getValue(it).hasCard() }
         if (orphans.isNotEmpty()) tabsUseCases.removeTabs(orphans)
-        recent.addAll(store.state.tabs.sortedByDescending { it.lastAccess }.map { it.id })
-        val tab = place.tabId?.let(byId::get)?.takeIf { it.hasCard() || it.pinned || it.essential }
-        if (tab != null) open(tab, captureLeaving = false)
+        recent.addAll(mine().sortedByDescending { it.lastAccess }.map { it.id })
+        val tab = (restored ?: place?.tabId)?.let(byId::get)?.takeIf { it.hasCard() || it.pinned || it.essential }
+        if (isPrivate) {
+            _current.value = tab?.koanTabId
+        } else if (tab != null) {
+            open(tab, captureLeaving = false)
+        }
         _started.value = true
-        appScope.launch {
-            ThumbnailStore.retainOnly(rooms.allTabs().mapNotNullTo(HashSet()) { it.thumbnailKey } + dao.closedTabThumbnails())
-            // Blank screenshots saved by older builds go once, later, so startup isn't slowed.
-            delay(BLANK_SCAN_DELAY_MS)
-            val blank = ThumbnailStore.dropBlank()
-            if (blank.isNotEmpty()) dao.clearThumbnails(blank)
+        if (!isPrivate) {
+            appScope.launch {
+                ThumbnailStore.retainOnly(rooms.allTabs().mapNotNullTo(HashSet()) { it.thumbnailKey } + dao.closedTabThumbnails())
+                // Blank screenshots saved by older builds go once, later, so startup isn't slowed.
+                delay(BLANK_SCAN_DELAY_MS)
+                val blank = ThumbnailStore.dropBlank()
+                if (blank.isNotEmpty()) dao.clearThumbnails(blank)
+            }
         }
         watchEngine()
         watchRoom()
@@ -233,7 +257,7 @@ class TabManager(
             open(row).join()
         } else {
             ownTabs += id
-            store.dispatch(TabListAction.AddTabAction(createTab(url = url, id = id), select = false))
+            store.dispatch(TabListAction.AddTabAction(createTab(url = url, id = id, private = isPrivate), select = false))
         }
         appScope.launch { dao.insertInStack(row, after) }
     }
@@ -269,7 +293,7 @@ class TabManager(
         val keep = rows.filter { it.pinned || it.essential }.mapTo(HashSet()) { it.koanTabId }
         ids.forEach {
             openers.remove(it)
-            history.forget(it)
+            history?.forget(it)
         }
         if (_current.value in ids) setCurrent(null)
         if (_blank.value in ids) _blank.value = null
@@ -322,7 +346,7 @@ class TabManager(
         val row = closed.row
         ownTabs += row.koanTabId
         withContext(Dispatchers.Main) {
-            store.dispatch(TabListAction.AddTabAction(createTab(url = row.url, id = row.koanTabId, engineSessionState = closed.state), select = false))
+            store.dispatch(TabListAction.AddTabAction(createTab(url = row.url, id = row.koanTabId, engineSessionState = closed.state, private = isPrivate), select = false))
         }
         appScope.launch {
             dao.deleteClosedTab(row.koanTabId)
@@ -358,18 +382,18 @@ class TabManager(
     private fun dropDownloadTab(id: String) = main.launch {
         val row = dao.tab(id)
         if (_current.value == id) {
-            val back = recent.firstOrNull { it != id && store.state.findTab(it) != null }?.let { dao.tab(it) }
+            val back = recent.firstOrNull { it != id && isMine(it) }?.let { dao.tab(it) }
             if (back != null) open(back, captureLeaving = false).join()
         }
         close(listOf(id), listOfNotNull(row))
     }
 
     /** Ids of every tab that exists in the engine (live or suspended): opened on the phone. */
-    fun liveIds(): Set<String> = store.state.tabs.mapTo(HashSet()) { it.id }
+    fun liveIds(): Set<String> = mine().mapTo(HashSet()) { it.id }
 
     private fun addEngineTab(id: String, url: String) {
         ownTabs += id
-        store.dispatch(TabListAction.AddTabAction(createTab(url = url, id = id), select = true))
+        store.dispatch(TabListAction.AddTabAction(createTab(url = url, id = id, private = isPrivate), select = true))
     }
 
     private fun setCurrent(id: String?) {
@@ -378,7 +402,7 @@ class TabManager(
         if (id != fromApp) fromApp = null
         _current.value = id
         if (id != null) touch(id)
-        appScope.launch { lastPlace.saveTab(id) }
+        lastPlace?.let { place -> appScope.launch { place.saveTab(id) } }
     }
 
     private fun touch(id: String) {
@@ -395,7 +419,7 @@ class TabManager(
         val present = ids.filter { store.state.findTab(it) != null }
         if (present.isEmpty()) return
         if (store.state.selectedTabId in present) {
-            val fallback = recent.firstOrNull { it !in present && store.state.findTab(it)?.engineState?.engineSession != null }
+            val fallback = recent.firstOrNull { it !in present && isMine(it) && store.state.findTab(it)?.engineState?.engineSession != null }
             if (fallback != null) tabsUseCases.selectTab(fallback)
         }
         recent.removeAll(present.toSet())
@@ -405,13 +429,16 @@ class TabManager(
 
     // ---- lifecycle and memory ----------------------------------------------------------------
 
-    /** Live engine sessions kept: the memory tier's (DeviceProfile), 4 on the owner's phones. */
-    private val maxLive get() = DeviceProfile.tier.liveSessions
+    /**
+     * Live engine sessions kept: the memory tier's (DeviceProfile), 4 on the owner's phones. Private
+     * tabs get half as many, on top (both kinds can be open in one process).
+     */
+    private val maxLive get() = DeviceProfile.tier.liveSessions.let { if (isPrivate) (it / 2).coerceAtLeast(1) else it }
 
     /** Keeps the [maxLive] most recently opened sessions; the others are saved and closed. */
     private fun enforceBudget(max: Int = maxLive) {
         val selected = store.state.selectedTabId
-        val live = store.state.tabs.filter { it.engineState.engineSession != null }
+        val live = mine().filter { it.engineState.engineSession != null }
         if (live.size <= max) return
         val rank = recent.withIndex().associate { (i, id) -> id to i }
         live.sortedBy { if (it.id == selected) -1 else rank[it.id] ?: Int.MAX_VALUE }
@@ -430,7 +457,10 @@ class TabManager(
     fun onTrimMemory(level: Int) {
         val foregroundLow = level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
             level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND || foregroundLow) main.launch { enforceBudget(max = 1) }
+        // The private tabs keep none live unless one is on screen (privacy/PrivateTabs keeps their
+        // cookies alive without them).
+        val keep = if (isPrivate && !isMine(store.state.selectedTabId)) 0 else 1
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND || foregroundLow) main.launch { enforceBudget(max = keep) }
         if (level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) {
             ThumbnailStore.trimMemory()
             BakedBlur.trimMemory()
@@ -452,13 +482,14 @@ class TabManager(
     private var lastCrashRestore = 0L
 
     private fun watchEngine() = main.launch {
-        var known = store.state.tabs.associate { it.id to it.pageKey() }
+        var known = mine().associate { it.id to it.pageKey() }
         var knownDownloads = store.state.downloads.keys
         var loading = false
         var painted: String? = null
         var selected = store.state.selectedTabId
         store.flow().collect { state ->
-            for (tab in state.tabs) {
+            val own = mine(state)
+            for (tab in own) {
                 val key = tab.pageKey()
                 if (known[tab.id] != key) {
                     schedulePageWrite(tab)
@@ -472,11 +503,11 @@ class TabManager(
             if (state.downloads.keys != knownDownloads) {
                 state.downloads.values.filter { it.id !in knownDownloads }.forEach { d ->
                     val tab = d.sessionId?.let { state.findTab(it) }
-                    if (tab != null && tab.content.url == d.url && !tab.content.firstContentfulPaint) dropDownloadTab(tab.id)
+                    if (tab != null && tab.content.private == isPrivate && tab.content.url == d.url && !tab.content.firstContentfulPaint) dropDownloadTab(tab.id)
                 }
                 knownDownloads = state.downloads.keys
             }
-            known = state.tabs.associate { it.id to it.pageKey() }
+            known = own.associate { it.id to it.pageKey() }
             windowTabs.retainAll(known.keys)
 
             if (state.selectedTabId != selected) {
@@ -487,9 +518,9 @@ class TabManager(
                     setCurrent(selected)
                 }
             }
-            if (state.tabs.count { it.engineState.engineSession != null } > maxLive) enforceBudget()
+            if (own.count { it.engineState.engineSession != null } > maxLive) enforceBudget()
 
-            val current = state.selectedTabId?.let(state::findTab)
+            val current = state.selectedTabId?.let(state::findTab)?.takeIf { it.content.private == isPrivate }
             // Content process died (HyperOS kills it in the background): bring the page back.
             if (current != null && current.engineState.crashed && System.currentTimeMillis() - lastCrashRestore > CRASH_RETRY_MS) {
                 lastCrashRestore = System.currentTimeMillis()
@@ -521,7 +552,7 @@ class TabManager(
             val url = content.url
             if (url.isEmpty() || url == "about:blank") return@launch
             val title = content.title
-            history.pageShown(id, url, title)
+            history?.pageShown(id, url, title)
             appScope.launch {
                 val row = dao.tab(id) ?: return@launch
                 if (row.url == url && (title.isEmpty() || row.title == title)) return@launch
@@ -566,7 +597,7 @@ class TabManager(
             .distinctUntilChanged()
             .collect { withCards ->
                 if (withCards.isEmpty()) return@collect
-                val gone = store.state.tabs.map { it.id }.filter { it !in withCards && it !in ownTabs }
+                val gone = mine().map { it.id }.filter { it !in withCards && it !in ownTabs }
                 if (gone.isNotEmpty()) removeEngineTabs(gone)
                 // Once Room has a tab the engine made, it is a normal tab like any other.
                 ownTabs.retainAll { it !in withCards }
@@ -662,6 +693,12 @@ class TabManager(
         }
         appScope.launch {
             val previous = dao.tab(id)?.thumbnailKey
+            if (isPrivate) {
+                // Never on disk: kept in memory, gone when Koan restarts.
+                val key = ThumbnailStore.keepInMemory(id, bitmap, previous) ?: return@launch
+                if (dao.tab(id) == null) ThumbnailStore.forgetMemory(key) else dao.setThumbnail(id, key)
+                return@launch
+            }
             val (key, dropped) = ThumbnailStore.save(id, bitmap, previous)
                 ?: return@launch capLog(id, "not saved: blank (or write failed)")
             capLog(id, "saved $key")

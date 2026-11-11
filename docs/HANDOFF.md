@@ -32,6 +32,7 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 | `video` | dev (rebased 2026-11-11) | **Video player** from `docs/VIDEO_PLAYER.md` plus the owner's feedback of 2026-11-11: `ui/player/*` (one `VideoPlayer`, web and standalone; standalone on MediaPlayer), `engine/PageVideo.kt` + `assets/extensions/video` (hides the site's player in fullscreen, blocks its exit, state + commands, and the media notification's position / poster for every playing video), edge-to-edge black window (`ui/player/Immersive.kt`), symmetric safe-area layout, filled primary icons, level slider = its own track, PiP with Audio only. Notification timeline: feature-media's Nimbus flag switched on by reflection (`Components.enableMediaTimeline`, keep rules in `proguard-rules.pro`). **No mini-player** (ROADMAP M7; old version in `reference/mini-player-2026-11-11/`). | POCO (dev + R8 release): Commons, test-videos.co.uk; glyph centring measured on screenshots. Not yet: YouTube, Reddit, X, dark theme, Android 11 emulator, the Xiaomi (grey bands seen there in landscape; on HyperOS a drag starting within ~80dp of the top edge in landscape is taken by the system bar gesture). | Approved by the owner, merged into `dev` 2026-11-11 (`000d4a1`, pushed). `video` can be deleted. |
 | `library`, `sync-two-way`, `app-links`, `download-dup`, `translate`, `toast-swap`, `back-close`, `zen-icons` | dev | The night batch items, merged into `dev`. `download-dup` and `sync-two-way` contain `library`. | Retested by the owner on the POCO. | Merged; can be deleted. |
 | `nightly` | dev | The batch's test branch (all items + video). Local only, never pushed (its doc history has personal phone details). | — | Delete once `video` is redone. |
+| `private` | dev (2026-11-11) | `docs/design/OVERVIEW_PRIVATE.md` parts 1–3: `#121214` dark base and greys, card separation (hairline over the dim, dark rim, stronger contact and key shadows), two-line card headers (`ui/overview/CardTitle.kt`), amber "sync failed" dot only; Private mode (`privacy/*`: `PrivateTabs` = in-memory Room + a second `TabManager(isPrivate)`, `PrivateVault` sealed with Keystore key `koan_private`, a hidden private `GeckoSession` keeps the private context alive, wiped on last close; `PrivacyEngine` settings and Gecko prefs; `AmpLinks`; `ui/privacy/*`: toggle, flip driver, atmosphere, empty state, lock cover, keyboard flag). Settings › Private browsing / All tabs. | Unit tests (all green, new: `CardTitleTest`, `AmpLinksTest`, `PrivateVaultTest`); tested on the phone (dev build, light + dark, 2026-11-11): toggle on/off, empty state, private search + incognito keyboard, typed link cleaned (utm_/fbclid gone), Google AMP link → article, HTTPS-only (toast), Protections switch (kept), restore after force-stop (tab + Back history, placeholder), lock prompt after restart (cancel stays normal), Undo, FLAG_SECURE, normal history free of private pages; the flip reworked on the owner's feedback: Private is a page beside the current space, toggled with the space pager's own motion (smooth on the R8 build, owner OK), dock "Private" pill on the space pills' line. Not tested: real 1-min/screen-off lock with a fingerprint, Android 11, R8 build on the phone, downloads. | Waiting for the owner's tests. |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | Frame by frame, 2026-10-28. | **Dropped** by the owner; kept for reference. Don't merge. |
 
 ## Two-way sync (M6), as it runs
@@ -181,3 +182,34 @@ is ever committed (CLAUDE.md "Public repo").
 6. Tour clips (cards 2 and 5) show real data: re-record before a public release.
 
 The old POCO X4 GT (1080×2460, one display, its VPN can drop) is available for unattended tests; its Koan runs the R8 release of `dev` (2026-11-11).
+
+## Private mode (branch `private`, 2026-11-11)
+
+Decisions (owner, 2026-11-11): real GeckoView private mode; private tabs come back after a restart
+(URL + Back history, sealed), signed out. utm_* and click IDs stripped in Private; cookie-banner
+refusal optional (off); Google AMP links rewritten in Private (option for normal tabs); DoH
+optional, off, all tabs; WebRTC local addresses hidden (all tabs, always); bounce-tracking
+protection on (all tabs: GeckoView can't scope it, a setting); fingerprinting protection on (not
+RFP); HTTPS-only + tracking protection in Private with a per-site Protections switch (⋯); GPC in
+Private; lock after 1 min away / screen off; FLAG_SECURE with "Allow screenshots"; a hidden
+FLAG_SECURE switch in dev builds only; uBlock allowed in private; Koan's copies marked sensitive in
+Private; private downloads listed with a mask (until restart).
+
+Not done / open:
+- **HTTPS-only fallback:** GeckoView has no API for an HTTP exception and shows nothing when a
+  site has no HTTPS (the page just stays): Koan shows a toast, "Not opened in Private: no HTTPS".
+  The Protections switch does not lift HTTPS-only.
+- Gecko strips tracking parameters only on link clicks: Koan's request hook (`LinkCleaner`) also
+  cleans typed and pasted links in private tabs.
+- Fixed on the way: the video player turned the system bars' contrast scrim back on after
+  fullscreen (`ui/player/Immersive.kt`), a pale strip over Private's colours; now always off.
+- **Cookie banners** use Gecko's `cookiebanners.service.mode.privateBrowsing` pref (GeckoView 157
+  has no API left): unverified whether its rules still ship.
+- **ToggleOff** stays `#848489` / `#8E8E93` for all toggles (the spec's `#636366` fails 3:1 on dark
+  grouped rows); the Private toggle uses the spec's colours.
+- Private downloads leave the list on restart (AC never stores private downloads).
+- The "Private" chip on private-tab rows in the search sheet (§4.6) isn't drawn (every private tab
+  is in the one set).
+- Star placement avoids the card pile's full width, not each back card's narrower shape.
+- No Android 11 emulator image on the dev machine (only `koan34`).
+
