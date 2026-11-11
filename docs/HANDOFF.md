@@ -61,6 +61,26 @@ each group (launch + kill + restore checked).
   favicons in the overview, search and History after a cold start; Settings › Mozilla account ›
   Send to your Mozilla account still shows the three switches; a password sync and a history sync
   still run (Sync now, status line under the switches).
+- **Group B, per-frame recompositions (done, 15 commits):** `ui/kit/MotionKit.kt` (one
+  `animationsOff`, `frameClock`), `ui/kit/Presence.kt` (`rememberPresence`) for the toast, dock
+  popup, search sheet, start page, player overlays and play glyph; the pill's space-mode fade and
+  the selection wash / check read in layers or draw; the standalone player's open morph; the
+  keyboard inset applied in layout (search sheet, start page); page load progress read only by the
+  load line, which now has its own layer and cached brushes; the seek scrub read in draw / layout
+  and the mist's blurs cached; card dims through layer alpha; overview page lambdas kept.
+  Measured on the POCO (staging copies, speed-profile, `tools/perf/frames.sh` + hand scenarios
+  keyboard and pull-to-refresh, local scripts): no scenario got worse beyond noise; reload p90
+  10 → 8–9 ms, space p90 19 → 13 ms at B2. The phone drops to half rate when warm after ~1 h of
+  runs: compare interleaved runs only (A/B/A/B). The player (B6) was not measured on the phone
+  (no player scenario). R8 build: launches, restores after a kill, no crash.
+  **Check on the phone:** toast in and out (and a toast replaced by another); dock popups (tab
+  counter long press, Back long press); typing in the address field on a page and on the start
+  page: results sit just above the keyboard and move with it, the "@" picker too; a page load: the
+  line runs, shimmers and fades as before, above the dock's top edge; Select all on History /
+  Passwords (wash and check marks fade); the player: open from Downloads (morph), tap to show /
+  hide the controls (soft blur), drag the seek bar (bubble follows the finger, time updates),
+  double-tap seek glow, brightness / volume swipe, 2× long press, ⋯ menu; overview scroll (dims
+  unchanged), space switch.
 
 ## Open branches
 
