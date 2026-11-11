@@ -23,9 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
@@ -51,6 +49,7 @@ import dev.nerzouille.koan.search.bareUrl
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.kit.rememberPresence
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
@@ -95,14 +94,13 @@ fun SearchSheet(
     /** Private: the notice first, bookmarks and private tabs only. */
     private: Boolean = false,
 ) {
-    val fade = remember { Animatable(0f) }
-    LaunchedEffect(open) { fade.animateTo(if (open) 1f else 0f, Motion.SearchScrim) }
-    if (!open && fade.value == 0f) return
+    val fade = rememberPresence(open, Motion.SearchScrim)
+    if (!fade.composed) return
     val palette = KoanTheme.colors
     Box(
         modifier
             .fillMaxSize()
-            .drawBehind { drawRect(palette.SheetScrim, alpha = fade.value) }
+            .drawBehind { drawRect(palette.SheetScrim, alpha = fade.progress) }
             .then(if (open) Modifier.pointerInput(Unit) { detectTapGestures { actions.cancel() } } else Modifier),
     ) {
         if (open) Results(field, search, engine, shortcuts, bottom, currentSpace, actions, private)
