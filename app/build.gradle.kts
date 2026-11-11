@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 // Local release signing. keystore.properties (gitignored) points at a keystore outside the repo.
@@ -205,7 +206,27 @@ kotlin {
     }
 }
 
+// Baseline profile (docs/ARCHITECTURE.md "Performance"): generated on a phone by :baselineprofile,
+// kept in src/main/generated so every build type (dev, staging, release) ships it, and installed
+// on a sideloaded APK by profileinstaller. Generate it by hand: ./gradlew :app:generateBaselineProfile
+baselineProfile {
+    mergeIntoMain = true
+    saveInSrc = true
+    automaticGenerationDuringBuild = false
+}
+
+// The plugin's own build types (nonMinified…, benchmark…) get their own app id: generating or
+// benchmarking never installs over the real app or its data on a phone.
+androidComponents {
+    onVariants { variant ->
+        val type = variant.buildType.orEmpty()
+        if (type.startsWith("nonMinified") || type.startsWith("benchmark")) variant.applicationId.set("dev.nerzouille.koan.bp")
+    }
+}
+
 dependencies {
+    baselineProfile(project(":baselineprofile"))
+    implementation(libs.androidx.profileinstaller)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
