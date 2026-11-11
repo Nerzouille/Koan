@@ -58,7 +58,7 @@ relative to it unless they start with `app/`, `docs/` or `tools/`).
 | `ui/overview` | `OverviewScreen`, `SpacePage`, `SpacePager`, `DepthStack`, `StackState`, `DepthCurve`, `TabCard`, `CardHero`, `Favicon`, first-run card |
 | `ui/search`, `ui/start` | Search sheet and its state; start page |
 | `ui/menu` | The ⋯ menu pages and every prompt card (link, page prompts, file, logins, permissions, app links, downloads, translate, uBlock, site settings) |
-| `ui/sheet`, `ui/kit` | Sheet and card primitives (`SheetState`, `KoanSheet`, `KoanCard`); shared controls (buttons, field, toggle, toast, list pages, selection, swipe rows, `SecureWindow`); motion helpers (`MotionKit`: `animationsOff`, `frameClock`) |
+| `ui/sheet`, `ui/kit` | Sheet and card primitives (`SheetState`, `KoanSheet`, `KoanCard`); shared controls (buttons, field, toggle, toast, list pages, selection, swipe rows, `SecureWindow`); motion helpers (`MotionKit`: `animationsOff`, `frameClock`; `Presence`: `rememberPresence`) |
 | `ui/settings`, `ui/history`, `ui/downloads` | Full-screen pages: settings (passwords, engines, privacy, translation, about), history, downloads |
 | `ui/player` | `VideoPlayer`, `WebPlayerLayer`, `StandalonePlayer`, `NativeVideo`, `PlayerModel.kt` (`PlayerHost`, `PlayerState`) |
 | `ui/privacy` | `PrivateFlip`, `PrivateAtmosphere`, private parts (toggle, lock cover), `unlockPrivate` |

@@ -354,6 +354,16 @@ Gesture thresholds:
 | Dismiss overview / start page by pulling down | 48dp / 64dp |
 | Dock on page scroll | always shown within 48dp of the top |
 
+Motion helpers in `ui/kit` (use them instead of writing the pattern again):
+
+- `rememberPresence(open, enter, exit, snapIn, startShown)` (`kit/Presence.kt`): anything that shows
+  and hides with a 0…1 animation. `progress` is read in layer / draw / layout lambdas only;
+  `composed` decides whether it is in the composition and changes only at the two ends (rule 9).
+  A second overload wraps an `Animatable` the caller drives itself (the toast). `startShown`
+  starts at the first target, like `animateFloatAsState`.
+- `animationsOff(context)` / `rememberAnimationsOff()` and `frameClock { deltaMs -> }`
+  (`kit/MotionKit.kt`): the system's "Remove animations", and an idle clock for illustrations.
+
 ### 1.9 Icons
 
 Koan's own stroked icon set (`ui/icons/KoanIcons.kt`): **24×24 grid, 2-unit stroke, round caps and
