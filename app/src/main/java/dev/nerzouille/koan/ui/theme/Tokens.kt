@@ -1424,6 +1424,10 @@ object Motion {
     val Fade: TweenSpec<Float> = tween(FADE_MS)
     val FadeSlow: TweenSpec<Float> = tween(FADE_SLOW_MS)
 
+    /** A button pressed: it shrinks to [PRESS_SCALE] and springs back. */
+    const val PRESS_SCALE = 0.92f
+    val Press: SpringSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 700f)
+
     /**
      * Stack snap: exponential glide, no overshoot (prototype: 17% of the remaining distance per
      * 60 Hz frame = time constant ≈ 90 ms). Frame-rate independent here.

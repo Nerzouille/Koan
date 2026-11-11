@@ -14,7 +14,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -32,6 +31,7 @@ import dev.nerzouille.koan.ui.Overlays
 import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.kit.Toast
 import dev.nerzouille.koan.ui.kit.copiedToast
+import dev.nerzouille.koan.ui.kit.slideUpPage
 import dev.nerzouille.koan.ui.menu.SignOutConfirm
 import dev.nerzouille.koan.ui.menu.TranslateActions
 import dev.nerzouille.koan.ui.menu.UBlockUi
@@ -276,7 +276,7 @@ internal fun SettingsOverlays(
             ),
             nav = overlays.settingsNav,
             onClose = { overlays.settingsOpen = false },
-            modifier = Modifier.graphicsLayer { translationY = (1f - slide.value) * size.height },
+            modifier = Modifier.slideUpPage { slide.value },
         )
     }
 }

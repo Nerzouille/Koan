@@ -1,14 +1,7 @@
 package dev.nerzouille.koan.ui.overlays
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
 import dev.nerzouille.koan.data.VisitEntity
 import dev.nerzouille.koan.engine.Components
@@ -20,6 +13,8 @@ import dev.nerzouille.koan.ui.history.HistoryScreen
 import dev.nerzouille.koan.ui.kit.KoanClipboard
 import dev.nerzouille.koan.ui.kit.Toast
 import dev.nerzouille.koan.ui.kit.copiedToast
+import dev.nerzouille.koan.ui.kit.rememberPresence
+import dev.nerzouille.koan.ui.kit.slideUpPage
 import dev.nerzouille.koan.ui.menu.Confirm
 import dev.nerzouille.koan.ui.sheet.Detent
 import dev.nerzouille.koan.ui.sheet.KoanCard
@@ -49,10 +44,8 @@ internal fun LibraryOverlays(
 ) {
     val session = components.sessionUseCases
     // ---- Downloads, full screen, over Settings too ----
-    val downloadsSlide = remember { Animatable(0f) }
-    LaunchedEffect(overlays.downloadsOpen) { downloadsSlide.animateTo(if (overlays.downloadsOpen) 1f else 0f, Motion.Sheet) }
-    val downloadsVisible by remember { derivedStateOf { overlays.downloadsOpen || downloadsSlide.value > 0f } }
-    if (downloadsVisible) {
+    val downloadsSlide = rememberPresence(overlays.downloadsOpen, Motion.Sheet)
+    if (downloadsSlide.composed) {
         DownloadsScreen(
             downloads = downloads,
             folder = folderName ?: "Download",
@@ -66,7 +59,7 @@ internal fun LibraryOverlays(
             onToast = onToast,
             onCopyLink = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
             onConfirm = { title, text, confirm, action -> overlays.ask(title, text, confirm, action = action) },
-            modifier = Modifier.graphicsLayer { translationY = (1f - downloadsSlide.value) * size.height },
+            modifier = Modifier.slideUpPage { downloadsSlide.progress },
             onPlayVideo = { d ->
                 val video = dev.nerzouille.koan.ui.player.videoOfDownload(d, components.downloads)
                 if (video != null) components.player.open(video)
@@ -76,10 +69,8 @@ internal fun LibraryOverlays(
     }
 
     // ---- History, full screen like Downloads, and Clear browsing data ----
-    val historySlide = remember { Animatable(0f) }
-    LaunchedEffect(overlays.historyOpen) { historySlide.animateTo(if (overlays.historyOpen) 1f else 0f, Motion.Sheet) }
-    val historyVisible by remember { derivedStateOf { overlays.historyOpen || historySlide.value > 0f } }
-    if (historyVisible) {
+    val historySlide = rememberPresence(overlays.historyOpen, Motion.Sheet)
+    if (historySlide.composed) {
         val dao = components.database.dao()
         val removeVisits = { visits: List<VisitEntity> ->
             val urls = visits.map { it.url }
@@ -117,7 +108,7 @@ internal fun LibraryOverlays(
                 restore = { id -> overlays.historyOpen = false; onRestoreClosed(id) },
             ),
             allClosed = overlays.historyShowsClosed,
-            modifier = Modifier.graphicsLayer { translationY = (1f - historySlide.value) * size.height },
+            modifier = Modifier.slideUpPage { historySlide.progress },
         )
     }
     val clearData = overlays.clearDataCard

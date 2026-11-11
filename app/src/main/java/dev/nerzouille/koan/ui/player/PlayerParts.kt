@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -32,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -61,6 +59,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.pressScale
 import dev.nerzouille.koan.ui.kit.rememberPresence
 import dev.nerzouille.koan.ui.theme.Motion
 import kotlin.math.PI
@@ -92,12 +91,6 @@ internal fun Modifier.pressable(enabled: Boolean = true, onClick: () -> Unit): M
     },
 )
 
-@Composable
-internal fun PressScale(pressedFlag: Boolean, content: @Composable (Modifier) -> Unit) {
-    val s by animateFloatAsState(if (pressedFlag) 0.92f else 1f, PlayerTokens.Press, label = "press")
-    content(Modifier.graphicsLayer { scaleX = s; scaleY = s })
-}
-
 /** A round 44dp button (or a disc of [size]) on the panel. */
 @Composable
 internal fun PlayerDisc(
@@ -107,25 +100,11 @@ internal fun PlayerDisc(
     panel: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    var down by remember { mutableStateOf(false) }
-    val s by animateFloatAsState(if (down) 0.92f else 1f, PlayerTokens.Press, label = "disc")
     Box(
         modifier
             .size(size)
-            .graphicsLayer { scaleX = s; scaleY = s }
-            .then(if (panel) Modifier.playerPanel(CircleShape) else Modifier.clip(CircleShape))
-            .pointerInput(onClick) {
-                awaitEachGesture {
-                    awaitFirstDown().consume()
-                    down = true
-                    val up = waitForUpOrCancellation()
-                    down = false
-                    if (up != null) {
-                        up.consume()
-                        onClick()
-                    }
-                }
-            },
+            .pressScale(onClick = onClick)
+            .then(if (panel) Modifier.playerPanel(CircleShape) else Modifier.clip(CircleShape)),
         contentAlignment = Alignment.Center,
     ) { content() }
 }

@@ -99,7 +99,7 @@ object PlayerTokens {
     val MistShift = 8.dp
     const val AUTO_HIDE_MS = 3000L
     val PlayPop: SpringSpec<Float> = spring(dampingRatio = 0.6f, stiffness = 600f)
-    val Press: SpringSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 700f)
+    val Press: SpringSpec<Float> = Motion.Press
     val TrackPress: SpringSpec<Float> = spring(dampingRatio = 0.8f, stiffness = 600f)
     val SwipeBack: SpringSpec<Float> = Motion.Overview
     val OpenSpring: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 420f)

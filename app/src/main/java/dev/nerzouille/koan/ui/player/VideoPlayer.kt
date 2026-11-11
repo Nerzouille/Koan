@@ -85,6 +85,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.pressScale
 import dev.nerzouille.koan.ui.kit.rememberPresence
 import dev.nerzouille.koan.ui.theme.Motion
 import kotlin.math.abs
@@ -849,8 +850,8 @@ private fun SpeedPill(rate: Double, onClick: () -> Unit) {
     Box(
         Modifier
             .height(PlayerTokens.RoundPill)
+            .pressScale(LocalControlsLive.current, onClick = onClick)
             .playerPanel(RoundedCornerShape(22.dp))
-            .pressable(LocalControlsLive.current, onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -863,8 +864,8 @@ private fun UnlockPill(onClick: () -> Unit) {
     Row(
         Modifier
             .height(PlayerTokens.RoundPill)
+            .pressScale(onClick = onClick)
             .playerPanel(RoundedCornerShape(22.dp))
-            .pressable(onClick = onClick)
             .padding(start = 12.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -880,8 +881,8 @@ private fun CentreGroup(state: PlayerState, landscape: Boolean, onBack10: () -> 
         Row(
             modifier
                 .height(PlayerTokens.ReplayHeight)
+                .pressScale(LocalControlsLive.current, onClick = onPlay)
                 .playerPanel(RoundedCornerShape(28.dp))
-                .pressable(LocalControlsLive.current, onPlay)
                 .padding(start = 18.dp, end = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
