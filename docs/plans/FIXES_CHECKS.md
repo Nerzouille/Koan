@@ -207,9 +207,9 @@ Checks:
 5. The day headers don't move when selection starts or ends.
 
 ## Already checked by Claude
-- Unit tests: 328 JVM tests, green (`./gradlew testDebugUnitTest`).
+- Unit tests: 341 JVM tests, green (`./gradlew testDebugUnitTest`).
 - The dev build was installed on the POCO after phase 1: it launches, no crash.
-- The R8 release build of `8d0962a` is installed on the POCO (real app, release key). It
+- The R8 release build of `6364b05` (round 2) is installed on the POCO (real app, release key). It
   launches, comes back cold after a background kill (new process), and logcat shows no crash. The
   restored screen itself was not looked at.
 
