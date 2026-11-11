@@ -30,8 +30,9 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
      `docs/ARCHITECTURE.md` rewritten; `NIGHT_REPORT.md` and `REVIEW_NIGHT.md` removed (their
      rules are in `docs/UI_SPEC.md`).
   3. `geckoview-160` (merged into `dev`): GeckoView / android-components 160, see "Engine".
-  4. Next: refactoring, from **`docs/plans/BATCH4_BRIEF.md`** (branch `refactor` from `dev`).
-  5. Later: tests, CI, baseline profile.
+  4. Refactoring, from **`docs/plans/BATCH4_BRIEF.md`** (branch `refactor` from `dev`): **after
+     the release** (see "Next concrete steps").
+  5. Tests, CI, baseline profile: after batch 4.
 - Engine: android-components **160.0** / GeckoView **160.0.20261104181552**
   (`gradle/libs.versions.toml`, the two versions move together), compileSdk **37.2** (AC 160
   requires it). Bump notes: ARCHITECTURE "Bumping android-components + GeckoView". Tested on the
@@ -51,11 +52,11 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 |---|---|---|---|
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
-| `audit-fixes`, `audit-docs`, `geckoview-160` | dev | Audit batches 1–3, merged into `dev`. | Can be deleted |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
 
-The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) are merged and deleted.
+The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and the audit branches
+(`audit-fixes`, `audit-docs`, `geckoview-160`) are merged and deleted.
 
 ## Two-way sync (M6), as it runs
 
@@ -120,9 +121,19 @@ The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) are 
 
 ## Next concrete steps
 
-1. **Owner:** the batch 1 phone checks (list under "Untested / unverified").
-2. **Batch 4, refactoring:** a fresh session starts from `docs/plans/BATCH4_BRIEF.md`.
-3. Watch on GeckoView 160: the rare bugs above, the space switch p90.
+In this order (owner, 2026-11-11):
+
+1. **Two-way Spaces sync plan:** write `docs/plans/SPACES_WRITE_PLAN.md` (not written yet): how
+   Koan would write the Zen `spaces` collection behind `writeBackEnabled` (CLAUDE.md rule 4), from
+   `docs/SYNC.md` "Write-back to Spaces" and `docs/SYNC_WRITE.md`. Plan only, no code until the
+   owner approves it.
+2. **The owner's fixes list** (the owner brings it).
+3. **Release 0.5 on Friday 2026-11-13** (CLAUDE.md release checklist; versionCode ≥ 10). The
+   owner's batch 1 phone checks (list under "Untested / unverified") come before it.
+4. After the release: **batch 4**, refactoring (`docs/plans/BATCH4_BRIEF.md`), then **batch 5**
+   (tests, CI, baseline profile).
+
+Watch on GeckoView 160 meanwhile: the rare bugs above, the space switch p90.
 
 ## Build
 
