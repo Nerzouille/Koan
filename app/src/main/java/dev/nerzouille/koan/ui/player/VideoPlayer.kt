@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.player
 
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.layout.WindowInsets
@@ -743,16 +742,22 @@ fun VideoPlayer(
         val offer = rememberRotateOffer(onRotate != null && rotationLocked && !hidden, screenPortrait = !landscape)
         val rotateIn = rememberPresence(offer, enter = Motion.Fade, exit = Motion.FadeSlow)
         if (rotateIn.composed && onRotate != null) {
-            val config = LocalConfiguration.current
-            val onRight = remember(config.orientation) { rotatePillOnRight(view.display?.rotation ?: 0) }
+            // Exactly where the fullscreen button is (the bottom pill's end), while the controls are
+            // hidden; it rises above the bottom pill as the controls come in (their own mist, read
+            // in the layer).
             val pillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
+            val inner = if (landscape) PlayerTokens.BottomPillInnerLandscape else PlayerTokens.BottomPillInnerPortrait
+            val lift = pillH + PlayerTokens.BubbleGap - PlayerTokens.BottomPillInnerBottom
             PlayerDisc(
                 PlayerTokens.RoundPill,
                 onClick = { onRotate() },
                 modifier = Modifier
-                    .align(if (onRight) Alignment.BottomEnd else Alignment.BottomStart)
-                    .padding(start = side, end = side, bottom = bottomInset + pillH + PlayerTokens.BubbleGap)
-                    .graphicsLayer { alpha = rotateIn.progress },
+                    .align(Alignment.BottomEnd)
+                    .padding(end = ins.bottomEnd + inner, bottom = bottomInset + PlayerTokens.BottomPillInnerBottom)
+                    .graphicsLayer {
+                        alpha = rotateIn.progress
+                        translationY = -lift.toPx() * (if (locked) 0f else mist.value * hiddenAlpha(hidden))
+                    },
             ) { PlayerIcon(KoanIcons.Rotate, PlayerTokens.Glyph) }
         }
 

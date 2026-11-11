@@ -37,13 +37,6 @@ class FullscreenOrientationTest {
         assertEquals(true, rotateOffer(previous = true, held = false, screenPortrait = true))
     }
 
-    @Test fun `the pill sits on the side of the system button`() {
-        assertEquals(false, rotatePillOnRight(0))
-        assertEquals(true, rotatePillOnRight(1))
-        assertEquals(true, rotatePillOnRight(2))
-        assertEquals(false, rotatePillOnRight(3))
-    }
-
     @Test fun `how the phone is held`() {
         assertEquals(true, heldPortrait(0))
         assertEquals(true, heldPortrait(350))

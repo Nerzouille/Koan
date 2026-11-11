@@ -64,6 +64,10 @@ object PlayerTokens {
     val ReplayHeight = 56.dp
     val BottomPillHeightLandscape = 56.dp
     val BottomPillHeightPortrait = 92.dp
+    /** Where the bottom pill's last button (fullscreen) sits from the pill's end and bottom (its paddings). */
+    val BottomPillInnerLandscape = 6.dp
+    val BottomPillInnerPortrait = 12.dp
+    val BottomPillInnerBottom = 6.dp
     val BottomPillRadius = 28.dp
     val TimeMinWidth = 36.dp
     val TrackThickness = 8.dp

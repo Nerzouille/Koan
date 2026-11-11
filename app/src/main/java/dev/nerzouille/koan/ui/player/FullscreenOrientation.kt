@@ -105,13 +105,10 @@ fun rotateOffer(previous: Boolean?, held: Boolean?, screenPortrait: Boolean): Bo
     else -> null
 }
 
-/** Which bottom corner the rotate pill sits in: the side AOSP's floating rotate button uses for this display rotation (0–3). */
-fun rotatePillOnRight(displayRotation: Int): Boolean = displayRotation == android.view.Surface.ROTATION_90 || displayRotation == android.view.Surface.ROTATION_180
-
 /**
  * Whether Koan's rotate pill shows: while [active] (fullscreen, auto-rotate off, not in PiP), from
  * the moment the phone turns to the other shape than the screen's ([screenPortrait]) for
- * [PlayerTokens.ROTATE_OFFER_MS], or until it turns back. How the phone is held when this starts
+ * [PlayerTokens.ROTATE_OFFER_MS], or until it turns back. It sits where the fullscreen button is. How the phone is held when this starts
  * never offers it (only a turn does).
  */
 @Composable
