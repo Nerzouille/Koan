@@ -341,6 +341,14 @@ class KoanPalette(
 }
 
 /** A Zen space colour → its small accent (the switcher pill and the space's icon). */
+/** Values several surfaces share on purpose: change them here, not per screen. */
+object SharedTokens {
+    /** Every 1dp line: dividers, card hairlines and borders. */
+    val Hairline = 1.dp
+    /** A grouped block's corners (sheet groups, search groups, library day cards). */
+    val GroupRadius = 18.dp
+}
+
 object SpaceColorTokens {
     /** Below this saturation a Zen colour counts as grey: the space uses the default accent. */
     const val MIN_SATURATION = 0.12f
@@ -595,7 +603,7 @@ object CardTokens {
     val CloseIcon = 14.dp
     val ActiveDot = 6.dp
     val PinGlyph = 14.dp
-    val Hairline = 1.dp
+    val Hairline = SharedTokens.Hairline
     const val PLACEHOLDER_TINT = 0.08f
     val PlaceholderFavicon = 64.dp
     val PlaceholderTop = 44.dp // below the header
@@ -669,7 +677,7 @@ object TourTokens {
     const val SCREEN_CLIP_ASPECT = 720f / 1478f
     val FrameRadius = 30.dp
     val FrameBezel = 5.dp
-    val FrameBorder = 1.dp
+    val FrameBorder = SharedTokens.Hairline
     val FrameShadow = 20.dp
 
     /** The soft brand glow behind the title. */
@@ -821,7 +829,7 @@ object SignInTokens {
     val ChoiceInset = 16.dp
     val ChoiceGap = 16.dp
     val ChoiceRadius = 22.dp
-    val CardBorder = 1.dp
+    val CardBorder = SharedTokens.Hairline
     val ChoiceIconBox = 44.dp
     val ChoiceGlyph = 24.dp
     val ChoiceLineGap = 2.dp
@@ -858,7 +866,6 @@ object BarTokens {
     /** Drawer handle at the top of the switcher row. */
     val HandleWidth = 36.dp
     val HandleHeight = 4.dp
-    val HandleTop = 8.dp
     val HandleTouch = 24.dp
     val FieldHeight = 50.dp
     val FieldTextSize = 17.sp
@@ -953,8 +960,6 @@ object DrawerTokens {
     val PinnedFavicon = 22.dp
     val PinnedTitleSize = 15.sp
     val PinnedGlyph = 16.dp
-    val MoreTextSize = 13.sp
-    val MorePadding = 16.dp
 
     val FolderIndent = 18.dp
     val FolderCountSize = 13.sp
@@ -1013,7 +1018,7 @@ object SheetTokens {
     val CardPadding = 20.dp
 
     // Rows, groups and tiles on a sheet (design 7k / 7l).
-    val GroupRadius = 18.dp
+    val GroupRadius = SharedTokens.GroupRadius
     val RowHeight = 50.dp
     val RowTallHeight = 58.dp
     val RowPadding = 12.dp
@@ -1023,7 +1028,7 @@ object SheetTokens {
     val RowTitleSize = 16.sp
     val RowSubtitleSize = 12.sp
     val RowTrailingSize = 14.sp
-    val Divider = 1.dp
+    val Divider = SharedTokens.Hairline
     val TileHeight = 66.dp
     val TileRadius = 16.dp
     val TileGap = 8.dp
@@ -1111,7 +1116,7 @@ object SettingsTokens {
     val RowTitleSize = 16.sp
     val RowSubtitleSize = 12.sp
     val RowValueSize = 14.sp
-    val Divider = 1.dp
+    val Divider = SharedTokens.Hairline
     val CardRadius = 22.dp
     val CardPadding = 16.dp
     val Avatar = 44.dp
@@ -1239,12 +1244,10 @@ object DownloadTokens {
     val ProgressHeight = 4.dp
     val ProgressTop = 8.dp
     val RoundButton = 36.dp
-    val ActionHeight = 40.dp
     val ActionGap = 8.dp
-    val GroupRadius = 18.dp
+    val GroupRadius = SharedTokens.GroupRadius
     val ChipHeight = 32.dp
     val ChipTextSize = 13.sp
-    val SearchHeight = 48.dp
     val BottomGap = 10.dp
 
     /** The ring in the address pill while something downloads. */
@@ -1301,7 +1304,7 @@ object StartPageTokens {
 object SearchTokens {
     val Margin = 10.dp
     val GroupGap = 8.dp
-    val GroupRadius = 18.dp
+    val GroupRadius = SharedTokens.GroupRadius
     val LabelSize = 12.sp
     val LabelPadding = 12.dp
     val RowHeight = 54.dp
@@ -1543,8 +1546,6 @@ object PrivateTokens {
     val NoticeGap = 10.dp
     val NoticeText = 13.sp
     val NoticeLine = 18.sp
-    const val SELECTION_LIGHT = 0x384B3FD6
-    const val SELECTION_DARK = 0x599C8CFF
 
     // §4.7 empty state
     val EmptyTop = 230.dp

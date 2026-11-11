@@ -17,7 +17,6 @@ import dev.nerzouille.koan.ui.theme.Motion
 object PlayerTokens {
     // §1 colour
     val Background = Color(0xFF000000)
-    val Panel = Color(0xB81C1C1E) // 72 %, over a blur
     val PanelNoBlur = Color(0xE61C1C1E) // 90 %
     val PanelMenu = Color(0xF51C1C1E) // 96 %
     val Stroke = Color(0x14FFFFFF) // 8 %
@@ -39,8 +38,6 @@ object PlayerTokens {
     val Inset = 20.dp
     /** Space kept beside a display cutout when a control has to move for it. */
     val CutoutGap = 8.dp
-    val PortraitTopExtra = 12.dp
-    val PortraitBottomExtra = 12.dp
     val PillHeight = 44.dp
     val RoundPill = 44.dp
     val RoundGap = 8.dp
@@ -70,7 +67,6 @@ object PlayerTokens {
     val ChipHeight = 32.dp
     val SeekLabelHeight = 72.dp
     val SeekLabelText = 28.sp
-    val SeekHalo = 56.dp
     val BadgeHeight = 32.dp
     val LevelSize = DpSize(60.dp, 240.dp)
     val LevelTrack = DpSize(12.dp, 140.dp)
@@ -100,7 +96,6 @@ object PlayerTokens {
     const val AUTO_HIDE_MS = 3000L
     val PlayPop: SpringSpec<Float> = spring(dampingRatio = 0.6f, stiffness = 600f)
     val Press: SpringSpec<Float> = Motion.Press
-    val TrackPress: SpringSpec<Float> = spring(dampingRatio = 0.8f, stiffness = 600f)
     val SwipeBack: SpringSpec<Float> = Motion.Overview
     val OpenSpring: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 420f)
     val CloseSpring: SpringSpec<Float> = Motion.SheetPush
@@ -108,7 +103,6 @@ object PlayerTokens {
     val LevelFill: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 900f)
     val GlyphTurn: SpringSpec<Float> = spring(dampingRatio = 0.5f, stiffness = 600f)
     val GlowPulse: SpringSpec<Float> = spring(dampingRatio = 0.6f, stiffness = 500f)
-    val Backdrop = LinearOutSlowInEasing
     const val SPINNER_DELAY_MS = 400L
     const val SPINNER_TURN_MS = 900
     const val SEEK_THROTTLE_MS = 80L
