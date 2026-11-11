@@ -1446,8 +1446,8 @@ object Motion {
     /** Full-screen sheets (sign-in) sliding up and down. */
     val Sheet: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 380f)
 
-    /** The page dimming behind the search sheet. */
-    val SearchScrim: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 700f)
+    /** The page dimming behind the search sheet: the toast's spring. */
+    val SearchScrim: SpringSpec<Float> = Toast
 
     /** Overview open/close; also drives the bar morph. */
     val Overview: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)

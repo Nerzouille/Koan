@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.nerzouille.koan.ui.theme.Motion
 
 /** Koan's video player (docs/VIDEO_PLAYER.md): always dark, whatever Koan's theme. */
 object PlayerTokens {
@@ -92,7 +93,7 @@ object PlayerTokens {
     // §5 motion
     val ControlsIn: TweenSpec<Float> = tween(200, easing = CubicBezierEasing(0.2f, 0.8f, 0.3f, 1f))
     val ControlsOut: TweenSpec<Float> = tween(160, easing = FastOutLinearInEasing)
-    val ControlsSpring: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 700f)
+    val ControlsSpring: SpringSpec<Float> = Motion.Toast
     val MistBlurIn = 12.dp
     val MistBlurOut = 8.dp
     val MistShift = 8.dp
@@ -100,10 +101,10 @@ object PlayerTokens {
     val PlayPop: SpringSpec<Float> = spring(dampingRatio = 0.6f, stiffness = 600f)
     val Press: SpringSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 700f)
     val TrackPress: SpringSpec<Float> = spring(dampingRatio = 0.8f, stiffness = 600f)
-    val SwipeBack: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 600f)
+    val SwipeBack: SpringSpec<Float> = Motion.Overview
     val OpenSpring: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 420f)
-    val CloseSpring: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 520f)
-    val LevelScale: SpringSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 600f)
+    val CloseSpring: SpringSpec<Float> = Motion.SheetPush
+    val LevelScale: SpringSpec<Float> = Motion.Lift
     val LevelFill: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 900f)
     val GlyphTurn: SpringSpec<Float> = spring(dampingRatio = 0.5f, stiffness = 600f)
     val GlowPulse: SpringSpec<Float> = spring(dampingRatio = 0.6f, stiffness = 500f)
