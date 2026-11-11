@@ -1,11 +1,7 @@
 package dev.nerzouille.koan.ui.settings
 
 import android.annotation.SuppressLint
-import android.content.ClipData
-import android.content.ClipDescription
-import android.content.ClipboardManager
 import android.content.Context
-import android.os.PersistableBundle
 import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.biometric.BiometricManager.Authenticators
@@ -66,6 +62,7 @@ import dev.nerzouille.koan.ui.kit.SelectionHeader
 import dev.nerzouille.koan.ui.kit.SiteIcon
 import dev.nerzouille.koan.ui.kit.SwipeRow
 import dev.nerzouille.koan.ui.kit.TextLink
+import dev.nerzouille.koan.ui.kit.copyText
 import dev.nerzouille.koan.ui.kit.rememberSelection
 import dev.nerzouille.koan.ui.kit.selectionWash
 import dev.nerzouille.koan.ui.theme.DownloadTokens
@@ -445,9 +442,7 @@ private fun siteOf(s: LoginSummary): String = displayHost(s.origin).ifEmpty { s.
  */
 @SuppressLint("InlinedApi")
 private fun copy(context: Context, label: String, value: String, sensitive: Boolean, onCopied: (String) -> Unit) {
-    val clip = ClipData.newPlainText(label, value)
-    if (sensitive) clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
-    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(clip)
+    copyText(context, label, value, sensitive)
     onCopied(label)
 }
 

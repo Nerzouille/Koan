@@ -13,10 +13,13 @@ import androidx.compose.ui.text.AnnotatedString
  * its clipboard preview; older versions ignore the flag.
  */
 class KoanClipboard(private val context: Context, private val sensitive: Boolean) {
-    @SuppressLint("InlinedApi")
-    fun setText(text: AnnotatedString) {
-        val clip = ClipData.newPlainText("Link", text.text)
-        if (sensitive) clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
-        context.getSystemService(ClipboardManager::class.java).setPrimaryClip(clip)
-    }
+    fun setText(text: AnnotatedString) = copyText(context, "Link", text.text, sensitive)
+}
+
+/** Copies [text] under [label]; [sensitive]: hidden in Android 13+'s clipboard preview. */
+@SuppressLint("InlinedApi")
+fun copyText(context: Context, label: String, text: String, sensitive: Boolean) {
+    val clip = ClipData.newPlainText(label, text)
+    if (sensitive) clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
+    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(clip)
 }
