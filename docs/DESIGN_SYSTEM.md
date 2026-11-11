@@ -187,7 +187,7 @@ Type scale (every text size token, sp):
 | **15** | `TourTokens.LineSize`, `FirstRunTokens.ButtonSize`, `SignInTokens.BodySize`, `DrawerTokens.PinnedTitleSize`, `ToastTokens.TextSize`, `TabMenuTokens.TextSize`, `StartPageTokens.ContinueTitleSize`, `SearchTokens.TitleSize` |
 | **14.5** | `CardTokens.TitleSize` (tab card title, line 18sp) |
 | **14** | `CardTokens.PlaceholderDomainSize`, `OverviewTokens.EmptyBodySize`, `FirstRunTokens.BodySize`, `SignInTokens.NoticeSize`, `SignInTokens.LinkSize`, `BarTokens.SwitcherNameSize`, `SheetTokens.RowTrailingSize`, `SheetTokens.CardTextSize`, `SettingsTokens.RowValueSize`, `SettingsTokens.SegmentTextSize`, `SettingsTokens.VersionSize`, `SearchTokens.ChipTextSize` |
-| **13** | `SignInTokens.SubtitleSize`, `SignInTokens.StepNumberSize`, `DrawerTokens.MoreTextSize`, `DrawerTokens.FolderCountSize`, `DrawerTokens.StatusTextSize`, `SheetTokens.TileLabelSize`, `SettingsTokens.SectionTitleSize`, `SettingsTokens.ChipTextSize`, `DownloadTokens.ChipTextSize`, `StartPageTokens.ContinueSubtitleSize`, `StartPageTokens.LabelSize` |
+| **13** | `SignInTokens.SubtitleSize`, `SignInTokens.StepNumberSize`, `DrawerTokens.FolderCountSize`, `DrawerTokens.StatusTextSize`, `SheetTokens.TileLabelSize`, `SettingsTokens.SectionTitleSize`, `SettingsTokens.ChipTextSize`, `DownloadTokens.ChipTextSize`, `StartPageTokens.ContinueSubtitleSize`, `StartPageTokens.LabelSize` |
 | **12** | `BarTokens.TabsCountSize`, `SheetTokens.RowSubtitleSize`, `SettingsTokens.RowSubtitleSize`, `SettingsTokens.FooterSize`, `ToastTokens.DetailSize`, `SearchTokens.LabelSize`, `SearchTokens.UrlSize` |
 | **11.5** | `CardTokens.HostSize` (tab card host line, line 14sp) |
 | **11** | `SignInTokens.BadgeSize` |
@@ -248,6 +248,8 @@ drawer, sheets, first run), 16dp (start page), 20dp (settings, sign-in pages), 2
 
 ### 1.7 Hairlines
 
+
+All 1dp lines share `SharedTokens.Hairline` (`SheetTokens.Divider`, `SettingsTokens.Divider`, `CardTokens.Hairline`, `SignInTokens.CardBorder`, `TourTokens.FrameBorder` point at it); grouped blocks share `SharedTokens.GroupRadius` 18dp (sheet, search and Downloads groups).
 1dp everywhere: card outline (`CardBorder`, light `#E4E4EA`, dark white 8%), sheet and settings
 dividers, sign-in choice cards' border, tour clip frame border. Focus rings are thicker: search
 field 1.5dp (neutral) / 2dp ("@" gradient), brand outlines 1.5dp.
@@ -527,7 +529,7 @@ address row; in the overview it grows a space-switcher row and further into the 
 | Dock top corner radius as drawer | 28dp | `DrawerTokens.TopRadius` |
 | Dock corner radius in page view | 0 (square) | `bar/KoanBar.kt` (`r` = 24·row·(1−d) + 28·d; row = 0 in page view) |
 | Upward shadow height | 28dp, vertical gradient transparent → `DockShadow`, also spans the corner radius | `BarTokens.DockShadowHeight`, `bar/KoanBar.kt` |
-| Drawer handle | bar 36 × 4dp, pill-shaped, 8dp from top, `DrawerHandle` colour; touch area 72 × 24dp | `BarTokens.HandleWidth`, `BarTokens.HandleHeight`, `BarTokens.HandleTop`, `BarTokens.HandleTouch`, `bar/KoanBar.kt` |
+| Drawer handle | bar 36 × 4dp, pill-shaped, 8dp from top, `DrawerHandle` colour; touch area 72 × 24dp | `BarTokens.HandleWidth`, `BarTokens.HandleHeight`, `SheetTokens.HandleTop`, `BarTokens.HandleTouch`, `kit/DragHandle.kt` |
 
 **Page load line** (page view only; fades out as the switcher row shows, `bar/KoanBar.kt`)
 
