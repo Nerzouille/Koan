@@ -103,11 +103,18 @@ android {
     testOptions {
         // Ported sync code calls android.util.Log; JVM tests get no-op stubs.
         unitTests.isReturnDefaultValues = true
+        // Robolectric tests read the merged manifest and resources (and Room's schemas below).
+        unitTests.isIncludeAndroidResources = true
         // Without reference/Z-Sync the fixture tests skip instead of failing (see README).
         val contractPresent = rootProject.file("reference/Z-Sync/shared/contract").isDirectory
         unitTests.all { it.systemProperty("koan.zsync.contract", contractPresent) }
     }
     sourceSets {
+        // Room's exported schemas for MigrationTestHelper: unit tests only see the debug variant's
+        // merged assets, so they go there (the rarely used `.debug` build; never dev, staging or release).
+        getByName("debug") {
+            assets.srcDir("$projectDir/schemas")
+        }
         getByName("test") {
             // Z-Sync's golden fixtures, read in place (never copied or edited). Leaf dirs so the
             // JSON lands at the classpath root, as Z-Sync's FixtureLoader expects.
@@ -243,4 +250,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric: tests that need a real Context, Room or DataStore (migrations, two-way sync, Private).
+    testImplementation(libs.robolectric)
+    testImplementation(libs.room.testing)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.junit)
 }
