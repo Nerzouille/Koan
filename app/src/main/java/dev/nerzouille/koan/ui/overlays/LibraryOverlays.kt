@@ -35,6 +35,7 @@ internal fun LibraryOverlays(
     overlays: Overlays,
     scope: CoroutineScope,
     downloads: List<DownloadState>,
+    private: Boolean,
     folderName: String?,
     clipboard: KoanClipboard,
     activeTabId: String?,
@@ -51,11 +52,12 @@ internal fun LibraryOverlays(
     if (downloadsSlide.composed) {
         DownloadsScreen(
             downloads = downloads,
+            private = private,
             folder = folderName ?: "Download",
             actions = components.downloads,
             onClear = {
                 overlays.ask("Clear the download list?", "The files stay in ${folderName ?: "Download"}.", "Clear list") {
-                    components.downloads.clearHistory()
+                    if (private) components.downloads.clearHistory() else components.downloads.clearRows(downloads)
                 }
             },
             onClose = { overlays.downloadsOpen = false },

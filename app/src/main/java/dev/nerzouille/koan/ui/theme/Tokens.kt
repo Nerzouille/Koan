@@ -1248,6 +1248,8 @@ object DownloadTokens {
     val GroupRadius = SharedTokens.GroupRadius
     val ChipHeight = 32.dp
     val ChipTextSize = 13.sp
+    /** Between the Private pill and the folder chip (Private only). */
+    val PillGap = 8.dp
     val BottomGap = 10.dp
 
     /** The ring in the address pill while something downloads. */

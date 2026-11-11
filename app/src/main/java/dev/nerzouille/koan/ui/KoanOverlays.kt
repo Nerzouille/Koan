@@ -187,7 +187,8 @@ fun KoanOverlays(
     val clipboard = remember(private) { KoanClipboard(context, sensitive = private) }
 
     val engines by components.settings.searchEngines.collectAsStateWithLifecycle(SearchEngine.builtIns)
-    val downloads by components.store.observeSlice(Unit) { s -> s.downloads.values.toList() }
+    // Normal mode never sees a private download (list, menu badge): ui/downloads/DownloadFilter.
+    val downloads by components.store.observeSlice(private) { s -> dev.nerzouille.koan.ui.downloads.visibleDownloads(s.downloads.values.toList(), private) }
     // uBlock Origin on this page: on or off, and its badge (the tab's own, else the default).
     val ublockUi by components.store.observeSlice(activeTabId) { s ->
         s.extensions[UBlock.ID]?.let { ext ->
@@ -282,7 +283,7 @@ fun KoanOverlays(
     )
 
     // ---- Downloads and History, full screen, over Settings too; a library page's ask card ----
-    LibraryOverlays(components, overlays, scope, downloads, folderName, clipboard, activeTabId, onToast, onOpenNew, onRestoreClosed, ::share)
+    LibraryOverlays(components, overlays, scope, downloads, private, folderName, clipboard, activeTabId, onToast, onOpenNew, onRestoreClosed, ::share)
 
     // ---- sign out asks first ----
     SignOutOverlay(components, overlays)

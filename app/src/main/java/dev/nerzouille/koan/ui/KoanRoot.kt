@@ -81,6 +81,7 @@ import dev.nerzouille.koan.ui.browser.TabSwipe
 import dev.nerzouille.koan.ui.browser.TranslateOfferHost
 import dev.nerzouille.koan.ui.browser.observeSlice
 import dev.nerzouille.koan.ui.browser.rememberFullscreen
+import dev.nerzouille.koan.ui.downloads.visibleIn
 import dev.nerzouille.koan.ui.downloads.host
 import dev.nerzouille.koan.ui.downloads.sizeText
 import dev.nerzouille.koan.ui.kit.KoanToastHost
@@ -920,8 +921,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
         val findUi = rememberFindUi(components, overlays, activeTabId)
         // Downloads running: their combined progress for the ring in the pill (NaN = size unknown).
-        val downloadProgress by store.observeSlice(Unit) { s ->
-            val running = s.downloads.values.filter { it.status == DownloadState.Status.DOWNLOADING }
+        val downloadProgress by store.observeSlice(privateOn) { s ->
+            val running = s.downloads.values.filter { it.status == DownloadState.Status.DOWNLOADING && visibleIn(it, privateOn) }
             if (running.isEmpty()) {
                 null
             } else {
@@ -932,6 +933,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         // A download finished (or failed): say so, with Open (or Retry).
         LaunchedEffect(Unit) {
             components.downloadDone.collect { (download, status) ->
+                // A private download that ends while normal mode is shown says nothing there.
+                if (!visibleIn(download, components.privateMode.on.value)) return@collect
                 val name = download.fileName ?: "File"
                 when (status) {
                     DownloadState.Status.COMPLETED -> toasts.show(
