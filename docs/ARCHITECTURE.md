@@ -350,9 +350,13 @@ the phone: `tools/perf/` (see its README). Perfetto/System Trace for anything de
 
 Both versions move together (`gradle/libs.versions.toml`). After a bump, check by hand:
 
-- `enableMediaTimeline()` in `engine/Components.kt` reaches Nimbus classes of `feature-media` by
-  reflection; `app/proguard-rules.pro` keeps their names. If it fails, the media notification
-  silently keeps play/pause only.
+- AC sets the compileSdk floor (AAR metadata): AC 157 needed 37.1, AC 160 needs 37.2 (install
+  the SDK platform, then `compileSdk { version = release(37) { minorApiLevel = N } }`).
+- The media notification's timeline (position, seeking) is on by default since AC 160; before,
+  Koan switched feature-media's Nimbus flag on by reflection (removed with the bump).
+- Downloads are named by `DefaultSettings.downloadDelegate` (`DownloadFileUtils.guessFileName`
+  with the server's Content-Disposition, which Gecko validates since 160). Without a delegate AC
+  only has the URL's name.
 - `engine/GeckoFinder.java` calls `GeckoEngineSession`'s Kotlin-internal GeckoSession getter (find
   in page "highlight all").
 - `GeckoPreferenceController` (`engine/GeckoPrefs.kt`, `privacy/PrivacyEngine.kt`) is GeckoView's
@@ -361,7 +365,7 @@ Both versions move together (`gradle/libs.versions.toml`). After a bump, check b
 - `app/proguard-rules.pro` keeps SnakeYAML (R8 once broke GeckoView's config reading at start).
 - `libmegazord.so` is excluded from the APK; Gecko's crash-helper libraries must stay.
 - AC modules used without being declared (they arrive through the declared ones): `support-base`,
-  `browser-errorpages`, `concept-base`.
+  `concept-base`. (`ErrorType` moved from `browser-errorpages` to `concept-engine` in AC 160.)
 - Install and launch a full R8 release build on the phone.
 
 ## Dependencies (ask before adding others)
@@ -383,8 +387,8 @@ Coil 3, baselineprofile, Turbine, Robolectric.
   widgets (BrowserToolbar, tabstray); all UI is our own Compose that observes `BrowserStore`.
   Reason: AC gives us downloads, add-ons and session state save/restore for free; the "fights the
   UI" risk only applies to its widgets. Costs: bigger APK, API churn per release, AC pins some
-  AndroidX versions we must follow. Versions: **AC 157.0.1 + GeckoView (omni)
-  157.0.20261005135250**. Bump both together.
+  AndroidX versions we must follow. Versions then: AC 157.0.1 + GeckoView (omni)
+  157.0.20261005135250; now 160 (see the 2026-11-11 entry). Bump both together.
 - 2026-10-12 — **Hero morph animates the screenshot, never the live GeckoView.** GeckoView renders
   into a SurfaceView that can't be clipped/scaled by Compose; the live view is swapped in once the
   morph lands. No TextureView mode.
@@ -424,10 +428,15 @@ Coil 3, baselineprofile, Turbine, Robolectric.
   adds; removed in the manifest): Koan only asks for the apps behind web links and app links.
 - 2026-11-11 — **Video player**: Koan's own controls over the page's video (an extension hides the
   site's player in fullscreen); the standalone player uses Android's `MediaPlayer`; the media
-  notification's timeline is switched on by reflection on feature-media's Nimbus flag.
+  notification's timeline was switched on by reflection on feature-media's Nimbus flag (on by
+  default since AC 160).
 - 2026-11-11 — **Private mode** on GeckoView's real private browsing: a second `TabManager` over an
   in-memory Room, tabs sealed on disk with `koan_private`, wiped with the last private tab.
 - 2026-11-11 — **Audit fixes**: `SpacesWriteGate` + `Settings.writeBackEnabled` make rule 4 a code
   check; guarded process scopes (`KoanScopes`) and `SafeStores`; Koan's own requests go through
   `KoanHttp` (the engine's User-Agent, capped reads); `res/raw/keep.xml` keeps the `zen_*` icons
   that `ZenIcon` loads by name, with a build check (`checkReleaseZenIcons` / `checkStagingZenIcons`).
+- 2026-11-11 — **android-components 160.0 + GeckoView 160.0.20261104181552**, compileSdk 37.2.
+  Downloads take the server's file name (`downloadDelegate`; it was never set before, so names
+  came from the URL). GeckoView 160 implements Android's `ScrollCaptureCallback`: "Capture more"
+  works on stock Android; HyperOS's long screenshot doesn't use that API.

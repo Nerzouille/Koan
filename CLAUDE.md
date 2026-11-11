@@ -132,10 +132,10 @@ owner's approval before going on.
 
 - Owner's machine: Linux (EndeavourOS, Hyprland). Android Studio / Gradle CLI.
 - Test devices (check `adb devices -l` for which one is connected):
-  - **POCO X4 GT** (Dimensity 8100, Android 14): the **main test phone**. Every dev build and
-    check goes there by default.
-  - **Xiaomi 18 Pro Max** (HyperOS, Android 17, 120 Hz): the owner's daily phone and the
-    **performance reference**; used for perf checks and releases. It has several displays:
+  - **POCO X4 GT** (Dimensity 8100, Android 14): the **main test phone**. Every dev build,
+    check and perf A/B (`tools/perf`) goes there by default.
+  - **Xiaomi 18 Pro Max** (HyperOS, Android 17, 120 Hz): the owner's daily phone; used mostly for
+    the release check and screenshots / recordings. It has several displays:
     `adb shell screencap` needs `-d <main display id>`. HyperOS caps refresh rate for unknown apps
     and kills background apps aggressively: check the real refresh rate before blaming the code.
   - On both, always test state restore after process death.

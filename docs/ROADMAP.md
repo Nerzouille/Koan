@@ -29,8 +29,8 @@ Latest release **v0.4.0** (pre-release, 2026-10-30). Branches and how to build/t
 | M7 Delights | **Partly done** | `dev` | Done: `@engine` shortcuts, custom engines, Undo close, Recently closed (last 25, since v0.3.0) and Reopen closed tab, background audio, Koan's video player and picture-in-picture (`ui/player`, `engine/PictureInPicture.kt`). Dropped: status bar hidden while scrolling (branch `statusbar`, not merged). Set aside: the video mini-player. Not started: everything else below. |
 | Private mode + overview polish | **Done** on `dev` (tested on the phone) | `06e13d6` | Open points in `docs/HANDOFF.md` "Private mode". Card separation, two-line headers, amber sync dot, `#121214` dark base, encrypted private tabs kept across restarts, lock, FLAG_SECURE, private-only engine protections. |
 | Page translation, "Open in app" cards, library selection mode, Zia icons | Done on `dev` | night batch | Ship in 0.5 (`CHANGELOG.md` "Unreleased"). |
-| Audit 2026-11-11 | **In progress** | branches `audit-fixes`, `audit-docs` | Batch 1 (critical fixes) and 2 (docs) done, waiting for the owner's phone test and merge; then GeckoView 160, then refactoring (`docs/HANDOFF.md`). |
-| Open items after v0.2.0 | Not started | — | **Long screenshots** first: bump to GeckoView / android-components 160 (released 2026-11-10; audit batch 3) on a branch from `dev`, then retest HyperOS scroll screenshots. The other items wait for the owner's choice. |
+| Audit 2026-11-11 | **In progress** | `dev` | Batches 1 (critical fixes), 2 (docs) and 3 (GeckoView 160) merged; the owner's batch 1 phone checks pending. Next: batch 4, refactoring (`docs/plans/BATCH4_BRIEF.md`), then batch 5 (tests, CI, baseline profile). |
+| Open items after v0.2.0 | Not started | — | GeckoView 160 is in, but HyperOS's long screenshot still doesn't work (it doesn't use Android's scroll-capture API): **Koan's own full-page screenshot or Save as PDF** is the option left. The other items wait for the owner's choice. |
 
 ## M0 — Skeleton browser (≈ 2–4 days)
 - Gradle project, package `dev.nerzouille.koan` (rename if owner prefers), Compose, single activity.
@@ -92,9 +92,9 @@ losing data, and the owner has approved and published the release.
 - ~~**Private browsing**~~ Done (merged 2026-11-11, `docs/design/OVERVIEW_PRIVATE.md`).
 - **Pull to refresh in chats:** a site whose list scrolls inside the page (not the page itself) may
   reload on a pull at the top of the list. Gecko doesn't say whether an inner list can scroll up.
-- **Long screenshots:** update to GeckoView/android-components 160 (released), then test
-  whether HyperOS's scroll screenshot works; if not, consider our own stitched full-page
-  screenshot or Save as PDF.
+- **Long screenshots:** GeckoView 160 implements Android's scroll capture ("Capture more" works
+  on stock Android), but HyperOS's own scroll screenshot doesn't use it and stays greyed out in
+  Koan. Option: Koan's own stitched full-page screenshot, or Save as PDF.
 - **Page painted only down to where the keyboard was** (white below, stays while scrolling):
   seen twice on 2026-10-23 during adb tests, then never again (four sequences tried, old and new
   builds). Likely cause: GeckoView kept a keyboard height per tab, and a tab left with the
@@ -176,6 +176,11 @@ conflict is handled without data loss.
 - ~~**Background audio**: audio/video keeps playing with the screen off or Koan in the background, with media controls in the notification.~~ Done in v0.2.0.
 - ~~**Picture-in-picture** for video when leaving Koan.~~ Done with Koan's video player (2026-11-11), with an "Audio only" action and a Settings › Display switch.
 - **Video mini-player** (docs/VIDEO_PLAYER.md §6, built once on 2026-11-11 and set aside; a copy of that version is in `reference/mini-player-2026-11-11/`, local only): minimise a fullscreen web video to a card above the dock, visible all over Koan. Dropped for now because the page's own player kept playing in place under the card (Commons' modal player): it needs the page's player hidden or paused while minimised, and a live thumbnail (pages from another origin never give frames).
+  Possible again with GeckoView 160's experimental picture-in-picture API
+  (`PictureInPictureController.SessionPictureInPicture`): Gecko clones the playing video into a
+  second session Koan hosts (a small GeckoView in the card), `setKeepActive` keeps the page
+  painting while hidden, and Gecko shows its "playing in picture-in-picture" overlay on the
+  original video. Kept for later: the API is experimental and Fenix doesn't use it yet.
 
 **Phone → PC**
 - **Send to PC now**: use Firefox Accounts "Send Tab to Device" (Koan registers as a device on the Mozilla account) so the page opens immediately on Zen desktop. Needs verification that Zen receives sent tabs (it's Firefox-based, so it should).

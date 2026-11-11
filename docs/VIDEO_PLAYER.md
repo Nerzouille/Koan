@@ -12,7 +12,7 @@ Hand-over for Claude Code, from the owner's design canvas (boards: Landscape, Po
 - Brightness / volume swipe: full range = `LEVEL_RANGE = 0.35` × screen height (not 0.6); the level indicator's track = that full range.
 - Filled primary icons (play, pause, …).
 - Picture-in-picture with 10 s back, play/pause, 10 s ahead and, for a web video, **Audio only** (the PiP window closes and the sound keeps playing; `engine/PictureInPicture.kt`). Switch: Settings › Display › **Picture-in-picture**.
-- The media notification shows the video's position, length and poster (`engine/PageVideo.kt`, `Components.enableMediaTimeline`).
+- The media notification shows the video's position, length and poster (`engine/PageVideo.kt`; the timeline is on by default since AC 160).
 - YouTube keeps its own controls: Koan's player is not used there.
 
 Conventions
