@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,15 +46,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Constraints
-import dev.nerzouille.koan.ui.theme.BarTokens
+import dev.nerzouille.koan.ui.kit.DragHandle
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.SheetTokens
+import dev.nerzouille.koan.ui.topSafe
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlin.math.abs
-import dev.nerzouille.koan.ui.topSafe
 
 /**
  * The pages of a sheet: a root and the pages pushed on it. A pushed page slides in from the right
@@ -167,7 +166,7 @@ fun <T : Any> KoanSheet(
                         }
                     }
                 }
-                SheetHandle(Modifier)
+                DragHandle()
             },
             modifier = Modifier
                 .fillMaxSize()
@@ -201,17 +200,6 @@ fun <T : Any> KoanSheet(
             }
         }
     }
-}
-
-@Composable
-private fun SheetHandle(modifier: Modifier) {
-    Box(
-        modifier
-            .padding(top = SheetTokens.HandleTop)
-            .size(BarTokens.HandleWidth, BarTokens.HandleHeight)
-            .clip(CircleShape)
-            .background(KoanTheme.colors.DrawerHandle),
-    )
 }
 
 /**
