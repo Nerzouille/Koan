@@ -46,6 +46,7 @@ import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.CollapsingBar
 import dev.nerzouille.koan.ui.kit.KoanDivider
 import dev.nerzouille.koan.ui.kit.KoanToggle
+import dev.nerzouille.koan.ui.kit.RowTexts
 import dev.nerzouille.koan.ui.kit.SELECTION_FADE_MS
 import dev.nerzouille.koan.ui.kit.brandWash
 import dev.nerzouille.koan.ui.theme.KoanTheme
@@ -163,23 +164,7 @@ fun SettingsRow(
             Icon(icon, null, tint = if (enabled) palette.TextPrimary else palette.TextDisabled, modifier = Modifier.size(SettingsTokens.RowGlyph))
             Spacer(Modifier.width(SettingsTokens.RowGlyphGap))
         }
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                color = when {
-                    !enabled -> palette.TextDisabled
-                    titleColor != Color.Unspecified -> titleColor
-                    else -> palette.TextPrimary
-                },
-                fontSize = SettingsTokens.RowTitleSize,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (subtitle != null) {
-                Text(subtitle, color = palette.TextSecondary, fontSize = SettingsTokens.RowSubtitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
+        RowTexts(title, subtitle, enabled, titleColor, SettingsTokens.RowTitleSize, SettingsTokens.RowSubtitleSize)
         val shown = if (!enabled) "Soon" else value
         if (shown != null) {
             Text(shown, color = if (enabled) palette.TextSecondary else palette.TextDisabled, fontSize = SettingsTokens.RowValueSize, maxLines = 1)

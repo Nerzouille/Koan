@@ -24,11 +24,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.KoanDivider
 import dev.nerzouille.koan.ui.kit.KoanIconButton
 import dev.nerzouille.koan.ui.kit.KoanToggle
+import dev.nerzouille.koan.ui.kit.RowTexts
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -84,23 +84,7 @@ fun SheetRow(
             MenuIconTile(icon, enabled, palette.Dock)
             Spacer(Modifier.width(SheetTokens.RowPadding))
         }
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                color = when {
-                    !enabled -> palette.TextDisabled
-                    titleColor != Color.Unspecified -> titleColor
-                    else -> palette.TextPrimary
-                },
-                fontSize = SheetTokens.RowTitleSize,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (subtitle != null) {
-                Text(subtitle, color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
+        RowTexts(title, subtitle, enabled, titleColor, SheetTokens.RowTitleSize, SheetTokens.RowSubtitleSize)
         if (!enabled) SoonLabel() else trailing()
     }
 }
