@@ -46,11 +46,28 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 - Unit tests: 301 JVM tests on `dev`, green (`./gradlew testDebugUnitTest`). R8 staging build of
   `dev` + 160 launched on the POCO without a crash (2026-11-11).
 
+## Batch 4 on `refactor` (from `dev`, not merged)
+
+Plan: `docs/plans/BATCH4_PLAN.md` (defaults: SemiBold + 10 dp, 3.37 skipped, SeedData deleted). One
+commit per step; full suite + dev build per step; R8 release build installed on the POCO at the end of
+each group (launch + kill + restore checked).
+
+- **Group A, dead code (done, 6 commits):** SyncBack chain + bookmark planner, SyncClient's
+  single-record writes (postBatch is the only write left; its tests replace the postRecords ones),
+  favicon prefetch / synced-icon paths, small unused items + compose tooling + the 10 legacy
+  launcher bitmaps, SeedData + the debug fake-tab menu, three stale KDocs. 301 → 290 tests (all
+  deleted ones covered deleted code). R8 build: launches, restores after a kill, no crash.
+  **Check on the phone:** launcher and Settings › Apps still show the Koan icon (themed icon too);
+  favicons in the overview, search and History after a cold start; Settings › Mozilla account ›
+  Send to your Mozilla account still shows the three switches; a password sync and a history sync
+  still run (Sync now, status line under the switches).
+
 ## Open branches
 
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
+| `refactor` | dev | Audit batch 4 (see "Batch 4 on `refactor`"). | In progress, not merged |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
