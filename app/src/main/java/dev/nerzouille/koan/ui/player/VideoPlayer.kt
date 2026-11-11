@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.player
 
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.layout.WindowInsets
@@ -131,6 +132,8 @@ fun VideoPlayer(
     hidden: Boolean = false,
     /** A short note over the video (Download video started or failed); a new [PlayerNotice.serial] shows it again. */
     notice: PlayerNotice? = null,
+    /** Turns the player to the other orientation (the rotate pill, auto-rotate off); null: no pill. */
+    onRotate: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -733,6 +736,24 @@ fun VideoPlayer(
                         translationY = (1f - noticeIn.progress) * 12.dp.toPx()
                     },
             )
+        }
+
+        // ---- auto-rotate off: the rotate pill, a few seconds after the phone turns (like the system's) ----
+        val rotationLocked = rememberRotationLocked()
+        val offer = rememberRotateOffer(onRotate != null && rotationLocked && !hidden, screenPortrait = !landscape)
+        val rotateIn = rememberPresence(offer, enter = Motion.Fade, exit = Motion.FadeSlow)
+        if (rotateIn.composed && onRotate != null) {
+            val config = LocalConfiguration.current
+            val onRight = remember(config.orientation) { rotatePillOnRight(view.display?.rotation ?: 0) }
+            val pillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
+            PlayerDisc(
+                PlayerTokens.RoundPill,
+                onClick = { onRotate() },
+                modifier = Modifier
+                    .align(if (onRight) Alignment.BottomEnd else Alignment.BottomStart)
+                    .padding(start = side, end = side, bottom = bottomInset + pillH + PlayerTokens.BubbleGap)
+                    .graphicsLayer { alpha = rotateIn.progress },
+            ) { PlayerIcon(KoanIcons.Rotate, PlayerTokens.Glyph) }
         }
 
         // ---- buffering spinner (stays alone when the controls hide) ----

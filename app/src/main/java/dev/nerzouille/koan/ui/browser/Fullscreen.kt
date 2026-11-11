@@ -33,7 +33,9 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
     val activity = LocalContext.current as? Activity
     // [rotated]: the video layer's rotate button turns it the other way. The video's shape first,
     // then (auto-rotate on, once the phone is held that way) the phone's rotation, portrait included.
-    val shapePortrait = portrait != rotated
+    // Auto-rotate off: the player's rotate pill turns it the other way, until fullscreen ends.
+    LaunchedEffect(fullScreen) { if (!fullScreen) components.player.fullscreenRotated = false }
+    val shapePortrait = portrait != (rotated || components.player.fullscreenRotated)
     val rotationLocked = dev.nerzouille.koan.ui.player.rememberRotationLocked()
     val turned = dev.nerzouille.koan.ui.player.rememberTurned(fullScreen && !rotationLocked, shapePortrait)
     LaunchedEffect(fullScreen, shapePortrait, rotationLocked, turned) {

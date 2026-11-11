@@ -85,11 +85,13 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
     val activity = context as? Activity
     val rotationLocked = rememberRotationLocked()
     val shape = if (st.width > 0 && st.height > 0) st.height > st.width else null
-    LaunchedEffect(rotationLocked, shape) {
+    // The rotate pill (auto-rotate off) turns it the other way.
+    var rotated by remember { mutableStateOf(false) }
+    LaunchedEffect(rotationLocked, shape, rotated) {
         activity?.requestedOrientation = when {
             !rotationLocked -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
             shape == null -> return@LaunchedEffect
-            else -> fullscreenOrientation(fullscreen = true, videoPortrait = shape, rotationLocked = true, turned = false)
+            else -> fullscreenOrientation(fullscreen = true, videoPortrait = shape != rotated, rotationLocked = true, turned = false)
         }
     }
     DisposableEffect(Unit) {
@@ -191,6 +193,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
             )
         } }
         VideoPlayer(
+            onRotate = { rotated = !rotated },
             state = st,
             controls = native,
             mode = video.mode,

@@ -143,6 +143,7 @@ fun WebPlayerLayer(
         },
         hidden = inPip,
         notice = notice,
+        onRotate = { host.fullscreenRotated = !host.fullscreenRotated },
     )
 }
 

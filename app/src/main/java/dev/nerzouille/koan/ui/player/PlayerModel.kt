@@ -82,6 +82,9 @@ class PlayerHost {
     /** Koan's controls give way to the site's until the next fullscreen. */
     var siteControls by mutableStateOf(false)
 
+    /** Auto-rotate off: the rotate pill turned the web fullscreen to the other orientation (until it ends). */
+    var fullscreenRotated by mutableStateOf(false)
+
     /** The standalone player's video size and play state, for picture-in-picture. */
     var standaloneShape by mutableStateOf<Pair<Int, Int>?>(null)
     var standalonePlaying by mutableStateOf(false)

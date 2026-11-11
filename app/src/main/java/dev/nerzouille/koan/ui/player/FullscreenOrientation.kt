@@ -10,6 +10,8 @@ import android.view.OrientationEventListener
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -19,18 +21,18 @@ import androidx.compose.ui.platform.LocalContext
  * The screen's orientation in fullscreen (docs/plans/FIXES_PLAN.md F2). A video opens turned to its
  * own shape (a landscape video goes landscape). With the phone's auto-rotate on, once the phone is
  * actually held that way (the user turned it), the screen follows the phone from then on, portrait
- * included (YouTube-style). With auto-rotate off, it opens on the video's shape as a "user"
- * orientation (USER_LANDSCAPE / USER_PORTRAIT), like other Android apps: the system keeps offering
- * its rotate button (HyperOS's floating one) when the phone is turned. A SENSOR_* orientation
- * would turn that button off.
+ * included (YouTube-style). With auto-rotate off (owner, 2026-11-12), it stays on the video's
+ * shape as SENSOR_LANDSCAPE / SENSOR_PORTRAIT, so the two landscape sides flip on their own, and
+ * turning the phone to the other shape offers Koan's own rotate pill for a few seconds
+ * ([rememberRotateOffer]); a tap turns the player. The system's rotate button can't do both:
+ * AOSP's DisplayRotation offers it only for USER_* / FULL_USER requests, which don't flip the
+ * landscape sides by themselves under the lock (FULL_USER even goes back to the locked portrait).
  */
 
 /** What to ask the activity for. [turned]: the phone has been held in the video's shape since it opened. */
 fun fullscreenOrientation(fullscreen: Boolean, videoPortrait: Boolean, rotationLocked: Boolean, turned: Boolean): Int = when {
     !fullscreen -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-    rotationLocked && videoPortrait -> ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
-    rotationLocked -> ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
-    turned -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+    !rotationLocked && turned -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
     videoPortrait -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
     else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 }
@@ -89,4 +91,65 @@ fun rememberTurned(active: Boolean, portrait: Boolean): Boolean {
         onDispose { listener.disable() }
     }
     return turned
+}
+
+/**
+ * The rotate pill's rule (auto-rotate off), for one reading of how the phone is held ([held]:
+ * portrait, landscape, or null in between): true = offer it (the phone just turned to the other
+ * shape than the screen's), false = take it away (back to the screen's shape), null = no change.
+ */
+fun rotateOffer(previous: Boolean?, held: Boolean?, screenPortrait: Boolean): Boolean? = when {
+    held == null -> null
+    held == screenPortrait -> false
+    held != previous -> true
+    else -> null
+}
+
+/** Which bottom corner the rotate pill sits in: the side AOSP's floating rotate button uses for this display rotation (0–3). */
+fun rotatePillOnRight(displayRotation: Int): Boolean = displayRotation == android.view.Surface.ROTATION_90 || displayRotation == android.view.Surface.ROTATION_180
+
+/**
+ * Whether Koan's rotate pill shows: while [active] (fullscreen, auto-rotate off, not in PiP), from
+ * the moment the phone turns to the other shape than the screen's ([screenPortrait]) for
+ * [PlayerTokens.ROTATE_OFFER_MS], or until it turns back. How the phone is held when this starts
+ * never offers it (only a turn does).
+ */
+@Composable
+fun rememberRotateOffer(active: Boolean, screenPortrait: Boolean): Boolean {
+    val context = LocalContext.current
+    var shown by remember { mutableStateOf(false) }
+    var serial by remember { mutableIntStateOf(0) }
+    DisposableEffect(active, screenPortrait) {
+        shown = false
+        if (!active) return@DisposableEffect onDispose { }
+        var first = true
+        var previous: Boolean? = null
+        val listener = object : OrientationEventListener(context) {
+            override fun onOrientationChanged(degrees: Int) {
+                val held = heldPortrait(degrees) ?: return
+                if (first) {
+                    first = false
+                    previous = held
+                    return
+                }
+                when (rotateOffer(previous, held, screenPortrait)) {
+                    true -> {
+                        shown = true
+                        serial++
+                    }
+                    false -> shown = false
+                    null -> Unit
+                }
+                previous = held
+            }
+        }
+        if (listener.canDetectOrientation()) listener.enable()
+        onDispose { listener.disable() }
+    }
+    LaunchedEffect(serial) {
+        if (serial == 0) return@LaunchedEffect
+        kotlinx.coroutines.delay(PlayerTokens.ROTATE_OFFER_MS)
+        shown = false
+    }
+    return shown
 }
