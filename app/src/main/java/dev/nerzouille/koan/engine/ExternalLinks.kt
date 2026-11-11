@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import androidx.core.graphics.drawable.toBitmap
+import dev.nerzouille.koan.search.siteHost
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import mozilla.components.concept.engine.EngineSession
@@ -205,10 +206,13 @@ class ExternalLinks(
         false
     }
 
-    private fun always(site: String, pkg: String) = site.isNotEmpty() && prefs.getBoolean("$site|$pkg", false)
+    // Keyed by the site ("m." and "www." hosts are one site); choices saved under the plain host
+    // before batch 4 are still read.
+    private fun always(site: String, pkg: String) =
+        site.isNotEmpty() && (prefs.getBoolean("${siteHost(site)}|$pkg", false) || prefs.getBoolean("$site|$pkg", false))
 
     private fun setAlways(site: String, pkg: String) {
-        if (site.isNotEmpty()) prefs.edit().putBoolean("$site|$pkg", true).apply()
+        if (site.isNotEmpty()) prefs.edit().putBoolean("${siteHost(site)}|$pkg", true).apply()
     }
 
     /** An intent:// link, made safe: browsable only, no explicit component or selector. */
