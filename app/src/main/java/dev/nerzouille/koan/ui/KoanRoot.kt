@@ -1236,7 +1236,12 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         fun unlock() {
             scope.launch { if (fragmentActivity != null && unlockPrivate(fragmentActivity)) privateMode.locked.value = false }
         }
-        LaunchedEffect(showLock) { if (showLock) unlock() }
+        LaunchedEffect(showLock) {
+            if (!showLock) return@LaunchedEffect
+            // The lock cover is never shown turned or immersive over a private video.
+            dev.nerzouille.koan.ui.browser.leaveFullscreen(components) { it.content.private }
+            unlock()
+        }
         if (showLock) {
             BackHandler { leavePrivate() }
             PrivateLockCover(onUnlock = ::unlock, onLeave = ::leavePrivate)

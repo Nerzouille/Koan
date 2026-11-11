@@ -65,3 +65,15 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
     BackHandler(enabled = fullScreen && tabId != null) { tabId?.let { components.sessionUseCases.exitFullscreen(it) } }
     return fullScreen
 }
+
+/**
+ * Every page that is fullscreen leaves it, the way the player's own ✕ does (its video port let go
+ * first). [only] narrows it (the private tabs). Fullscreen is per tab in the engine: a tab left in
+ * it would turn the screen again the next time it shows (fixes F1: Private back in landscape).
+ */
+fun leaveFullscreen(components: Components, only: (mozilla.components.browser.state.state.TabSessionState) -> Boolean = { true }) {
+    components.store.state.tabs.filter { it.content.fullScreen && only(it) }.forEach { tab ->
+        components.pageVideo.release(tab.id)
+        components.sessionUseCases.exitFullscreen(tab.id)
+    }
+}
