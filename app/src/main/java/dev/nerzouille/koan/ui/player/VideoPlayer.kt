@@ -85,6 +85,7 @@ import androidx.compose.ui.unit.sp
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.blockTouches
 import dev.nerzouille.koan.ui.kit.pressScale
 import dev.nerzouille.koan.ui.kit.rememberPresence
 import dev.nerzouille.koan.ui.theme.Motion
@@ -817,7 +818,7 @@ private fun TitlePill(mode: PlayerMode, title: String, subtitle: String, onLeadi
         modifier
             .height(PlayerTokens.PillHeight)
             .playerPanel(RoundedCornerShape(22.dp))
-            .pointerInput(Unit) { awaitEachGesture { awaitFirstDown().consume() } }
+            .blockTouches()
             .padding(end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -929,7 +930,7 @@ private fun BottomPill(
         ProgressBar(state, frameNow, scrubbing, scrubFraction, onScrub, onSeek, live, m.height(touch))
     }
     // The pill's empty parts take touches (they never reach the video under it).
-    val swallow = Modifier.pointerInput(Unit) { awaitEachGesture { awaitFirstDown().consume() } }
+    val swallow = Modifier.blockTouches()
     if (landscape) {
         Row(
             modifier

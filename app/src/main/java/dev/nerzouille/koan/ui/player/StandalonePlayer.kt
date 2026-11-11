@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.blockTouches
 import dev.nerzouille.koan.ui.theme.Motion
 import kotlinx.coroutines.launch
 
@@ -220,7 +221,7 @@ private fun DeleteCard(name: String, onCancel: () -> Unit, onDelete: () -> Unit)
             Modifier
                 .width(300.dp)
                 .playerPanel(RoundedCornerShape(PlayerTokens.MenuRadius), PlayerTokens.PanelMenu)
-                .pointerInput(Unit) { awaitEachGesture { awaitFirstDown().consume() } }
+                .blockTouches()
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
