@@ -40,7 +40,7 @@ your hands, especially anything that needs the phone turned: Claude can't rotate
      - a big streaming site and a DRM page: greyed out with the reason;
      - airplane mode just after the tap: "Couldn't download the video" in the player;
      - a file already there: the player leaves fullscreen and the duplicate card shows.
-3. **Rotation with auto-rotate off** (your #7, second version, the rotate pill commit).
+3. **Rotation with auto-rotate off** (your #7, second version, `f6803d8`).
    - **Before building:** the system limit is confirmed in AOSP's `DisplayRotation.java`. Its rotate
      button is offered only for USER_* / FULL_USER requests:
      - USER_LANDSCAPE doesn't flip the landscape sides by itself under the lock;
@@ -222,9 +222,9 @@ Checks:
 5. The day headers don't move when selection starts or ends.
 
 ## Already checked by Claude
-- Unit tests: 341 JVM tests, green (`./gradlew testDebugUnitTest`).
+- Unit tests: 343 JVM tests, green (`./gradlew testDebugUnitTest`).
 - The dev build was installed on the POCO after phase 1: it launches, no crash.
-- The R8 release build of `6364b05` (round 2) is installed on the POCO (real app, release key). It
+- The R8 release build of `08a0767` (round 2 + the rotate pill) is installed on the POCO (real app, release key). It
   launches, comes back cold after a background kill (new process), and logcat shows no crash. The
   restored screen itself was not looked at.
 
