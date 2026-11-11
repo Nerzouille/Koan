@@ -130,6 +130,11 @@ object PlayerTokens {
 
     /** A ⋯ menu row that can't be used (Download video on a protected or streamed video). */
     const val DISABLED_ALPHA = 0.5f
+
+    /** Download video: how long the engine may take to start it before the player says it couldn't. */
+    const val DOWNLOAD_START_MS = 8000L
+    /** A notice in the player (a download started or failed): on screen this long. */
+    const val NOTICE_MS = 3500L
     const val SWIPE_RATIO = 1.5f
     const val SWIPE_DOWN_SCALE_AT = 0.4f
     const val SWIPE_DOWN_COMMIT = 0.2f

@@ -54,6 +54,8 @@ data class WebVideo(
     val kind: String = "",
     /** A live stream (no end). */
     val live: Boolean = false,
+    /** A plain file the page lists for this video (its largest <source>), when [src] is a stream. */
+    val file: String = "",
 )
 
 /**
@@ -133,6 +135,7 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
         drm = j.optBoolean("drm"),
         kind = j.optString("kind"),
         live = j.optBoolean("live"),
+        file = j.optString("file"),
     )
 
     /**

@@ -99,7 +99,6 @@ import dev.nerzouille.koan.ui.overview.SyncUi
 import dev.nerzouille.koan.ui.overview.findTab
 import dev.nerzouille.koan.ui.overview.toModel
 import dev.nerzouille.koan.ui.player.WebPlayerLayer
-import dev.nerzouille.koan.ui.player.downloadVideo
 import dev.nerzouille.koan.ui.privacy.NoPersonalizedLearning
 import dev.nerzouille.koan.ui.privacy.PrivateDockPill
 import dev.nerzouille.koan.ui.privacy.PrivateFlip
@@ -813,10 +812,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 tabId = activeTabId,
                 fullScreen = fullScreen,
                 inPip = inPip,
-                onDownload = { url ->
-                    downloadVideo(components, activeTabId, url)
-                    toasts.show(Toast("Downloading the video"))
-                },
                 onToast = { title, detail -> toasts.show(Toast(title, detail = detail)) },
             )
         }

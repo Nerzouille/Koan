@@ -128,6 +128,8 @@ fun VideoPlayer(
     modifier: Modifier = Modifier,
     /** Picture-in-picture or a transition: nothing but the video. */
     hidden: Boolean = false,
+    /** A short note over the video (Download video started or failed); a new [PlayerNotice.serial] shows it again. */
+    notice: PlayerNotice? = null,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -702,6 +704,32 @@ fun VideoPlayer(
             }
         }
 
+        // ---- a notice (Download video): above the bottom pill, never taking a touch ----
+        var noticeOn by remember { mutableStateOf(false) }
+        var lastNotice by remember { mutableStateOf<PlayerNotice?>(null) }
+        LaunchedEffect(notice?.serial) {
+            if (notice == null) return@LaunchedEffect
+            lastNotice = notice
+            noticeOn = true
+            delay(PlayerTokens.NOTICE_MS)
+            noticeOn = false
+        }
+        val noticeIn = rememberPresence(noticeOn && !hidden, enter = PlayerTokens.ControlsSpring, exit = Motion.Fade)
+        val shownNotice = lastNotice
+        if (noticeIn.composed && shownNotice != null) {
+            val pillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
+            NoticePanel(
+                shownNotice,
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = side, end = side, bottom = bottomInset + pillH + PlayerTokens.BubbleGap)
+                    .graphicsLayer {
+                        alpha = noticeIn.progress
+                        translationY = (1f - noticeIn.progress) * 12.dp.toPx()
+                    },
+            )
+        }
+
         // ---- buffering spinner (stays alone when the controls hide) ----
         val spin = rememberPresence(spinner, Motion.FadeSlow, startShown = true)
         if (spin.composed && !locked) {
@@ -1113,3 +1141,25 @@ private fun Modifier.drawBehindHalo(density: androidx.compose.ui.unit.Density): 
 private fun Modifier.drawBehindCompat(block: androidx.compose.ui.graphics.drawscope.DrawScope.(Size) -> Unit): Modifier =
     this.drawBehind { block(size) }
 
+
+/** A notice's panel: what (the file), then how it goes ("Downloading · 1.2 GB"); an error in the destructive colour. */
+@Composable
+private fun NoticePanel(notice: PlayerNotice, modifier: Modifier) {
+    Column(
+        modifier
+            .widthIn(max = PlayerTokens.MenuWidth + 80.dp)
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius), PlayerTokens.PanelMenu)
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            notice.title,
+            style = playerText(15.sp, FontWeight.SemiBold, if (notice.error) PlayerTokens.Destructive else PlayerTokens.Text),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        notice.detail?.let {
+            Text(it, style = playerText(13.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}

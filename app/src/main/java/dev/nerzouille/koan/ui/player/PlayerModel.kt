@@ -111,13 +111,20 @@ sealed interface VideoSave {
     data class No(val reason: String) : VideoSave
 }
 
-fun videoSave(src: String, drm: Boolean, kind: String, live: Boolean): VideoSave {
+/**
+ * [file]: a plain file the page lists for the same video (a streamed video's <source>, as on
+ * Wikimedia Commons): saved instead of the stream.
+ */
+fun videoSave(src: String, drm: Boolean, kind: String, live: Boolean, file: String = ""): VideoSave {
     val http = src.startsWith("https://") || src.startsWith("http://")
+    val listed = downloadableVideo(file)
     return when {
         drm -> VideoSave.No("Protected video")
         live -> VideoSave.No("Live video, can't be saved")
+        kind == "stream" && listed != null -> VideoSave.File(listed)
         kind == "stream" -> VideoSave.No("Streamed video, can't be saved")
         downloadableVideo(src) != null -> VideoSave.File(src)
+        listed != null -> VideoSave.File(listed)
         http && !isFilePage(src) -> VideoSave.Check(src)
         else -> VideoSave.No("This video can't be saved")
     }

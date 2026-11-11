@@ -206,7 +206,24 @@ function report() {
     kind: src.startsWith("blob:") || src.startsWith("mediasource:") ? "stream"
       : /\.(m3u8|mpd)([?#]|$)/i.test(src) ? "stream" : "",
     live: d === Infinity,
+    // A streamed video's page often lists plain files too (<source>): the largest one, to download.
+    file: fileSource(v),
   });
+}
+
+function fileSource(v) {
+  let best = "";
+  let bestH = -1;
+  for (const s of v.querySelectorAll("source")) {
+    const u = s.src || "";
+    const t = (s.type || "").toLowerCase();
+    if (!/^https?:/.test(u)) continue;
+    if (/dash|mpegurl|m3u8/.test(t) || /\.(m3u8|mpd)([?#]|$)/i.test(u)) continue;
+    if (t && !t.startsWith("video/")) continue;
+    const h = parseInt(s.getAttribute("data-height") || s.getAttribute("height") || "0", 10) || 0;
+    if (h > bestH) { best = u; bestH = h; }
+  }
+  return best;
 }
 
 function titleOf(v) {
