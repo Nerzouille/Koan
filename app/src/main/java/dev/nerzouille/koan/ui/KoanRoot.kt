@@ -1,6 +1,7 @@
 package dev.nerzouille.koan.ui
 
 import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.root.rememberRootState
 import dev.nerzouille.koan.ui.theme.PageTokens
 import dev.nerzouille.koan.ui.browser.ClosingPage
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -160,6 +161,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // the place of the spaces. Read through states, so long-lived lambdas always see the current mode.
     val privateMode = components.privateMode
     val privateTabs = components.privateTabs
+    // The navigation state (ui/root/RootState.kt), read below through its properties.
+    val root = rememberRootState()
     // Set together with privateMode.on (showPrivate), so code right after a switch sees the new mode.
     val privateOnState = remember { mutableStateOf(privateMode.on.value) }
     val privateOn by privateOnState
@@ -169,12 +172,12 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val repo by remember { derivedStateOf { if (privateOnState.value) privateTabs.spaces else components.spaces } }
     val account by components.accounts.state.collectAsStateWithLifecycle()
     val syncStatus by components.sync.status.collectAsStateWithLifecycle()
-    var signingIn by rememberSaveable { mutableStateOf(false) }
+    var signingIn by root::signingIn
     // Each space's current tab (uuid → card id last opened there): the overview centres on it.
-    val currentTabs = rememberSaveable { HashMap<String, String>() }
-    var currentSpace by rememberSaveable { mutableIntStateOf(0) }
+    val currentTabs = root.currentTabs
+    var currentSpace by root::currentSpace
     // The space the user is on, by id: spaces added/removed on the desktop never move them.
-    var currentSpaceUuid by rememberSaveable { mutableStateOf<String?>(null) }
+    var currentSpaceUuid by root::currentSpaceUuid
     val tabs by remember { derivedStateOf { if (privateOnState.value) privateTabs.tabs else components.tabs } }
     val normalCurrent = components.tabs.current.collectAsStateWithLifecycle()
     val privateCurrent = privateTabs.tabs.current.collectAsStateWithLifecycle()
@@ -185,13 +188,13 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val normalStarted = components.tabs.started.collectAsStateWithLifecycle()
     val privateStarted = privateTabs.tabs.started.collectAsStateWithLifecycle()
     val tabsStarted by remember { derivedStateOf { if (privateOnState.value) privateStarted.value else normalStarted.value } }
-    var overviewOpen by rememberSaveable { mutableStateOf(false) }
-    var editing by remember { mutableStateOf(false) }
+    var overviewOpen by root::overviewOpen
+    var editing by root::editing
     /** A tab another app just opened, until it is the current one (see the incoming links). */
-    var landing by remember { mutableStateOf<String?>(null) }
+    var landing by root::landing
     // The start page is up (with the field): not a tab until something opens from it. It goes
     // with the field.
-    var startPage by remember { mutableStateOf(false) }
+    var startPage by root::startPage
     LaunchedEffect(editing) { if (!editing) startPage = false }
     // A new tab always starts with the search sheet open.
     LaunchedEffect(blankId) { if (blankId != null) editing = true }
@@ -212,7 +215,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val motion = remember { OverviewMotion(overviewOpen) }
     // The open motion has finished: the overview may now do the work it put off (thumbs/BakedBlur,
     // composing the neighbouring spaces).
-    var overviewSettled by remember { mutableStateOf(false) }
+    var overviewSettled by root::overviewSettled
     LaunchedEffect(overviewOpen, motion.dragging) {
         overviewSettled = false
         BakedBlur.onOverviewMotion(running = true, open = overviewOpen)
@@ -234,7 +237,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // Cold start (e.g. after swiping Koan away): reopen on the space saved on disk (TabManager
     // reopens the tab). After a configuration change or a background kill, the saved instance state
     // already has it.
-    var placeRestored by rememberSaveable { mutableStateOf(false) }
+    var placeRestored by root::placeRestored
     LaunchedEffect(Unit) {
         if (placeRestored) return@LaunchedEffect
         components.lastPlace.read().spaceUuid?.let { currentSpaceUuid = it }
@@ -282,7 +285,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val overviewFocus = remember { mutableStateOf<Pair<String, String>?>(null) }
     // Just signed in: once the first sync has brought Zen's tabs, the overview shows Zen's top tab
     // (the front-most Zen card; tabs opened on the phone sit in front of it).
-    var focusZenTop by remember { mutableStateOf(false) }
+    var focusZenTop by root::focusZenTop
     LaunchedEffect(focusZenTop) {
         if (!focusZenTop) return@LaunchedEffect
         val synced = withTimeoutOrNull(ZEN_TOP_WAIT_MS) {
@@ -312,7 +315,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
 
     // The card the overview flies to or from: the current tab's, unless a tap just picked another
     // (until the current tab follows) or a tab with no card (NO_CARD).
-    var heroPick by remember { mutableStateOf<String?>(null) }
+    var heroPick by root::heroPick
 
     /** Back closing a tab: its page on its way out (ClosingPage), over the next tab coming up. */
     var closingShot by remember { mutableStateOf<ImageBitmap?>(null) }
@@ -323,7 +326,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val gone = remember { mutableStateSetOf<String>() }
     // The current tab was closed in the overview: the space it was in, where back to the page
     // opens the card that came forward (its current card, currentTabs), or the start page.
-    var closedFrom by rememberSaveable { mutableStateOf<String?>(null) }
+    var closedFrom by root::closedFrom
     LaunchedEffect(activeTabId) { if (activeTabId != null) closedFrom = null }
     val dock = remember { DockState(scope) }
     // The shown mode's current tab, for the tab swipe (it waits for the tab it lands on).
@@ -404,7 +407,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val fragmentActivity = context as? FragmentActivity
     val flip = remember { PrivateFlip(scope, privateMode.on.value) }
     // The normal space to come back to.
-    var normalSpaceUuid by rememberSaveable { mutableStateOf<String?>(null) }
+    var normalSpaceUuid by root::normalSpaceUuid
     /** Switches what is shown; the flip calls it once the old tabs have left. */
     fun showPrivate(on: Boolean) {
         if (privateOnState.value == on) return
@@ -661,7 +664,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         }
     }
     // First run (no account, nothing open yet): start in the overview, on the Connect card.
-    var firstRunHandled by rememberSaveable { mutableStateOf(false) }
+    var firstRunHandled by root::firstRunHandled
     LaunchedEffect(account, spaces) {
         if (firstRunHandled || account == AccountState.Loading || spaces.isEmpty()) return@LaunchedEffect
         firstRunHandled = true
