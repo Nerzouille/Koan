@@ -1,4 +1,4 @@
-# Koan — user guide (v0.4.0, plus what's on `dev` since)
+# Koan — user guide (v1.0.0-beta.1)
 
 Everything that works in this build, how to use it, and what isn't there yet. Koan is a browser
 built on GeckoView (Firefox's engine). Its workspaces are your Zen Browser Spaces, read from your
@@ -17,13 +17,14 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 - Requirements: Android 11 or newer (tested on Android 14 and 17; 11–13 are supported but less tested),
   a 64-bit ARM phone (arm64-v8a). Other CPUs are not built. Below Android 12 the drawer dims
   what's behind it instead of blurring it; phones with less memory keep fewer tabs live.
-- Download `koan-v0.4.0.apk` (about 206 MB) from the GitHub release and open it. Android asks you to allow
+- Download `koan-vX.Y.Z.apk` (about 209 MB) from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
 - **Updates:** install with [Obtainium](https://github.com/ImranR98/Obtainium) from the GitHub
-  releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you.
+  releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you; turn
+  on its **Include prereleases** option to get betas such as 1.0.0-beta.1.
   Otherwise Settings › About checks once when you open it.
 - Installing over a previous Koan version keeps your tabs, spaces, logins and settings.
-- The APK is about 206 MB. See [Known limitations](#13-known-limitations).
+- The APK is about 209 MB. See [Known limitations](#13-known-limitations).
 
 ### First run
 
@@ -34,10 +35,10 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
   shows once (also after updating from 0.2.x), and not when a link from another app opens Koan.
   Replay it from **Settings › About Koan › Take the tour**.
 - **What's new:** after an update that brings new features, a short sheet of the same kind shows
-  the highlights once: it opens on the tour's welcome look ("What's new in 0.4"), then one card
+  the highlights once: it opens on the tour's welcome look ("What's new in 1.0"), then one card
   per highlight (a clip, a screenshot or a small drawn animation), ending with
-  **See the full changelog** (the latest GitHub release). **Settings › About Koan › What's new in
-  0.4** shows it again.
+  **See the full changelog** (this version's GitHub release page). **Settings › About Koan ›
+  What's new in 1.0** shows it again.
 - Without an account, Koan is a plain browser with one space called **Phone** (📱). The overview
   opens on a **Connect your Zen Spaces** card; you can ignore it and just browse.
 - Tap the address pill, type an address or a search, and go.
@@ -675,7 +676,8 @@ with your default engine, in a new tab of the current space. Back returns to the
 
 **Update check:** opening About looks once at Koan's GitHub releases and says **Up to date** or
 **Update available** (tap it to open the release page and download the APK). Koan never checks in
-the background. If the check fails (no network), tap the chip to try again.
+the background. If the check fails (no network), tap the chip to try again. On a beta you are
+offered the next beta and the final release; on a final release, only final releases.
 
 **Privacy:** what Koan sends and to whom is in the [privacy notice](PRIVACY.md).
 
@@ -702,7 +704,7 @@ the background. If the check fails (no network), tap the chip to try again.
   GeckoView update should help).
 - **Old WebView warning on sign-in:** shown when Android System WebView is older than 92 (it can't
   load Mozilla's sign-in page), with a Play Store button; not yet tested on such a phone.
-- **APK size (~206 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
+- **APK size (~209 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
