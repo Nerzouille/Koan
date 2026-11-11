@@ -1,6 +1,6 @@
 # Koan · Tab overview, deeper dark and Private mode — implementation spec
 
-Hand-over for Claude Code. Design canvas: https://claude.ai/artifact/D8B1t8zrk4ZVoJ3v8jasxB
+Hand-over for Claude Code (the design canvas is kept outside the repo).
 
 Approved: card separation, two-line card headers, amber sync dot, deeper dark base `#121214` everywhere, Private mode with **Dusk** (light theme) and **Night** (dark theme), the toggle at the top right of the overview header, the sequenced transition both ways, the private empty state.
 
