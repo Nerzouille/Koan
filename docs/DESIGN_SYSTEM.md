@@ -2118,6 +2118,18 @@ square with corners at 24% of its size (`TILE_RADIUS`). `colour = true` crossfad
 colours in 220ms (`COLOUR_MS`, two stacked images, layer alpha only). No usable icon (none cached,
 or one that can't be seen on this theme): the fallback glyph in `TextPrimary`, never a letter tile.
 
+### Small shared pieces (`ui/kit`, batch 4)
+
+Use these instead of rebuilding them: `DragHandle` (sheet and drawer grab handle),
+`Modifier.brandWash(height, alpha)` (the three-spot brand glow; `settingsWash`, the tour's title
+glow), `Modifier.swipeDownToDismiss(threshold, onDismiss)`, `KoanIconButton` (glyph on a round
+target, touch / glyph sizes passed), `CardHeader` + `CardIconTile` (floating cards' header),
+`EmptyLine` (one-line "nothing here"), `FileGlyph` (file glyph over its extension), `TextLink`
+(secondary text with a round ripple), `KoanDivider(inset, thickness)`, `RowTexts` (a row's title
+over subtitle, shared by `SheetRow` and `SettingsRow`), `SettingsToggleRow` / `SheetToggleRow`. In
+`ui/overview`: `SpaceTitle`. Confirmations go through `Overlays.ask` (one card) rather than their
+own `SheetState`.
+
 ### KoanClipboard (app/src/main/java/dev/nerzouille/koan/ui/kit/KoanClipboard.kt)
 
 Koan's own copies ("Copy link"). In private mode the clip is flagged sensitive, so Android 13+
