@@ -97,6 +97,23 @@ From the batch 4 refactoring (`docs/plans/BATCH4_PLAN.md`, branch `refactor`), l
 - **G3, tokens (only if wanted):** a spacing scale, kit-level tokens, then `Tokens.kt` split by
   feature (a pure move, last).
 
+### Video player follow-ups (after the release)
+
+From the fixes list's second round (`docs/plans/FIXES_CHECKS.md` "Recheck"), left for after the
+0.5 release:
+
+- **Rotate in the ⋯ menu:** a "Rotate" row that turns fullscreen to the other orientation
+  (portrait ↔ landscape), for portrait with the phone's auto-rotate off. Android's own rotate
+  button can't reach portrait there: while fullscreen asks for the video's shape
+  (`USER_LANDSCAPE`), it only offers the other landscape side. `rememberFullscreen` already takes
+  a `rotated` flag for this (`ui/browser/Fullscreen.kt`); the standalone player needs the same.
+- **Quality choice for Download video:** when the page offers several files of the same video
+  (Wikimedia Commons: 240p … 1080p renditions and the 2.8 GB original), let the owner pick one
+  (a short list in the ⋯ menu, with sizes when the page or a HEAD request gives them) instead of
+  always taking the original or the largest rendition. Starts in the video extension's
+  `fileSource` (`assets/extensions/video/content.js`), which then reports every candidate, not
+  just the best one.
+
 ### Open items after v0.2.0 (not scheduled yet)
 - **Search backdrop retry:** the old dim plus a subtle blur behind the suggestion cards only (also
   listed under M4).
