@@ -105,8 +105,12 @@ android {
         unitTests.isReturnDefaultValues = true
         // Robolectric tests read the merged manifest and resources (and Room's schemas below).
         unitTests.isIncludeAndroidResources = true
-        // Without reference/Z-Sync the fixture tests skip instead of failing (see README).
+        // Without reference/Z-Sync the fixture tests skip instead of failing (see README), except
+        // with -Pkoan.requireContract=true (CI), where a missing clone fails the build (audit 9.4).
         val contractPresent = rootProject.file("reference/Z-Sync/shared/contract").isDirectory
+        if (providers.gradleProperty("koan.requireContract").orNull == "true" && !contractPresent) {
+            throw GradleException("koan.requireContract: clone Z-Sync into reference/Z-Sync first")
+        }
         unitTests.all { it.systemProperty("koan.zsync.contract", contractPresent) }
     }
     sourceSets {
