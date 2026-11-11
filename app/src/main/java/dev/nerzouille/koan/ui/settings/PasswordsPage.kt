@@ -4,8 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
 import androidx.activity.compose.BackHandler
-import androidx.biometric.BiometricManager.Authenticators
-import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -44,8 +42,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import dev.nerzouille.koan.data.Login
 import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.data.LoginSummary
@@ -63,6 +61,7 @@ import dev.nerzouille.koan.ui.kit.SiteIcon
 import dev.nerzouille.koan.ui.kit.SwipeRow
 import dev.nerzouille.koan.ui.kit.TextLink
 import dev.nerzouille.koan.ui.kit.copyText
+import dev.nerzouille.koan.ui.kit.deviceAuth
 import dev.nerzouille.koan.ui.kit.rememberSelection
 import dev.nerzouille.koan.ui.kit.selectionWash
 import dev.nerzouille.koan.ui.theme.DownloadTokens
@@ -446,19 +445,10 @@ private fun copy(context: Context, label: String, value: String, sensitive: Bool
     onCopied(label)
 }
 
-/** Asks for the fingerprint (or the device PIN / pattern) before passwords show. */
+/**
+ * Asks for the fingerprint (or the device PIN / pattern) before passwords show ([deviceAuth]); a
+ * phone with no screen lock opens them at once.
+ */
 fun authenticate(activity: FragmentActivity, title: String, onSuccess: () -> Unit) {
-    val prompt = BiometricPrompt(
-        activity,
-        ContextCompat.getMainExecutor(activity),
-        object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onSuccess()
-        },
-    )
-    prompt.authenticate(
-        BiometricPrompt.PromptInfo.Builder()
-            .setTitle(title)
-            .setAllowedAuthenticators(Authenticators.BIOMETRIC_STRONG or Authenticators.DEVICE_CREDENTIAL)
-            .build(),
-    )
+    activity.lifecycleScope.launch { if (deviceAuth(activity, title)) onSuccess() }
 }
