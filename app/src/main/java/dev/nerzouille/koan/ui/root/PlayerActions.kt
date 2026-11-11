@@ -56,7 +56,9 @@ internal fun standaloneActions(
             } else {
                 components.store.dispatch(
                     mozilla.components.browser.state.action.DownloadAction.AddDownloadAction(
-                        mozilla.components.browser.state.state.content.DownloadState(url, skipConfirmation = true, referrerUrl = video.pageUrl),
+                        mozilla.components.browser.state.state.content.DownloadState(
+                            url, skipConfirmation = true, referrerUrl = video.pageUrl, private = components.privateMode.on.value,
+                        ),
                     ),
                 )
             }

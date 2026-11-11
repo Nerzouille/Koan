@@ -170,6 +170,9 @@ class Components(context: Context) {
         settings.downloadLocation.collect { pickedDownloadFolder = it }
     }
 
+    /** Gecko's own HTTP client (the engine's network, cookies and private session): Koan's requests on a tab's behalf. */
+    val fetchClient by lazy { mozilla.components.browser.engine.gecko.fetch.GeckoViewFetchClient(appContext, runtime) }
+
     // ---- private mode ----
 
     /** The private tabs (privacy/PrivateTabs): their own tab manager, saved sealed. */

@@ -136,12 +136,36 @@ suspend fun isVideoFile(url: String): Boolean = kotlinx.coroutines.withContext(k
         c.requestMethod = "HEAD"
         c.instanceFollowRedirects = true
         try {
-            c.responseCode in 200..399 && c.contentType.orEmpty().lowercase().let { it.startsWith("video/") || it == "application/octet-stream" && downloadableVideo(url) != null }
+            c.responseCode in 200..399 && isVideoType(c.contentType, url)
         } finally {
             c.disconnect()
         }
     }.getOrDefault(false)
 }
+
+/**
+ * The same question for a page's video (⋯ › Download video), asked through the engine as the tab
+ * would: in a private tab, Gecko's private session (its cookies only, never the normal ones; its
+ * DNS over HTTPS), and never over plain http (Private is HTTPS-only). Fixes F6.
+ */
+suspend fun isVideoFile(client: mozilla.components.concept.fetch.Client, url: String, private: Boolean): Boolean {
+    if (private && !url.startsWith("https://")) return false
+    return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching {
+            val request = mozilla.components.concept.fetch.Request(
+                url,
+                method = mozilla.components.concept.fetch.Request.Method.HEAD,
+                connectTimeout = 2L to java.util.concurrent.TimeUnit.SECONDS,
+                readTimeout = 2L to java.util.concurrent.TimeUnit.SECONDS,
+                private = private,
+            )
+            client.fetch(request).use { r -> r.status in 200..399 && isVideoType(r.headers["Content-Type"], url) }
+        }.getOrDefault(false)
+    }
+}
+
+internal fun isVideoType(contentType: String?, url: String): Boolean =
+    contentType.orEmpty().lowercase().let { it.startsWith("video/") || it.startsWith("application/octet-stream") && downloadableVideo(url) != null }
 
 private val VIDEO_EXTENSIONS = listOf(".mp4", ".webm", ".m4v", ".mov", ".mkv")
 

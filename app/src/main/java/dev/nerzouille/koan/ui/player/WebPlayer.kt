@@ -67,7 +67,8 @@ fun WebPlayerLayer(
                 // No video ending: asked the server only now, on the tap.
                 is VideoSave.Check -> MenuRow(KoanIcons.Download, "Download video") {
                     saveScope.launch {
-                        if (isVideoFile(save.url)) {
+                        val private = components.store.state.findTab(tabId)?.content?.private == true
+                        if (isVideoFile(components.fetchClient, save.url, private)) {
                             leave()
                             onDownload(save.url)
                         } else {
@@ -120,5 +121,7 @@ internal fun siteOf(url: String?): String =
 fun downloadVideo(components: Components, tabId: String?, url: String) {
     val id = tabId ?: return
     val page = components.store.state.findTab(id)?.content?.url
-    components.store.dispatch(ContentAction.UpdateDownloadAction(id, DownloadState(url, skipConfirmation = true, referrerUrl = page)))
+    val private = components.store.state.findTab(id)?.content?.private == true
+    // A private tab's file downloads in Gecko's private session and stays a private download.
+    components.store.dispatch(ContentAction.UpdateDownloadAction(id, DownloadState(url, skipConfirmation = true, referrerUrl = page, private = private)))
 }
