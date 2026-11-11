@@ -97,7 +97,6 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
         val window = activity?.window
         val bars = window?.let { androidx.core.view.WindowCompat.getInsetsController(it, it.decorView) }
         bars?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        bars?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
         window?.let { immersive(it, true) }
         onDispose {
             window?.let { immersive(it, false) }
@@ -105,6 +104,12 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
             bars?.show(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
             bars?.show(androidx.core.view.WindowInsetsCompat.Type.statusBars())
         }
+    }
+
+    // Portrait: the status bar stays and the top row sits under it; landscape: both bars away.
+    val orientation = androidx.compose.ui.platform.LocalConfiguration.current.orientation
+    LaunchedEffect(orientation) {
+        activity?.window?.let { playerBars(it, orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT) }
     }
 
     val open = remember { Animatable(if (noMotion) 1f else 0f) }

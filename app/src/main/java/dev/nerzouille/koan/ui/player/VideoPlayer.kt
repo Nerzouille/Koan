@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.player
 
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.layout.WindowInsets
 import android.app.Activity
@@ -305,7 +306,9 @@ fun VideoPlayer(
         val cut = rememberCutouts(landscape)
         val bottomPillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
         val side = PlayerTokens.Inset
-        val ins = playerInsets(cut, maxWidth, maxHeight, bottomPillH, density)
+        // The status bar's height even before it shows (portrait keeps it over the player).
+        val statusTop = with(density) { WindowInsets.statusBarsIgnoringVisibility.getTop(density).toDp() }
+        val ins = playerInsets(cut, maxWidth, maxHeight, bottomPillH, density, statusTop)
         val startInset = ins.titleStart
         val endInset = ins.rightEnd
         val topInset = ins.top

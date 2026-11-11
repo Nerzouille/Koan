@@ -48,7 +48,7 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
         bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         dev.nerzouille.koan.ui.player.immersive(window, fullScreen)
         if (fullScreen) {
-            bars.hide(WindowInsetsCompat.Type.systemBars())
+            dev.nerzouille.koan.ui.player.playerBars(window, orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT)
         } else {
             bars.show(WindowInsetsCompat.Type.navigationBars())
             if (hideStatus) bars.hide(WindowInsetsCompat.Type.statusBars()) else bars.show(WindowInsetsCompat.Type.statusBars())

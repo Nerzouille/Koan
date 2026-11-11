@@ -37,7 +37,10 @@ fun rememberCutouts(landscape: Boolean): List<Rect> {
  * in the middle of the left edge leaves the title pill and the bottom pill where they are, but
  * moves the brightness level if it would sit on it.
  */
-fun playerInsets(cutouts: List<Rect>, width: Dp, height: Dp, bottomPillH: Dp, density: Density): PlayerInsets {
+fun playerInsets(cutouts: List<Rect>, width: Dp, height: Dp, bottomPillH: Dp, density: Density, statusTop: Dp = 0.dp): PlayerInsets {
+    // Portrait: the status bar shows over the player; the top row goes under it, the sides keep
+    // the plain margin (a camera cutout only counts at the top, where the status bar covers it).
+    if (height > width) return portraitInsets(cutouts, width, height, density, statusTop)
     val edge = PlayerTokens.Inset
     val gap = PlayerTokens.CutoutGap
     val rects = with(density) { cutouts.map { r -> DpRect(r.left.toDp(), r.top.toDp(), r.right.toDp(), r.bottom.toDp()) } }
@@ -69,4 +72,18 @@ fun playerInsets(cutouts: List<Rect>, width: Dp, height: Dp, bottomPillH: Dp, de
 
 private data class DpRect(val left: Dp, val top: Dp, val right: Dp, val bottom: Dp) {
     fun overlapsY(band: Pair<Dp, Dp>) = top < band.second && bottom > band.first
+}
+
+private fun portraitInsets(cutouts: List<Rect>, width: Dp, height: Dp, density: Density, statusTop: Dp): PlayerInsets {
+    val edge = PlayerTokens.Inset
+    val gap = PlayerTokens.CutoutGap
+    val rects = with(density) { cutouts.map { r -> DpRect(r.left.toDp(), r.top.toDp(), r.right.toDp(), r.bottom.toDp()) } }
+    val cutoutBottom = rects.filter { it.bottom < height / 2 }.maxOfOrNull { it.bottom } ?: 0.dp
+    val top = maxOf(edge, maxOf(statusTop, cutoutBottom) + gap)
+    val bottom = maxOf(edge, rects.filter { it.top > height / 2 }.maxOfOrNull { (height - it.top) + gap } ?: 0.dp)
+    return PlayerInsets(
+        top = top, bottom = bottom,
+        titleStart = edge, rightEnd = edge, bottomStart = edge, bottomEnd = edge,
+        levelStart = 0.dp, levelEnd = 0.dp,
+    )
 }
