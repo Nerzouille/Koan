@@ -81,6 +81,26 @@ each group (launch + kill + restore checked).
   hide the controls (soft blur), drag the seek bar (bubble follows the finger, time updates),
   double-tap seek glow, brightness / volume swipe, 2× long press, ⋯ menu; overview scroll (dims
   unchanged), space switch.
+- **Group C, root and overlays split (done, 6 commits; C4 skipped, optional):** `KoanOverlays`
+  1 370 → 313 lines, one composable per group in `ui/overlays/` (one commit: the groups were cut
+  from one function sharing state; a line-by-line check found every original line, verbatim).
+  `ui/root/`: `RootState` (the navigation values, each still its own `rememberSaveable`; the
+  root reads them through property delegates), `PrivateSwitch`, `IncomingLinks`, `PlayerActions`.
+  **Not done as planned:** the root's transitions stay in `KoanRoot.kt` and there is no
+  `RootStateTest`: the transitions call `TabManager`, `SpacePager`, `OverviewMotion` and the store,
+  so a JVM test needs interfaces over them (a design change, not a move): left for batch 5.
+  Checked on the staging copy: ⋯ menu, Site settings, Back, tab-counter menu, overview, Settings,
+  History, Private on / off, a link from another app while the overview is up, overview restored
+  after a kill. Perf, interleaved end of B / end of C: same or better except the drawer, janky
+  4.3 → 4.7–4.9 % and p99 36 → 40–42 ms in both pairs (inside the noise threshold, but consistent:
+  watch it). R8 build: launches, restores after a kill, no crash.
+  **Check on the phone:** every overlay opens and closes as before (⋯ menu and its pages, clear
+  site data, a site permission, "Open in app", logins chip / list / save, a page's <select> /
+  alert, long press on a link and an image, Save image, a download and a duplicate, tab counter
+  and Back long press, Settings and its pages, sign out card, Downloads, History, Clear data, the
+  tour from Settings › About); Private on / off and the lock; a link shared from another app;
+  kill Koan in the background with the overview open and come back. Open and close the drawer a
+  few times: it should feel the same.
 
 ## Open branches
 
