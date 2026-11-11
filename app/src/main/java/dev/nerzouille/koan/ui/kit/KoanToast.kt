@@ -102,6 +102,7 @@ class ToastState {
 @Composable
 fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) {
     val shown = remember { Animatable(0f) }
+    val presence = rememberPresence(shown) { state.visible }
     // A swipe sideways or down sends the toast away early (no action).
     val dragX = remember { Animatable(0f) }
     val dragY = remember { Animatable(0f) }
@@ -143,7 +144,7 @@ fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) 
     }
     val toast = drawn ?: state.toast
     val old = leaving
-    if (old == null && (toast == null || (!state.visible && shown.value == 0f))) return
+    if (old == null && (toast == null || !presence.composed)) return
     Box(
         modifier
             .fillMaxWidth()
@@ -168,7 +169,7 @@ fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) 
                 },
             )
         }
-        if (toast != null && (state.visible || shown.value > 0f)) {
+        if (toast != null && presence.composed) {
             ToastCard(
                 toast,
                 actionEnabled = state.visible,
