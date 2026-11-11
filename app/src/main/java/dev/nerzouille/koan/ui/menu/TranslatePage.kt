@@ -11,6 +11,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +41,7 @@ import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.KoanField
 import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.kit.SecondaryButton
+import dev.nerzouille.koan.ui.kit.TextLink
 import dev.nerzouille.koan.ui.sheet.RowChevron
 import dev.nerzouille.koan.ui.sheet.RowValue
 import dev.nerzouille.koan.ui.sheet.SheetDivider
@@ -327,14 +329,8 @@ fun TranslateOffer(
 }
 
 @Composable
-private fun QuietLink(text: String, onClick: () -> Unit) {
-    Text(
-        text,
-        color = KoanTheme.colors.TextSecondary,
-        fontSize = SheetTokens.CardTextSize,
-        modifier = Modifier.clip(CircleShape).clickable(onClick = onClick).padding(horizontal = SheetTokens.Gap / 2, vertical = SheetTokens.Gap / 2),
-    )
-}
+private fun QuietLink(text: String, onClick: () -> Unit) =
+    TextLink(text, onClick, SheetTokens.CardTextSize, PaddingValues(horizontal = SheetTokens.Gap / 2, vertical = SheetTokens.Gap / 2))
 
 private fun sizeLabel(bytes: Long): String = when {
     bytes >= 1L shl 20 -> "%.0f MB".format(bytes / (1L shl 20).toDouble())

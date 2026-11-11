@@ -7,74 +7,75 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.PersistableBundle
 import android.view.View
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.platform.LocalView
+import androidx.activity.compose.BackHandler
 import androidx.biometric.BiometricManager.Authenticators
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import dev.nerzouille.koan.data.Login
+import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.data.LoginSummary
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.kit.SecureWindow
 import dev.nerzouille.koan.ui.kit.KoanField
 import dev.nerzouille.koan.ui.kit.PrimaryButton
+import dev.nerzouille.koan.ui.kit.SecureWindow
 import dev.nerzouille.koan.ui.kit.SelectionAction
 import dev.nerzouille.koan.ui.kit.SelectionBar
 import dev.nerzouille.koan.ui.kit.SelectionCheck
 import dev.nerzouille.koan.ui.kit.SelectionHeader
 import dev.nerzouille.koan.ui.kit.SiteIcon
 import dev.nerzouille.koan.ui.kit.SwipeRow
+import dev.nerzouille.koan.ui.kit.TextLink
 import dev.nerzouille.koan.ui.kit.rememberSelection
 import dev.nerzouille.koan.ui.kit.selectionWash
-import dev.nerzouille.koan.ui.theme.ButtonTokens
-import dev.nerzouille.koan.ui.theme.SelectionTokens
-import dev.nerzouille.koan.ui.topSafePadding
-import androidx.activity.compose.BackHandler
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.style.TextOverflow
-import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.ui.theme.DownloadTokens
-import dev.nerzouille.koan.ui.theme.PasswordTokens
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import kotlinx.coroutines.launch
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.PasswordTokens
+import dev.nerzouille.koan.ui.theme.SelectionTokens
 import dev.nerzouille.koan.ui.theme.SettingsTokens
+import dev.nerzouille.koan.ui.topSafePadding
+import kotlinx.coroutines.launch
 
 /**
  * What the Passwords pages need. [unlocked]: the logins opened so far after the fingerprint or PIN
@@ -433,14 +434,8 @@ private fun Account(s: LoginSummary, login: Login?, open: Boolean, on: Boolean, 
 
 /** A quiet word at a row's end ("Copy", "Reveal"); tappable on its own when [onClick] is given. */
 @Composable
-internal fun RowAction(label: String, onClick: (() -> Unit)? = null) {
-    Text(
-        label,
-        color = KoanTheme.colors.TextSecondary,
-        fontSize = SettingsTokens.RowValueSize,
-        modifier = if (onClick == null) Modifier else Modifier.clip(CircleShape).clickable(onClick = onClick).padding(SettingsTokens.Divider * 6),
-    )
-}
+internal fun RowAction(label: String, onClick: (() -> Unit)? = null) =
+    TextLink(label, onClick, SettingsTokens.RowValueSize, PaddingValues(SettingsTokens.Divider * 6))
 
 /** The site a login is for, as the list shows it. */
 private fun siteOf(s: LoginSummary): String = displayHost(s.origin).ifEmpty { s.origin }
