@@ -212,16 +212,34 @@ function report() {
 }
 
 function fileSource(v) {
-  let best = "";
-  let bestH = -1;
-  for (const s of v.querySelectorAll("source")) {
+  const plain = (s) => {
     const u = s.src || "";
     const t = (s.type || "").toLowerCase();
-    if (!/^https?:/.test(u)) continue;
-    if (/dash|mpegurl|m3u8/.test(t) || /\.(m3u8|mpd)([?#]|$)/i.test(u)) continue;
-    if (t && !t.startsWith("video/")) continue;
+    if (!/^https?:/.test(u)) return false;
+    if (/dash|mpegurl|m3u8/.test(t) || /\.(m3u8|mpd)([?#]|$)/i.test(u)) return false;
+    return !t || t.startsWith("video/");
+  };
+  let list = [...v.querySelectorAll("source")].filter(plain);
+  if (!list.length) {
+    // A streaming player that took its <source>s away: the page's other copies of the same video,
+    // only when they are all renditions of one video (one folder).
+    const all = [...document.querySelectorAll("video source")].filter(plain);
+    const dirs = new Set(all.map((s) => s.src.substring(0, s.src.lastIndexOf("/"))));
+    list = dirs.size === 1 ? all : [];
+  }
+  let best = "";
+  let bestH = -1;
+  for (const s of list) {
     const h = parseInt(s.getAttribute("data-height") || s.getAttribute("height") || "0", 10) || 0;
-    if (h > bestH) { best = u; bestH = h; }
+    if (h > bestH) { best = s.src; bestH = h; }
+  }
+  if (!best) return "";
+  // MediaWiki (Commons, Wikipedia): renditions sit in ".../transcoded/<x>/<xy>/<File>/"; the
+  // original file, when the page links it, is the one to save.
+  const original = best.replace(/\/transcoded\/(.+)\/([^/]+)\/[^/]+$/, "/$1/$2");
+  if (original !== best) {
+    const linked = [...document.querySelectorAll("a[href]")].some((a) => a.href.split(/[?#]/)[0] === original);
+    if (linked) return original;
   }
   return best;
 }

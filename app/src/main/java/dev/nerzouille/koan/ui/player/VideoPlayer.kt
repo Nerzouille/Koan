@@ -560,6 +560,9 @@ fun VideoPlayer(
                 alpha *= hiddenAlpha(hidden) * (1f - levelShown.value)
             }
             val buttonsLive = shown && !hidden
+            // The ⋯ pill grows into the panel (the standalone player's open / close springs); the
+            // round pills under it fade out meanwhile, so none shows through the panel.
+            val menuIn = rememberPresence(menuOpen, enter = PlayerTokens.OpenSpring, exit = PlayerTokens.CloseSpring, startShown = true)
             // ---- top: title pill, round pills ----
             var rightWidth by remember { mutableIntStateOf(0) }
             val rightDp = with(density) { rightWidth.toDp() }
@@ -586,6 +589,7 @@ fun VideoPlayer(
                             alpha = if (unlockShown) 1f else 0f
                         } else {
                             group(TransformOrigin(1f, 0f), 1f)
+                            alpha *= 1f - menuIn.progress
                         }
                     },
                 horizontalArrangement = Arrangement.spacedBy(PlayerTokens.RoundGap),
@@ -687,8 +691,6 @@ fun VideoPlayer(
                 }
 
                 // ---- ⋯ menu ----
-                // The ⋯ pill grows into the panel (the standalone player's open / close springs).
-                val menuIn = rememberPresence(menuOpen, enter = PlayerTokens.OpenSpring, exit = PlayerTokens.CloseSpring, startShown = true)
                 if (menuIn.composed) {
                     // Every field kept (a switch's state, a greyed-out row and its reason); a tap also closes the menu.
                     val rows = remember(menuRows) { menuRows.map { row -> row.after { menuOpen = false } } }
