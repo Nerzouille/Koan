@@ -24,11 +24,25 @@ fun siteHost(host: String): String {
 
 private val MOBILE_LABELS = setOf("m", "mobile")
 
-/** "accounts.example.co.uk" → "example.co.uk", roughly: the last two labels (three for short ccSLDs). */
+/**
+ * "accounts.example.co.uk" → "example.co.uk", roughly: the last two labels (three for short
+ * ccSLDs). Under a shared hosting suffix ([SHARED_SUFFIXES]) each site is its own: no public
+ * suffix list, only the common ones.
+ */
 fun baseDomain(host: String): String {
     val labels = host.removePrefix("www.").split('.')
+    SHARED_SUFFIXES.firstOrNull { host.endsWith(".$it", ignoreCase = true) }?.let { suffix ->
+        val keep = suffix.count { it == '.' } + 2
+        return labels.takeLast(keep).joinToString(".")
+    }
     if (labels.size <= 2) return labels.joinToString(".")
     val secondLevel = labels[labels.size - 2]
     val keep = if (secondLevel.length <= 3 && labels.last().length == 2) 3 else 2
     return labels.takeLast(keep).joinToString(".")
 }
+
+/** Hosting suffixes where every subdomain is someone else's site (a login is never shared across them). */
+private val SHARED_SUFFIXES = listOf(
+    "github.io", "gitlab.io", "pages.dev", "workers.dev", "netlify.app", "vercel.app", "web.app",
+    "firebaseapp.com", "herokuapp.com", "blogspot.com", "glitch.me", "neocities.org", "codeberg.page",
+)

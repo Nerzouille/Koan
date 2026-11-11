@@ -41,8 +41,12 @@ class UrlsTest {
         assertEquals("example.com", baseDomain("example.com"))
         assertEquals("localhost", baseDomain("localhost"))
         assertEquals(baseDomain("x.example.com"), LoginStore.baseDomain("x.example.com"))
-        // Bug 3.28 (d): one *.github.io site's login is offered on every other one.
-        assertEquals("github.io", baseDomain("alice.github.io"))
+        // Fixed (3.28 d): one *.github.io site's login was offered on every other one.
+        assertEquals("alice.github.io", baseDomain("alice.github.io"))
+        assertEquals("alice.github.io", baseDomain("www.alice.github.io"))
+        assertEquals("alice.github.io", baseDomain("docs.alice.github.io"))
+        assertEquals("shop.pages.dev", baseDomain("shop.pages.dev"))
+        assertEquals("github.io", baseDomain("github.io"))
     }
 
     @Test fun webUrls() {
