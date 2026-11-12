@@ -8,7 +8,7 @@ import org.junit.Test
 
 class TranslateCueTest {
     private val phone = listOf("en", "fr")
-    private val article = TranslateSignals(pageLanguage = "de", geckoOffers = true, readable = true, translated = false, processing = false)
+    private val article = TranslateSignals(pageLanguage = "de", confident = true, readable = true, translated = false, processing = false)
 
     private fun cue(s: TranslateSignals = article, offerOn: Boolean = true, search: Boolean = false, dismissed: Boolean = false) =
         translateCue(s, phone, offerOn, search, dismissed)
@@ -20,8 +20,8 @@ class TranslateCueTest {
     @Test fun `by default only the icon`() {
         // A short page or one that is mostly links, forms or media (no reader view).
         assertEquals(TranslateCue.Icon, cue(article.copy(readable = false)))
-        // Gecko isn't confident enough to offer it.
-        assertEquals(TranslateCue.Icon, cue(article.copy(geckoOffers = false)))
+        // The language isn't sure.
+        assertEquals(TranslateCue.Icon, cue(article.copy(confident = false)))
         // A search engine's results.
         assertEquals(TranslateCue.Icon, cue(search = true))
         // The card was dismissed on this site since Koan started: the icon stays.

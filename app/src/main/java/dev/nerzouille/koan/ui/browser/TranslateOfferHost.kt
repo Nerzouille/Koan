@@ -70,7 +70,7 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
     val searchPage = remember(url, engines) { isSearchResults(url, engines) }
     val signals = TranslateSignals(
         pageLanguage = from,
-        geckoOffers = state?.isOfferTranslate == true,
+        confident = from != null && detected?.documentLangTag != null,
         readable = readable,
         translated = state?.isTranslated == true,
         processing = state?.isTranslateProcessing == true,

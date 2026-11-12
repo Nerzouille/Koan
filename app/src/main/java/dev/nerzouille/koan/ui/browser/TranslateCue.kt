@@ -23,8 +23,12 @@ enum class TranslateCue { None, Icon, Card }
 data class TranslateSignals(
     /** Gecko's detected page language, when Gecko can translate it; null otherwise. */
     val pageLanguage: String?,
-    /** Gecko offers it: its detection was confident enough (it raises this only then). */
-    val geckoOffers: Boolean,
+    /**
+     * The language is sure: Gecko gives a page language only from the page's own declaration or a
+     * confident detection. (Not Gecko's own offer flag: Gecko offers once per site and session, so
+     * an article after a short page of the same site never got its card.)
+     */
+    val confident: Boolean,
     /** Firefox's reader-view check: an article-length text, not mostly links, forms or media. */
     val readable: Boolean,
     val translated: Boolean,
@@ -42,7 +46,7 @@ data class TranslateSignals(
 fun translateCue(s: TranslateSignals, phoneLanguages: List<String>, offerOn: Boolean, searchPage: Boolean, siteDismissed: Boolean): TranslateCue {
     val lang = s.pageLanguage ?: return TranslateCue.None
     if (!offerFor(lang, phoneLanguages, offerOn) || s.translated || s.always || s.never) return TranslateCue.None
-    val worthACard = s.geckoOffers && s.readable && !searchPage && !siteDismissed && !s.processing
+    val worthACard = s.confident && s.readable && !searchPage && !siteDismissed && !s.processing
     return if (worthACard) TranslateCue.Card else TranslateCue.Icon
 }
 
