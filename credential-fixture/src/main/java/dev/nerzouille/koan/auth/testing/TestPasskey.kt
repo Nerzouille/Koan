@@ -24,6 +24,15 @@ class TestPasskey(context: Context) {
     }
     private val id = MessageDigest.getInstance("SHA-256").digest(key.public.encoded)
 
+    fun matches(optionsJson: String): Boolean {
+        val options = JSONObject(optionsJson)
+        if (options.optString("rpId") != "localhost") return false
+        val allowed = options.optJSONArray("allowCredentials") ?: return true
+        return allowed.length() == 0 || (0 until allowed.length()).any {
+            decode(allowed.getJSONObject(it).getString("id")).contentEquals(id)
+        }
+    }
+
     fun create(optionsJson: String, origin: String): String {
         val options = JSONObject(optionsJson)
         check(options.getJSONObject("rp").getString("id") == "localhost")
@@ -36,6 +45,7 @@ class TestPasskey(context: Context) {
     }
 
     fun get(optionsJson: String, origin: String, clientDataHash: ByteArray?): String {
+        check(matches(optionsJson)) { "No matching synthetic credential" }
         val options = JSONObject(optionsJson)
         check(options.getString("rpId") == "localhost")
         val data = clientData("webauthn.get", options, origin)

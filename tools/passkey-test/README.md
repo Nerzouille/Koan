@@ -47,6 +47,10 @@ For coexistence with Koan's built-in login store, add a synthetic login for the 
 in Settings > Passwords before running the Autofill check.
 The website requires `NotAllowedError` for user dismissal and `AbortError` for a pre-aborted
 signal; accepting either error would hide a browser classification regression.
+The fixture filters requested credential IDs. A nonmatching ID must fail promptly, and a
+special synthetic challenge first exposes only an authentication action: the UI driver unlocks
+the fake vault, selects the returned credential and verifies its signature. This simulates the
+supplier handoff, not real vault unlocking or biometric user verification.
 
 `credential-fixture` is a separate app, with no dependency from `:app`. Neither its exported
 services nor its synthetic key code is present in a browser APK. The only browser debug

@@ -31,10 +31,15 @@ public abstract class PasskeyCapabilityVisitorFactory
             "hasCredentialInGMS", "(Ljava/lang/String;[Lorg/mozilla/gecko/util/WebAuthnUtils$WebAuthnPublicCredential;)Lorg/mozilla/geckoview/GeckoResult;");
 
     @Override public boolean isInstrumentable(ClassData data) {
-        return TARGET.equals(data.getClassName()) || CredentialContextVisitor.TARGET.equals(data.getClassName());
+        String name = data.getClassName();
+        return TARGET.equals(name) || CredentialContextVisitor.TARGET.equals(name) ||
+                name.startsWith(CredentialContextVisitor.TARGET + "$");
     }
 
     @Override public ClassVisitor createClassVisitor(ClassContext context, ClassVisitor next) {
+        if (context.getCurrentClassData().getClassName().startsWith(CredentialContextVisitor.TARGET + "$")) {
+            return CredentialPreparationVisitor.patch(next);
+        }
         if (CredentialContextVisitor.TARGET.equals(context.getCurrentClassData().getClassName())) {
             return CredentialContextVisitor.patch(next);
         }

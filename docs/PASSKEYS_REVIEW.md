@@ -36,6 +36,13 @@ Firefox desktop or every credential provider.
 | Abort after platform UI opens | Invalidate the request and reject/ignore late outcomes; UI dismissal must be evaluated separately | Native engine work remains; do not simulate success by closing Koan or sending global Back |
 | Another device / security key | Offer native provider-supported choices without claiming universal hardware support | Real USB/NFC, QR and biometric interoperability still requires device testing |
 
+The preparation gate now preserves Android's remote candidate flag as well as local entries and
+unlock actions. The original engine discarded a remote-only pending handle. This correction
+uses [the platform response contract](https://developer.android.com/reference/android/credentials/PrepareGetCredentialResponse#hasRemoteResults()),
+not a synthetic remote account or a hard-coded provider. Bit-combination tests exercise routing;
+they do not substitute for physical cross-device/QR testing. Separate local-provider flows test
+a locked vault's authentication action and an actual empty credential allowlist match.
+
 The host identity only scopes **outcome delivery timing**. The engine still owns the request's
 document and origin. It does not add Chromium's frame-aware cancellation to Gecko, change the
 destination of a credential, or prove that navigation/tab-switch cases are fully implemented.

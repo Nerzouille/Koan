@@ -79,7 +79,7 @@ def wait_flow(fill=False):
                 cancel_sent_at = time.monotonic()
                 print('Canceled the identified fixture sheet', flush=True)
         elif picker:
-            for label in ('Continue', 'Create', 'Save', 'Koan test account'):
+            for label in ('Continue', 'Create', 'Save', 'Koan test account', 'Unlock test vault'):
                 if click(tree, label):
                     break
         elif args.browser in packages:

@@ -3,11 +3,13 @@ package dev.nerzouille.koan.auth.testing
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.OutcomeReceiver
+import android.util.Base64
 import androidx.credentials.CreatePublicKeyCredentialRequest
 import androidx.credentials.CreatePublicKeyCredentialResponse
 import androidx.credentials.GetCredentialResponse
@@ -24,13 +26,18 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** Localhost-only fixture. This service and its keys are never included in a user APK. */
-class TestCredentialProvider : CredentialProviderService() {
-    private fun action(kind: String): PendingIntent = PendingIntent.getActivity(
-        this, 0,
+private fun credentialAction(context: Context, kind: String): PendingIntent = PendingIntent.getActivity(
+        context, 0,
         // Candidate queries may overlap. Never cancel an entry handed to an earlier query.
-        Intent(this, TestCredentialActivity::class.java).setData(Uri.parse("koan-test://$kind/${UUID.randomUUID()}")),
+        Intent(context, TestCredentialActivity::class.java).setData(Uri.parse("koan-test://$kind/${UUID.randomUUID()}")),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
     )
+
+private fun credentialEntry(context: Context, option: BeginGetPublicKeyCredentialOption) =
+    PublicKeyCredentialEntry.Builder(context, "Koan test account", credentialAction(context, "get"), option)
+        .setDisplayName("Koan test account").setAutoSelectAllowed(true).build()
+
+class TestCredentialProvider : CredentialProviderService() {
 
     override fun onBeginCreateCredentialRequest(
         request: BeginCreateCredentialRequest, cancellationSignal: CancellationSignal,
@@ -42,7 +49,7 @@ class TestCredentialProvider : CredentialProviderService() {
             return
         }
         callback.onResult(BeginCreateCredentialResponse.Builder()
-            .addCreateEntry(CreateEntry.Builder("Koan test account", action("create")).build()).build())
+            .addCreateEntry(CreateEntry.Builder("Koan test account", credentialAction(this, "create")).build()).build())
     }
 
     override fun onBeginGetCredentialRequest(
@@ -50,9 +57,15 @@ class TestCredentialProvider : CredentialProviderService() {
         callback: OutcomeReceiver<BeginGetCredentialResponse, GetCredentialException>,
     ) {
         val option = request.beginGetCredentialOptions.filterIsInstance<BeginGetPublicKeyCredentialOption>().first()
-        val entry = PublicKeyCredentialEntry.Builder(this, "Koan test account", action("get"), option)
-            .setDisplayName("Koan test account").setAutoSelectAllowed(true).build()
-        callback.onResult(BeginGetCredentialResponse.Builder().addCredentialEntry(entry).build())
+        val json = requireNotNull(option.candidateQueryData.getString("androidx.credentials.BUNDLE_KEY_REQUEST_JSON"))
+        val response = BeginGetCredentialResponse.Builder()
+        if (TestPasskey(this).matches(json)) {
+            val challenge = Base64.decode(JSONObject(json).getString("challenge"), Base64.URL_SAFE)
+            if (String(challenge, Charsets.UTF_8).startsWith("locked-vault-fixture")) {
+                response.addAuthenticationAction(AuthenticationAction.Builder("Unlock test vault", credentialAction(this, "unlock")).build())
+            } else response.addCredentialEntry(credentialEntry(this, option))
+        }
+        callback.onResult(response.build())
     }
 
     override fun onClearCredentialStateRequest(
@@ -66,7 +79,13 @@ class TestCredentialActivity : Activity() {
         super.onCreate(savedInstanceState)
         try {
             val result = Intent()
-            if (intent.data?.host == "create") {
+            if (intent.data?.host == "unlock") {
+                // Simulated unlock only: no real vault, password or biometric verification.
+                val request = requireNotNull(PendingIntentHandler.retrieveBeginGetCredentialRequest(intent))
+                val option = request.beginGetCredentialOptions.filterIsInstance<BeginGetPublicKeyCredentialOption>().single()
+                PendingIntentHandler.setBeginGetCredentialResponse(result,
+                    BeginGetCredentialResponse.Builder().addCredentialEntry(credentialEntry(this, option)).build())
+            } else if (intent.data?.host == "create") {
                 val request = requireNotNull(PendingIntentHandler.retrieveProviderCreateCredentialRequest(intent))
                 val origin = verifiedOrigin(request.callingAppInfo)
                 val options = request.callingRequest as CreatePublicKeyCredentialRequest

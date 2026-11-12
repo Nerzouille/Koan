@@ -74,7 +74,7 @@ four static entry points and the legacy FIDO task callback edges in
 
 The native Credential Manager request construction, provider calls, parsing and security checks
 are kept. A separate visitor replaces the application-context lookup with `CredentialUiHost.context`
-only for the two methods that launch UI; background preparation stays unchanged. The Activity-backed
+only for the two methods that launch UI; preparation keeps its application context. The Activity-backed
 wrapper uses the host lifecycle for outcome delivery. This follows Android's requirement to use an
 [Activity context for the correct task stack](https://developer.android.com/reference/android/credentials/CredentialManager).
 There is no JavaScript shim, user-agent change or bypass of provider trust.
@@ -82,6 +82,15 @@ Platform capability does not guarantee a particular provider has a credential or
 These two UI methods also return through `CredentialOutcome`, correcting Gecko's provider
 `ABORT_ERR` dismissal to `NOT_ALLOWED_ERR`. Only native provider outcomes are normalized;
 the DOM's `AbortSignal` handling and other native errors remain intact.
+
+The typed `onResult(PrepareGetCredentialResponse)` callback also preserves remote-only
+candidate results. Gecko's original check considered local public-key entries and authentication
+(unlock) actions, but omitted `hasRemoteResults()`, incorrectly discarding the pending handle
+when only a remote entry was available. `CredentialPreparation` includes that flag without
+changing the existing unlock check. The visitor matches the public callback descriptor rather
+than an anonymous-class number and requires exactly one matching credential-result query.
+The platform/provider still owns the remote entry and its interaction; this is not a custom QR
+implementation. All candidate metadata queries retain Android's existing permission checks.
 
 The context wrapper changes the executor supplied for native response/error callbacks. Android's
 [Credential Manager transport](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android16-release/core/java/android/credentials/CredentialManager.java)
@@ -141,6 +150,10 @@ creation/signature checks, discoverable login, invalid RP/pre-abort rejection, c
 unavailable-provider/malformed-response handling, an external Custom Tabs
 client, and Android username/password Autofill. The provider is a separate APK/module, never a
 dependency of the browser; it uses only synthetic localhost credentials.
+The expanded fixture respects the credential allowlist and tests a locked supplier's
+authentication action, unlock-to-credential handoff, and an empty matching-credential result
+followed by retry. Remote-only routing has transformed-bytecode tests for all local/unlock/remote
+flag combinations; actual QR/cross-device authentication is still not established by them.
 
 ## Remaining engine work
 

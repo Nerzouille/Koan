@@ -86,6 +86,8 @@
   before a website can start its next credential request, avoiding overlapping closing panels.
 - Credential outcomes follow their own Activity recreation, without waiting for an unrelated
   new window. User dismissal returns NotAllowedError, distinct from a website's AbortSignal.
+- A system preparation result containing only a remote credential entry keeps its native
+  pending handle, rather than being discarded as if no credential option were available.
 - Devices with Android Credential Manager no longer depend on Google FIDO for their platform
   passkey capability check. Missing/disabled Google services fail promptly on legacy fallback.
 - Legacy Google FIDO login tasks now return failures/cancellations to the page; dismissing their

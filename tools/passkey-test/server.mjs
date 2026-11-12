@@ -53,6 +53,14 @@ document.getElementById('run').onclick=async()=>{document.getElementById('run').
  await send('/phase',{phase:'discoverable'});
  const discoverable=await navigator.credentials.get({publicKey:{rpId:'localhost',challenge:dec(options.challenge),userVerification:'required',timeout:30000}});
  await send('/assert',serialize(discoverable));
+ const lockedChallenge=dec(options.challenge);lockedChallenge.set(new TextEncoder().encode('locked-vault-fixture'));
+ await send('/phase',{phase:'locked',challenge:enc(lockedChallenge)});
+ const unlocked=await navigator.credentials.get({publicKey:{rpId:'localhost',challenge:lockedChallenge,userVerification:'required',timeout:30000}});
+ await send('/assert',serialize(unlocked));
+ await send('/phase',{phase:'no-match',challenge:options.challenge});
+ const noMatchStart=performance.now();
+ await reject(()=>navigator.credentials.get({publicKey:{rpId:'localhost',challenge:dec(options.challenge),allowCredentials:[{type:'public-key',id:new Uint8Array(32).fill(127)}],timeout:10000}}),['NotAllowedError','NotSupportedError']);
+ if(performance.now()-noMatchStart>10000)throw Error('No matching credential did not fail promptly');
  await send('/phase',{phase:'cancel'});
  let rejected=false;try{await navigator.credentials.create({publicKey:{...creation,user:{...creation.user,name:'cancel-fixture'}}})}catch(e){rejected=e.name==='NotAllowedError'}
  if(!rejected)throw Error('Cancel did not reject the request');
@@ -90,7 +98,7 @@ const server=http.createServer(async(req,res)=>{
     }
     let raw='';for await(const chunk of req)raw+=chunk;
     const data=JSON.parse(raw||'{}');
-    if(path==='/phase'){state.phase=data.phase;console.log('Phase:',data.phase);}
+    if(path==='/phase'){state.phase=data.phase;if(data.challenge)state.challenge=data.challenge;console.log('Phase:',data.phase);}
     if(path==='/error')state.error=data.error;
     if(path==='/fill'){assert.equal(data.username,'test-user');assert.equal(data.password,'test-password');state.passed=true;console.log('PASS: system username/password Autofill');}
     if(path==='/register'){
