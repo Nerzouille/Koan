@@ -218,6 +218,16 @@ baselineProfile {
 // The plugin's own build types (nonMinified…, benchmark…) get their own app id: generating or
 // benchmarking never installs over the real app or its data on a phone.
 androidComponents {
+    // Those nonMinified… types copy release (initWith) and turn off only the old isMinifyEnabled,
+    // not AGP 9's optimization block: without this, R8 renames the classes and the profile names
+    // classes the real release build doesn't have. finalizeDsl runs after the plugin made them.
+    finalizeDsl { android ->
+        android.buildTypes.matching { it.name.startsWith("nonMinified") }.configureEach {
+            optimization {
+                enable = false
+            }
+        }
+    }
     onVariants { variant ->
         val type = variant.buildType.orEmpty()
         if (type.startsWith("nonMinified") || type.startsWith("benchmark")) variant.applicationId.set("dev.nerzouille.koan.bp")
