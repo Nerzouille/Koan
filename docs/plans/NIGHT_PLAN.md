@@ -639,3 +639,13 @@ translations" switch in Settings › Translation. Meanwhile "Never for French" o
   before it's kept.
 - **Recheck (owner):** if the stack still looks flat on the phone where it was seen, say which phone
   and theme: on the POCO the dim is right at every depth.
+
+## Depth cue proposal (2026-11-12, stopped by the owner)
+
+The owner asked for 2–3 depth-cue options with screenshots before building one (ROADMAP › For
+1.0.0-beta.2). Done so far: the three options as a prototype on the local branch `depth-cue-proto`
+(31e6f5d: `ui/overview/DepthCueProto.kt`, switched by `debug.koan.depthcue`), installed on the POCO's
+staging copy, light screenshots taken. Not done: usable dark screenshots (MIUI kept the screen light
+despite `cmd uimode night yes`; the owner set the theme by hand), and a front card from the colour
+demo pages. Stopped on the owner's request; `release-prep` has none of the prototype, and the POCO's
+staging copy was rebuilt from `release-prep`.

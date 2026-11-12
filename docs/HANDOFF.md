@@ -17,6 +17,8 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   (interruptible flip), captures done; CI green on PR #3 (draft, pushed head only). Evening:
   the translation offer is an icon in the pill, the card on its own only on readable pages
   (`ui/browser/TranslateCue.kt`); APK size explained (nothing by mistake).
+  Late: depth dim caps back to v0.4.0 (`DepthDimTest`); a depth-cue proposal for beta.2 is
+  prototyped on the local branch `depth-cue-proto` only (ROADMAP › For 1.0.0-beta.2).
   1.0.0-beta.1 replaces the planned 0.5; versionCode 10.
 
 - **Latest release: v0.4.0** ("Koan 0.4 (beta)"), tagged on `main` at `d4f3a2e`, published on

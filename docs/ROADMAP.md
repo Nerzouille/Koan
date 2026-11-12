@@ -92,6 +92,23 @@ losing data, and the owner has approved and published the release.
   "open"), release build on the POCO and the Xiaomi, against the build without it; drop it if p90
   or janky % get worse beyond noise. Keep batch 4 group B's rule: no recomposition or re-recording
   per frame (the radius read in a layer lambda, a few cached `RenderEffect` steps like `blurFor`).
+- **A visible depth cue in light and dark** (owner, 2026-11-12, design change): white headers barely
+  dim (254 → 244 in light), so the dim alone can't show depth. Options to show the owner as
+  screenshots on the POCO, light and dark, before building one:
+  - **A, recessed tint:** headers and thumbnails tint with depth, at full strength (not halved like
+    today's header dim), towards a colour darker than the background in light (`#B9B9C2`) and
+    towards black in dark; capped around 0.6.
+  - **B, shadow and scale:** the shadow grows with depth (+7 dp per step up to depth 4, the key
+    shadow not softened) and the scale steps are smaller (0.46 + 0.54 × 0.62ᵈ instead of
+    0.58 + 0.42 × 0.52ᵈ).
+  - **C, blur (the item above):** the deeper cards' thumbnails and headers blur with depth
+    (`RenderEffect`, Android 12+; dim only on Android 11).
+  Prototype of all three on the local branch `depth-cue-proto` (31e6f5d, not for release), switched
+  with `adb shell setprop debug.koan.depthcue 0|1|2|3` and a restart of the staging copy. Light
+  screenshots were taken; the dark ones failed (MIUI stopped applying `cmd uimode night` to the
+  screen) and the front card was a test tab, so redo them with Koan's own Settings › Theme and the
+  colour demo pages in front. Pick one (or a mix: A + B) before building it for real, then measure
+  with `tools/perf` like the blur.
 
 ### Batch 4 leftovers (after the release)
 
