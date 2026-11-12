@@ -154,6 +154,9 @@ class Components(context: Context) {
     /** The activity's picture-in-picture (MainActivity): whether Koan is in its PiP window. */
     val pip = MutableStateFlow<PictureInPicture?>(null)
 
+    /** The translate icon in the address pill and its card (lives until Koan restarts). */
+    val translateCue = dev.nerzouille.koan.ui.browser.TranslateCueState()
+
     /** A download Koan didn't see a tap for, waiting on its card (KoanOverlays). */
     val downloadAsk = MutableStateFlow<DownloadAsk?>(null)
 

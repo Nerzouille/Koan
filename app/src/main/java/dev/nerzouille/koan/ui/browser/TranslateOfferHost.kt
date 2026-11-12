@@ -27,8 +27,9 @@ import java.util.Locale
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
- * A page in another language than the phone's: Gecko offers a translation, and Koan shows it as a
- * small floating card (once per page; it leaves after a while, with ✕ or a tap outside). Translating says
+ * A page in a language that isn't on the phone: a translate icon in the address pill (TranslateCue),
+ * and a small floating card, on its own only where it helps, else from the icon (once per page; it
+ * leaves after a while, with ✕ or a tap outside). Translating says
  * so in the toast, and the toast that says it's done has "Show original". A language set to
  * "Always translate" gets no offer: its pages are translated on their own.
  */
@@ -38,9 +39,10 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val decay = remember(density) { splineBasedDecay<Float>(density) }
-    val t by store.observeSlice(tabId) { s -> tabId?.let { s.findTab(it) }?.let { it.translationsState to it.content.url } }
+    val t by store.observeSlice(tabId) { s -> tabId?.let { s.findTab(it) }?.let { Triple(it.translationsState, it.content.url, it.readerState.readerable) } }
     val state = t?.first
     val url = t?.second.orEmpty()
+    val readable = t?.third == true
     val detected = state?.translationEngineState?.detectedLanguages
     val from = detected?.documentLangTag?.takeIf { detected.supportedDocumentLang == true }
     val to = remember { Locale.getDefault().language }
@@ -61,8 +63,33 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
     }
     val key = "$tabId|$url"
     val always = state?.pageSettings?.alwaysTranslateLanguage == true
-    val offer = allowed && tabId != null && from != null && state.isOfferTranslate && !state.isTranslated &&
-        !state.isTranslateProcessing && key !in dismissed && offerFor(from, phoneLanguages, offerOn) && !always
+    // The icon in the address pill, and the card on its own only where it helps (TranslateCue).
+    val cues = components.translateCue
+    val engines by components.settings.searchEngines.collectAsStateWithLifecycle(initialValue = dev.nerzouille.koan.search.SearchEngine.builtIns)
+    val site = remember(url) { runCatching { java.net.URI(url).host }.getOrNull().orEmpty().removePrefix("www.") }
+    val searchPage = remember(url, engines) { isSearchResults(url, engines) }
+    val signals = TranslateSignals(
+        pageLanguage = from,
+        geckoOffers = state?.isOfferTranslate == true,
+        readable = readable,
+        translated = state?.isTranslated == true,
+        processing = state?.isTranslateProcessing == true,
+        always = always,
+        never = state?.pageSettings?.neverTranslateLanguage == true || state?.pageSettings?.neverTranslateSite == true,
+    )
+    val cue = if (tabId == null) TranslateCue.None else translateCue(signals, phoneLanguages, offerOn, searchPage, site in cues.dismissedSites)
+    androidx.compose.runtime.SideEffect { cues.icon = cue != TranslateCue.None }
+    // A tap on the icon: the card on this page, even where it wouldn't open by itself.
+    var manual by remember { mutableStateOf<String?>(null) }
+    val seenRequests = remember { androidx.compose.runtime.mutableIntStateOf(cues.openRequests) }
+    LaunchedEffect(cues.openRequests) {
+        if (cues.openRequests == seenRequests.intValue) return@LaunchedEffect
+        seenRequests.intValue = cues.openRequests
+        manual = key
+        dismissed = dismissed - key
+    }
+    val offer = allowed && tabId != null && from != null && key !in dismissed &&
+        (cue == TranslateCue.Card || (manual == key && cue != TranslateCue.None))
 
     // "Always translate" this language: the page is translated on its own (unless Gecko already
     // started it), and the toast says so, with the way back.
@@ -83,18 +110,27 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
 
 
     val card = remember { SheetState(scope, decay) }
+    // It leaves on its own after a while: that isn't a dismissal (the site keeps its card).
+    var timedOut by remember { mutableStateOf(false) }
     LaunchedEffect(offer, key) {
         if (offer) {
+            timedOut = false
             card.animateTo(Detent.Compact)
             delay(TranslateTokens.OFFER_MS)
+            timedOut = true
             card.animateTo(Detent.Closed)
         } else {
             card.animateTo(Detent.Closed)
         }
     }
-    // Closed by a tap outside, Back or a drag down: not offered again on this page.
+    // Closed by a tap outside, Back or a drag down: not offered again on this page, and no card
+    // by itself on this site until Koan restarts (the icon stays).
     LaunchedEffect(card.open) {
-        if (!card.open && offer) dismissed = dismissed + key
+        if (!card.open && offer) {
+            dismissed = dismissed + key
+            if (!timedOut && site.isNotEmpty()) cues.dismissedSites += site
+            if (manual == key) manual = null
+        }
     }
     val lang = from ?: return
     KoanCard(card, modifier) { _ ->
@@ -108,7 +144,11 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
                 store.dispatch(TranslationsAction.TranslateAction(id, lang, to, TranslationOptions(downloadModel = true)))
                 onToast(Toast("Translating to ${languageName(to)}…", detail = "On this phone; the first time downloads the language"))
             },
-            onDismiss = { dismissed = dismissed + key },
+            onDismiss = {
+                dismissed = dismissed + key
+                if (site.isNotEmpty()) cues.dismissedSites += site
+                if (manual == key) manual = null
+            },
             onAlwaysLanguage = {
                 dismissed = dismissed + key
                 auto = auto + key

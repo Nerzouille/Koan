@@ -439,9 +439,13 @@ Pages are translated on the phone with Firefox Translations: the text is never s
 Each language is downloaded once (about 20–30 MB) the first time you use it.
 
 - **On a page in a language that isn't on your phone** (any language in Android's Settings ›
-  Languages, not only the first, counts as yours), a small card above the dock offers **Translate to
-  [your language]**, with ✕ and quiet links: **Always for [language]**, **Never for [language]**,
-  **Never for this site**. It leaves after 20 seconds. Toasts say when it's translating and when
+  Languages, not only the first, counts as yours), a small **translate icon** pops into the end of
+  the address pill. A tap on it opens a small card above the dock: **Translate to [your language]**,
+  with ✕ and quiet links: **Always for [language]**, **Never for [language]**, **Never for this
+  site**. The card also opens by itself, but only on a page with real readable text (an article,
+  docs), when the language is clear, and never on a search engine's results (any engine in your
+  list). Closed with ✕ or a tap outside, it doesn't open by itself again on that site until Koan
+  restarts (the icon stays). It leaves after 20 seconds. Toasts say when it's translating and when
   it's done, with **Show original**.
 - **⋯ › Translate page:** **From** and **To** (each opens a list with a search field and the
   sections Recent, On this phone and All languages, with download sizes; ‹ goes back), **Translate**,
@@ -450,8 +454,8 @@ Each language is downloaded once (about 20–30 MB) the first time you use it.
 - **Always translate [language]:** its pages are translated on their own, with a "Translated from
   [language]" toast and Show original.
 - Long-press a language under **On this phone** to delete it from the phone (it asks first).
-- **Settings › Translation** has **Offer to translate pages** (on; off, the card never shows and
-  ⋯ › Translate page still works), and lists your Always and Never languages and sites (Remove each), and the
+- **Settings › Translation** has **Offer to translate pages** (on; off, neither the icon nor the card
+  shows, and ⋯ › Translate page still works), and lists your Always and Never languages and sites (Remove each), and the
   languages on the phone with their size (Delete).
 
 ### Full screen video

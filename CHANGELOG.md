@@ -92,8 +92,10 @@
   the end, and coming back from Private no longer shows blank cards first.
 - Leaving or entering a full-screen video checks that Koan's layout follows the rotation, and
   repairs it if it stayed at the old size.
-- The translation card no longer shows on pages in a language set on your phone (any of them,
-  not only the first), and Settings › Translation can turn it off.
+- **Translation is offered quietly:** a small icon in the address bar on pages in a language that
+  isn't on your phone (any of your phone's languages counts), and the card opens by itself only
+  on real articles, never on search results; closed on a site, it waits until Koan restarts.
+  Settings › Translation › Offer to translate pages turns both off.
 - Private downloads no longer show in normal mode (list, ring, menu count, toast); Private has a
   **Private** pill in Downloads.
 - Coming back to Private after a full-screen video no longer leaves it locked in landscape.

@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -69,6 +70,8 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
@@ -191,6 +194,9 @@ fun AddressRow(
     /** A download just finished and nothing else runs: the ring fills, shows a check, then goes. */
     downloadDone: Boolean = false,
     onDownloads: () -> Unit = {},
+    /** The page is in a language that isn't on the phone: the translate icon (tap = the card). */
+    translate: Boolean = false,
+    onTranslate: () -> Unit = {},
     /** The text being edited, shared with the search sheet. */
     search: SearchField = remember { SearchField() },
     /** Inline completion: the full address for what was typed, if a page starts with it. */
@@ -238,6 +244,8 @@ fun AddressRow(
                 download = if (overviewOpen) null else download,
                 downloadDone = !overviewOpen && downloadDone,
                 onDownloads = onDownloads,
+                translate = !overviewOpen && translate,
+                onTranslate = onTranslate,
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 onPress = pillPressed,
                 modifier = Modifier.weight(1f),
@@ -270,6 +278,8 @@ private fun AddressField(
     download: Float?,
     downloadDone: Boolean,
     onDownloads: () -> Unit,
+    translate: Boolean,
+    onTranslate: () -> Unit,
     onClick: () -> Unit,
     /** A finger lands on the pill (before the bar's drags see it). */
     onPress: () -> Unit,
@@ -283,8 +293,10 @@ private fun AddressField(
     var lastSpace by remember { mutableStateOf(space) }
     if (space != null) lastSpace = space
     val spaceMode = animateFloatAsState(if (space != null) 1f else 0f, tween(Motion.SPACE_MODE_FADE_MS), label = "spaceMode")
-    // Two hit areas side by side, never overlapping: the text (tap = edit) and, while something
-    // downloads, the ring at the end (tap = Downloads).
+    // Two hit areas side by side, never overlapping: the text (tap = edit) and, at the end, the
+    // download ring while something downloads (tap = Downloads), else the translate icon.
+    val ring = download != null || downloadDone
+    val translateIcon = translate && !ring
     Box(
         modifier
             .height(BarTokens.FieldHeight)
@@ -300,12 +312,53 @@ private fun AddressField(
         Box(
             Modifier
                 .fillMaxSize()
-                .padding(end = if (download != null || downloadDone) BarTokens.IconTouch - BarTokens.FieldPadding else 0.dp)
+                .padding(end = if (ring || translateIcon) BarTokens.IconTouch - BarTokens.FieldPadding else 0.dp)
                 .cleanTap(onTap = onClick)
                 .padding(horizontal = BarTokens.FieldPadding),
             contentAlignment = Alignment.Center,
         ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, { spaceMode.value }, private, flip) }
-        if (download != null || downloadDone) DownloadRing(download, downloadDone, onDownloads, Modifier.align(Alignment.CenterEnd))
+        if (ring) DownloadRing(download, downloadDone, onDownloads, Modifier.align(Alignment.CenterEnd))
+        TranslateIcon(translateIcon, onTranslate, Modifier.align(Alignment.CenterEnd))
+    }
+}
+
+/**
+ * The translate icon at the end of the pill: it pops in (a small spring scale and a fade, layer
+ * only) when the page is in a language that isn't on the phone, and out again; a tap opens the
+ * translation card.
+ */
+@Composable
+private fun TranslateIcon(shown: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    val view = LocalView.current
+    val instant = rememberAnimationsOff()
+    val t = remember { Animatable(if (shown) 1f else 0f) }
+    LaunchedEffect(shown) {
+        val goal = if (shown) 1f else 0f
+        if (instant) t.snapTo(goal) else t.animateTo(goal, if (shown) BarTokens.TranslateIn else tween(BarTokens.TRANSLATE_OUT_MS))
+    }
+    val visible by remember { derivedStateOf { t.value > 0.01f } }
+    if (!visible && !shown) return
+    Box(
+        modifier
+            .size(BarTokens.IconTouch)
+            .clip(CircleShape)
+            .then(if (shown) Modifier.cleanTap { KoanHaptics.tick(view); onClick() } else Modifier)
+            .semantics { contentDescription = "Translate page" },
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.material3.Icon(
+            KoanIcons.Translate,
+            contentDescription = null,
+            tint = KoanTheme.colors.TextSecondary,
+            modifier = Modifier
+                .size(BarTokens.TranslateIcon)
+                .graphicsLayer {
+                    val v = t.value
+                    alpha = v.coerceIn(0f, 1f)
+                    scaleX = 0.6f + 0.4f * v
+                    scaleY = 0.6f + 0.4f * v
+                },
+        )
     }
 }
 
