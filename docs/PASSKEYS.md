@@ -6,6 +6,20 @@ on supported devices. Koan does not store passkeys, handle vault keys, or implem
 authenticator. Website origins, RP IDs, challenges and client-data hashes stay in the native
 Gecko/Android/provider path.
 
+## Unresolved provider regression
+
+A preview user reports that 1Password requires the account password when invoked from Koan
+for both password Autofill and explicit passkey use, while biometric unlock still works in
+Edge and in the standalone 1Password app. This is a reported Koan-specific interoperability
+failure, not evidence that device-wide biometrics have been invalidated. Root cause and the
+first affected preview are not established; it must not be labeled a provider-allowlist effect
+without further evidence.
+
+The synthetic provider tests below do not exercise 1Password's real biometric unlock. Their
+passing results do not establish daily-use compatibility for this configuration. Further
+preview releases are on hold while this is investigated. Do not weaken password-manager
+security settings, reset fingerprints, clear a real vault, or spoof a trusted browser as a fix.
+
 ## Browser integration
 
 - The manifest declares `CREDENTIAL_MANAGER_SET_ORIGIN` and

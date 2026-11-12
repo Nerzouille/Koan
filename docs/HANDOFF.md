@@ -59,6 +59,12 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and the audit branches
 (`audit-fixes`, `audit-docs`, `geckoview-160`) are merged and deleted.
 
+**Passkey preview hold (2026-11-12):** a user reports that invoking 1Password from Koan forces
+account-password unlock for both Autofill and passkeys, although Edge and 1Password itself
+still support biometrics. Root cause and first affected build are unknown. Do not issue a new
+"fixed" preview or count synthetic provider results as real biometric acceptance. Investigate
+this interoperability failure before further passkey polish; see `docs/PASSKEYS.md`.
+
 ## Two-way sync (M6), as it runs
 
 - Switches in Settings › Mozilla account › Send to your Mozilla account: **Passwords saved on this

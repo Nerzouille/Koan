@@ -4,6 +4,11 @@ Reviewed 2026-11-12. The goal is a quiet, reliable native sign-in flow inside Ko
 interface. This compares source and contracts; it is not a claim of feature parity with Chrome,
 Firefox desktop or every credential provider.
 
+**Unresolved acceptance failure:** a preview user reports password-only 1Password unlock from
+Koan for both Autofill and passkeys, while biometric unlock works in Edge and the 1Password
+app. No root cause is confirmed. The simulated unlock handoff is not a biometric acceptance
+test and cannot overrule that report. See [the current investigation](PASSKEYS.md#unresolved-provider-regression).
+
 ## Reference implementations
 
 - Chromium, pinned at [`ccae90050393f05866c2e9eff21c33a1ad1a9aa7`](https://github.com/chromium/chromium/tree/ccae90050393f05866c2e9eff21c33a1ad1a9aa7/components/webauthn/android).
