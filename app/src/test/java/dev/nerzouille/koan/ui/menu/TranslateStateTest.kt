@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.menu
 
+import mozilla.components.concept.engine.translate.TranslationPair
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -22,5 +23,14 @@ class TranslateStateTest {
     @Test fun `before Gecko said anything, the flags decide`() {
         assertEquals(true, translatedNow(isTranslated = true, hasPair = null))
         assertEquals(true, workingNow(isTranslated = false, hasPair = null, translating = true, restoring = false))
+    }
+
+    @Test fun `the empty pair Android Components sends for an untranslated page is no pair`() {
+        assertEquals(false, hasPair(TranslationPair(null, null)))
+        assertEquals(false, hasPair(TranslationPair("fr", null)))
+        assertEquals(false, hasPair(null))
+        assertEquals(true, hasPair(TranslationPair("fr", "en")))
+        // So an untranslated French page reads as not translated, and Translate can run.
+        assertEquals(false, translatedNow(isTranslated = false, hasPair = hasPair(TranslationPair(null, null))))
     }
 }
