@@ -493,3 +493,55 @@ email).
   back with `adb -s <poco> shell settings put global stay_on_while_plugged_in 0`. `adb reverse
   tcp:8765` is set, and a local demo server is running on this machine.
 - Xiaomi: untouched (night mode auto, show taps off, DND off).
+
+## Morning session (2026-11-12, 10:55–12:50, owner present)
+
+### POCO (owner tapping Install)
+- **Why the night's installs failed:** Gradle's installer is cancelled at once by MIUI; a plain
+  `adb install` waits for the owner's tap. Updates of a package already on the phone go through
+  without a prompt. The generator was then run by hand (`am instrument`, `targetAppId=…​.bp`).
+- **Baseline profile:** the first run gave R8-renamed classes: AGP 9's `optimization {}` block
+  stays on in the plugin's `nonMinified…` types (the plugin only turns off `isMinifyEnabled`).
+  Fixed with `androidComponents.finalizeDsl` in `app/build.gradle.kts`. Second run: 28,469
+  rules, 5,303 on Koan's own classes, nothing personal (class and method rules only). Committed
+  in `app/src/main/generated/baselineProfiles/` (5a6815b). APK +0.4 MB.
+- **Perf A/B** (staging copies, interleaved A/B/A/B, thermal 0 throughout; A = no app profile,
+  B = with it):
+  - cold start just after install: A 292 / 319 ms, B 273 / 300 ms (about −6 %);
+  - after `compile -m speed-profile`: cold start A 259 / 274, B 251 / 258 ms, with a tighter
+    max (263 / 301 against 310 / 321); warm start the same;
+  - page ↔ overview ("open"): janky A 5.6 / 7.0 %, B 3.2 / 5.0 %, p90 15 / 19 → 13 / 15 ms;
+  - dock, drawer, stack scroll, space switch: within noise (one B round had a space p90 of 19 ms,
+    the other 12 ms).
+  Small but consistent; the profile stays.
+- **Staging R8 copy with the fixes** installed over staging 0.4.0: What's new "1.0" shown once
+  (4 cards checked), "See the full changelog" opens the tag page (404 until published), launch,
+  kill in the background and restore on the same tab without a crash, What's new not shown again.
+  Release step 5 done on the POCO.
+
+### Xiaomi (dev build over the real app, ~15 min)
+- The owner allowed the space excluded at night in captures this morning (real tab titles still stay out of README
+  images).
+- **Bug found and fixed: stuck on the start page after What's new.** The start page closed only
+  through `LaunchedEffect(editing)`; on the first launch after the update the start page opened
+  and What's new closed the field in the same frame, so the effect never fired and the start page
+  stayed until a restart. Closing the field now clears it in `RootState`'s setter (cb65dd4,
+  `RootStateEditingTest`).
+- **Bug found and fixed: "Translated · show original" on every page, Translate did nothing.**
+  Android Components 160 always builds a `TranslationPair`, with null languages on a page that
+  isn't translated; Koan counted any pair (c4c6b11, `TranslateStateTest`). Checked on the POCO
+  staging copy: a French demo page translates.
+- **Not reproduced:** a page video's full-screen button didn't open the player on the Xiaomi; the
+  same page and button work on the POCO. Owner to try a real video on the Xiaomi.
+- **Captured** (raw, `reference/captures-1.0.0-beta.1/`, all checked): the tab stack, a page and
+  the ⋯ menu in light and dark (demo tabs only), the translation offer card, and (POCO) a
+  translated page. **Not done:** Private (FLAG_SECURE: needs the dev switch in Settings ›
+  Privacy), the player, search (HyperOS blocks `adb input text`), Settings, the two recordings.
+- Minor: the stack keeps a stale card preview after a theme change until the tab is opened.
+- The owner unplugged the Xiaomi before its settings were put back: night mode (left on light,
+  was auto), DND (left on), SystemUI demo mode (left on). The owner restores them by hand.
+
+### Owner request: the translation offer on every French page
+The offer shows for any page whose language isn't the phone's first language. Proposed (waiting
+for the owner): never offer a language from the phone's language list, and an "Offer
+translations" switch in Settings › Translation. Meanwhile "Never for French" on the card.
