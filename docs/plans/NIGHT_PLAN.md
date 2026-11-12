@@ -621,3 +621,21 @@ translations" switch in Settings › Translation. Meanwhile "Never for French" o
 4. A French page (French on the phone): no icon, no card.
 5. Settings › Translation › Offer to translate pages off: no icon, no card anywhere; ⋯ › Translate
    page still works.
+
+## Depth dim (2026-11-12, late)
+
+- Owner: back cards no longer dimmer with depth. Measured on the POCO's R8 copy before the fix: at
+  depths 1–3 the dim matched v0.4.0 in both themes (headers 254 → 253 → 244, a white page at depth
+  1 → 253 in light; 255 → 215 in dark), so batch 4 group B's layer-alpha dim (262cb38) draws
+  right. What did change: the caps, lowered with Private mode (046922e) to Private's spec values
+  for every palette (light 0.85 → 0.60, dark 1.0 → 0.80), which flattens the light haze from depth
+  4 on. Restored to v0.4.0's (0.85 / 1.0) for the normal palettes and Private (3eafc66); one
+  mapping `DepthCurve.cardDim` / `cardHeaderDim` for cards, headers and ghosts; `DepthDimTest`
+  pins v0.4.0's table and "darker further back". Group B's no-recomposition fix kept.
+- Checked on the POCO R8 copy with solid-colour demo pages: the depth-1 card (teal 12,133,153)
+  reads 58,155,171 in light (expected 59,155,172) and 10,111,128 in dark (expected 10,112,129).
+  Side by side with v0.4.0: `reference/captures-1.0.0-beta.1/depth-dim-vs-0.4.0.png`.
+- ROADMAP › For 1.0.0-beta.2: a real blur on the deeper cards (RenderEffect, Android 12+), measured
+  before it's kept.
+- **Recheck (owner):** if the stack still looks flat on the phone where it was seen, say which phone
+  and theme: on the POCO the dim is right at every depth.
