@@ -1254,8 +1254,8 @@ Downloads and the ⋯ sheet keep the normal palette (`KoanNormalTheme`).
 
 **Toggle** (`PrivateTokens`): 56×48 touch, 56×32 track (radius 16), 26dp white knob at x 3 → 27dp,
 mask 17dp inside. Track off `#86868B` / `#636366`, on `#4B3FD6` / `#7B6CF0`; mask off `#6E6E73` /
-`#636366`, on `#2E2399` / `#3A2FB8`. `Role.Switch`, "Private browsing". `CLOCK_TICK` on tap; taps
-ignored during the flip. (The other toggles keep `ToggleOff` `#848489` / `#8E8E93`: the spec's
+`#636366`, on `#2E2399` / `#3A2FB8`. `Role.Switch`, "Private browsing". `CLOCK_TICK` on tap; every
+tap acts, mid-flip too (its place stays a tap target while the headers slide). (The other toggles keep `ToggleOff` `#848489` / `#8E8E93`: the spec's
 `#636366` would be 2.2:1 on a dark grouped row, under the 3:1 rule.)
 
 **Header:** back · "Private" 20sp Bold · 10dp · "Not saved" chip (24dp, radius 12, padding 10,
@@ -1275,9 +1275,13 @@ per install. Static at rest.
 is one more page beside the space you were on, and a flip is the space pager's own motion between
 the two (`Motion.PagerSettle`, page + 40dp gap, same parallax and fade): into Private from the
 right, back to normal from the left. The overview gets both modes' models; during a flip it draws
-only those two pages, each in its own palette, and the normal one stays composed while Private
-shows (nothing composes on the way back). The tabs switch first and the slide waits for two quick
-frames (at most 12) while the incoming page composes off screen. Private's base colour (72dp soft
+only those two pages, each in its own palette. Both stay ready: the normal one stays composed
+while Private shows, and Private's page is composed off screen once the overview has settled, so
+nothing composes when a flip starts. The screen is one position (0 normal … 1 Private) on the
+pager's spring (damping 0.86, stiffness 300), advanced at most 20 ms per frame (a slow frame
+slows it, never skips it). A toggle mid-flip turns it around from where it is, speed kept; the
+screen always ends on the latest state. The tabs switch at the tap. Locked: the knob moves at
+once, the fingerprint is asked, the screen follows (the knob goes back if it's refused). Private's base colour (72dp soft
 edge) and its sky travel with its page; entering, stars and sparkles appear right to left (from
 140ms, spread 700ms, 480ms each, small twinkle). Knob 200ms. Dock: colour crossfades with the slide;
 its texts dip out and back in around 35% of it, where they switch. Reduced motion: a 150ms slide,

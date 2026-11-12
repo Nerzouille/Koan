@@ -134,7 +134,7 @@ Private palettes use their own hairline (§5.1).
 | Mask on | `#2E2399` | `#3A2FB8` |
 
 - Semantics: `Role.Switch`, contentDescription "Private browsing", stateDescription on/off.
-- Tap: `CLOCK_TICK` haptic, run the transition (§6). Taps are ignored while a transition runs (760ms).
+- Tap: `CLOCK_TICK` haptic, run the transition (§6). Taps are ignored while a transition runs (760ms). *(Replaced 2026-11-12: every tap acts and turns the flip around, see `docs/DESIGN_SYSTEM.md` › Private.)*
 
 ### 4.3 Private header
 - Back 44 · "Private" 20sp Bold `TextPrimary` · 10dp · **"Not saved" chip** · toggle (on), right.

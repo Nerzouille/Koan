@@ -87,6 +87,11 @@
 - After an update, Koan no longer stays stuck on the start page when What's new and the start
   page come up together.
 - The ⋯ menu no longer says a page is translated when it isn't, and Translate works on it.
+- **Private's switch always reacts**, even mid-transition (it ignored taps for over a second):
+  the slide turns around from where it is and ends on your last tap. The slide no longer skips to
+  the end, and coming back from Private no longer shows blank cards first.
+- Leaving or entering a full-screen video checks that Koan's layout follows the rotation, and
+  repairs it if it stayed at the old size.
 - The translation card no longer shows on pages in a language set on your phone (any of them,
   not only the first), and Settings › Translation can turn it off.
 - Private downloads no longer show in normal mode (list, ring, menu count, toast); Private has a
