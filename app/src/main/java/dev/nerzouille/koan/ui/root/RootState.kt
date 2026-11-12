@@ -25,7 +25,7 @@ class RootState internal constructor(
     currentSpace: MutableIntState,
     currentSpaceUuid: MutableState<String?>,
     overviewOpen: MutableState<Boolean>,
-    editing: MutableState<Boolean>,
+    private val editingState: MutableState<Boolean>,
     landing: MutableState<String?>,
     startPage: MutableState<Boolean>,
     overviewSettled: MutableState<Boolean>,
@@ -40,7 +40,17 @@ class RootState internal constructor(
     var currentSpace by currentSpace
     var currentSpaceUuid by currentSpaceUuid
     var overviewOpen by overviewOpen
-    var editing by editing
+    /**
+     * The address field is open. The start page goes with it: closing the field leaves the start
+     * page in the same step (an effect keyed on the field missed a close that came in the same
+     * frame as the opening, and the start page stayed up for good).
+     */
+    var editing: Boolean
+        get() = editingState.value
+        set(value) {
+            editingState.value = value
+            if (!value) startPage = false
+        }
     var landing by landing
     var startPage by startPage
     var overviewSettled by overviewSettled
