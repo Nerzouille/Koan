@@ -93,8 +93,6 @@
   the end, and coming back from Private no longer shows blank cards first.
 - Leaving or entering a full-screen video checks that Koan's layout follows the rotation, and
   repairs it within about 2 s if it stayed at the old size.
-- **Cards further back in the tab stack dim with depth as in 0.4.0 again**, in both themes and in
-  Private (since Private mode the far cards had stayed too light).
 - **Translation is offered quietly:** a small icon in the address bar on pages in a language that
   isn't on your phone (any of your phone's languages counts), and the card opens by itself only
   on real articles, never on search results; closed on a site, it waits until Koan restarts.

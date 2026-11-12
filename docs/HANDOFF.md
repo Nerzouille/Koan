@@ -24,6 +24,9 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   (their clips showed real data; re-recording is a beta.2 item), CHANGELOG / FEATURES brought up
   to date (translation icon, Private switch, rotation safety net, depth caps). Release notes and
   the Discord post in `reference/` wait for the owner's approval. Local commits not pushed.
+  ⋯ menu shots retaken with the dev build (no translation state). APK size everywhere in decimal
+  MB (10⁶ bytes) from the R8 release build: 216,873,798 bytes = about 217 MB (GitHub's asset list
+  shows binary units, ~207). Depth stays out of the release notes (a beta.2 item).
   Next: owner's approvals, the phone recheck list, push, then release steps 6–7.
   beta.2 list: ROADMAP › For 1.0.0-beta.2 (depth cue A/B/C and the blur, the player's Rotate row,
   the Download video quality choice, tour clips 2 and 5).

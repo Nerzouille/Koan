@@ -65,7 +65,7 @@ Everything, screen by screen: [`docs/FEATURES.md`](docs/FEATURES.md).
 ## Install
 
 1. Download the APK from the [Releases page](https://github.com/Nerzouille/Koan/releases)
-   (`koan-vX.Y.Z.apk`, about 209 MB) and open it. Android asks you to allow installs from your
+   (`koan-vX.Y.Z.apk`, about 217 MB) and open it. Android asks you to allow installs from your
    browser or file manager the first time.
 2. Optional: check the file against the SHA-256 in the release notes:
    `sha256sum koan-vX.Y.Z.apk`.

@@ -17,14 +17,14 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 - Requirements: Android 11 or newer (tested on Android 14 and 17; 11–13 are supported but less tested),
   a 64-bit ARM phone (arm64-v8a). Other CPUs are not built. Below Android 12 the drawer dims
   what's behind it instead of blurring it; phones with less memory keep fewer tabs live.
-- Download `koan-vX.Y.Z.apk` (about 209 MB) from the GitHub release and open it. Android asks you to allow
+- Download `koan-vX.Y.Z.apk` (about 217 MB) from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
 - **Updates:** install with [Obtainium](https://github.com/ImranR98/Obtainium) from the GitHub
   releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you; turn
   on its **Include prereleases** option to get betas such as 1.0.0-beta.1.
   Otherwise Settings › About checks once when you open it.
 - Installing over a previous Koan version keeps your tabs, spaces, logins and settings.
-- The APK is about 209 MB. See [Known limitations](#13-known-limitations).
+- The APK is about 217 MB. See [Known limitations](#13-known-limitations).
 
 ### First run
 
@@ -157,8 +157,7 @@ the last run shows under each switch.
 
 - Open it: swipe up on the dock in a page, or tap the tab count.
 - **The depth stack:** your tabs as cards, newest at the bottom (closest to your thumb), older ones
-  shrinking into a pile above, each one a little dimmer the further back it sits. The overview
-  opens centred on your current tab.
+  shrinking into a pile above. The overview opens centred on your current tab.
 - **Scroll:** drag up and down in the card area; flings coast.
 - **Open a tab:** tap the card in front. Tap a card in the pile or the one peeking below to bring it
   to the front.
@@ -713,7 +712,7 @@ offered the next beta and the final release; on a final release, only final rele
   GeckoView update should help).
 - **Old WebView warning on sign-in:** shown when Android System WebView is older than 92 (it can't
   load Mozilla's sign-in page), with a Play Store button; not yet tested on such a phone.
-- **APK size (~209 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
+- **APK size (~217 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
