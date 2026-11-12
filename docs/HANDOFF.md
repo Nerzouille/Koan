@@ -19,6 +19,14 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   (`ui/browser/TranslateCue.kt`); APK size explained (nothing by mistake).
   Late: depth dim caps back to v0.4.0 (`DepthDimTest`); a depth-cue proposal for beta.2 is
   prototyped on the local branch `depth-cue-proto` only (ROADMAP › For 1.0.0-beta.2).
+  Final prep (2026-11-12, night): README images in `docs/media/` (1080 wide, from the Xiaomi
+  captures, demo pages only; `docs/screenshots/` removed), tour cards 2 and 5 are text + icon
+  (their clips showed real data; re-recording is a beta.2 item), CHANGELOG / FEATURES brought up
+  to date (translation icon, Private switch, rotation safety net, depth caps). Release notes and
+  the Discord post in `reference/` wait for the owner's approval. Local commits not pushed.
+  Next: owner's approvals, the phone recheck list, push, then release steps 6–7.
+  beta.2 list: ROADMAP › For 1.0.0-beta.2 (depth cue A/B/C and the blur, the player's Rotate row,
+  the Download video quality choice, tour clips 2 and 5).
   1.0.0-beta.1 replaces the planned 0.5; versionCode 10.
 
 - **Latest release: v0.4.0** ("Koan 0.4 (beta)"), tagged on `main` at `d4f3a2e`, published on
@@ -56,7 +64,7 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   346 JVM tests green on `dev`. Still worth watching: F2 / F4 on the Xiaomi (only the POCO was
   used), the buffering-spinner case of the play button (fixed in code, not seen on the phone),
   F10's sealed file (`files/private/bookmarks.sealed`, Keystore alias `koan_private_bookmarks`).
-  After the release: the download quality choice (`docs/ROADMAP.md` "Video player follow-ups").
+  For beta.2: the Rotate row and the download quality choice (`docs/ROADMAP.md` "For 1.0.0-beta.2").
 - Engine: android-components **160.0** / GeckoView **160.0.20261104181552**
   (`gradle/libs.versions.toml`, the two versions move together), compileSdk **37.2** (AC 160
   requires it). Bump notes: ARCHITECTURE "Bumping android-components + GeckoView". Tested on the
@@ -195,7 +203,8 @@ each group (launch + kill + restore checked).
 
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
-| `release-prep` | dev | v1.0.0-beta.1 prep: batch 5 tests, CI, baseline profile module, update check, README, release docs. | Pushed; not merged |
+| `release-prep` | dev | v1.0.0-beta.1 prep: batch 5 tests, CI, baseline profile module, update check, README, release docs, the 2026-11-12 fixes. | Pushed up to 8b29879 (draft PR #3); later commits local only; not merged |
+| `depth-cue-proto` | release-prep | Depth-cue prototype A/B/C (31e6f5d), switched by `debug.koan.depthcue`. | Local only, **not for release** |
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3, batch 4 and the fixes list merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |

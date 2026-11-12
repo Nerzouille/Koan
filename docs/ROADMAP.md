@@ -9,7 +9,7 @@ and M7 move forward in parallel, one item or batch at a time on its own branch f
 M7. Browser essentials come before the motion polish, so Koan can become the daily browser sooner.
 Milestone numbers are kept as they are.
 
-## Status (2026-11-11)
+## Status (2026-11-12)
 
 Latest release **v0.4.0** (pre-release, 2026-10-30). Branches and how to build/test/release:
 `docs/HANDOFF.md`.
@@ -110,6 +110,21 @@ losing data, and the owner has approved and published the release.
   colour demo pages in front. Pick one (or a mix: A + B) before building it for real, then measure
   with `tools/perf` like the blur.
 
+- **Rotate row in the player's ⋯ menu** (on top of the rotate pill): a "Rotate" row that turns
+  full screen to the other shape (portrait ↔ landscape) at any time, not only during the pill's
+  3 s after the phone turns. Same switch as the pill (`PlayerHost.fullscreenRotated`); the
+  standalone player needs the same. With auto-rotate on it isn't needed (the screen follows the
+  phone): hide it there or keep it, the owner's call.
+- **Quality choice for Download video:** when the page offers several files of the same video
+  (Wikimedia Commons: 240p … 1080p renditions and the 2.8 GB original), let the owner pick one
+  (a short list in the ⋯ menu, with sizes when the page or a HEAD request gives them) instead of
+  always taking the original or the largest rendition. Starts in the video extension's
+  `fileSource` (`assets/extensions/video/content.js`), which then reports every candidate, not
+  just the best one.
+- **Tour cards 2 and 5, clips again:** re-record "Your Zen Spaces" and "Hold and slide to change
+  space" with demo spaces only (no real space, folder or tab names), then put the clips back in
+  `TourContent.kt` (text + icon since beta.1).
+
 ### Batch 4 leftovers (after the release)
 
 From the batch 4 refactoring (`docs/plans/BATCH4_PLAN.md`, branch `refactor`), left for after the
@@ -123,18 +138,6 @@ From the batch 4 refactoring (`docs/plans/BATCH4_PLAN.md`, branch `refactor`), l
   `IconStore`'s; measure `dumpsys meminfo` before / after.
 - **G3, tokens (only if wanted):** a spacing scale, kit-level tokens, then `Tokens.kt` split by
   feature (a pure move, last).
-
-### Video player follow-ups (after the release)
-
-From the fixes list's second round (`docs/plans/FIXES_CHECKS.md` "Recheck"), left for after the
-0.5 release (the "Rotate" idea became the rotate pill, built on `fixes`):
-
-- **Quality choice for Download video:** when the page offers several files of the same video
-  (Wikimedia Commons: 240p … 1080p renditions and the 2.8 GB original), let the owner pick one
-  (a short list in the ⋯ menu, with sizes when the page or a HEAD request gives them) instead of
-  always taking the original or the largest rendition. Starts in the video extension's
-  `fileSource` (`assets/extensions/video/content.js`), which then reports every candidate, not
-  just the best one.
 
 ### Open items after v0.2.0 (not scheduled yet)
 - **Search backdrop retry:** the old dim plus a subtle blur behind the suggestion cards only (also

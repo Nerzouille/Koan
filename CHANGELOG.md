@@ -38,8 +38,9 @@
   and pages you remove). Editing and deleting your account's passwords has its own switch, off by
   default. Before its first change, Koan keeps an encrypted copy of what your account had; any
   surprise stops it and turns the switch off. Spaces, tabs and bookmarks are never written.
-- **Translate pages on the phone** (Firefox Translations, nothing sent anywhere): an offer card on a
-  page in another language, ⋯ › **Translate page** (From / To with search, Recent and On this phone,
+- **Translate pages on the phone** (Firefox Translations, nothing sent anywhere): a translate icon in
+  the address bar on a page in another language (the offer card opens by itself only on articles),
+  ⋯ › **Translate page** (From / To with search, Recent and On this phone,
   Show original), **Always translate** a language, and **Settings › Translation** for your Always
   and Never lists and the languages on the phone.
 - **"Open in app" asks first:** a page's "Open app" button shows a card with the app's name and
@@ -91,7 +92,9 @@
   the slide turns around from where it is and ends on your last tap. The slide no longer skips to
   the end, and coming back from Private no longer shows blank cards first.
 - Leaving or entering a full-screen video checks that Koan's layout follows the rotation, and
-  repairs it if it stayed at the old size.
+  repairs it within about 2 s if it stayed at the old size.
+- **Cards further back in the tab stack dim with depth as in 0.4.0 again**, in both themes and in
+  Private (since Private mode the far cards had stayed too light).
 - **Translation is offered quietly:** a small icon in the address bar on pages in a language that
   isn't on your phone (any of your phone's languages counts), and the card opens by itself only
   on real articles, never on search results; closed on a site, it waits until Koan restarts.

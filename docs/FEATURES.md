@@ -29,8 +29,9 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 ### First run
 
 - **The tour:** the first time Koan opens, a short tour slides up: a welcome card, then six
-  cards with a looping clip each (your Zen Spaces, swiping up for your tabs, swiping sideways to
-  switch tabs, holding the bar to change space, `@` search shortcuts, long presses). Swipe or tap
+  cards (your Zen Spaces, swiping up for your tabs, swiping sideways to switch tabs, holding the
+  bar to change space, `@` search shortcuts, long presses), each with a looping clip except the
+  Spaces and change-space cards, which show an icon. Swipe or tap
   **Next**; **Skip** or a swipe down on the sheet closes it, Back goes to the previous card. It
   shows once (also after updating from 0.2.x), and not when a link from another app opens Koan.
   Replay it from **Settings › About Koan › Take the tour**.
@@ -156,7 +157,8 @@ the last run shows under each switch.
 
 - Open it: swipe up on the dock in a page, or tap the tab count.
 - **The depth stack:** your tabs as cards, newest at the bottom (closest to your thumb), older ones
-  shrinking into a pile above. The overview opens centred on your current tab.
+  shrinking into a pile above, each one a little dimmer the further back it sits. The overview
+  opens centred on your current tab.
 - **Scroll:** drag up and down in the card area; flings coast.
 - **Open a tab:** tap the card in front. Tap a card in the pile or the one peeking below to bring it
   to the front.
@@ -469,7 +471,8 @@ video's orientation (a landscape video flips by itself between the two landscape
 you turn the phone to the other shape a small rotate button shows for about 3 s where the
 full-screen button is (above the bottom bar while the controls show): tap it to turn the player,
 or leave it and nothing changes.
-The screen stays black while it turns. Swipe from an edge to see the system bars for a moment: swipes that start on
+The screen stays black while it turns. If Koan's layout ever stays at the old size after a turn,
+or after leaving full screen, it notices and fixes itself within about 2 seconds. Swipe from an edge to see the system bars for a moment: swipes that start on
 the top or bottom edge (the notification shade, going home) never move brightness, volume or the
 timeline. Leaving Private, or Private locking, takes a private video out of full screen. Koan's own player then takes over from the site's controls: see
 [Video player](#video-player). YouTube keeps its own controls.
@@ -727,7 +730,8 @@ offered the next beta and the final release; on a final release, only final rele
 **Turn it on:** the switch at the right of the overview's header. The overview turns lavender
 (light theme) or deep violet (dark theme), with a few stars; the header says **Private · Not
 saved**, and the dock shows a **Private** pill instead of your spaces. Turn the switch off to go
-back to your spaces: the private tabs stay where they are.
+back to your spaces: the private tabs stay where they are. The switch answers every tap, even
+in the middle of the slide: it turns around from where it is and ends on your last tap.
 
 **Private tabs are one set, apart from your spaces.** They stay open until you close them, also
 after Koan is closed, killed by the system or the phone restarts. **But sites sign you out when
