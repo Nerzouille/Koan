@@ -2610,7 +2610,7 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 **Card data** (`ui/tour/TourContent.kt`): title, line, dark/light MP4 (`res/raw`), framing (`Screen` = aspect **720/1478** (`SCREEN_CLIP_ASPECT`) or `Focus` = fill the slot), `welcome`, optional `icon`, dark/light still (`res/drawable-nodpi`), optional `scene` (`TourScene.SignIn`).
 
 **Anatomy** (`ui/tour/TourOverlay.kt`), centred column:
-1. (Text-only card with an `icon`: icon tile **96dp** (`TourTokens.IconTile`), radius **28dp** (`TourTokens.IconTileRadius`), `GroupedRow`, glyph **44dp** (`TourTokens.IconGlyph`) `TextPrimary`, then 24dp (Gap·1.5); content vertically centred. No current card uses this path: every card in `TourCards` and `Highlights` has a clip, still or scene, `TourContent.kt`.)
+1. (Text-only card with an `icon`: icon tile **96dp** (`TourTokens.IconTile`), radius **28dp** (`TourTokens.IconTileRadius`), `GroupedRow`, glyph **44dp** (`TourTokens.IconGlyph`) `TextPrimary`, then 24dp (Gap·1.5); content vertically centred. Used by tour cards 2 and 5 (`KoanIcons.Desktop`, `KoanIcons.SlideSideways`: their clips showed real data) and by every What's new "1.0" card, `TourContent.kt`.)
 2. Title **22sp** Bold centred `TextPrimary` (`TitleSize`), horizontal padding 24dp.
 3. **6dp** (`TitleGap`); line **15sp** `TextSecondary` centred (`LineSize`), `minLines = 2` so frames line up across cards.
 4. 16dp; frame slot: **90%** of the width (`FRAME_WIDTH`), all the height left; frame sized to the clip's aspect (plus bezels) or the whole slot for Focus; then **10dp** (FrameShadow/2).
@@ -2620,7 +2620,7 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 
 **TourVideo** (`ui/tour/TourVideo.kt`): muted, looping MP4 via MediaPlayer on a TextureView, centre-crop to cover; view alpha 0 until the first rendered frame, then fades to 1 in **150ms** (`FADE_MS`); decoded only while composed. Stills: `Image` with `ContentScale.Crop`, top-centre aligned (`TourOverlay.kt`).
 
-**Clips in the app** (`TourContent.kt`, files `app/src/main/res/raw/*_{dark,light}.mp4`): tour_spaces (Focus), tour_stack (Screen), tour_tabs (Focus), tour_scrub (Focus), tour_search (Screen), tour_holds (Focus); What's new 0.4: SignIn scene (Focus), whatsnew_search (Screen), whatsnew_reopen (Screen), whatsnew_engines still (Screen). The dark/light variant follows Koan's theme (`TourOverlay.kt`).
+**Clips in the app** (`TourContent.kt`, files `app/src/main/res/raw/*_{dark,light}.mp4`): tour_stack (Screen), tour_tabs (Focus), tour_search (Screen), tour_holds (Focus) (cards 2 and 5 are text + icon until re-recorded with demo spaces); What's new 0.4: SignIn scene (Focus), whatsnew_search (Screen), whatsnew_reopen (Screen), whatsnew_engines still (Screen). The dark/light variant follows Koan's theme (`TourOverlay.kt`).
 
 **Tour card list** (`TourContent.kt`): 1 Welcome to Koan / Your Zen Spaces, in your pocket. (welcome) · 2 Your Zen Spaces, on your phone · 3 Swipe up for your tabs · 4 Swipe sideways to switch tabs · 5 Hold and slide to change space · 6 Search shortcuts · 7 Long presses.
 

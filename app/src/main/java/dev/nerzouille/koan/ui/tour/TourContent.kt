@@ -55,13 +55,16 @@ sealed interface TourSheet {
     }
 }
 
-/** The first-run tour (also replayed from About). */
+/**
+ * The first-run tour (also replayed from About). Cards 2 and 5 are text + icon: their clips showed
+ * real spaces and tabs, and need re-recording with demo spaces.
+ */
 val TourCards: List<TourCard> = listOf(
     TourCard("Welcome to Koan", "Your Zen Spaces, in your pocket.", welcome = true),
     TourCard(
         "Your Zen Spaces, on your phone",
         "Synced from your Mozilla account, read-only: Zen on your computer stays as it is.",
-        R.raw.tour_spaces_dark, R.raw.tour_spaces_light,
+        icon = KoanIcons.Desktop,
     ),
     TourCard(
         "Swipe up for your tabs",
@@ -77,7 +80,7 @@ val TourCards: List<TourCard> = listOf(
     TourCard(
         "Hold and slide to change space",
         "Hold the bar, then slide left or right through your spaces.",
-        R.raw.tour_scrub_dark, R.raw.tour_scrub_light,
+        icon = KoanIcons.SlideSideways,
     ),
     TourCard(
         "Search shortcuts",
@@ -134,7 +137,7 @@ val Highlights: Map<String, List<TourCard>> = mapOf(
         ),
         TourCard(
             "Translate a page",
-            "⋯ › Translate page, or the card that offers it: pages are translated on the phone, their text never leaves it.",
+            "Tap the translate icon in the address bar, or ⋯ › Translate page: pages are translated on the phone, their text never leaves it.",
             icon = KoanIcons.Translate,
         ),
         TourCard(
