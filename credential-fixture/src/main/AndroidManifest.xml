@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <queries><intent><action android:name="android.support.customtabs.action.CustomTabsService" /></intent></queries>
     <application android:label="Koan test credentials" android:icon="@android:drawable/ic_lock_lock">
+        <activity android:name="dev.nerzouille.koan.auth.testing.BiometricControlFixture" android:exported="true" />
+        <activity android:name="dev.nerzouille.koan.auth.testing.TestAutofillAuthActivity" android:exported="false"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
         <service android:name="dev.nerzouille.koan.auth.testing.TestAutofillService"
             android:exported="true" android:permission="android.permission.BIND_AUTOFILL_SERVICE">
             <intent-filter><action android:name="android.service.autofill.AutofillService" /></intent-filter>

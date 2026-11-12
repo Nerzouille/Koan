@@ -3,7 +3,8 @@
 These tests contain only synthetic accounts for `http://localhost:8786`. Never install the
 fixture credential provider on a daily phone or select it for a real vault. It is a P-256
 transport/signature fixture, not a secure authenticator: its private key lives in fixture
-preferences and it reports UV without performing biometric verification.
+preferences. By default it reports UV without performing biometric verification; the opt-in
+mode below gates responses behind Android's BiometricPrompt and a per-use Keystore key.
 
 Use a separate Android 14+ ARM64 emulator named **Koan_Passkey_Test**, with no accounts. Set a
 synthetic device PIN on that AVD so Android reports a secure lock; keep the screen unlocked.
@@ -49,8 +50,36 @@ The website requires `NotAllowedError` for user dismissal and `AbortError` for a
 signal; accepting either error would hide a browser classification regression.
 The fixture filters requested credential IDs. A nonmatching ID must fail promptly, and a
 special synthetic challenge first exposes only an authentication action: the UI driver unlocks
-the fake vault, selects the returned credential and verifies its signature. This simulates the
-supplier handoff, not real vault unlocking or biometric user verification.
+the fake vault, selects the returned credential and verifies its signature. Without `--biometric`,
+this simulates the supplier handoff without vault unlocking or biometric user verification.
+
+## Optional platform biometric gate
+
+On the same disposable AVD, enroll emulator fingerprint **1** through Android Settings using
+a synthetic device PIN. Then run the installed browser APK without rebuilding it:
+
+```sh
+python3 tools/passkey-test/run.py --serial emulator-5564 \
+  --browser dev.nerzouille.koan.staging --biometric
+```
+
+Only the separate fixture app changes in this mode. Both credential-provider Activities
+(including the authentication-action handoff) and Autofill's authentication Activity wait
+until resumed, show Android's strong BiometricPrompt with a CryptoObject, and complete a
+per-use authenticated AndroidKeyStore AES operation before returning a result. Autofill
+returns the unlocked FillResponse, then Android fills the page's synthetic dataset.
+The UI driver sends emulated finger 1 only while the exact fixture prompt is visible. In the
+cancellation phase it first dismisses that identified biometric prompt. Android returns to the
+credential picker, where another method could be selected; the driver then cancels the identified
+picker separately. Only after the whole flow is canceled must the website receive NotAllowedError;
+subsequent attempts must work.
+Fixture-only logs use `KoanBioFixture` and include platform error codes or Keystore success,
+with no credential values. The runner resets the opt-in flag on exit.
+
+This checks Android platform/provider-Activity handoff under emulated fingerprint input. It
+does not exercise 1Password's code, its vault or a vivo fingerprint sensor. A passing run cannot
+resolve a reported real-provider biometric failure. Remove the fixture, synthetic fingerprint
+and PIN when finished; do not change any real device's security settings.
 
 `credential-fixture` is a separate app, with no dependency from `:app`. Neither its exported
 services nor its synthetic key code is present in a browser APK. The only browser debug
@@ -62,8 +91,8 @@ For the minified user build, assemble/install `:app:assembleStaging` separately 
 key: the fixture validates the caller's package/certificate and accepts only the localhost
 origin. This deliberately tests origin delegation instead of bypassing it.
 
-These tests do not establish compatibility with 1Password's trusted-browser policy, real
-biometrics, physical USB/NFC keys or cross-device QR authentication.
+These tests do not establish compatibility with 1Password's trusted-browser policy or biometric
+unlock, physical fingerprint sensors, USB/NFC keys or cross-device QR authentication.
 The Android integration suite also checks Activity-backed credential contexts, outcome delivery
 after resume or destruction, and draining queued/late results after callback-owner loss. The
 latter simulates loss of the callback owner; it is not an end-to-end process-kill test.

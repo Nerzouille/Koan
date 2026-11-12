@@ -15,6 +15,7 @@ parser.add_argument('--browser', choices=['dev.nerzouille.koan.debug', 'dev.nerz
                     default='dev.nerzouille.koan.debug')
 parser.add_argument('--mode', choices=['all', 'browser', 'custom-tab', 'autofill'], default='all')
 parser.add_argument('--default-browser', action='store_true', help='Launch normal links without a package')
+parser.add_argument('--biometric', action='store_true', help='Authenticate only the fixture prompt with enrolled emulator finger 1')
 args = parser.parse_args()
 
 def adb(*cmd):
@@ -44,6 +45,7 @@ def click(tree, text):
 def wait_flow(fill=False):
     deadline = time.monotonic() + 180
     cancel_sent_at = 0.0
+    biometric_cancelled = False
     selected = False
     last_phase = None
     while time.monotonic() < deadline:
@@ -63,7 +65,21 @@ def wait_flow(fill=False):
             return
         packages = {n.get('package', '') for n in tree}
         picker = any('credential' in p or 'permissioncontroller' in p for p in packages)
-        if fill:
+        if args.biometric and any(n.get('text') == 'Koan fixture biometric' for n in tree):
+            if status['phase'] == 'cancel':
+                if not biometric_cancelled:
+                    adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
+                    biometric_cancelled = True
+                    print('Canceled the identified fixture biometric prompt', flush=True)
+            else:
+                adb('emu', 'finger', 'touch', '1')
+                adb('emu', 'finger', 'remove')
+                print('Authenticated the identified fixture biometric prompt', flush=True)
+        elif args.browser in packages and any(n.get('text') == 'Welcome to Koan' for n in tree):
+            # A fresh test profile can defer its first-run tour until returning from
+            # the authentication Activity. Complete setup before checking page data.
+            assert click(tree, 'Skip'), 'First-run tour has no Skip action'
+        elif fill:
             if click(tree, 'Koan test login'):
                 selected = True
             elif selected:
@@ -74,10 +90,19 @@ def wait_flow(fill=False):
             # The preceding login sheet can still be animating away after the website has
             # entered the cancellation phase. Back there would navigate/close the page.
             cancel_sheet = any(n.get('text', '').startswith('cancel-fixture') for n in tree)
-            if cancel_sheet and time.monotonic() - cancel_sent_at > 3:
-                adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
-                cancel_sent_at = time.monotonic()
-                print('Canceled the identified fixture sheet', flush=True)
+            if cancel_sheet:
+                if args.biometric and not biometric_cancelled:
+                    # Enter the provider, then cancel its biometric prompt rather
+                    # than the preceding Credential Manager selection sheet.
+                    for label in ('Continue', 'Create', 'Save'):
+                        if click(tree, label):
+                            break
+                elif time.monotonic() - cancel_sent_at > 3:
+                    # Provider cancellation returns to the system selector. Dismiss
+                    # that selector separately to end the website request.
+                    adb('shell', 'input', 'keyevent', 'KEYCODE_BACK')
+                    cancel_sent_at = time.monotonic()
+                    print('Canceled the identified fixture sheet', flush=True)
         elif picker:
             for label in ('Continue', 'Create', 'Save', 'Koan test account', 'Unlock test vault'):
                 if click(tree, label):

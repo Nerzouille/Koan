@@ -8,9 +8,10 @@ Gecko/Android/provider path.
 
 ## Unresolved provider regression
 
-A preview user reports that 1Password requires the account password when invoked from Koan
-for both password Autofill and explicit passkey use, while biometric unlock still works in
-Edge and in the standalone 1Password app. This is a reported Koan-specific interoperability
+A preview user reports that 1Password's fingerprint prompt opens, then fails/closes and falls
+back to the account password when invoked from Koan, for both password Autofill and explicit
+passkey use. Biometric unlock still works in Edge and in the standalone 1Password app.
+This is a reported Koan-specific interoperability
 failure, not evidence that device-wide biometrics have been invalidated. Root cause and the
 first affected preview are not established; it must not be labeled a provider-allowlist effect
 without further evidence.
@@ -19,6 +20,21 @@ The synthetic provider tests below do not exercise 1Password's real biometric un
 passing results do not establish daily-use compatibility for this configuration. Further
 preview releases are on hold while this is investigated. Do not weaken password-manager
 security settings, reset fingerprints, clear a real vault, or spoof a trusted browser as a fix.
+
+Investigation on 2026-11-12 used the **unchanged preview .6 browser APK** (runtime source
+`0e455623bfae46323a5b6b4b7e102d0ed614f224`) on a disposable Android 16/API 36 ARM64 emulator,
+with GMS disabled. An opt-in, separate fixture gates both Credential Manager provider responses
+and Autofill authentication behind Android's strong BiometricPrompt and a per-use authenticated
+AndroidKeyStore operation. Default-browser links, bound external Custom Tabs and password
+Autofill completed, with 17 successful Keystore operations across the run. This narrows the
+generic host/verification handoff investigation; it does **not** reproduce 1Password, vivo's
+system software or a physical fingerprint sensor. No production browser fix follows from it.
+The provider's own biometric error/cancellation reason is still needed to establish root cause.
+The final run also dismissed the normal-browser and Custom Tabs fixture biometric prompts: Android reported
+`BIOMETRIC_ERROR_USER_CANCELED` (10) and returned to the credential selector. Separately
+canceling that selector ended the website request with `NotAllowedError`; later requests
+completed successfully. This is intentional provider-level cancellation testing, not a
+reproduction of the user's unexpected prompt closure.
 
 ## Browser integration
 
@@ -168,6 +184,9 @@ The expanded fixture respects the credential allowlist and tests a locked suppli
 authentication action, unlock-to-credential handoff, and an empty matching-credential result
 followed by retry. Remote-only routing has transformed-bytecode tests for all local/unlock/remote
 flag combinations; actual QR/cross-device authentication is still not established by them.
+The optional `--biometric` mode exercises platform verification before returning either
+credentials or an unlocked Autofill response. Default mode remains a synthetic UV claim;
+neither mode establishes real-provider compatibility. Setup and limits are in the fixture README.
 
 ## Remaining engine work
 

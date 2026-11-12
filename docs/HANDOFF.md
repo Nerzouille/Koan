@@ -59,11 +59,15 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and the audit branches
 (`audit-fixes`, `audit-docs`, `geckoview-160`) are merged and deleted.
 
-**Passkey preview hold (2026-11-12):** a user reports that invoking 1Password from Koan forces
-account-password unlock for both Autofill and passkeys, although Edge and 1Password itself
-still support biometrics. Root cause and first affected build are unknown. Do not issue a new
+**Passkey preview hold (2026-11-12):** a user reports that 1Password's fingerprint prompt opens,
+then fails/closes and falls back to the account password for both Autofill and passkeys from
+Koan, although Edge and 1Password itself still support biometrics. Root cause and first
+affected build are unknown. Do not issue a new
 "fixed" preview or count synthetic provider results as real biometric acceptance. Investigate
 this interoperability failure before further passkey polish; see `docs/PASSKEYS.md`.
+The separate fixture now has opt-in BiometricPrompt/CryptoObject verification for both
+Credential Manager and Autofill authentication. The unchanged .6 APK passes that gate on the
+disposable API 36 emulator; this is host-handoff evidence, not 1Password/vivo acceptance.
 
 ## Two-way sync (M6), as it runs
 

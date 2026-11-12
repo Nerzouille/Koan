@@ -9,6 +9,7 @@ import time
 parser = argparse.ArgumentParser()
 parser.add_argument('--adb', default='adb')
 parser.add_argument('--serial', default='emulator-5564')
+parser.add_argument('--biometric', action='store_true', help='Require fixture Keystore-backed biometric unlock; enroll emulator finger 1 first')
 parser.add_argument('--mode', choices=['all', 'browser', 'custom-tab', 'autofill'], default='all')
 parser.add_argument('--browser', choices=['dev.nerzouille.koan.debug', 'dev.nerzouille.koan.staging'],
                     default='dev.nerzouille.koan.debug')
@@ -34,6 +35,9 @@ server = subprocess.Popen(['node', str(here / 'server.mjs')], cwd=here)
 try:
     time.sleep(.3)
     assert server.poll() is None, 'Local test server failed (port 8786 must be free)'
+    adb('shell', 'am', 'start', '-n',
+        'dev.nerzouille.koan.credentials.fixture/dev.nerzouille.koan.auth.testing.BiometricControlFixture',
+        '--ez', 'enabled', 'true' if args.biometric else 'false')
     adb('reverse', 'tcp:8786', 'tcp:8786')
     for key in keys:
         adb('shell', 'settings', 'put', 'secure', key, autofill if key == 'autofill_service' else provider)
@@ -48,8 +52,13 @@ try:
     # Keep the same browser process for every mode and every retry within this run.
     adb('shell', 'am', 'force-stop', args.browser)
     subprocess.run([sys.executable, str(here / 'drive.py'), '--adb', args.adb, '--serial', args.serial,
-                    '--browser', args.browser, '--mode', args.mode, '--default-browser'], check=True)
+                    '--browser', args.browser, '--mode', args.mode, '--default-browser',
+                    *(['--biometric'] if args.biometric else [])], check=True)
 finally:
+    if args.biometric:
+        adb('shell', 'am', 'start', '-n',
+            'dev.nerzouille.koan.credentials.fixture/dev.nerzouille.koan.auth.testing.BiometricControlFixture',
+            '--ez', 'enabled', 'false')
     for key, value in saved.items():
         adb('shell', 'settings', 'delete' if value == 'null' else 'put', 'secure', key,
             *([] if value == 'null' else [value]))

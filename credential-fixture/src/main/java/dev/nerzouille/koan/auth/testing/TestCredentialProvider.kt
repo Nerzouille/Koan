@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Bundle
 import android.os.CancellationSignal
 import android.os.OutcomeReceiver
 import android.util.Base64
@@ -75,12 +74,27 @@ class TestCredentialProvider : CredentialProviderService() {
 }
 
 class TestCredentialActivity : Activity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    private var biometric: CancellationSignal? = null
+    private var started = false
+
+    override fun onPostResume() {
+        super.onPostResume()
+        if (started) return
+        started = true
+        if (FixtureBiometric.enabled(this)) biometric = FixtureBiometric.authenticate(this, ::respond)
+        else respond()
+    }
+
+    override fun onDestroy() {
+        biometric?.cancel()
+        super.onDestroy()
+    }
+
+    private fun respond() {
         try {
             val result = Intent()
             if (intent.data?.host == "unlock") {
-                // Simulated unlock only: no real vault, password or biometric verification.
+                // No real vault; the optional fixture biometric gate runs before respond().
                 val request = requireNotNull(PendingIntentHandler.retrieveBeginGetCredentialRequest(intent))
                 val option = request.beginGetCredentialOptions.filterIsInstance<BeginGetPublicKeyCredentialOption>().single()
                 PendingIntentHandler.setBeginGetCredentialResponse(result,

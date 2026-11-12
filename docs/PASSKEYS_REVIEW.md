@@ -4,10 +4,13 @@ Reviewed 2026-11-12. The goal is a quiet, reliable native sign-in flow inside Ko
 interface. This compares source and contracts; it is not a claim of feature parity with Chrome,
 Firefox desktop or every credential provider.
 
-**Unresolved acceptance failure:** a preview user reports password-only 1Password unlock from
-Koan for both Autofill and passkeys, while biometric unlock works in Edge and the 1Password
-app. No root cause is confirmed. The simulated unlock handoff is not a biometric acceptance
-test and cannot overrule that report. See [the current investigation](PASSKEYS.md#unresolved-provider-regression).
+**Unresolved acceptance failure:** a preview user reports that 1Password's fingerprint prompt
+opens, then fails/closes and falls back to the account password from Koan for both Autofill
+and passkeys. Biometric unlock works in Edge and the 1Password app. No root cause is confirmed.
+The original simulated unlock handoff was not a biometric acceptance test. The added opt-in
+platform BiometricPrompt/Keystore gate passes on the disposable emulator with the unchanged
+preview .6 APK, but does not execute 1Password's code or a physical fingerprint sensor and
+cannot overrule that report. See [the current investigation](PASSKEYS.md#unresolved-provider-regression).
 
 ## Reference implementations
 
