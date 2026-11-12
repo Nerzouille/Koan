@@ -59,7 +59,7 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and the audit branches
 (`audit-fixes`, `audit-docs`, `geckoview-160`) are merged and deleted.
 
-**Passkey preview hold (2026-11-12):** a user reports that 1Password's fingerprint prompt opens,
+**Passkey preview hold (2026-11-12):** a user reports that 1Password 8.12.44's fingerprint prompt opens,
 then fails/closes and falls back to the account password for both Autofill and passkeys from
 Koan, although Edge and 1Password itself still support biometrics. Root cause and first
 affected build are unknown. Do not issue a new
