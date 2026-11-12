@@ -83,6 +83,16 @@ losing data, and the owner has approved and published the release.
 - Logins saved on the phone ("Save in Koan, this phone only") stay local and encrypted until M6.
 **Done when:** owner can uninstall Opera.
 
+### For 1.0.0-beta.2
+
+- **Real blur on the deeper visible cards** (HyperOS recents style), asked 2026-11-12: a
+  `RenderEffect` blur on the back cards' visible slice on Android 12+, growing with depth; Android
+  11 keeps the depth dim only (no live blur there). The v0.4.0 depth dim stays underneath (pinned by
+  `DepthDimTest`). Before keeping it: `tools/perf/frames.sh` on the stack scroll ("scroll" and
+  "open"), release build on the POCO and the Xiaomi, against the build without it; drop it if p90
+  or janky % get worse beyond noise. Keep batch 4 group B's rule: no recomposition or re-recording
+  per frame (the radius read in a layer lambda, a few cached `RenderEffect` steps like `blurFor`).
+
 ### Batch 4 leftovers (after the release)
 
 From the batch 4 refactoring (`docs/plans/BATCH4_PLAN.md`, branch `refactor`), left for after the

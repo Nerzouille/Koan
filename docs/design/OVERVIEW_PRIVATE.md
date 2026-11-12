@@ -202,7 +202,7 @@ Private palettes use their own hairline (§5.1).
 | `private.pill` | `#4B3FD629` (16%) | `#9C8CFF33` (20%) |
 | `private.ink` | `#2E2399` (6.8:1 on the pill) | `#CFC6FF` (8.6:1 on the pill) |
 | `SheetScrim` | `#17142E57` | `#05041299` |
-| Stack dim | haze to Base (`#DEDAF0`), gain 1.25, max 0.60 | to `#050412`, gain 1.0, max 0.80 |
+| Stack dim | haze to Base (`#DEDAF0`), gain 1.25, max 0.60 | to `#050412`, gain 1.0, max 0.80 | *(as built: max 0.85 / 1.0, the normal stack's v0.4.0 values, owner 2026-11-12)*
 
 Cards stay white in Dusk so they lift off the lavender base.
 

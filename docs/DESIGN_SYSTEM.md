@@ -149,7 +149,7 @@ text on the pill ("ink") = the accent at 38% / 80% lightness.
 | `SheetScrim` | `#1C1C284D` | `#00000080` | Over the page while a sheet or floating card is open |
 | `DrawerScrim` | `#1C1C2829` | `#00000073` | Over the overview at full drawer open (with 14dp blur) |
 | `DrawerScrimNoBlur` | `#1C1C2852` | `#0000009E` | Same on Android 11 (no live blur) |
-| Stack dim | haze towards `DimColor` (= `Base`), ×1.25, max 0.60 | towards black, ×1, max 0.80 | Back cards in the depth stack (see 3.B Depth stack) |
+| Stack dim | haze towards `DimColor` (= `Base`), ×1.25, max 0.85 | towards black, ×1, max 1.0 (as in v0.4.0) | Back cards in the depth stack (see 3.B Depth stack) |
 
 ### 1.2 Typography
 
@@ -1249,7 +1249,7 @@ cover, atmosphere, the flip driver), `privacy/` (private tabs, vault, engine set
 full table is in the spec §5.1. Main values: Base `#DEDAF0` / `#110F24`, Card `#FFFFFF` /
 `#1E1C38`, Dock `#F6F4FD` / `#18162F`, text `#17142E` / white, `PrivateAccent` `#4B3FD6` /
 `#9C8CFF`, `PrivatePill` accent at 16% / 20%, `PrivateInk` `#2E2399` / `#CFC6FF`. Stack dim to
-`DimColor` (`#DEDAF0` haze, gain 1.25, max 0.60 / `#050412`, gain 1.0, max 0.80). Settings, History,
+`DimColor` (`#DEDAF0` haze, gain 1.25, max 0.85 / `#050412`, gain 1.0, max 1.0: the normal stack's v0.4.0 values, owner 2026-11-12). Settings, History,
 Downloads and the ⋯ sheet keep the normal palette (`KoanNormalTheme`).
 
 **Toggle** (`PrivateTokens`): 56×48 touch, 56×32 track (radius 16), 26dp white knob at x 3 → 27dp,
