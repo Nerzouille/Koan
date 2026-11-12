@@ -45,6 +45,8 @@ client. Normal links resolve through the system browser role. Finally, a separat
 AutofillService fills an HTML username/password form and the server checks both values.
 For coexistence with Koan's built-in login store, add a synthetic login for the fixture origin
 in Settings > Passwords before running the Autofill check.
+The website requires `NotAllowedError` for user dismissal and `AbortError` for a pre-aborted
+signal; accepting either error would hide a browser classification regression.
 
 `credential-fixture` is a separate app, with no dependency from `:app`. Neither its exported
 services nor its synthetic key code is present in a browser APK. The only browser debug

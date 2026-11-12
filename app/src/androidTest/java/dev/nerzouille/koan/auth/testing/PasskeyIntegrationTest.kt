@@ -16,6 +16,7 @@ import dev.nerzouille.koan.MainActivity
 import dev.nerzouille.koan.engine.auth.WebAuthnController
 import dev.nerzouille.koan.engine.auth.LegacyFidoResult
 import dev.nerzouille.koan.engine.auth.CredentialUiHost
+import dev.nerzouille.koan.engine.auth.CredentialOutcome
 import com.google.android.gms.tasks.Tasks
 import org.mozilla.gecko.util.WebAuthnUtils
 import org.mozilla.geckoview.GeckoResult
@@ -80,6 +81,35 @@ class PasskeyIntegrationTest {
                 controller(activity, registry)
             }
             assertEquals("restored", done.get(20, TimeUnit.SECONDS)?.getStringExtra("fixture-result"))
+        }
+    }
+
+    @Test fun destroyedHostsOutcomeDoesNotWaitForAnUnrelatedActivity() {
+        lateinit var oldExecutor: java.util.concurrent.Executor
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { oldExecutor = CredentialUiHost.context(it.applicationContext).mainExecutor }
+        }
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+            val done = CompletableFuture<Boolean>()
+            oldExecutor.execute { done.complete(true) }
+            // The old native request must settle while this new, unrelated host stays stopped.
+            assertTrue(done.get(20, TimeUnit.SECONDS))
+        }
+    }
+
+    @Test fun outcomeFollowsItsOwnRecreatedHostUntilResume() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            lateinit var executor: java.util.concurrent.Executor
+            scenario.onActivity { executor = CredentialUiHost.context(it.applicationContext).mainExecutor }
+            scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+            scenario.recreate()
+            val done = CompletableFuture<Boolean>()
+            executor.execute { done.complete(true) }
+            instrumentation.waitForIdleSync()
+            assertFalse(done.isDone)
+            scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+            assertTrue(done.get(20, TimeUnit.SECONDS))
         }
     }
 
@@ -187,11 +217,30 @@ class PasskeyIntegrationTest {
         assertThrows(WebAuthnUtils.Exception::class.java) { canceled.poll(1000) }
     }
 
-    @Test fun activityFailureMapsToAbort() {
+    @Test fun activityFailureMapsToNotAllowed() {
         val result = GeckoResult<Any>()
         LegacyFidoResult.activityFailure(result).accept(IllegalStateException("synthetic canceled activity"))
         val error = assertThrows(WebAuthnUtils.Exception::class.java) { result.poll(1000) }
-        assertEquals("ABORT_ERR", error.message)
+        assertEquals("NOT_ALLOWED_ERR", error.message)
+    }
+
+    @Test fun credentialProviderDismissalKeepsOtherErrorsAndSuccessIntact() {
+        val dismissed = credentialOutcome { GeckoResult.fromException<Any>(WebAuthnUtils.Exception("ABORT_ERR")) }
+        assertEquals("NOT_ALLOWED_ERR", assertThrows(WebAuthnUtils.Exception::class.java) { dismissed.poll(1000) }.message)
+        for (error in listOf(WebAuthnUtils.Exception("DATA_ERR"), WebAuthnUtils.Exception("NOT_SUPPORTED_ERR"),
+            WebAuthnUtils.Exception("UNKNOWN_ERR"), IllegalStateException("ABORT_ERR"))) {
+            val result = credentialOutcome { GeckoResult.fromException<Any>(error) }
+            assertSame(error, assertThrows(Throwable::class.java) { result.poll(1000) })
+        }
+        val value = Any()
+        assertSame(value, credentialOutcome { GeckoResult.fromValue(value) }.poll(1000))
+    }
+
+    private fun <T> credentialOutcome(source: () -> GeckoResult<T>): GeckoResult<T> {
+        lateinit var result: GeckoResult<T>
+        // Native Credential Manager methods and their GeckoResults are owned by the UI thread.
+        instrumentation.runOnMainSync { result = CredentialOutcome.normalize(source()) }
+        return result
     }
 
     @Test fun destroyedHostCannotLaunchAnotherProvider() {

@@ -27,6 +27,13 @@ Gecko/Android/provider path.
   browser to resume before forwarding the native callback, so a sequential website request
   cannot overtake the selector that is still closing. Host destruction still settles the
   callback. The host is referenced weakly; a retiring Activity cannot clear its replacement.
+- Outcome executors capture a logical host identity retained across Activity recreation. They
+  follow that host's replacement only; a late result from a destroyed host never waits for an
+  unrelated new Activity to resume. Credential payloads are not stored in the identity.
+- Provider/user dismissal returns `NotAllowedError`, matching WebAuthn. A website's pre-aborted
+  `AbortSignal` still returns `AbortError`. Native Credential Manager response normalization
+  preserves successful values and other errors; the legacy Activity failure consumer uses the
+  same user-dismissal classification.
 - Normal web links and external Custom Tabs clients reach the same MainActivity/WebAuthn bridge.
 
 ## Interaction and ownership
@@ -63,7 +70,7 @@ four static entry points and the legacy FIDO task callback edges in
 | `webAuthnIsUserVerifyingPlatformAuthenticatorAvailable` | Return true when Android 14+, the system credential feature/service and a secure device lock are available; otherwise retain Google FIDO detection, or false if Google services are absent/disabled. |
 | `hasCredentialInGMS` | Return false immediately if Google services are absent/disabled. |
 | `makeCredential`, `getAssertion` (legacy FIDO methods only) | Reject with `NOT_SUPPORTED_ERR` if Google services are absent/disabled; settle canceled tasks, and attach the missing failure listener to the login task. |
-| Legacy task success handlers' Activity failure-consumer factories | Create a shared abort consumer for canceled/failed Activity launches; successful native response parsing is unchanged. |
+| Legacy task success handlers' Activity failure-consumer factories | Create a shared NotAllowed consumer for canceled/failed Activity launches; successful native response parsing is unchanged. |
 
 The native Credential Manager request construction, provider calls, parsing and security checks
 are kept. A separate visitor replaces the application-context lookup with `CredentialUiHost.context`
@@ -72,6 +79,9 @@ wrapper uses the host lifecycle for outcome delivery. This follows Android's req
 [Activity context for the correct task stack](https://developer.android.com/reference/android/credentials/CredentialManager).
 There is no JavaScript shim, user-agent change or bypass of provider trust.
 Platform capability does not guarantee a particular provider has a credential or trusts Koan.
+These two UI methods also return through `CredentialOutcome`, correcting Gecko's provider
+`ABORT_ERR` dismissal to `NOT_ALLOWED_ERR`. Only native provider outcomes are normalized;
+the DOM's `AbortSignal` handling and other native errors remain intact.
 
 The context wrapper changes the executor supplied for native response/error callbacks. Android's
 [Credential Manager transport](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android16-release/core/java/android/credentials/CredentialManager.java)
@@ -114,6 +124,9 @@ guard re-pinned to the exact reviewed engine version. Upgrading alone does not f
   requests are tested, but closing an in-flight sheet from the website requires native engine
   cancellation support. The browser does not pretend that a JavaScript promise rejection
   proves the Android UI has closed.
+  Even Chromium's reviewed Android implementation cannot cancel a request once it has triggered
+  platform UI; native cancellation should invalidate the request and suppress late results,
+  without promising that every system/provider panel can be forcibly dismissed.
 
 ## Verification
 
@@ -121,7 +134,8 @@ guard re-pinned to the exact reviewed engine version. Upgrading alone does not f
 (run separately from APK assembly). Android instrumentation covers actual registry delivery
 after Activity recreation, stale results after retry, launch failure/stopped hosts, legacy task
 failure/cancellation, the shared Activity error mapping, destroyed-host protection, native success/cancel
-delivery, Activity-context lifetime/resume delivery, and an unrelated AndroidX result.
+delivery, Activity-context lifetime/resume delivery, logical host isolation, provider-error
+classification, and an unrelated AndroidX result.
 See [the emulator fixture](../tools/passkey-test/README.md) for website
 creation/signature checks, discoverable login, invalid RP/pre-abort rejection, cancellation,
 unavailable-provider/malformed-response handling, an external Custom Tabs
@@ -136,8 +150,12 @@ own the Android cancellation signal for that request, and route native cancellat
 that signal. Completion and cancellation must atomically remove the matching request; late
 provider callbacks must be ignored. Canceling an old document must never cancel a new document's
 request. This requires native engine tests and a rebuilt engine, separate from this host PR.
+System UI dismissal must be tested separately from promise settlement and late-result disposal;
+passing a cancellation signal alone is not proof that the platform sheet closes.
 
 Conditional suggestions likewise need the engine's pending-request, candidate selection and
 resume operations, which Android Gecko currently leaves unimplemented. They must remain
 unadvertised until that path works. Provider trust belongs to the browser's stable official
 package/certificate and the provider's policy; a fork's test certificate does not confer it.
+
+Source comparison and interaction priorities: [Passkey experience review](PASSKEYS_REVIEW.md).

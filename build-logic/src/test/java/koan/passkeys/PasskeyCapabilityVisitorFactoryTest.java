@@ -98,7 +98,7 @@ public class PasskeyCapabilityVisitorFactoryTest {
         GeckoResult result = (GeckoResult) request.invoke(null, new Object[]{null, null, null, null});
         assertNull(result.error);
         com.google.android.gms.tasks.Task.fireSuccess();
-        assertEquals("ABORT_ERR", result.error.getMessage());
+        assertEquals("NOT_ALLOWED_ERR", result.error.getMessage());
     }
 
     private Class<?> transformed(byte[] original) {

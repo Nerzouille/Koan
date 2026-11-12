@@ -21,6 +21,9 @@ public class CredentialContextVisitorTest {
         assertSame(CredentialUiHost.UI, create.value);
         assertSame(CredentialUiHost.UI, get.value);
         assertNotSame(CredentialUiHost.UI, prepare.value);
+        assertTrue(create.normalized);
+        assertTrue(get.normalized);
+        assertFalse(prepare.normalized);
     }
 
     @Test public void changedContextSitesFailRatherThanPatchingUnknownCode() {

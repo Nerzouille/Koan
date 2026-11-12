@@ -24,6 +24,16 @@ final class CredentialContextVisitor {
                 found.add(name);
                 return new MethodVisitor(Opcodes.ASM9, method) {
                     private int hooks;
+                    private int returns;
+                    @Override public void visitInsn(int opcode) {
+                        if (opcode == Opcodes.ARETURN) {
+                            returns++;
+                            mv.visitMethodInsn(Opcodes.INVOKESTATIC,
+                                    "dev/nerzouille/koan/engine/auth/CredentialOutcome", "normalize",
+                                    "(Lorg/mozilla/geckoview/GeckoResult;)Lorg/mozilla/geckoview/GeckoResult;", false);
+                        }
+                        super.visitInsn(opcode);
+                    }
                     @Override public void visitMethodInsn(int opcode, String owner, String invoked, String descriptor, boolean itf) {
                         super.visitMethodInsn(opcode, owner, invoked, descriptor, itf);
                         if (opcode == Opcodes.INVOKESTATIC && "org/mozilla/gecko/GeckoAppShell".equals(owner) &&
@@ -34,7 +44,7 @@ final class CredentialContextVisitor {
                         }
                     }
                     @Override public void visitEnd() {
-                        if (hooks != 1) throw new IllegalStateException("GeckoView credential UI context changed");
+                        if (hooks != 1 || returns == 0) throw new IllegalStateException("GeckoView credential UI contract changed");
                         super.visitEnd();
                     }
                 };

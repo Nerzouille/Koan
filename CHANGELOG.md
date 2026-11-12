@@ -84,10 +84,12 @@
   remain queued for a new sign-in. Destroyed hosts cannot restart the bridge.
 - Credential Manager uses the browser Activity's task. Results wait for the page to resume
   before a website can start its next credential request, avoiding overlapping closing panels.
+- Credential outcomes follow their own Activity recreation, without waiting for an unrelated
+  new window. User dismissal returns NotAllowedError, distinct from a website's AbortSignal.
 - Devices with Android Credential Manager no longer depend on Google FIDO for their platform
   passkey capability check. Missing/disabled Google services fail promptly on legacy fallback.
-- Legacy Google FIDO login tasks now return failures/cancellations to the page; canceling their
-  Activity is reported as an abort, consistently with registration.
+- Legacy Google FIDO login tasks now return failures/cancellations to the page; dismissing their
+  Activity returns NotAllowedError, consistently with the system credential flow.
 - Android's selected password Autofill service can suggest logins alongside Koan's own logins.
 
 ### Known limitations
