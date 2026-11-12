@@ -6,47 +6,6 @@ on supported devices. Koan does not store passkeys, handle vault keys, or implem
 authenticator. Website origins, RP IDs, challenges and client-data hashes stay in the native
 Gecko/Android/provider path.
 
-## Unresolved provider regression
-
-A preview user reports that 1Password's fingerprint prompt opens, then fails/closes and falls
-back to the account password when invoked from Koan, for both password Autofill and explicit
-passkey use. The reported provider version is **1Password for Android 8.12.44**.
-Biometric unlock still works in Edge and in the standalone 1Password app.
-This is a reported Koan-specific interoperability
-failure, not evidence that device-wide biometrics have been invalidated. Root cause and the
-first affected preview are not established; it must not be labeled a provider-allowlist effect
-without further evidence.
-
-Provider release-note check on 2026-11-12: the [official Android release index](https://releases.1password.com/android/)
-lists 8.12.44 (2026-11-03) as the latest stable version. This report cannot be dismissed as an
-outdated stable app. [8.12.40](https://releases.1password.com/android/stable/8.12.40/)
-previously fixed a password prompt appearing instead of offering biometrics, but this user
-does see the fingerprint prompt before it fails/closes.
-[8.12.46-26 beta](https://releases.1password.com/android/beta/8.12.46-26/) (2026-11-04)
-includes a biometric-unlock loading-indicator fix (`DV-2`, `!43428`). That is a relevant lead,
-not a confirmed match for unexpected prompt closure/password fallback from Koan. No test with
-the real provider's beta or confirmation from 1Password establishes that it fixes this report.
-
-The synthetic provider tests below do not exercise 1Password's real biometric unlock. Their
-passing results do not establish daily-use compatibility for this configuration. Further
-preview releases are on hold while this is investigated. Do not weaken password-manager
-security settings, reset fingerprints, clear a real vault, or spoof a trusted browser as a fix.
-
-Investigation on 2026-11-12 used the **unchanged preview .6 browser APK** (runtime source
-`0e455623bfae46323a5b6b4b7e102d0ed614f224`) on a disposable Android 16/API 36 ARM64 emulator,
-with GMS disabled. An opt-in, separate fixture gates both Credential Manager provider responses
-and Autofill authentication behind Android's strong BiometricPrompt and a per-use authenticated
-AndroidKeyStore operation. Default-browser links, bound external Custom Tabs and password
-Autofill completed, with 17 successful Keystore operations across the run. This narrows the
-generic host/verification handoff investigation; it does **not** reproduce 1Password, vivo's
-system software or a physical fingerprint sensor. No production browser fix follows from it.
-The provider's own biometric error/cancellation reason is still needed to establish root cause.
-The final run also dismissed the normal-browser and Custom Tabs fixture biometric prompts: Android reported
-`BIOMETRIC_ERROR_USER_CANCELED` (10) and returned to the credential selector. Separately
-canceling that selector ended the website request with `NotAllowedError`; later requests
-completed successfully. This is intentional provider-level cancellation testing, not a
-reproduction of the user's unexpected prompt closure.
-
 ## Browser integration
 
 - The manifest declares `CREDENTIAL_MANAGER_SET_ORIGIN` and
