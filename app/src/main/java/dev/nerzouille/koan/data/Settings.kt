@@ -146,6 +146,15 @@ class Settings internal constructor(private val store: DataStore<Preferences>) {
     private fun parseDays(raw: String?): Map<String, Int> =
         raw.orEmpty().split(',').mapNotNull { e -> e.split(':').takeIf { it.size == 2 }?.let { (d, c) -> c.toIntOrNull()?.let { d to it } } }.toMap()
 
+    private val translateOfferKey = booleanPreferencesKey("translate_offer")
+
+    /** The small "This page is in …" card on pages in another language (on by default). */
+    val translateOffer: Flow<Boolean> = store.safeData.map { it[translateOfferKey] ?: true }
+
+    suspend fun setTranslateOffer(on: Boolean) {
+        store.edit { it[translateOfferKey] = on }
+    }
+
     private val tourSeen = stringPreferencesKey("tour_seen")
 
     /** Feature version ("0.3") whose tour or "What's new" was last seen; null = none yet. */

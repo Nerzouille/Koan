@@ -87,6 +87,8 @@
 - After an update, Koan no longer stays stuck on the start page when What's new and the start
   page come up together.
 - The ⋯ menu no longer says a page is translated when it isn't, and Translate works on it.
+- The translation card no longer shows on pages in a language set on your phone (any of them,
+  not only the first), and Settings › Translation can turn it off.
 - Private downloads no longer show in normal mode (list, ring, menu count, toast); Private has a
   **Private** pill in Downloads.
 - Coming back to Private after a full-screen video no longer leaves it locked in landscape.

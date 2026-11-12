@@ -24,6 +24,7 @@ import mozilla.components.browser.state.selector.findTab
 import mozilla.components.concept.engine.translate.TranslationOptions
 import mozilla.components.concept.engine.translate.TranslationPageSettingOperation
 import java.util.Locale
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * A page in another language than the phone's: Gecko offers a translation, and Koan shows it as a
@@ -43,6 +44,9 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
     val detected = state?.translationEngineState?.detectedLanguages
     val from = detected?.documentLangTag?.takeIf { detected.supportedDocumentLang == true }
     val to = remember { Locale.getDefault().language }
+    // Every language set on the phone (Settings › Languages), not only the first: never offered.
+    val phoneLanguages = remember { phoneLanguages() }
+    val offerOn by components.settings.translateOffer.collectAsStateWithLifecycle(initialValue = true)
     var dismissed by remember { mutableStateOf(emptySet<String>()) }
     // Done: the toast says so, with the way back ([autoFrom]: translated on its own, from that language).
     var asked by remember { mutableStateOf<String?>(null) }
@@ -58,7 +62,7 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
     val key = "$tabId|$url"
     val always = state?.pageSettings?.alwaysTranslateLanguage == true
     val offer = allowed && tabId != null && from != null && state.isOfferTranslate && !state.isTranslated &&
-        !state.isTranslateProcessing && key !in dismissed && !from.equals(to, ignoreCase = true) && !always
+        !state.isTranslateProcessing && key !in dismissed && offerFor(from, phoneLanguages, offerOn) && !always
 
     // "Always translate" this language: the page is translated on its own (unless Gecko already
     // started it), and the toast says so, with the way back.
@@ -126,4 +130,21 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
             },
         )
     }
+}
+
+/** The phone's languages, in order (Settings › Languages): primary codes such as "en", "fr". */
+private fun phoneLanguages(): List<String> {
+    val list = android.os.LocaleList.getDefault()
+    return (0 until list.size()).map { list[it].language }
+}
+
+/**
+ * Whether a page in [pageLanguage] gets the translation card: the card is on ([offerOn]) and the
+ * language is none of the phone's ([phoneLanguages], compared on the primary code: "fr-CA" is
+ * French).
+ */
+internal fun offerFor(pageLanguage: String, phoneLanguages: List<String>, offerOn: Boolean): Boolean {
+    if (!offerOn) return false
+    val page = pageLanguage.substringBefore('-').lowercase()
+    return phoneLanguages.none { it.substringBefore('-').lowercase() == page }
 }
