@@ -28,6 +28,11 @@ never downloads an icon for that list, so no site and no icon service learns whi
 saved logins for. Screenshots, screen recordings and the Recents preview are blocked on the
 Passwords pages.
 
+Android's selected Autofill service can suggest usernames and passwords in page fields alongside
+Koan's saved logins. Website passkey requests go through GeckoView and Android to the selected
+credential provider, which receives the website origin and request. Koan does not store passkeys
+or your provider's vault keys; that provider's own settings and privacy policy apply.
+
 While a page plays audio or video, its title and icon show in Android's media notification,
 including on the lock screen. Links like `tel:` or `mailto:` are handed to the app you choose,
 only when you tap them.

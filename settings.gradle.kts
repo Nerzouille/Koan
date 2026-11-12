@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google()
         mavenCentral()
@@ -20,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Koan"
 include(":app")
+include(":credential-fixture")

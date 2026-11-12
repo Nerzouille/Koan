@@ -38,6 +38,8 @@
   the bar at the bottom (Select all, ✕ or Back to leave).
 - **Add a password by hand:** Settings › Passwords › the round **+**.
 - Space icons picked with Zen's **Zia** mod show on the phone too.
+- **System passkeys:** website create/sign-in prompts can use Android's selected credential
+  provider. Providers may require Koan to be on their trusted-browser list.
 - **Safer sign-in links:** a Mozilla pairing link opened from another app (or pasted in the
   address field) shows a card first: Sign in, or Replace account when you're already signed in.
   When you're already signed in, the sign-in screen says which account a new sign-in replaces.
@@ -73,9 +75,30 @@
 - **Downloads keep the name the site gives them** (for example "report.pdf"), instead of a name
   made from the link ("download.php").
 
+### Fixed
+
+- WebAuthn results reach the page after an Activity recreation; canceled or overlapping prompts
+  no longer leave an abandoned callback. Each Activity result is tied to its own request so a
+  late result cannot complete a retry; stopped hosts reject new launches.
+- Abandoned Activity results are drained after callback loss so credential responses do not
+  remain queued for a new sign-in. Destroyed hosts cannot restart the bridge.
+- Credential Manager uses the browser Activity's task. Results wait for the page to resume
+  before a website can start its next credential request, avoiding overlapping closing panels.
+- Credential outcomes follow their own Activity recreation, without waiting for an unrelated
+  new window. User dismissal returns NotAllowedError, distinct from a website's AbortSignal.
+- A system preparation result containing only a remote credential entry keeps its native
+  pending handle, rather than being discarded as if no credential option were available.
+- Devices with Android Credential Manager no longer depend on Google FIDO for their platform
+  passkey capability check. Missing/disabled Google services fail promptly on legacy fallback.
+- Legacy Google FIDO login tasks now return failures/cancellations to the page; dismissing their
+  Activity returns NotAllowedError, consistently with the system credential flow.
+- Android's selected password Autofill service can suggest logins alongside Koan's own logins.
+
 ### Known limitations
 
 - The full-image wait on Google Images can still pick the wrong moment; it will get another look.
+- Conditional passkey suggestions in username fields are not implemented by GeckoView Android.
+  This is separate from explicit passkey buttons and ordinary username/password Autofill.
 
 ## 0.4.0 — 2026-10-30 (beta)
 

@@ -41,12 +41,14 @@ import dev.nerzouille.koan.ui.tour.dueSheet
 import dev.nerzouille.koan.ui.tour.featureVersion
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.feature.tabs.WindowFeature
+import dev.nerzouille.koan.engine.auth.WebAuthnController
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.findTab
 
 class MainActivity : FragmentActivity() {
     private val refresh = RefreshBooster(this)
+    private var webAuthn: WebAuthnController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -64,6 +66,12 @@ class MainActivity : FragmentActivity() {
         val app = application as KoanApp
         val components = app.components
         app.componentsReady = true
+        webAuthn = WebAuthnController(
+            activity = this,
+            engine = components.engine,
+            beforeLaunch = { components.sessionUseCases.exitFullscreen(components.store.state.selectedTabId) },
+            restoredRequestIds = savedInstanceState?.getStringArrayList(WEB_AUTHN_PENDING).orEmpty(),
+        )
         IconStore.initialize(this)
         // A private tab's site is never fetched for its icon nor written to the icon index.
         IconStore.isPrivatePage = { url -> components.store.state.tabs.any { it.content.private && it.content.url == url } }
@@ -145,7 +153,13 @@ class MainActivity : FragmentActivity() {
 
     private var downloads: DownloadsFeature? = null
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putStringArrayList(WEB_AUTHN_PENDING, ArrayList(webAuthn?.pendingRequestIds().orEmpty()))
+        super.onSaveInstanceState(outState)
+    }
+
     private companion object {
+        const val WEB_AUTHN_PENDING = "koan.webauthn.pending"
         /** Per process, not per activity (a recreated activity must not restore twice). */
         val savedDownloadsRestored = java.util.concurrent.atomic.AtomicBoolean(false)
 

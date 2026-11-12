@@ -546,8 +546,15 @@ Playback keeps going with Koan in the background or the screen off.
   now**). It's kept encrypted on the phone; it goes to your Mozilla account only if you turned on
   two-way sync for passwords. The next visit offers it like the others. Saving the same site and
   username again updates it.
-- Android's own autofill service (for example Google Password Manager) is kept out of pages, so a
-  login isn't offered to be saved twice.
+- Android's selected autofill service is allowed in page fields. Its suggestions may appear
+  alongside Koan's own login chips; availability depends on the autofill provider.
+- **Passkeys:** explicit website create/sign-in buttons use GeckoView's native WebAuthn flow.
+  Android 14+ can use the system-selected credential provider, including on devices without
+  Google Play Services. Older Android versions use GeckoView's Google FIDO path when available.
+  Canceling a prompt settles the request; rotating the Activity keeps a pending result.
+- Credential providers can restrict which browsers they trust. Sideloading Koan does not bypass
+  those restrictions. GeckoView on Android does not currently implement conditional passkey
+  suggestions in username fields; this is separate from ordinary password autofill.
 - **Settings › Passwords:** screenshots, screen recordings and the recent-apps preview are blocked
   on these pages.
   - One row per site, with a search field and the site's icon when Koan already has it (never

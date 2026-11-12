@@ -1,6 +1,6 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-11**.
+State of Koan for a session that starts with no context. Last updated **2026-11-12**.
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
@@ -173,6 +173,7 @@ each group (launch + kill + restore checked).
 |---|---|---|---|
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
+| `fix/system-passkeys` | dev | System WebAuthn permissions, lifecycle-owned result routing, abandoned-result draining and Android Autofill. Credential UI uses the Activity context and a retained logical host; user dismissal is distinct from DOM abort. The pinned GeckoView 160 adapter preserves remote-only preparation results, with no generated callback class number. Design and limits: `docs/PASSKEYS.md`; source comparison/install identity: `docs/PASSKEYS_REVIEW.md`. | PR #2. 308 app + 11 adapter JVM tests (no skips), 15 Android integration tests. Debug and final ARM64 R8 flows passed creation/P-256 assertion, discoverable login, locked-supplier unlock handoff, nonmatching credential IDs with prompt failure/retry, pre-abort/invalid RP, user dismissal, provider errors/malformed responses, default links, bound Custom Tabs and system Autofill with GMS disabled. Preview .5 → .6 installed in place. Remote-only routing is checked through transformed bytecode and all candidate flag combinations; physical QR/security keys and real-device/provider interoperability remain unverified. |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
 
