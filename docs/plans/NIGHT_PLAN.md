@@ -545,3 +545,44 @@ email).
 The offer shows for any page whose language isn't the phone's first language. Proposed (waiting
 for the owner): never offer a language from the phone's language list, and an "Offer
 translations" switch in Settings › Translation. Meanwhile "Never for French" on the card.
+
+## Afternoon (2026-11-12): translation offer, CI, captures, rotation, Private switch
+
+- **CI:** draft PR #3 (`release-prep` → `dev`, the pushed head 8b29879): `build` passed in 6 min 34 s.
+  The later local commits aren't pushed (owner: no push).
+- **Translation offer** (eb1c7d6): no card for any language in the phone's list (`fr-CA` is French),
+  and Settings › Translation › Offer to translate pages.
+- **Captures (Xiaomi):** search, Private empty and with a Wikipedia tab, the player, plus the two raw
+  recordings (the owner allows their real tabs). No Settings image (the account card shows the email).
+- **Rotation blocker** (4555612): not reproduced through adb (21 enter/leave rounds 0–2.5 s apart,
+  40 back-to-back changes 50–800 ms apart, on the Xiaomi; 15 more on the POCO's R8 copy): every layer
+  always ended at the display's shape. It needs the phone to turn. Safety net: after each fullscreen
+  change `LayoutWatch` compares the display with the window, the root view, Compose and Gecko's
+  surface, logs a stale layer (`adb logcat -s KoanSize`) and repairs (relayout → attributes and
+  orientation again → a new activity, after leaving only); leaving always re-applies portrait and
+  relayouts once the configuration is portrait. Silent when the sizes are right.
+- **Private switch** (b8ed0ec), recorded before and after on the Xiaomi with the same 10 taps:
+  before, 6 taps dead (three guards, and `running` held by the 1.32 s star clock), the slide jumped
+  to its end after a slow frame (the cut and the left strip), and coming back replayed the first-sync
+  reveal (blank cards, because it read the private models). After: every tap acts and the screen
+  ends on the last one; one position on the pager's spring, retargeted from where it is, at most
+  20 ms per frame; a fixed tap target at the toggle's place while the headers slide; Private's page
+  composed off screen once the overview settles; the reveal reads the normal models. POCO R8: 9
+  fast taps end in Private, the 10th in normal, no crash.
+- 428 JVM tests green. R8 release: same certificate as before, 219,583,298 bytes.
+
+### Recheck on the phones (owner, riskiest first)
+1. **Rotation, auto-rotate on:** a landscape video fullscreen; turn the phone to landscape and back,
+   leave fullscreen while held each way, and right after a turn; enter again right after leaving
+   (the player fills the screen). If Koan ever stays at the wrong size, wait 2 s (it repairs), and
+   send `adb logcat -d -s KoanSize`.
+2. **Rotation, auto-rotate off:** turn the phone so the rotate pill shows, tap it, leave fullscreen
+   while the pill shows; leave during the black resize.
+3. **Private switch:** spam it on the overview, both directions: it always reacts, never a dead
+   tap, ends on the last state; no blank cards coming back; no strip, no cut.
+4. **Locked Private** (1 min away): the knob moves at once, the fingerprint is asked; cancel puts
+   the knob back.
+5. **Remove animations** on: a 150 ms slide both ways.
+6. **Overview open** in normal mode: it now composes Private's page once settled; check it feels the
+   same (`tools/perf` "open" if in doubt).
+7. **Translation:** a French page shows no card; with the switch off, a German page shows none.

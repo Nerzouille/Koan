@@ -11,8 +11,10 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   "1.0", the baseline profile (generated 2026-11-12, small gain: see the plan's "Morning
   session"), README and release docs. Fixed in the morning: stuck start page after What's new,
   "Translated" on every page. Staging R8 check and the update path done on the POCO. Still to do:
-  the Xiaomi captures (Private, player, search, Settings, two recordings), the translation offer
-  change (owner to decide), video full screen on the Xiaomi (owner to try).
+  the owner's phone recheck (plan "Afternoon": rotation with the phone turning, the Private
+  switch, the lock, translation), then the release steps. Afternoon: translation offer change,
+  rotation safety net (`ui/browser/LayoutWatch.kt`, logs `KoanSize`), Private switch rework
+  (interruptible flip), captures done; CI green on PR #3 (draft, pushed head only).
   1.0.0-beta.1 replaces the planned 0.5; versionCode 10.
 
 - **Latest release: v0.4.0** ("Koan 0.4 (beta)"), tagged on `main` at `d4f3a2e`, published on
