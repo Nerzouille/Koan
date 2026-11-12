@@ -14,7 +14,9 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   the owner's phone recheck (plan "Afternoon": rotation with the phone turning, the Private
   switch, the lock, translation), then the release steps. Afternoon: translation offer change,
   rotation safety net (`ui/browser/LayoutWatch.kt`, logs `KoanSize`), Private switch rework
-  (interruptible flip), captures done; CI green on PR #3 (draft, pushed head only).
+  (interruptible flip), captures done; CI green on PR #3 (draft, pushed head only). Evening:
+  the translation offer is an icon in the pill, the card on its own only on readable pages
+  (`ui/browser/TranslateCue.kt`); APK size explained (nothing by mistake).
   1.0.0-beta.1 replaces the planned 0.5; versionCode 10.
 
 - **Latest release: v0.4.0** ("Koan 0.4 (beta)"), tagged on `main` at `d4f3a2e`, published on

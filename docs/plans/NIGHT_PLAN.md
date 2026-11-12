@@ -585,4 +585,39 @@ translations" switch in Settings › Translation. Meanwhile "Never for French" o
 5. **Remove animations** on: a 150 ms slide both ways.
 6. **Overview open** in normal mode: it now composes Private's page once settled; check it feels the
    same (`tools/perf` "open" if in doubt).
-7. **Translation:** a French page shows no card; with the switch off, a German page shows none.
+7. **Translation (reworked in the evening, below):** see the evening list.
+
+## Evening (2026-11-12): a quieter translation offer, APK size
+
+- **Translation offer** (76950fb, 53a507c), owner's rules: by default only a translate icon that
+  pops into the end of the address pill (spring scale + fade, layer only) on a page in a language
+  that isn't on the phone; a tap opens the card. The card opens by itself only when
+  `TranslateCue` says so: Firefox's reader-view check passes (article-length text, not mostly
+  links, forms or media), the page language is sure (Gecko gives `documentLangTag` only from the
+  page's declaration or a confident detection), the page isn't a results page of any engine in the
+  owner's list (`isSearchResults`: the engine's site in any country domain, its path and query
+  parameter), and the card wasn't dismissed on that site since Koan started (✕, a tap outside or a
+  drag; the 20 s timeout doesn't count). "Offer to translate pages" off hides both.
+  Found on the phone: Gecko's own `isOfferTranslate` fires once per site and session, so it can't
+  be the confidence signal (an article after a short page of the same site never got its card).
+  Checked on the POCO R8 staging copy: links page → icon only; article → card; ✕ or a tap outside
+  → the next article on that site gets the icon only; a tap on the icon → the card; after a restart
+  the site gets its card again. Search pages are covered by unit tests only (no real queries sent
+  from the phone). 434 JVM tests green.
+- The staging copy on the POCO has German set to "Never" (a stray test tap): Settings ›
+  Translation › Remove, if it matters for a later test.
+- **APK size:** 219.6 MB against 215.9 MB for v0.4.0 (+3.7 MB, +1.7 %): GeckoView 157 → 160
+  (+2.46 MB, libxul +2.2 MB), dex +0.98 MB (new code ~0.53 MB; the startup profile splits the
+  dex, ~0.45 MB), the Zia icon set `assets/zia/*.json` +0.34 MB, omni.ja +0.14 MB. One ABI
+  (arm64-v8a), libs stored uncompressed and 16 KB aligned in both, no debug sections, no Room
+  schemas, fixtures, raw profiles or mapping files. Only ~60 KB of library licence/version files,
+  already in 0.4.0, left as they are (the Apache licences are notices).
+
+### Recheck: translation (owner)
+1. A news article or docs page in a language not on the phone: the icon pops in and the card opens
+   by itself; ✕ it, open another article of that site: icon only.
+2. Google / DuckDuckGo results in another language: icon only, never the card.
+3. A short page or a page of links in another language: icon only; tapping it opens the card.
+4. A French page (French on the phone): no icon, no card.
+5. Settings › Translation › Offer to translate pages off: no icon, no card anywhere; ⋯ › Translate
+   page still works.
