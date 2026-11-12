@@ -54,13 +54,13 @@ Everything, screen by screen: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 ## Screenshots
 
-<!-- Screenshots follow the viewer's theme (light or dark). Taken on a phone with demo pages. -->
+<!-- Light or dark follows the viewer's theme. Taken on a phone with demo pages. -->
 
 | Tab stack | A page | Search |
 |:---:|:---:|:---:|
-| <!-- IMG docs/media/overview-light.png + overview-dark.png: the tab stack --> | <!-- IMG docs/media/page-light.png + page-dark.png: a page with the dock --> | <!-- IMG docs/media/search-light.png + search-dark.png: the search sheet --> |
-| **Private browsing** | **Video player** | **⋯ menu** |
-| <!-- IMG docs/media/private-light.png + private-dark.png: the private overview --> | <!-- IMG docs/media/player-light.png + player-dark.png: the video player --> | <!-- IMG docs/media/menu-light.png + menu-dark.png: the menu sheet --> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/overview-dark.png"><img src="docs/media/overview-light.png" width="240" alt="The tab stack of a space"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/page-dark.png"><img src="docs/media/page-light.png" width="240" alt="A page with the dock"></picture> | <img src="docs/media/search.png" width="240" alt="The search sheet with suggestions"> |
+| **Private browsing** | **⋯ menu** | **Video player** |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/private-dark.png"><img src="docs/media/private-light.png" width="240" alt="The private overview"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/menu-dark.png"><img src="docs/media/menu-light.png" width="240" alt="The ⋯ menu sheet"></picture> | <img src="docs/media/player.png" width="240" alt="Koan's video player in landscape"> |
 
 ## Install
 
