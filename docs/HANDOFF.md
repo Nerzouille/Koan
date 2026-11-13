@@ -19,8 +19,10 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   (`ui/browser/TranslateCue.kt`); APK size explained (nothing by mistake).
   Late: depth dim caps back to v0.4.0 (`DepthDimTest`); a depth-cue proposal for beta.2 is
   prototyped on the local branch `depth-cue-proto` only (ROADMAP › For 1.0.0-beta.2).
-  Final prep (2026-11-12, night): README images in `docs/media/` (1080 wide, from the Xiaomi
-  captures, demo pages only; `docs/screenshots/` removed), tour cards 2 and 5 keep their clips
+  Final prep (2026-11-12, night): README images in `docs/media/` (1080 wide, from the Xiaomi;
+  `docs/screenshots/` removed; retaken 2026-11-13: one image each (light, Private dark),
+  Wikipedia / Commons / this repo, 256-colour PNGs; grid of 6, the player full width, then About,
+  Settings signed out (staging copy) and What's new), tour cards 2 and 5 keep their clips
   (owner: approved, fine to ship), CHANGELOG / FEATURES brought up
   to date (translation icon, Private switch, rotation safety net, depth caps). Release notes and
   the Discord post in `reference/` wait for the owner's approval. Local commits not pushed.

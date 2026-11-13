@@ -54,13 +54,23 @@ Everything, screen by screen: [`docs/FEATURES.md`](docs/FEATURES.md).
 
 ## Screenshots
 
-<!-- Light or dark follows the viewer's theme. Taken on a phone with demo pages. -->
+<!-- Taken on a phone; pages from Wikipedia, Wikimedia Commons and this repository. -->
 
 | Tab stack | A page | Search |
 |:---:|:---:|:---:|
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/overview-dark.png"><img src="docs/media/overview-light.png" width="240" alt="The tab stack of a space"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/page-dark.png"><img src="docs/media/page-light.png" width="240" alt="A page with the dock"></picture> | <img src="docs/media/search.png" width="240" alt="The search sheet with suggestions"> |
-| **Private browsing** | **⋯ menu** | **Video player** |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/private-dark.png"><img src="docs/media/private-light.png" width="240" alt="The private overview"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/media/menu-dark.png"><img src="docs/media/menu-light.png" width="240" alt="The ⋯ menu sheet"></picture> | <img src="docs/media/player.png" width="240" alt="Koan's video player in landscape"> |
+| <img src="docs/media/overview.png" width="240" alt="The tab stack of a space"> | <img src="docs/media/page.png" width="240" alt="A page with the dock"> | <img src="docs/media/search.png" width="240" alt="The search sheet with history, open tabs and suggestions"> |
+| **Private browsing** | **Translation** | **⋯ menu** |
+| <img src="docs/media/private.png" width="240" alt="The private overview, dark"> | <img src="docs/media/translate.png" width="240" alt="A Chinese page with the translate icon in the address bar"> | <img src="docs/media/menu.png" width="240" alt="The ⋯ menu sheet"> |
+
+### Koan's own video player
+
+<p align="center"><img src="docs/media/player.png" width="780" alt="Koan's video player in landscape on Big Buck Bunny"></p>
+
+### Koan's colours
+
+| About | Settings | What's new |
+|:---:|:---:|:---:|
+| <img src="docs/media/about.png" width="240" alt="The About page"> | <img src="docs/media/settings.png" width="240" alt="Settings, not signed in"> | <img src="docs/media/whatsnew.png" width="240" alt="The What's new sheet for 1.0"> |
 
 ## Install
 
