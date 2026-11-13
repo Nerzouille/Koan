@@ -49,8 +49,8 @@ fun Modifier.flipTextDip(flip: PrivateFlip?): Modifier = if (flip == null) this 
 
 /**
  * The Private toggle at the end of the overview header (§4.2): a 56×32 track, a white knob with
- * the mask. Its colours and the knob follow the flip, in the draw phase. Taps are ignored while a
- * flip runs.
+ * the mask. Its colours and the knob follow the flip, in the draw phase. Every tap acts, mid-flip
+ * too.
  */
 @Composable
 fun PrivateToggle(flip: PrivateFlip, onToggle: () -> Unit, modifier: Modifier = Modifier) {
@@ -66,7 +66,6 @@ fun PrivateToggle(flip: PrivateFlip, onToggle: () -> Unit, modifier: Modifier = 
                 stateDescription = if (on) "On" else "Off"
             }
             .clickable(remember { MutableInteractionSource() }, indication = null) {
-                if (flip.running) return@clickable
                 KoanHaptics.tick(view)
                 onToggle()
             },

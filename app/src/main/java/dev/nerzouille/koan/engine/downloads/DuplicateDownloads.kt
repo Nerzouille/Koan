@@ -30,7 +30,8 @@ object DuplicateDownloads {
         }.minWithOrNull(compareBy<DownloadState>({ withoutCounter(it.fileName!!) != it.fileName }, { it.createdTime }))
         if (earlier != null) return DuplicateDownload(download, earlier, earlier.fileName!!, earlier.directoryPath)
         if (name != null && exists(files, name, folder)) {
-            val sameFile = all.firstOrNull { it.id != download.id && it.fileName == name && it.directoryPath == folder && it.status == DownloadState.Status.COMPLETED }
+            // Never a private download behind a normal one's card (it is listed only in Private).
+            val sameFile = all.firstOrNull { it.id != download.id && it.private == download.private && it.fileName == name && it.directoryPath == folder && it.status == DownloadState.Status.COMPLETED }
             return DuplicateDownload(download, sameFile, name, folder)
         }
         return null

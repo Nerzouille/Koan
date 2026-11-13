@@ -9,7 +9,7 @@ and M7 move forward in parallel, one item or batch at a time on its own branch f
 M7. Browser essentials come before the motion polish, so Koan can become the daily browser sooner.
 Milestone numbers are kept as they are.
 
-## Status (2026-11-11)
+## Status (2026-11-12)
 
 Latest release **v0.4.0** (pre-release, 2026-10-30). Branches and how to build/test/release:
 `docs/HANDOFF.md`.
@@ -83,6 +83,45 @@ losing data, and the owner has approved and published the release.
 - Logins saved on the phone ("Save in Koan, this phone only") stay local and encrypted until M6.
 **Done when:** owner can uninstall Opera.
 
+### For 1.0.0-beta.2
+
+- **Real blur on the deeper visible cards** (HyperOS recents style), asked 2026-11-12: a
+  `RenderEffect` blur on the back cards' visible slice on Android 12+, growing with depth; Android
+  11 keeps the depth dim only (no live blur there). The v0.4.0 depth dim stays underneath (pinned by
+  `DepthDimTest`). Before keeping it: `tools/perf/frames.sh` on the stack scroll ("scroll" and
+  "open"), release build on the POCO and the Xiaomi, against the build without it; drop it if p90
+  or janky % get worse beyond noise. Keep batch 4 group B's rule: no recomposition or re-recording
+  per frame (the radius read in a layer lambda, a few cached `RenderEffect` steps like `blurFor`).
+- **A visible depth cue in light and dark** (owner, 2026-11-12, design change): white headers barely
+  dim (254 → 244 in light), so the dim alone can't show depth. Options to show the owner as
+  screenshots on the POCO, light and dark, before building one:
+  - **A, recessed tint:** headers and thumbnails tint with depth, at full strength (not halved like
+    today's header dim), towards a colour darker than the background in light (`#B9B9C2`) and
+    towards black in dark; capped around 0.6.
+  - **B, shadow and scale:** the shadow grows with depth (+7 dp per step up to depth 4, the key
+    shadow not softened) and the scale steps are smaller (0.46 + 0.54 × 0.62ᵈ instead of
+    0.58 + 0.42 × 0.52ᵈ).
+  - **C, blur (the item above):** the deeper cards' thumbnails and headers blur with depth
+    (`RenderEffect`, Android 12+; dim only on Android 11).
+  Prototype of all three on the local branch `depth-cue-proto` (31e6f5d, not for release), switched
+  with `adb shell setprop debug.koan.depthcue 0|1|2|3` and a restart of the staging copy. Light
+  screenshots were taken; the dark ones failed (MIUI stopped applying `cmd uimode night` to the
+  screen) and the front card was a test tab, so redo them with Koan's own Settings › Theme and the
+  colour demo pages in front. Pick one (or a mix: A + B) before building it for real, then measure
+  with `tools/perf` like the blur.
+
+- **Rotate row in the player's ⋯ menu** (on top of the rotate pill): a "Rotate" row that turns
+  full screen to the other shape (portrait ↔ landscape) at any time, not only during the pill's
+  3 s after the phone turns. Same switch as the pill (`PlayerHost.fullscreenRotated`); the
+  standalone player needs the same. With auto-rotate on it isn't needed (the screen follows the
+  phone): hide it there or keep it, the owner's call.
+- **Quality choice for Download video:** when the page offers several files of the same video
+  (Wikimedia Commons: 240p … 1080p renditions and the 2.8 GB original), let the owner pick one
+  (a short list in the ⋯ menu, with sizes when the page or a HEAD request gives them) instead of
+  always taking the original or the largest rendition. Starts in the video extension's
+  `fileSource` (`assets/extensions/video/content.js`), which then reports every candidate, not
+  just the best one.
+
 ### Batch 4 leftovers (after the release)
 
 From the batch 4 refactoring (`docs/plans/BATCH4_PLAN.md`, branch `refactor`), left for after the
@@ -96,18 +135,6 @@ From the batch 4 refactoring (`docs/plans/BATCH4_PLAN.md`, branch `refactor`), l
   `IconStore`'s; measure `dumpsys meminfo` before / after.
 - **G3, tokens (only if wanted):** a spacing scale, kit-level tokens, then `Tokens.kt` split by
   feature (a pure move, last).
-
-### Video player follow-ups (after the release)
-
-From the fixes list's second round (`docs/plans/FIXES_CHECKS.md` "Recheck"), left for after the
-0.5 release (the "Rotate" idea became the rotate pill, built on `fixes`):
-
-- **Quality choice for Download video:** when the page offers several files of the same video
-  (Wikimedia Commons: 240p … 1080p renditions and the 2.8 GB original), let the owner pick one
-  (a short list in the ⋯ menu, with sizes when the page or a HEAD request gives them) instead of
-  always taking the original or the largest rendition. Starts in the video extension's
-  `fileSource` (`assets/extensions/video/content.js`), which then reports every candidate, not
-  just the best one.
 
 ### Open items after v0.2.0 (not scheduled yet)
 - **Search backdrop retry:** the old dim plus a subtle blur behind the suggestion cards only (also

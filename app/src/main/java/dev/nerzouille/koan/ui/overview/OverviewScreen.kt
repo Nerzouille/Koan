@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.layout.onGloballyPositioned
 import dev.nerzouille.koan.ui.topSafePadding
@@ -128,7 +131,9 @@ fun OverviewScreen(
     }
 
     // The first real spaces fade in over the placeholders instead of replacing them abruptly.
-    val zenReady = models.any { it.zen }
+    // The normal models only: Private's tabs are never Zen's, and reading them here replayed this
+    // reveal (blank cards for ~250 ms) each time Private was left.
+    val zenReady = (normalModels ?: models).any { it.zen }
     val reveal = remember { Animatable(1f) }
     var wasWaiting by remember { mutableStateOf(!zenReady) }
     LaunchedEffect(zenReady) {
@@ -229,7 +234,13 @@ fun OverviewScreen(
         }
         val anchored = normalList.getOrNull(anchorIndex)
         when {
-            flip == null || (!privateShown && !flipping) -> addPager(normalList, private = false)
+            flip == null -> addPager(normalList, private = false)
+            !privateShown && !flipping -> {
+                addPager(normalList, private = false)
+                // Private's page, composed off screen once the overview has settled: a flip
+                // slides in a page that is ready, never one composing on its first frames.
+                if (settled) privateList.firstOrNull()?.let { add(Page(it, 0, true, privateFlip, real = true, active = false)) }
+            }
             !flipping -> {
                 addPager(privateList, private = true)
                 if (anchored != null) add(Page(anchored, anchorIndex, false, besidePrivate, real = true, active = false))
@@ -345,6 +356,27 @@ fun OverviewScreen(
                                 GhostSpace(space, sync.badge, currentIndex(space), offset, motion.then(fade))
                             }
                         }
+                    }
+                }
+                // Mid-flip the headers slide with their pages: the toggle's place stays a toggle,
+                // so a tap there always switches (and turns the flip around).
+                if (flip != null && flipping && private != null) {
+                    val view = androidx.compose.ui.platform.LocalView.current
+                    Box(
+                        Modifier
+                            .align(androidx.compose.ui.Alignment.TopEnd)
+                            .padding(end = OverviewTokens.HeaderPaddingEnd)
+                            .height(OverviewTokens.HeaderHeight),
+                        contentAlignment = androidx.compose.ui.Alignment.Center,
+                    ) {
+                        Box(
+                            Modifier
+                                .size(PrivateTokens.ToggleTouchWidth, PrivateTokens.ToggleTouchHeight)
+                                .clickable(remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {
+                                    dev.nerzouille.koan.ui.kit.KoanHaptics.tick(view)
+                                    private.onToggle()
+                                },
+                        )
                     }
                 }
             }

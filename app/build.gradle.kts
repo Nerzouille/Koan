@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 // Local release signing. keystore.properties (gitignored) points at a keystore outside the repo.
@@ -34,8 +35,8 @@ android {
         targetSdk = 37
         // versionCode only goes up: 2 was the m3 build already on the phone, 7 the Android 11
         // preview (0.2.2-preview.1).
-        versionCode = 9
-        versionName = "0.4.0"
+        versionCode = 10
+        versionName = "1.0.0-beta.1"
         // GeckoView-omni ships every ABI; both owner phones are arm64. `-Pkoan.emulatorAbi` adds
         // x86_64 for emulator test runs only, never for a build that goes on a phone.
         ndk {
@@ -103,11 +104,22 @@ android {
     testOptions {
         // Ported sync code calls android.util.Log; JVM tests get no-op stubs.
         unitTests.isReturnDefaultValues = true
-        // Without reference/Z-Sync the fixture tests skip instead of failing (see README).
+        // Robolectric tests read the merged manifest and resources (and Room's schemas below).
+        unitTests.isIncludeAndroidResources = true
+        // Without reference/Z-Sync the fixture tests skip instead of failing (see README), except
+        // with -Pkoan.requireContract=true (CI), where a missing clone fails the build (audit 9.4).
         val contractPresent = rootProject.file("reference/Z-Sync/shared/contract").isDirectory
+        if (providers.gradleProperty("koan.requireContract").orNull == "true" && !contractPresent) {
+            throw GradleException("koan.requireContract: clone Z-Sync into reference/Z-Sync first")
+        }
         unitTests.all { it.systemProperty("koan.zsync.contract", contractPresent) }
     }
     sourceSets {
+        // Room's exported schemas for MigrationTestHelper: unit tests only see the debug variant's
+        // merged assets, so they go there (the rarely used `.debug` build; never dev, staging or release).
+        getByName("debug") {
+            assets.srcDir("$projectDir/schemas")
+        }
         getByName("test") {
             // Z-Sync's golden fixtures, read in place (never copied or edited). Leaf dirs so the
             // JSON lands at the classpath root, as Z-Sync's FixtureLoader expects.
@@ -194,7 +206,37 @@ kotlin {
     }
 }
 
+// Baseline profile (docs/ARCHITECTURE.md "Performance"): generated on a phone by :baselineprofile,
+// kept in src/main/generated so every build type (dev, staging, release) ships it, and installed
+// on a sideloaded APK by profileinstaller. Generate it by hand: ./gradlew :app:generateBaselineProfile
+baselineProfile {
+    mergeIntoMain = true
+    saveInSrc = true
+    automaticGenerationDuringBuild = false
+}
+
+// The plugin's own build types (nonMinified…, benchmark…) get their own app id: generating or
+// benchmarking never installs over the real app or its data on a phone.
+androidComponents {
+    // Those nonMinified… types copy release (initWith) and turn off only the old isMinifyEnabled,
+    // not AGP 9's optimization block: without this, R8 renames the classes and the profile names
+    // classes the real release build doesn't have. finalizeDsl runs after the plugin made them.
+    finalizeDsl { android ->
+        android.buildTypes.matching { it.name.startsWith("nonMinified") }.configureEach {
+            optimization {
+                enable = false
+            }
+        }
+    }
+    onVariants { variant ->
+        val type = variant.buildType.orEmpty()
+        if (type.startsWith("nonMinified") || type.startsWith("benchmark")) variant.applicationId.set("dev.nerzouille.koan.bp")
+    }
+}
+
 dependencies {
+    baselineProfile(project(":baselineprofile"))
+    implementation(libs.androidx.profileinstaller)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
@@ -243,4 +285,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric: tests that need a real Context, Room or DataStore (migrations, two-way sync, Private).
+    testImplementation(libs.robolectric)
+    testImplementation(libs.room.testing)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.junit)
 }

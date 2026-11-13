@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (on `dev`)
+## 1.0.0-beta.1 — date to be set (pre-release)
 
 ### New
 
@@ -38,8 +38,9 @@
   and pages you remove). Editing and deleting your account's passwords has its own switch, off by
   default. Before its first change, Koan keeps an encrypted copy of what your account had; any
   surprise stops it and turns the switch off. Spaces, tabs and bookmarks are never written.
-- **Translate pages on the phone** (Firefox Translations, nothing sent anywhere): an offer card on a
-  page in another language, ⋯ › **Translate page** (From / To with search, Recent and On this phone,
+- **Translate pages on the phone** (Firefox Translations, nothing sent anywhere): a translate icon in
+  the address bar on a page in another language (the offer card opens by itself only on articles),
+  ⋯ › **Translate page** (From / To with search, Recent and On this phone,
   Show original), **Always translate** a language, and **Settings › Translation** for your Always
   and Never lists and the languages on the phone.
 - **"Open in app" asks first:** a page's "Open app" button shows a card with the app's name and
@@ -71,6 +72,9 @@
 - **Save image on Google Images** before the full picture has loaded waits for it and saves the full
   image, not the small preview.
 - **Settings pages:** the large title stays solid until you really scroll.
+- **About's update check** knows betas: on a beta you're offered the next beta and the final
+  release, on a final release only final releases. "What's new" links to this version's own
+  release page (the old link pointed at a page that pre-releases don't have).
 - Koan no longer asks Android for the list of every installed app: it only looks for the apps
   behind web links and the app links sites use.
 - **Passwords pages** can't be captured in screenshots or the recent-apps preview.
@@ -81,6 +85,18 @@
 
 ### Fixed
 
+- After an update, Koan no longer stays stuck on the start page when What's new and the start
+  page come up together.
+- The ⋯ menu no longer says a page is translated when it isn't, and Translate works on it.
+- **Private's switch always reacts**, even mid-transition (it ignored taps for over a second):
+  the slide turns around from where it is and ends on your last tap. The slide no longer skips to
+  the end, and coming back from Private no longer shows blank cards first.
+- Leaving or entering a full-screen video checks that Koan's layout follows the rotation, and
+  repairs it within about 2 s if it stayed at the old size.
+- **Translation is offered quietly:** a small icon in the address bar on pages in a language that
+  isn't on your phone (any of your phone's languages counts), and the card opens by itself only
+  on real articles, never on search results; closed on a site, it waits until Koan restarts.
+  Settings › Translation › Offer to translate pages turns both off.
 - Private downloads no longer show in normal mode (list, ring, menu count, toast); Private has a
   **Private** pill in Downloads.
 - Coming back to Private after a full-screen video no longer leaves it locked in landscape.
@@ -93,6 +109,8 @@
   auto-rotate off a landscape video flips sides by itself and a rotate button (a few seconds after
   you turn the phone) turns it to portrait.
 
+- A download already made in a private tab no longer shows up behind a normal download's "same
+  file" card.
 - Space icons picked from Zen's built-in icons were missing in release builds (0.4.0 and before).
 - **Downloads keep the name the site gives them** (for example "report.pdf"), instead of a name
   made from the link ("download.php").

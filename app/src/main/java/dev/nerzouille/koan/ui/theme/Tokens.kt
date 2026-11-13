@@ -154,7 +154,7 @@ class KoanPalette(
             FindMatchText = Color.Black,
             DimToBase = true,
             DimGain = 1.25f,
-            DimMax = 0.60f,
+            DimMax = 0.85f,
             CardElevation = 12.dp,
             CardShadowColor = Color(0x241C1C30),
             ContactShadow = Color(0x2E1C1C30),
@@ -208,7 +208,7 @@ class KoanPalette(
             FindMatchText = Color.White,
             DimToBase = false,
             DimGain = 1f,
-            DimMax = 0.80f,
+            DimMax = 1f,
             CardElevation = 20.dp,
             CardShadowColor = Color(0x99000000),
             ContactShadow = Color(0xA6000000),
@@ -263,7 +263,7 @@ class KoanPalette(
             FindMatchText = Light.FindMatchText,
             DimToBase = true,
             DimGain = 1.25f,
-            DimMax = 0.60f,
+            DimMax = 0.85f,
             CardElevation = Light.CardElevation,
             CardShadowColor = Light.CardShadowColor,
             ContactShadow = Light.ContactShadow,
@@ -321,7 +321,7 @@ class KoanPalette(
             FindMatchText = Dark.FindMatchText,
             DimToBase = false,
             DimGain = 1f,
-            DimMax = 0.80f,
+            DimMax = 1f,
             CardElevation = Dark.CardElevation,
             CardShadowColor = Dark.CardShadowColor,
             ContactShadow = Dark.ContactShadow,
@@ -675,6 +675,9 @@ object TourTokens {
      * to fill the slot (1208 x 1763 px on the phone).
      */
     const val SCREEN_CLIP_ASPECT = 720f / 1478f
+
+    /** Whole-screen clips of the phone held sideways (the video player full screen), width / height. */
+    const val LANDSCAPE_CLIP_ASPECT = 1280f / 590f
     val FrameRadius = 30.dp
     val FrameBezel = 5.dp
     val FrameBorder = SharedTokens.Hairline
@@ -859,6 +862,12 @@ object SignInTokens {
 }
 
 object BarTokens {
+    /** The translate icon in the address pill (TranslateCue): its glyph, in (a soft pop) and out. */
+    val TranslateIcon = 18.dp
+    val TranslateIn: androidx.compose.animation.core.SpringSpec<Float> =
+        androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 500f)
+    const val TRANSLATE_OUT_MS = 140
+
     val BottomMargin = 6.dp
     val AddressRowHeight = 68.dp
     val SwitcherRowHeight = 60.dp

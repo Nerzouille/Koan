@@ -26,6 +26,9 @@ class TranslationSettings(
     val onRemoveSite: (String) -> Unit = {},
     /** The page opened: Gecko's lists are fetched again. */
     val onOpen: () -> Unit = {},
+    /** The card on pages in another language; ⋯ › Translate page works either way. */
+    val offer: Boolean = true,
+    val onOffer: (Boolean) -> Unit = {},
 )
 
 /**
@@ -41,6 +44,14 @@ internal fun TranslationPage(t: TranslationSettings, on: Boolean, onBack: () -> 
             "Pages are translated on this phone, never sent anywhere. Each language downloads once.",
             color = palette.TextSecondary,
             fontSize = SettingsTokens.RowValueSize,
+        )
+        SettingsToggleRow(
+            null,
+            "Offer to translate pages",
+            on,
+            checked = t.offer,
+            onChange = t.onOffer,
+            subtitle = "A card on pages in a language that isn't on your phone",
         )
         Section("Always translate", t.always.map { it.second to { t.onRemoveLanguage(it.first) } }, "No language yet. Turn it on from ⋯ › Translate page.", on)
         Section("Never translate", t.never.map { it.second to { t.onRemoveLanguage(it.first) } }, "No language.", on)

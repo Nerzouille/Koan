@@ -134,7 +134,7 @@ Private palettes use their own hairline (§5.1).
 | Mask on | `#2E2399` | `#3A2FB8` |
 
 - Semantics: `Role.Switch`, contentDescription "Private browsing", stateDescription on/off.
-- Tap: `CLOCK_TICK` haptic, run the transition (§6). Taps are ignored while a transition runs (760ms).
+- Tap: `CLOCK_TICK` haptic, run the transition (§6). Taps are ignored while a transition runs (760ms). *(Replaced 2026-11-12: every tap acts and turns the flip around, see `docs/DESIGN_SYSTEM.md` › Private.)*
 
 ### 4.3 Private header
 - Back 44 · "Private" 20sp Bold `TextPrimary` · 10dp · **"Not saved" chip** · toggle (on), right.
@@ -202,7 +202,7 @@ Private palettes use their own hairline (§5.1).
 | `private.pill` | `#4B3FD629` (16%) | `#9C8CFF33` (20%) |
 | `private.ink` | `#2E2399` (6.8:1 on the pill) | `#CFC6FF` (8.6:1 on the pill) |
 | `SheetScrim` | `#17142E57` | `#05041299` |
-| Stack dim | haze to Base (`#DEDAF0`), gain 1.25, max 0.60 | to `#050412`, gain 1.0, max 0.80 |
+| Stack dim | haze to Base (`#DEDAF0`), gain 1.25, max 0.60 | to `#050412`, gain 1.0, max 0.80 | *(as built: max 0.85 / 1.0, the normal stack's v0.4.0 values, owner 2026-11-12)*
 
 Cards stay white in Dusk so they lift off the lavender base.
 

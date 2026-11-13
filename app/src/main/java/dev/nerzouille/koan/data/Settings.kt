@@ -34,8 +34,9 @@ data class SyncBackChoice(val passwords: Boolean = false, val history: Boolean =
 }
 
 /** The owner's settings. */
-class Settings(context: Context) {
-    private val store = context.applicationContext.settingsStore
+class Settings internal constructor(private val store: DataStore<Preferences>) {
+    constructor(context: Context) : this(context.applicationContext.settingsStore)
+
     private val theme = stringPreferencesKey("theme")
 
     val themeMode: Flow<ThemeMode> = store.safeData.map { prefs ->
@@ -144,6 +145,15 @@ class Settings(context: Context) {
 
     private fun parseDays(raw: String?): Map<String, Int> =
         raw.orEmpty().split(',').mapNotNull { e -> e.split(':').takeIf { it.size == 2 }?.let { (d, c) -> c.toIntOrNull()?.let { d to it } } }.toMap()
+
+    private val translateOfferKey = booleanPreferencesKey("translate_offer")
+
+    /** The small "This page is in …" card on pages in another language (on by default). */
+    val translateOffer: Flow<Boolean> = store.safeData.map { it[translateOfferKey] ?: true }
+
+    suspend fun setTranslateOffer(on: Boolean) {
+        store.edit { it[translateOfferKey] = on }
+    }
 
     private val tourSeen = stringPreferencesKey("tour_seen")
 

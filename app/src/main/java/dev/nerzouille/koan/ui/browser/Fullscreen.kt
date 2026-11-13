@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -55,6 +56,17 @@ fun rememberFullscreen(components: Components, tabId: String?, hideStatus: Boole
             bars.show(WindowInsetsCompat.Type.navigationBars())
             if (hideStatus) bars.hide(WindowInsetsCompat.Type.statusBars()) else bars.show(WindowInsetsCompat.Type.statusBars())
         }
+    }
+    // After each change (not the first composition): the sizes are checked and repaired (LayoutWatch).
+    val latestOrientation = androidx.compose.runtime.rememberUpdatedState(
+        dev.nerzouille.koan.ui.player.fullscreenOrientation(fullScreen, shapePortrait, rotationLocked, turned),
+    )
+    val firstState = androidx.compose.runtime.remember { fullScreen }
+    var changed by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    LaunchedEffect(fullScreen) {
+        if (!changed && fullScreen == firstState) return@LaunchedEffect
+        changed = true
+        activity?.let { watchLayout(it, fullScreen) { latestOrientation.value } }
     }
     // Koan never stays turned or without its bars when this goes away.
     DisposableEffect(activity) {

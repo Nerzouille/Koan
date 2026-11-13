@@ -1,4 +1,4 @@
-# Koan — user guide (v0.4.0, plus what's on `dev` since)
+# Koan — user guide (v1.0.0-beta.1)
 
 Everything that works in this build, how to use it, and what isn't there yet. Koan is a browser
 built on GeckoView (Firefox's engine). Its workspaces are your Zen Browser Spaces, read from your
@@ -17,13 +17,14 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 - Requirements: Android 11 or newer (tested on Android 14 and 17; 11–13 are supported but less tested),
   a 64-bit ARM phone (arm64-v8a). Other CPUs are not built. Below Android 12 the drawer dims
   what's behind it instead of blurring it; phones with less memory keep fewer tabs live.
-- Download `koan-v0.4.0.apk` (about 206 MB) from the GitHub release and open it. Android asks you to allow
+- Download `koan-vX.Y.Z.apk` (about 223 MB) from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
 - **Updates:** install with [Obtainium](https://github.com/ImranR98/Obtainium) from the GitHub
-  releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you.
+  releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you; turn
+  on its **Include prereleases** option to get betas such as 1.0.0-beta.1.
   Otherwise Settings › About checks once when you open it.
 - Installing over a previous Koan version keeps your tabs, spaces, logins and settings.
-- The APK is about 206 MB. See [Known limitations](#13-known-limitations).
+- The APK is about 223 MB. See [Known limitations](#13-known-limitations).
 
 ### First run
 
@@ -34,10 +35,10 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
   shows once (also after updating from 0.2.x), and not when a link from another app opens Koan.
   Replay it from **Settings › About Koan › Take the tour**.
 - **What's new:** after an update that brings new features, a short sheet of the same kind shows
-  the highlights once: it opens on the tour's welcome look ("What's new in 0.4"), then one card
+  the highlights once: it opens on the tour's welcome look ("What's new in 1.0"), then one card
   per highlight (a clip, a screenshot or a small drawn animation), ending with
-  **See the full changelog** (the latest GitHub release). **Settings › About Koan › What's new in
-  0.4** shows it again.
+  **See the full changelog** (this version's GitHub release page). **Settings › About Koan ›
+  What's new in 1.0** shows it again.
 - Without an account, Koan is a plain browser with one space called **Phone** (📱). The overview
   opens on a **Connect your Zen Spaces** card; you can ignore it and just browse.
 - Tap the address pill, type an address or a search, and go.
@@ -437,9 +438,14 @@ Koan asks for the camera permission the first time. Closing the picker leaves th
 Pages are translated on the phone with Firefox Translations: the text is never sent anywhere.
 Each language is downloaded once (about 20–30 MB) the first time you use it.
 
-- **On a page in another language,** a small card above the dock offers **Translate to
-  [your language]**, with ✕ and quiet links: **Always for [language]**, **Never for [language]**,
-  **Never for this site**. It leaves after 20 seconds. Toasts say when it's translating and when
+- **On a page in a language that isn't on your phone** (any language in Android's Settings ›
+  Languages, not only the first, counts as yours), a small **translate icon** pops into the end of
+  the address pill. A tap on it opens a small card above the dock: **Translate to [your language]**,
+  with ✕ and quiet links: **Always for [language]**, **Never for [language]**, **Never for this
+  site**. The card also opens by itself, but only on a page with real readable text (an article,
+  docs), when the language is clear, and never on a search engine's results (any engine in your
+  list). Closed with ✕ or a tap outside, it doesn't open by itself again on that site until Koan
+  restarts (the icon stays). It leaves after 20 seconds. Toasts say when it's translating and when
   it's done, with **Show original**.
 - **⋯ › Translate page:** **From** and **To** (each opens a list with a search field and the
   sections Recent, On this phone and All languages, with download sizes; ‹ goes back), **Translate**,
@@ -448,7 +454,8 @@ Each language is downloaded once (about 20–30 MB) the first time you use it.
 - **Always translate [language]:** its pages are translated on their own, with a "Translated from
   [language]" toast and Show original.
 - Long-press a language under **On this phone** to delete it from the phone (it asks first).
-- **Settings › Translation** lists your Always and Never languages and sites (Remove each), and the
+- **Settings › Translation** has **Offer to translate pages** (on; off, neither the icon nor the card
+  shows, and ⋯ › Translate page still works), and lists your Always and Never languages and sites (Remove each), and the
   languages on the phone with their size (Delete).
 
 ### Full screen video
@@ -462,7 +469,8 @@ video's orientation (a landscape video flips by itself between the two landscape
 you turn the phone to the other shape a small rotate button shows for about 3 s where the
 full-screen button is (above the bottom bar while the controls show): tap it to turn the player,
 or leave it and nothing changes.
-The screen stays black while it turns. Swipe from an edge to see the system bars for a moment: swipes that start on
+The screen stays black while it turns. If Koan's layout ever stays at the old size after a turn,
+or after leaving full screen, it notices and fixes itself within about 2 seconds. Swipe from an edge to see the system bars for a moment: swipes that start on
 the top or bottom edge (the notification shade, going home) never move brightness, volume or the
 timeline. Leaving Private, or Private locking, takes a private video out of full screen. Koan's own player then takes over from the site's controls: see
 [Video player](#video-player). YouTube keeps its own controls.
@@ -675,7 +683,8 @@ with your default engine, in a new tab of the current space. Back returns to the
 
 **Update check:** opening About looks once at Koan's GitHub releases and says **Up to date** or
 **Update available** (tap it to open the release page and download the APK). Koan never checks in
-the background. If the check fails (no network), tap the chip to try again.
+the background. If the check fails (no network), tap the chip to try again. On a beta you are
+offered the next beta and the final release; on a final release, only final releases.
 
 **Privacy:** what Koan sends and to whom is in the [privacy notice](PRIVACY.md).
 
@@ -702,7 +711,7 @@ the background. If the check fails (no network), tap the chip to try again.
   GeckoView update should help).
 - **Old WebView warning on sign-in:** shown when Android System WebView is older than 92 (it can't
   load Mozilla's sign-in page), with a Play Store button; not yet tested on such a phone.
-- **APK size (~206 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
+- **APK size (~223 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
@@ -719,7 +728,8 @@ the background. If the check fails (no network), tap the chip to try again.
 **Turn it on:** the switch at the right of the overview's header. The overview turns lavender
 (light theme) or deep violet (dark theme), with a few stars; the header says **Private · Not
 saved**, and the dock shows a **Private** pill instead of your spaces. Turn the switch off to go
-back to your spaces: the private tabs stay where they are.
+back to your spaces: the private tabs stay where they are. The switch answers every tap, even
+in the middle of the slide: it turns around from where it is and ends on your last tap.
 
 **Private tabs are one set, apart from your spaces.** They stay open until you close them, also
 after Koan is closed, killed by the system or the phone restarts. **But sites sign you out when

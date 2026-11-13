@@ -1,0 +1,63 @@
+# Build and unit tests on every push and pull request to dev and main.
+# No secrets, no signing: the debug build only (release signing stays on the owner's machine).
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Z-Sync's golden fixtures (MIT), read-only, at the commit the contract tests pass against.
+  ZSYNC_COMMIT: 9f49bc92cc01689be4a16414bb83c1638b6b6f0c
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          # Only builds of dev and main write the cache; pull requests read it.
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Android SDK platform 37.2
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
+
+      - name: Z-Sync contract fixtures
+        run: |
+          git init -q reference/Z-Sync
+          git -C reference/Z-Sync fetch -q --depth 1 https://github.com/Kjell6/Z-Sync.git "$ZSYNC_COMMIT"
+          git -C reference/Z-Sync checkout -q FETCH_HEAD
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest -Pkoan.requireContract=true --stacktrace
+
+      - name: Debug build
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-reports
+          path: app/build/reports/tests/
+          retention-days: 7

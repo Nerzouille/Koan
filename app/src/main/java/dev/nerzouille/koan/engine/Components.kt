@@ -154,6 +154,9 @@ class Components(context: Context) {
     /** The activity's picture-in-picture (MainActivity): whether Koan is in its PiP window. */
     val pip = MutableStateFlow<PictureInPicture?>(null)
 
+    /** The translate icon in the address pill and its card (lives until Koan restarts). */
+    val translateCue = dev.nerzouille.koan.ui.browser.TranslateCueState()
+
     /** A download Koan didn't see a tap for, waiting on its card (KoanOverlays). */
     val downloadAsk = MutableStateFlow<DownloadAsk?>(null)
 
@@ -189,7 +192,7 @@ class Components(context: Context) {
     fun shownTabs(): TabManager = if (privateMode.on.value) privateTabs.tabs else tabs
 
     /** Private shown or not, and its lock. */
-    val privateMode by lazy { dev.nerzouille.koan.privacy.PrivateMode(settings, privateTabs.count) { privateBookmarks.count() } }
+    val privateMode by lazy { dev.nerzouille.koan.privacy.PrivateMode(settings, privateTabs.count, bookmarks = { privateBookmarks.count() }) }
 
     /** Bookmarks made in private tabs: sealed with their own Keystore key, never in Room, never synced. */
     val privateBookmarks by lazy {

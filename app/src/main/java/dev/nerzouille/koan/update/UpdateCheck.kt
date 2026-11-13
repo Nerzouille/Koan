@@ -41,28 +41,61 @@ object UpdateCheck {
         }.getOrDefault(UpdateStatus.Failed)
     }
 
-    /** The newest version tag in [feed] (GitHub's releases Atom feed) against [current]. */
+    /**
+     * The newest version tag in [feed] (GitHub's releases Atom feed) against [current], in semver
+     * order (`1.0.0-beta.1 < 1.0.0-beta.2 < 1.0.0-rc.1 < 1.0.0`). The feed doesn't say which
+     * releases are pre-releases: a tag with a `-suffix` is one. Someone on a stable 1.0 or later is
+     * offered stable releases only; someone on a pre-release or on 0.x is offered both.
+     */
     internal fun status(current: String, feed: String): UpdateStatus {
+        val mine = parse(current) ?: return UpdateStatus.Failed
+        val stableOnly = !mine.isPreRelease && mine.numbers.first() >= 1
         val newest = TAG_LINK.findAll(feed)
             .mapNotNull { m -> parse(m.groupValues[1])?.let { it to m.groupValues[1] } }
-            .maxWithOrNull { a, b -> compare(a.first, b.first) }
+            .filter { (v, _) -> !stableOnly || !v.isPreRelease }
+            .maxWithOrNull { a, b -> a.first.compareTo(b.first) }
             ?: return UpdateStatus.UpToDate
-        val mine = parse(current) ?: return UpdateStatus.Failed
-        if (compare(newest.first, mine) <= 0) return UpdateStatus.UpToDate
-        return UpdateStatus.Available(newest.first.joinToString("."), "https://github.com/Nerzouille/Koan/releases/tag/${newest.second}")
+        if (newest.first <= mine) return UpdateStatus.UpToDate
+        return UpdateStatus.Available(newest.first.toString(), "https://github.com/Nerzouille/Koan/releases/tag/${newest.second}")
     }
 
-    /** "v0.2.0" / "0.2.0-rc1" -> [0, 2, 0]; null when it isn't a version. */
-    internal fun parse(tag: String): List<Int>? {
-        val parts = tag.trim().removePrefix("v").substringBefore('-').split('.')
-        return parts.map { it.toIntOrNull() ?: return null }.takeIf { it.isNotEmpty() }
+    /** "v0.2.0" / "1.0.0-beta.1" / "1.0.0-rc.1+build"; null when it isn't a version. */
+    internal fun parse(tag: String): Version? {
+        val bare = tag.trim().removePrefix("v").substringBefore('+')
+        val numbers = bare.substringBefore('-').split('.').map { it.toIntOrNull() ?: return null }
+        if (numbers.isEmpty()) return null
+        val pre = if ('-' in bare) bare.substringAfter('-').split('.').filter { it.isNotEmpty() } else emptyList()
+        if ('-' in bare && pre.isEmpty()) return null
+        return Version(numbers, pre)
     }
 
-    private fun compare(a: List<Int>, b: List<Int>): Int {
-        for (i in 0 until maxOf(a.size, b.size)) {
-            val d = a.getOrElse(i) { 0 } - b.getOrElse(i) { 0 }
-            if (d != 0) return d
+    /** A semver version: [numbers] (major.minor.patch…) and the pre-release identifiers, if any. */
+    data class Version(val numbers: List<Int>, val preRelease: List<String> = emptyList()) : Comparable<Version> {
+        val isPreRelease get() = preRelease.isNotEmpty()
+
+        override fun compareTo(other: Version): Int {
+            for (i in 0 until maxOf(numbers.size, other.numbers.size)) {
+                val d = numbers.getOrElse(i) { 0 }.compareTo(other.numbers.getOrElse(i) { 0 })
+                if (d != 0) return d
+            }
+            // A release is newer than its own pre-releases.
+            if (preRelease.isEmpty() || other.preRelease.isEmpty()) return other.preRelease.size.coerceAtMost(1) - preRelease.size.coerceAtMost(1)
+            for (i in 0 until minOf(preRelease.size, other.preRelease.size)) {
+                val a = preRelease[i]
+                val b = other.preRelease[i]
+                val an = a.toIntOrNull()
+                val bn = b.toIntOrNull()
+                val d = when {
+                    an != null && bn != null -> an.compareTo(bn)
+                    an != null -> -1 // numeric identifiers sort before alphanumeric ones
+                    bn != null -> 1
+                    else -> a.compareTo(b)
+                }
+                if (d != 0) return d
+            }
+            return preRelease.size.compareTo(other.preRelease.size)
         }
-        return 0
+
+        override fun toString() = numbers.joinToString(".") + if (isPreRelease) "-" + preRelease.joinToString(".") else ""
     }
 }

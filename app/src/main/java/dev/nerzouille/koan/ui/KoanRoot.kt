@@ -193,9 +193,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     /** A tab another app just opened, until it is the current one (see the incoming links). */
     var landing by root::landing
     // The start page is up (with the field): not a tab until something opens from it. It goes
-    // with the field.
+    // with the field (RootState.editing).
     var startPage by root::startPage
-    LaunchedEffect(editing) { if (!editing) startPage = false }
     // A new tab always starts with the search sheet open.
     LaunchedEffect(blankId) { if (blankId != null) editing = true }
     val palette = KoanTheme.colors
@@ -1087,6 +1086,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     download = downloadProgress,
                     downloadDone = ringDone && downloadProgress == null,
                     onDownloads = { overlays.downloadsOpen = true },
+                    translate = components.translateCue.icon && !fullScreen,
+                    onTranslate = { components.translateCue.openRequests++ },
                     private = flip.labels,
                     flip = flip,
                 )

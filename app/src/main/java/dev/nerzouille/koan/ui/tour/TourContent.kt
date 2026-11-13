@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.RawRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.nerzouille.koan.R
+import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.settings.REPO
 import dev.nerzouille.koan.ui.theme.TourTokens
 
@@ -32,11 +33,12 @@ enum class TourScene { SignIn }
 
 /**
  * How a clip is framed, and its shape (width / height; null = the frame's whole slot): the whole
- * screen (a gesture that changes all of it), or a crop on where the gesture happens, shaped to fill
- * the slot.
+ * screen (a gesture that changes all of it), the whole screen held sideways, or a crop on where the
+ * gesture happens, shaped to fill the slot.
  */
 enum class Framing(val aspect: Float?) {
     Screen(TourTokens.SCREEN_CLIP_ASPECT),
+    Landscape(TourTokens.LANDSCAPE_CLIP_ASPECT),
     Focus(null),
 }
 
@@ -119,10 +121,49 @@ val Highlights: Map<String, List<TourCard>> = mapOf(
             stillLight = R.drawable.whatsnew_engines_light,
         ),
     ),
+    // Every card with media in the same Screen frame (the player in a Landscape one: it plays
+    // sideways), taken with demo pages and public videos; the sync card stays text-only: its screen
+    // shows the account's email.
+    "1.0" to listOf(
+        TourCard(
+            "Private browsing",
+            "Tap the switch at the right of the overview's header: private tabs in their own set, locked behind your fingerprint.",
+            framing = Framing.Screen,
+            stillDark = R.drawable.whatsnew_private_dark,
+            stillLight = R.drawable.whatsnew_private_light,
+        ),
+        TourCard(
+            "Koan's own video player",
+            "Play a video full screen: double-tap to skip, hold for 2×, swipe for brightness and volume. Go home and it keeps playing in a small window.",
+            // The player is always dark: one clip for both themes.
+            R.raw.whatsnew_player, R.raw.whatsnew_player,
+            Framing.Landscape,
+        ),
+        TourCard(
+            "Translate a page",
+            "Tap the translate icon in the address bar, or ⋯ › Translate page: pages are translated on the phone, their text never leaves it.",
+            R.raw.whatsnew_translate_dark, R.raw.whatsnew_translate_light,
+            Framing.Screen,
+        ),
+        TourCard(
+            "Open in app",
+            "On a site that has its own app, ⋯ › Open in [app] opens the page there.",
+            R.raw.whatsnew_openapp_dark, R.raw.whatsnew_openapp_light,
+            Framing.Screen,
+        ),
+        TourCard(
+            "Two-way sync, if you want it",
+            "Settings › Mozilla account › Send to your Mozilla account: passwords saved here, and history both ways. Off until you turn it on.",
+            icon = KoanIcons.Key,
+        ),
+    ),
 )
 
-/** Koan's latest GitHub release: the last highlight links to its full changelog. */
-const val LATEST_RELEASE_URL = "$REPO/releases/latest"
+/**
+ * The GitHub release page of [versionName] ("1.0.0-beta.1"): the last highlight links to its full
+ * changelog. Not `/releases/latest`, which skips pre-releases (a 404 while every release is one).
+ */
+fun releaseUrl(versionName: String): String = "$REPO/releases/tag/v$versionName"
 
 /** The first card of a "What's new": the welcome card's gradient and K, with the version. */
 fun whatsNewIntro(version: String): TourCard =

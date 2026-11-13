@@ -354,8 +354,8 @@ fun translateUiOf(
         pageLanguage = detected?.documentLangTag?.takeIf { detected.supportedDocumentLang == true },
         from = list(support?.fromLanguages),
         to = list(support?.toLanguages),
-        translated = translatedNow(t.isTranslated, t.translationEngineState?.let { it.requestedTranslationPair != null }),
-        working = workingNow(t.isTranslated, t.translationEngineState?.let { it.requestedTranslationPair != null }, t.isTranslateProcessing, t.isRestoreProcessing),
+        translated = translatedNow(t.isTranslated, t.translationEngineState?.let { hasPair(it.requestedTranslationPair) }),
+        working = workingNow(t.isTranslated, t.translationEngineState?.let { hasPair(it.requestedTranslationPair) }, t.isTranslateProcessing, t.isRestoreProcessing),
         downloadBytes = t.translationDownloadSize?.size,
         error = error,
         neverLanguage = t.pageSettings?.neverTranslateLanguage == true,
@@ -366,6 +366,13 @@ fun translateUiOf(
         modelBytes = engine.languageModels.orEmpty().mapNotNull { m -> m.language?.code?.let { code -> m.size?.let { code to it } } }.toMap(),
     )
 }
+
+/**
+ * Gecko's state holds the pair the page was translated to. Android Components always builds a
+ * pair, with null languages when the page isn't translated: only both languages count.
+ */
+internal fun hasPair(pair: mozilla.components.concept.engine.translate.TranslationPair?) =
+    pair?.fromLanguage != null && pair.toLanguage != null
 
 /**
  * The page shows a translation. [hasPair]: whether Gecko's own state for the page holds the pair it

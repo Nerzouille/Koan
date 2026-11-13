@@ -88,7 +88,7 @@ private fun GhostStack(cards: List<CardModel>, focus: Int) {
                     )
                 }
                 drawRect(palette.CardStrip, Offset(left, top), Size(w, header * s), alpha = alpha)
-                val dim = (DepthCurve.dim(depth) * palette.DimGain).coerceAtMost(palette.DimMax)
+                val dim = DepthCurve.cardDim(depth, palette.DimGain, palette.DimMax)
                 if (dim > 0f) drawRect(palette.DimColor, Offset(left, top), Size(w, h), alpha = dim * alpha)
             }
             drawRoundRect(palette.CardHairline, Offset(left, top), Size(w, h), r, alpha = alpha, style = Stroke(CardTokens.Hairline.toPx()))

@@ -5,6 +5,39 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 
 ## Where things stand
 
+- **Release prep for v1.0.0-beta.1 (2026-11-12):** branch **`release-prep`** (from `dev`, pushed),
+  plan and night report in `docs/plans/NIGHT_PLAN.md`. Batch 5 tests (411 JVM tests, Robolectric
+  added), CI workflow (not run yet: open a draft PR to `dev`), semver update check, What's new
+  "1.0", the baseline profile (generated 2026-11-12, small gain: see the plan's "Morning
+  session"), README and release docs. Fixed in the morning: stuck start page after What's new,
+  "Translated" on every page. Staging R8 check and the update path done on the POCO. Still to do:
+  the owner's phone recheck (plan "Afternoon": rotation with the phone turning, the Private
+  switch, the lock, translation), then the release steps. Afternoon: translation offer change,
+  rotation safety net (`ui/browser/LayoutWatch.kt`, logs `KoanSize`), Private switch rework
+  (interruptible flip), captures done; CI green on PR #3 (draft, pushed head only). Evening:
+  the translation offer is an icon in the pill, the card on its own only on readable pages
+  (`ui/browser/TranslateCue.kt`); APK size explained (nothing by mistake).
+  Late: depth dim caps back to v0.4.0 (`DepthDimTest`); a depth-cue proposal for beta.2 is
+  prototyped on the local branch `depth-cue-proto` only (ROADMAP › For 1.0.0-beta.2).
+  Final prep (2026-11-12, night): README images in `docs/media/` (1080 wide, from the Xiaomi
+  captures, demo pages only; `docs/screenshots/` removed), tour cards 2 and 5 keep their clips
+  (owner: approved, fine to ship), CHANGELOG / FEATURES brought up
+  to date (translation icon, Private switch, rotation safety net, depth caps). Release notes and
+  the Discord post in `reference/` wait for the owner's approval. Local commits not pushed.
+  ⋯ menu shots retaken with the dev build (no translation state). APK size everywhere in decimal
+  MB (10⁶ bytes) from the R8 release build: 222,701,496 bytes = about 223 MB (2026-11-13, with the final What's new clips) (GitHub's asset list
+  shows binary units, ~212). Depth stays out of the release notes (a beta.2 item).
+  Next: owner's approvals, the phone recheck list, push, then release steps 6–7.
+  beta.2 list: ROADMAP › For 1.0.0-beta.2 (depth cue A/B/C and the blur, the player's Rotate row,
+  the Download video quality choice).
+  What's new "1.0" reworked (owner, 2026-11-12 night): every media card in the same Screen frame
+  (Private still, a translate clip, a new "Open in app" clip with the Wikipedia app), the player in
+  a sideways `Framing.Landscape` frame (a clip on Big Buck Bunny: controls, hold 2×, double-tap
+  +10 s, one clip for both themes), Two-way sync text + icon; the title glow fades on that centred
+  card. Clips 2026-11-13 recorded in the owner's Koan, scripts in
+  `reference/capture-tools/` (`take_openapp.sh`, `take_bbb.sh` + `bbb.txt` for the injector).
+  1.0.0-beta.1 replaces the planned 0.5; versionCode 10.
+
 - **Latest release: v0.4.0** ("Koan 0.4 (beta)"), tagged on `main` at `d4f3a2e`, published on
   2026-10-30 as a GitHub **pre-release**. versionName `0.4.0`, versionCode `9`: the next release
   needs versionCode **≥ 10**.
@@ -40,7 +73,7 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   346 JVM tests green on `dev`. Still worth watching: F2 / F4 on the Xiaomi (only the POCO was
   used), the buffering-spinner case of the play button (fixed in code, not seen on the phone),
   F10's sealed file (`files/private/bookmarks.sealed`, Keystore alias `koan_private_bookmarks`).
-  After the release: the download quality choice (`docs/ROADMAP.md` "Video player follow-ups").
+  For beta.2: the Rotate row and the download quality choice (`docs/ROADMAP.md` "For 1.0.0-beta.2").
 - Engine: android-components **160.0** / GeckoView **160.0.20261104181552**
   (`gradle/libs.versions.toml`, the two versions move together), compileSdk **37.2** (AC 160
   requires it). Bump notes: ARCHITECTURE "Bumping android-components + GeckoView". Tested on the
@@ -179,6 +212,8 @@ each group (launch + kill + restore checked).
 
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
+| `release-prep` | dev | v1.0.0-beta.1 prep: batch 5 tests, CI, baseline profile module, update check, README, release docs, the 2026-11-12 fixes. | Pushed up to 8b29879 (draft PR #3); later commits local only; not merged |
+| `depth-cue-proto` | release-prep | Depth-cue prototype A/B/C (31e6f5d), switched by `debug.koan.depthcue`. | Local only, **not for release** |
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3, batch 4 and the fixes list merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
@@ -364,7 +399,7 @@ is ever committed (CLAUDE.md "Public repo").
 3. Per-theme find colours make light pages in dark Koan heavy (navy blocks); per page scheme is a one-line change in `GeckoPrefs.findPrefs`.
 4. Light toggle OFF `#848489` looks heavy: lighter fill + thin darker outline would also pass 3:1.
 5. About shows "About" then "Koan": start that page collapsed, or drop its large title.
-6. Tour clips (cards 2 and 5) show real data: re-record before a public release.
+6. ~~Tour clips (cards 2 and 5) show real data~~: the owner approved them for release (2026-11-12).
 
 ## Private mode (merged into `dev`, 2026-11-11)
 

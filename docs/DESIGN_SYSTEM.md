@@ -149,7 +149,7 @@ text on the pill ("ink") = the accent at 38% / 80% lightness.
 | `SheetScrim` | `#1C1C284D` | `#00000080` | Over the page while a sheet or floating card is open |
 | `DrawerScrim` | `#1C1C2829` | `#00000073` | Over the overview at full drawer open (with 14dp blur) |
 | `DrawerScrimNoBlur` | `#1C1C2852` | `#0000009E` | Same on Android 11 (no live blur) |
-| Stack dim | haze towards `DimColor` (= `Base`), ×1.25, max 0.60 | towards black, ×1, max 0.80 | Back cards in the depth stack (see 3.B Depth stack) |
+| Stack dim | haze towards `DimColor` (= `Base`), ×1.25, max 0.85 | towards black, ×1, max 1.0 (as in v0.4.0) | Back cards in the depth stack (see 3.B Depth stack) |
 
 ### 1.2 Typography
 
@@ -1249,13 +1249,13 @@ cover, atmosphere, the flip driver), `privacy/` (private tabs, vault, engine set
 full table is in the spec §5.1. Main values: Base `#DEDAF0` / `#110F24`, Card `#FFFFFF` /
 `#1E1C38`, Dock `#F6F4FD` / `#18162F`, text `#17142E` / white, `PrivateAccent` `#4B3FD6` /
 `#9C8CFF`, `PrivatePill` accent at 16% / 20%, `PrivateInk` `#2E2399` / `#CFC6FF`. Stack dim to
-`DimColor` (`#DEDAF0` haze, gain 1.25, max 0.60 / `#050412`, gain 1.0, max 0.80). Settings, History,
+`DimColor` (`#DEDAF0` haze, gain 1.25, max 0.85 / `#050412`, gain 1.0, max 1.0: the normal stack's v0.4.0 values, owner 2026-11-12). Settings, History,
 Downloads and the ⋯ sheet keep the normal palette (`KoanNormalTheme`).
 
 **Toggle** (`PrivateTokens`): 56×48 touch, 56×32 track (radius 16), 26dp white knob at x 3 → 27dp,
 mask 17dp inside. Track off `#86868B` / `#636366`, on `#4B3FD6` / `#7B6CF0`; mask off `#6E6E73` /
-`#636366`, on `#2E2399` / `#3A2FB8`. `Role.Switch`, "Private browsing". `CLOCK_TICK` on tap; taps
-ignored during the flip. (The other toggles keep `ToggleOff` `#848489` / `#8E8E93`: the spec's
+`#636366`, on `#2E2399` / `#3A2FB8`. `Role.Switch`, "Private browsing". `CLOCK_TICK` on tap; every
+tap acts, mid-flip too (its place stays a tap target while the headers slide). (The other toggles keep `ToggleOff` `#848489` / `#8E8E93`: the spec's
 `#636366` would be 2.2:1 on a dark grouped row, under the 3:1 rule.)
 
 **Header:** back · "Private" 20sp Bold · 10dp · "Not saved" chip (24dp, radius 12, padding 10,
@@ -1275,9 +1275,13 @@ per install. Static at rest.
 is one more page beside the space you were on, and a flip is the space pager's own motion between
 the two (`Motion.PagerSettle`, page + 40dp gap, same parallax and fade): into Private from the
 right, back to normal from the left. The overview gets both modes' models; during a flip it draws
-only those two pages, each in its own palette, and the normal one stays composed while Private
-shows (nothing composes on the way back). The tabs switch first and the slide waits for two quick
-frames (at most 12) while the incoming page composes off screen. Private's base colour (72dp soft
+only those two pages, each in its own palette. Both stay ready: the normal one stays composed
+while Private shows, and Private's page is composed off screen once the overview has settled, so
+nothing composes when a flip starts. The screen is one position (0 normal … 1 Private) on the
+pager's spring (damping 0.86, stiffness 300), advanced at most 20 ms per frame (a slow frame
+slows it, never skips it). A toggle mid-flip turns it around from where it is, speed kept; the
+screen always ends on the latest state. The tabs switch at the tap. Locked: the knob moves at
+once, the fingerprint is asked, the screen follows (the knob goes back if it's refused). Private's base colour (72dp soft
 edge) and its sky travel with its page; entering, stars and sparkles appear right to left (from
 140ms, spread 700ms, 480ms each, small twinkle). Knob 200ms. Dock: colour crossfades with the slide;
 its texts dip out and back in around 35% of it, where they switch. Reduced motion: a 150ms slide,
@@ -2584,7 +2588,7 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 6. **16dp** (`Gap`) · **page dots** · 16dp.
 7. **Primary button**: "Next", last card "Get started" (tour) or "Got it" (What's new); full width minus 24dp each side (`Padding`); then 12dp.
 
-**Title glow** (`titleGlow`): same 3-spot layout as the Settings wash, `h = GlowHeight` **240dp**, radius h·0.75 = 180dp, alpha light **0.16** / dark **0.12** (`TourTokens.GLOW_ALPHA_LIGHT`, `TourTokens.GLOW_ALPHA_DARK`). Spots: Pink (0.10·w, 0.15·h), Violet (0.55·w, 0.05·h), Blue (0.95·w, 0.30·h). Drawn on every card (under the welcome backdrop).
+**Title glow** (`titleGlow`): same 3-spot layout as the Settings wash, `h = GlowHeight` **240dp**, radius h·0.75 = 180dp, alpha light **0.16** / dark **0.12** (`TourTokens.GLOW_ALPHA_LIGHT`, `TourTokens.GLOW_ALPHA_DARK`). Spots: Pink (0.10·w, 0.15·h), Violet (0.55·w, 0.05·h), Blue (0.95·w, 0.30·h). Drawn on every card whose title sits at the top (under the welcome backdrop); it fades out on a centred card (no media) and crossfades with the pager's position (`TourCard.centred`, read at draw time).
 
 **TourButton**: height **50dp** (`ButtonTokens.Height`), full pill, horizontal padding 28dp, text **16sp** (SemiBold filled / Medium unfilled). Filled = fill `lerp(Primary → White, FastOutSlowIn(welcome))`; label `OnPrimary` until welcome > 0.5, then **Black** (flips at mid-grey). Unfilled (Skip) = no fill, label `lerp(TextPrimary → White, welcome)`. Pressed = ripple. Note: Skip sits in the 44dp `SkipHeight` box, so its 50dp height is constrained to 44dp by the parent (Compose `height` respects incoming max constraints).
 
@@ -2603,10 +2607,10 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 
 **Purpose.** One tour/What's new card: title, one line, then a looping clip, still or drawn scene in a phone frame.
 
-**Card data** (`ui/tour/TourContent.kt`): title, line, dark/light MP4 (`res/raw`), framing (`Screen` = aspect **720/1478** (`SCREEN_CLIP_ASPECT`) or `Focus` = fill the slot), `welcome`, optional `icon`, dark/light still (`res/drawable-nodpi`), optional `scene` (`TourScene.SignIn`).
+**Card data** (`ui/tour/TourContent.kt`): title, line, dark/light MP4 (`res/raw`), framing (`Screen` = aspect **720/1478** (`SCREEN_CLIP_ASPECT`), `Landscape` = **1280/590** (`LANDSCAPE_CLIP_ASPECT`, the phone held sideways) or `Focus` = fill the slot), `welcome`, optional `icon`, dark/light still (`res/drawable-nodpi`), optional `scene` (`TourScene.SignIn`).
 
 **Anatomy** (`ui/tour/TourOverlay.kt`), centred column:
-1. (Text-only card with an `icon`: icon tile **96dp** (`TourTokens.IconTile`), radius **28dp** (`TourTokens.IconTileRadius`), `GroupedRow`, glyph **44dp** (`TourTokens.IconGlyph`) `TextPrimary`, then 24dp (Gap·1.5); content vertically centred. No current card uses this path: every card in `TourCards` and `Highlights` has a clip, still or scene, `TourContent.kt`.)
+1. (Text-only card with an `icon`: icon tile **96dp** (`TourTokens.IconTile`), radius **28dp** (`TourTokens.IconTileRadius`), `GroupedRow`, glyph **44dp** (`TourTokens.IconGlyph`) `TextPrimary`, then 24dp (Gap·1.5); content vertically centred. Used only by What's new "1.0"'s Two-way sync card (`KoanIcons.Key`), `TourContent.kt`; no title glow on it.)
 2. Title **22sp** Bold centred `TextPrimary` (`TitleSize`), horizontal padding 24dp.
 3. **6dp** (`TitleGap`); line **15sp** `TextSecondary` centred (`LineSize`), `minLines = 2` so frames line up across cards.
 4. 16dp; frame slot: **90%** of the width (`FRAME_WIDTH`), all the height left; frame sized to the clip's aspect (plus bezels) or the whole slot for Focus; then **10dp** (FrameShadow/2).
@@ -2616,7 +2620,7 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 
 **TourVideo** (`ui/tour/TourVideo.kt`): muted, looping MP4 via MediaPlayer on a TextureView, centre-crop to cover; view alpha 0 until the first rendered frame, then fades to 1 in **150ms** (`FADE_MS`); decoded only while composed. Stills: `Image` with `ContentScale.Crop`, top-centre aligned (`TourOverlay.kt`).
 
-**Clips in the app** (`TourContent.kt`, files `app/src/main/res/raw/*_{dark,light}.mp4`): tour_spaces (Focus), tour_stack (Screen), tour_tabs (Focus), tour_scrub (Focus), tour_search (Screen), tour_holds (Focus); What's new 0.4: SignIn scene (Focus), whatsnew_search (Screen), whatsnew_reopen (Screen), whatsnew_engines still (Screen). The dark/light variant follows Koan's theme (`TourOverlay.kt`).
+**Clips in the app** (`TourContent.kt`, files `app/src/main/res/raw/*_{dark,light}.mp4`): tour_spaces (Focus), tour_stack (Screen), tour_tabs (Focus), tour_scrub (Focus), tour_search (Screen), tour_holds (Focus); What's new 0.4: SignIn scene (Focus), whatsnew_search (Screen), whatsnew_reopen (Screen), whatsnew_engines still (Screen); What's new 1.0, every media card but the player in the same Screen frame, title and line at the top: whatsnew_private still (Screen, from the README captures), whatsnew_player clip (Landscape, the only sideways frame: Koan's player full screen on Big Buck Bunny from Wikimedia Commons, a tap for the controls, a hold for 2×, a double-tap for +10 s; one clip for both themes, the player is always dark), whatsnew_translate clip (Screen: the address bar's translate icon, the card, Translate, the page turns English), whatsnew_openapp clip (Screen: ⋯ › Open in Wikipedia, the article opens in the Wikipedia app), Two-way sync text + icon. Recorded on the Xiaomi with demo pages and public sites, status bar cropped off, taps drawn in post as rings. The dark/light variant follows Koan's theme (`TourOverlay.kt`).
 
 **Tour card list** (`TourContent.kt`): 1 Welcome to Koan / Your Zen Spaces, in your pocket. (welcome) · 2 Your Zen Spaces, on your phone · 3 Swipe up for your tabs · 4 Swipe sideways to switch tabs · 5 Hold and slide to change space · 6 Search shortcuts · 7 Long presses.
 

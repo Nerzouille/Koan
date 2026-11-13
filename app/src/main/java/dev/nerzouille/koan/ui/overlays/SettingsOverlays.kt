@@ -81,6 +81,7 @@ internal fun SettingsOverlays(
     val theme by components.settings.themeMode.collectAsStateWithLifecycle(ThemeMode.System)
     val engine by components.settings.searchEngine.collectAsStateWithLifecycle(SearchEngine.DuckDuckGo)
     val startPageAfter by components.settings.startPageAfter.collectAsStateWithLifecycle(StartPageAfter.Hour)
+    val translateOffer by components.settings.translateOffer.collectAsStateWithLifecycle(true)
     val suggestionsOn by components.settings.searchSuggestions.collectAsStateWithLifecycle(true)
     val hideStatusBar by components.settings.hideStatusBar.collectAsStateWithLifecycle(false)
     val syncBack by components.settings.syncBack.collectAsStateWithLifecycle(SyncBackChoice())
@@ -198,6 +199,8 @@ internal fun SettingsOverlays(
                         .mapNotNull { m -> m.language?.let { Triple(it.code, it.localizedDisplayName?.ifBlank { null } ?: languageName(it.code), m.size) } }
                         .sortedBy { it.second },
                     onDeleteLanguage = translateActions.deleteLanguage,
+                    offer = translateOffer,
+                    onOffer = { on -> scope.launch { components.settings.setTranslateOffer(on) } },
                     onOpen = {
                         (activeTabId ?: components.store.state.selectedTabId)?.let { id ->
                             dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_LANGUAGE_MODELS))

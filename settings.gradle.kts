@@ -20,3 +20,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Koan"
 include(":app")
+// Generates the app's baseline profile on a phone (./gradlew :app:generateReleaseBaselineProfile).
+include(":baselineprofile")

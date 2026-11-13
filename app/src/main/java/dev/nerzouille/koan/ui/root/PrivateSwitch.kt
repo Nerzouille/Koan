@@ -62,19 +62,39 @@ internal class PrivateSwitch(
             components.store.state.tabs.firstOrNull { !it.content.private }?.let { components.tabsUseCases.selectTab(it.id) }
         }
     }
-    /** The header's toggle: the fingerprint first if the private tabs are locked, then the flip. */
+    /**
+     * The header's toggle: it always acts at once, mid-flip too (the flip turns around from where
+     * it is). Locked private tabs: the knob moves now, the fingerprint is asked, and the screen
+     * follows once it's given (the knob goes back if it isn't).
+     */
     fun toggle() {
-        if (flip.running) return
+        if (flip.unlocking) return
         val on = !flip.target
-        scope.launch {
-            if (on && privateMode.needsUnlock()) {
-                if (fragmentActivity == null || !unlockPrivate(fragmentActivity)) return@launch
+        flip.reduced = animationsOff(context)
+        // Locked (after a minute away or the screen off): asked off the main path, knob first.
+        if (on && privateMode.locked.value) {
+            val activity = fragmentActivity ?: return
+            flip.unlocking = true
+            flip.knobTo(true)
+            scope.launch {
+                val ok = try {
+                    !privateMode.needsUnlock() || unlockPrivate(activity)
+                } finally {
+                    flip.unlocking = false
+                }
+                if (!ok) {
+                    flip.knobTo(flip.target)
+                    return@launch
+                }
+                privateMode.locked.value = false
+                flip.run(true) { show(true) }
             }
-            if (on) privateMode.locked.value = false
-            flip.reduced = animationsOff(context)
-            flip.run(on) { show(on) }
+            return
         }
+        if (on) privateMode.locked.value = false
+        flip.run(on) { show(on) }
     }
+
     /** Back to normal tabs at once (a link from another app, "Back to normal tabs" on the lock). */
     fun leave() {
         if (!privateOnState.value) return
