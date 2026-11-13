@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0-beta.1 — date to be set (pre-release)
+## 1.0.0-beta.1 — 2026-11-13 (pre-release)
 
 ### New
 
@@ -117,7 +117,10 @@
 
 ### Known limitations
 
+- **Long screenshots** on HyperOS still don't scroll Koan's pages.
 - The full-image wait on Google Images can still pick the wrong moment; it will get another look.
+- **arm64 only** (64-bit ARM phones); APK about 223 MB.
+- Spaces stay read-only for now: two-way sync for Spaces is the next big step.
 
 ## 0.4.0 — 2026-10-30 (beta)
 
