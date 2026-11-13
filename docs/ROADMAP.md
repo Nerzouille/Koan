@@ -121,6 +121,17 @@ losing data, and the owner has approved and published the release.
   always taking the original or the largest rendition. Starts in the video extension's
   `fileSource` (`assets/extensions/video/content.js`), which then reports every candidate, not
   just the best one.
+- **Translate icon after translating** (owner, 2026-11-13): the icon stays in the address pill once
+  the page is translated, in an active state (filled icon, no brand gradient); a tap opens the card
+  with **Show original** and the language choice. Today `translateCue` returns `None` once
+  `translated` is true, so the icon goes away (`ui/browser/TranslateCue.kt`).
+- **Download ring and translate icon share the slot** (owner, 2026-11-13): while a download runs,
+  its ring takes the translate icon's place in the address pill; the icon comes back when the ring
+  is gone.
+- **Bug: translation state carried over to the next page** (seen 2026-11-13 on the Xiaomi): after a
+  translation in a tab, a Chinese page opened in the same tab got a translate sheet saying
+  "From English" (and no translate icon in the pill). The translation state must reset on each new
+  page (each navigation, not each tab). A fresh tab on the same page was right.
 
 ### Batch 4 leftovers (after the release)
 
