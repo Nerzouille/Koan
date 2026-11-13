@@ -121,9 +121,6 @@ losing data, and the owner has approved and published the release.
   always taking the original or the largest rendition. Starts in the video extension's
   `fileSource` (`assets/extensions/video/content.js`), which then reports every candidate, not
   just the best one.
-- **Tour cards 2 and 5, clips again:** re-record "Your Zen Spaces" and "Hold and slide to change
-  space" with demo spaces only (no real space, folder or tab names), then put the clips back in
-  `TourContent.kt` (text + icon since beta.1).
 
 ### Batch 4 leftovers (after the release)
 

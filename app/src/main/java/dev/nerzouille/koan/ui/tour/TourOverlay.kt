@@ -74,6 +74,7 @@ import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.SheetTokens
 import dev.nerzouille.koan.ui.theme.TourTokens
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlinx.coroutines.launch
 
 /**
@@ -135,7 +136,14 @@ fun TourOverlay(open: Boolean, sheet: TourSheet?, onOpenUrl: (String) -> Unit, o
                     shape = RoundedCornerShape(topStart = SheetTokens.TopRadius, topEnd = SheetTokens.TopRadius)
                 }
                 .background(palette.Dock)
-                .titleGlow(palette.isDark)
+                .titleGlow(palette.isDark) {
+                    // 1 on a card with its title at the top, 0 on a centred one, crossfading as the
+                    // pager moves (draw only).
+                    val pos = pager.currentPage + pager.currentPageOffsetFraction
+                    val i = floor(pos).toInt().coerceIn(0, cards.lastIndex)
+                    val glowOf = { c: TourCard? -> if (c == null || c.centred) 0f else 1f }
+                    lerp(glowOf(cards[i]), glowOf(cards.getOrNull(i + 1)), (pos - i).coerceIn(0f, 1f))
+                }
                 .onGloballyPositioned { motion.sheet = it }
                 .welcomeBackdrop(palette.isDark, motion, welcome)
                 .navigationBarsPadding(),
@@ -218,11 +226,11 @@ private fun TourPage(card: TourCard, footer: (@Composable () -> Unit)? = null) {
     val res = if (palette.isDark) card.dark else card.light
     val still = if (palette.isDark) card.stillDark else card.stillLight
     val media = res != null || still != null || card.scene != null
-    // Without a clip the text sits in the middle, under its icon, instead of over an empty frame.
+    // Without media the text sits in the middle, under its icon, instead of over an empty frame.
     Column(
         Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = if (!media) Arrangement.Center else Arrangement.Top,
+        verticalArrangement = if (card.centred) Arrangement.Center else Arrangement.Top,
     ) {
         if (!media && card.icon != null) {
             Box(
@@ -373,5 +381,14 @@ private fun TourButton(text: String, filled: Boolean, welcome: () -> Float, modi
 }
 
 /** The soft pink → violet → blue glow behind the title (the brand gradient, kept faint). */
-private fun Modifier.titleGlow(dark: Boolean): Modifier =
-    brandWash(TourTokens.GlowHeight, if (dark) TourTokens.GLOW_ALPHA_DARK else TourTokens.GLOW_ALPHA_LIGHT)
+private fun Modifier.titleGlow(dark: Boolean, shown: () -> Float): Modifier {
+    val alpha = if (dark) TourTokens.GLOW_ALPHA_DARK else TourTokens.GLOW_ALPHA_LIGHT
+    return brandWash(TourTokens.GlowHeight) { alpha * shown() }
+}
+
+/**
+ * A card without media, drawn in the middle of its page under its icon instead of from the top: the
+ * title glow has nothing to sit behind there, so it fades out on it.
+ */
+private val TourCard.centred: Boolean
+    get() = !welcome && dark == null && light == null && stillDark == null && stillLight == null && scene == null

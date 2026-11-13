@@ -136,6 +136,14 @@ Octicons (https://github.com/primer/octicons), Copyright (c) GitHub Inc., under 
 (same text as in the Z-Sync section above). It is used only on the link to Koan's own release
 page.
 
+## Big Buck Bunny (CC BY 3.0)
+
+The What's new "1.0" video player card (`res/raw/whatsnew_player.mp4`) shows a few seconds
+of **Big Buck Bunny**, © 2008 Blender Foundation, www.bigbuckbunny.org, under the Creative
+Commons Attribution 3.0 licence (https://creativecommons.org/licenses/by/3.0/). Played in Koan's
+video player from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Big_Buck_Bunny_4K.webm);
+the clip is shown with Koan's player controls and the page's captions over it, scaled down.
+
 ## Dependencies
 
 Pulled in by Gradle, not copied into this repository:

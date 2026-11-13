@@ -675,6 +675,9 @@ object TourTokens {
      * to fill the slot (1208 x 1763 px on the phone).
      */
     const val SCREEN_CLIP_ASPECT = 720f / 1478f
+
+    /** Whole-screen clips of the phone held sideways (the video player full screen), width / height. */
+    const val LANDSCAPE_CLIP_ASPECT = 1280f / 590f
     val FrameRadius = 30.dp
     val FrameBezel = 5.dp
     val FrameBorder = SharedTokens.Hairline

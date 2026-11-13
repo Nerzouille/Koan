@@ -17,21 +17,20 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
 - Requirements: Android 11 or newer (tested on Android 14 and 17; 11–13 are supported but less tested),
   a 64-bit ARM phone (arm64-v8a). Other CPUs are not built. Below Android 12 the drawer dims
   what's behind it instead of blurring it; phones with less memory keep fewer tabs live.
-- Download `koan-vX.Y.Z.apk` (about 217 MB) from the GitHub release and open it. Android asks you to allow
+- Download `koan-vX.Y.Z.apk` (about 223 MB) from the GitHub release and open it. Android asks you to allow
   installing apps from that source (your browser or file manager) the first time.
 - **Updates:** install with [Obtainium](https://github.com/ImranR98/Obtainium) from the GitHub
   releases (add `https://github.com/Nerzouille/Koan`) and it fetches new versions for you; turn
   on its **Include prereleases** option to get betas such as 1.0.0-beta.1.
   Otherwise Settings › About checks once when you open it.
 - Installing over a previous Koan version keeps your tabs, spaces, logins and settings.
-- The APK is about 217 MB. See [Known limitations](#13-known-limitations).
+- The APK is about 223 MB. See [Known limitations](#13-known-limitations).
 
 ### First run
 
 - **The tour:** the first time Koan opens, a short tour slides up: a welcome card, then six
-  cards (your Zen Spaces, swiping up for your tabs, swiping sideways to switch tabs, holding the
-  bar to change space, `@` search shortcuts, long presses), each with a looping clip except the
-  Spaces and change-space cards, which show an icon. Swipe or tap
+  cards with a looping clip each (your Zen Spaces, swiping up for your tabs, swiping sideways to
+  switch tabs, holding the bar to change space, `@` search shortcuts, long presses). Swipe or tap
   **Next**; **Skip** or a swipe down on the sheet closes it, Back goes to the previous card. It
   shows once (also after updating from 0.2.x), and not when a link from another app opens Koan.
   Replay it from **Settings › About Koan › Take the tour**.
@@ -712,7 +711,7 @@ offered the next beta and the final release; on a final release, only final rele
   GeckoView update should help).
 - **Old WebView warning on sign-in:** shown when Android System WebView is older than 92 (it can't
   load Mozilla's sign-in page), with a Play Store button; not yet tested on such a phone.
-- **APK size (~217 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
+- **APK size (~223 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of

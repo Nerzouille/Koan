@@ -65,7 +65,7 @@ Everything, screen by screen: [`docs/FEATURES.md`](docs/FEATURES.md).
 ## Install
 
 1. Download the APK from the [Releases page](https://github.com/Nerzouille/Koan/releases)
-   (`koan-vX.Y.Z.apk`, about 217 MB) and open it. Android asks you to allow installs from your
+   (`koan-vX.Y.Z.apk`, about 223 MB) and open it. Android asks you to allow installs from your
    browser or file manager the first time.
 2. Optional: check the file against the SHA-256 in the release notes:
    `sha256sum koan-vX.Y.Z.apk`.
@@ -158,6 +158,9 @@ Please leave private things out of issues: account emails, real tabs, passwords.
   folder icons (MPL 2.0, most of them [Ionicons](https://ionic.io/ionicons) glyphs).
 - [Tabler Icons](https://tabler.io/icons) (MIT) and the [Zia](https://github.com/z1n-k/zia) mod
   (MIT): the icons, and Zia's Phosphor-to-Tabler table for space icons picked with Zia.
+- [Big Buck Bunny](https://peach.blender.org/) (© 2008 Blender Foundation, www.bigbuckbunny.org,
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)): the clip in the What's new video
+  player card, played from Wikimedia Commons.
 - [GeckoView and Mozilla Android Components](https://github.com/mozilla-firefox/firefox) (MPL 2.0).
 
 Firefox and Mozilla are trademarks of the Mozilla Foundation. Zen Browser is an independent project.

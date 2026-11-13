@@ -33,11 +33,12 @@ enum class TourScene { SignIn }
 
 /**
  * How a clip is framed, and its shape (width / height; null = the frame's whole slot): the whole
- * screen (a gesture that changes all of it), or a crop on where the gesture happens, shaped to fill
- * the slot.
+ * screen (a gesture that changes all of it), the whole screen held sideways, or a crop on where the
+ * gesture happens, shaped to fill the slot.
  */
 enum class Framing(val aspect: Float?) {
     Screen(TourTokens.SCREEN_CLIP_ASPECT),
+    Landscape(TourTokens.LANDSCAPE_CLIP_ASPECT),
     Focus(null),
 }
 
@@ -55,16 +56,13 @@ sealed interface TourSheet {
     }
 }
 
-/**
- * The first-run tour (also replayed from About). Cards 2 and 5 are text + icon: their clips showed
- * real spaces and tabs, and need re-recording with demo spaces.
- */
+/** The first-run tour (also replayed from About). */
 val TourCards: List<TourCard> = listOf(
     TourCard("Welcome to Koan", "Your Zen Spaces, in your pocket.", welcome = true),
     TourCard(
         "Your Zen Spaces, on your phone",
         "Synced from your Mozilla account, read-only: Zen on your computer stays as it is.",
-        icon = KoanIcons.Desktop,
+        R.raw.tour_spaces_dark, R.raw.tour_spaces_light,
     ),
     TourCard(
         "Swipe up for your tabs",
@@ -80,7 +78,7 @@ val TourCards: List<TourCard> = listOf(
     TourCard(
         "Hold and slide to change space",
         "Hold the bar, then slide left or right through your spaces.",
-        icon = KoanIcons.SlideSideways,
+        R.raw.tour_scrub_dark, R.raw.tour_scrub_light,
     ),
     TourCard(
         "Search shortcuts",
@@ -123,22 +121,35 @@ val Highlights: Map<String, List<TourCard>> = mapOf(
             stillLight = R.drawable.whatsnew_engines_light,
         ),
     ),
-    // Stills only (no clips); the sync card stays text-only: its screen shows the account's email.
+    // Every card with media in the same Screen frame (the player in a Landscape one: it plays
+    // sideways), taken with demo pages and public videos; the sync card stays text-only: its screen
+    // shows the account's email.
     "1.0" to listOf(
         TourCard(
             "Private browsing",
             "Tap the switch at the right of the overview's header: private tabs in their own set, locked behind your fingerprint.",
-            icon = KoanIcons.Private,
+            framing = Framing.Screen,
+            stillDark = R.drawable.whatsnew_private_dark,
+            stillLight = R.drawable.whatsnew_private_light,
         ),
         TourCard(
             "Koan's own video player",
             "Play a video full screen: double-tap to skip, hold for 2×, swipe for brightness and volume. Go home and it keeps playing in a small window.",
-            icon = KoanIcons.PlayFilled,
+            // The player is always dark: one clip for both themes.
+            R.raw.whatsnew_player, R.raw.whatsnew_player,
+            Framing.Landscape,
         ),
         TourCard(
             "Translate a page",
             "Tap the translate icon in the address bar, or ⋯ › Translate page: pages are translated on the phone, their text never leaves it.",
-            icon = KoanIcons.Translate,
+            R.raw.whatsnew_translate_dark, R.raw.whatsnew_translate_light,
+            Framing.Screen,
+        ),
+        TourCard(
+            "Open in app",
+            "On a site that has its own app, ⋯ › Open in [app] opens the page there.",
+            R.raw.whatsnew_openapp_dark, R.raw.whatsnew_openapp_light,
+            Framing.Screen,
         ),
         TourCard(
             "Two-way sync, if you want it",

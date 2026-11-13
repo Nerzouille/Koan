@@ -110,14 +110,6 @@ object KoanIcons {
             moveTo(9f, 20f); lineTo(15f, 20f); moveTo(12f, 16f); lineTo(12f, 20f)
         }
     }
-    /** A bar with arrows out to both sides: hold and slide sideways. */
-    val SlideSideways: ImageVector by lazy {
-        stroked("slide_sideways") {
-            moveTo(8f, 10f); lineTo(16f, 10f); lineTo(16f, 14f); lineTo(8f, 14f); close()
-            moveTo(2f, 12f); lineTo(5f, 12f); moveTo(3.5f, 10.5f); lineTo(2f, 12f); lineTo(3.5f, 13.5f)
-            moveTo(22f, 12f); lineTo(19f, 12f); moveTo(20.5f, 10.5f); lineTo(22f, 12f); lineTo(20.5f, 13.5f)
-        }
-    }
     val StatusBar: ImageVector by lazy {
         stroked("status_bar") {
             // A phone, its status bar row on top.
