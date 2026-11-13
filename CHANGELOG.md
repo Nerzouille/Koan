@@ -14,7 +14,6 @@
   greyed out with the reason otherwise; a **PiP on leave** switch there too. The ⋯ menu grows
   out of its pill.
 - Full-screen video **follows the phone's rotation**, portrait included, unless auto-rotate is off.
-- A finished download: the address bar's ring fills and shows a check before it goes.
 
 - **Private browsing** (the switch at the right of the overview's header): private tabs in their
   own set, kept until you close them, also after a restart (sites sign you out then). Locked
@@ -69,8 +68,6 @@
 - **A toast replacing another** lets the old one sink away while the new one rises.
 - **Cards:** two choices sit side by side (Cancel on the left); a card leading to another one (Save
   image → already downloaded) changes into it instead of closing and opening.
-- **Save image on Google Images** before the full picture has loaded waits for it and saves the full
-  image, not the small preview.
 - **Settings pages:** the large title stays solid until you really scroll.
 - **About's update check** knows betas: on a beta you're offered the next beta and the final
   release, on a final release only final releases. "What's new" links to this version's own
@@ -118,7 +115,9 @@
 ### Known limitations
 
 - **Long screenshots** on HyperOS still don't scroll Koan's pages.
-- The full-image wait on Google Images can still pick the wrong moment; it will get another look.
+- **Save image on Google Images** before the full picture has loaded doesn't wait for it yet: it
+  saves the preview.
+- The download ring's check at the end of a download doesn't show yet.
 - **arm64 only** (64-bit ARM phones); APK about 223 MB.
 - Spaces stay read-only for now: two-way sync for Spaces is the next big step.
 
