@@ -3,11 +3,6 @@
 <h1 align="center">Koan</h1>
 
 <p align="center">
-  An Android browser built around <b>Zen Browser's Spaces</b>, on <b>GeckoView</b> (Firefox's engine).<br>
-  Your Spaces, tabs, passwords and history from your Mozilla account, with a card stack of tabs and one-handed gestures.
-</p>
-
-<p align="center">
   <a href="https://github.com/Nerzouille/Koan/releases">Download</a> ·
   <a href="docs/FEATURES.md">User guide</a> ·
   <a href="docs/PRIVACY.md">Privacy</a> ·
@@ -16,39 +11,44 @@
   <a href="https://github.com/Nerzouille/Koan/actions/workflows/ci.yml"><img src="https://github.com/Nerzouille/Koan/actions/workflows/ci.yml/badge.svg?branch=dev" alt="CI"></a>
 </p>
 
-> Koan is not affiliated with, endorsed by or connected to Zen Browser or Mozilla.
+A personal Android web browser built on **GeckoView** (Firefox's engine): a card stack of tabs
+with depth, one-handed gestures, and workspaces that are your **Zen Browser Spaces**, read from
+your Mozilla account: the same spaces, icons, colours, essentials, pinned tabs and folders you have
+on the desktop.
 
-**Beta.** Koan is used every day, but it is a small project: sideloaded only, no Play Store, no
-support promise. Spaces are read-only; passwords and history can sync both ways if you turn it on.
+> Not affiliated with, endorsed by or connected to Zen Browser or Mozilla.
 
-## What Koan is
-
-Zen Browser organises the desktop into **Spaces**: workspaces with their own tabs, pinned tabs,
-essentials, folders, icon and colours. Koan brings those Spaces to an Android phone. It reads them
-from the Firefox Sync account Zen already uses, and shows each Space as a stack of tab cards you
-move through with your thumb.
-
-It is a full browser on its own too: without an account it works with one local space.
+**Beta: daily-driver ready. Spaces are read-only; passwords and history can sync both ways if you
+turn it on.**
 
 ## Features
 
 - **Your Zen Spaces** as workspaces, with their essentials, pinned tabs and folders in a drawer.
-  Hold the address pill and slide to change space.
-- **A card stack of tabs** with depth: swipe the dock up for every tab of the space, sideways for
-  the previous or next tab, a card away to close it (with Undo).
+  No account? It works with one local space.
+- **A card stack of tabs** with depth; swipe the dock up for it, sideways for the next tab,
+  long-press the address pill to switch space.
+- **Dock long presses:** back lists the pages before this one, the tab count opens New tab /
+  Close tab / Reopen closed tab, ⋯ opens Settings, History (in the overview) opens Recently closed.
+- **Recently closed:** the last 25 closed tabs come back in their space and place, with their
+  history.
+- **What pages ask, in Koan's style:** drop-down lists, date/time/colour pickers, alerts and
+  prompts, site sign-in, pop-ups, printing.
+- **Pages fit around the dock and the keyboard:** a page's bottom bar (chat field, cookie banner)
+  sits on the dock and follows it as it hides; a field you type in shows right above the keyboard.
 - **Search** with suggestions, inline completion, `@` shortcuts (`@yt`, `@wiki`…) and your own
   search engines; open tabs, history and bookmarks in the results.
-- **Private browsing:** private tabs in their own set, locked behind your fingerprint after a
-  minute away, no screenshots, no history, HTTPS only, tracking and fingerprinting protection,
-  cleaner links. Private bookmarks are kept apart and encrypted on the phone.
+- **Private browsing:** a separate set of private tabs with its own look, locked behind your
+  fingerprint, no screenshots, nothing kept in history, HTTPS only, tracking and fingerprinting
+  protection. **Private bookmarks** are kept apart and encrypted on the phone.
 - **Koan's own video player** for full-screen video: double-tap to skip, hold for 2×, swipe for
   brightness and volume, speed, lock; picture-in-picture with "Audio only".
-- **Translation on the phone** (Firefox Translations): the page's text never leaves the phone.
+- **Translation on the phone** (Firefox Translations): pages are translated without their text
+  leaving the phone.
 - **Passwords and autofill** from your account and saved on the phone, behind your fingerprint.
 - **Two-way sync, if you want it:** passwords saved on the phone and history can go back to your
   Mozilla account, each behind its own switch (off by default).
-- **uBlock Origin**, downloads, find in page, reader view, site settings, Recently closed tabs,
-  "Open in app" for links that have an app, and pages that fit around the dock and the keyboard.
+- uBlock Origin, downloads, find in page, reader view, site settings, and "Open in app" for links
+  that have an app.
 
 Everything, screen by screen: [`docs/FEATURES.md`](docs/FEATURES.md).
 
@@ -71,6 +71,15 @@ Everything, screen by screen: [`docs/FEATURES.md`](docs/FEATURES.md).
 | About | Settings | What's new |
 |:---:|:---:|:---:|
 | <img src="docs/media/about.png" width="240" alt="The About page"> | <img src="docs/media/settings.png" width="240" alt="Settings, not signed in"> | <img src="docs/media/whatsnew.png" width="240" alt="The What's new sheet for 1.0"> |
+
+## Status
+
+A one-person hobby project, built for my own phone and shared as-is.
+
+- Sideloaded only: no Play Store, no support. Issues and PRs may go unanswered.
+- Android 11+ (minSdk 30): tested on Android 14 and 17; 11–13 are supported but less tested.
+  64-bit ARM (arm64-v8a) only. The APK is about 223 MB.
+- See [`docs/ROADMAP.md`](docs/ROADMAP.md) for what is done and what is planned.
 
 ## Install
 
@@ -99,7 +108,8 @@ reporting.
   Mozilla account keys are encrypted with a key held by Android's Keystore.
 - Sign-in and sync talk only to **Mozilla's servers**. Sync data is end-to-end encrypted.
 - Koan writes to your account only what you turn on (passwords saved on the phone, history).
-  **Spaces, tabs and bookmarks are never written.**
+  **Spaces, tabs and bookmarks are never written.** Writing Spaces back to Zen is planned behind a
+  setting that will be **off by default**, because a bad write could scramble your desktop Spaces.
 - The other requests are the ones any browser makes: your search engine, site icons, uBlock
   Origin's filter lists, Firefox's own lists, and GitHub's releases feed when you open About.
 
@@ -169,8 +179,8 @@ Please leave private things out of issues: account emails, real tabs, passwords.
 - [Tabler Icons](https://tabler.io/icons) (MIT) and the [Zia](https://github.com/z1n-k/zia) mod
   (MIT): the icons, and Zia's Phosphor-to-Tabler table for space icons picked with Zia.
 - [Big Buck Bunny](https://peach.blender.org/) (© 2008 Blender Foundation, www.bigbuckbunny.org,
-  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)): the clip in the What's new video
-  player card, played from Wikimedia Commons.
+  [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)): in the What's new video player card
+  and the video player screenshot above, played from Wikimedia Commons.
 - [GeckoView and Mozilla Android Components](https://github.com/mozilla-firefox/firefox) (MPL 2.0).
 
 Firefox and Mozilla are trademarks of the Mozilla Foundation. Zen Browser is an independent project.

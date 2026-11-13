@@ -138,11 +138,12 @@ page.
 
 ## Big Buck Bunny (CC BY 3.0)
 
-The What's new "1.0" video player card (`res/raw/whatsnew_player.mp4`) shows a few seconds
-of **Big Buck Bunny**, © 2008 Blender Foundation, www.bigbuckbunny.org, under the Creative
-Commons Attribution 3.0 licence (https://creativecommons.org/licenses/by/3.0/). Played in Koan's
-video player from Wikimedia Commons (https://commons.wikimedia.org/wiki/File:Big_Buck_Bunny_4K.webm);
-the clip is shown with Koan's player controls and the page's captions over it, scaled down.
+The What's new "1.0" video player card (`res/raw/whatsnew_player.mp4`) and the README's video
+player screenshot (`docs/media/player.png`) show **Big Buck Bunny**, © 2008 Blender Foundation,
+www.bigbuckbunny.org, under the Creative Commons Attribution 3.0 licence
+(https://creativecommons.org/licenses/by/3.0/). Played in Koan's video player from Wikimedia
+Commons (https://commons.wikimedia.org/wiki/File:Big_Buck_Bunny_4K.webm); both show Koan's player
+controls over it (the clip the page's captions too), scaled down.
 
 ## Dependencies
 
