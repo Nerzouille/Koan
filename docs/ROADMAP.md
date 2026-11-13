@@ -132,6 +132,23 @@ losing data, and the owner has approved and published the release.
   translation in a tab, a Chinese page opened in the same tab got a translate sheet saying
   "From English" (and no translate icon in the pill). The translation state must reset on each new
   page (each navigation, not each tab). A fresh tab on the same page was right.
+- **Bug: Find in page counter** (seen 2026-11-13): the bar said "0/0" while it highlighted a match
+  (searching a word on a Wikipedia article). The count must follow the matches.
+- **Downloads: a file that is no longer there** (owner, 2026-11-13): opening a download whose file
+  was moved or deleted must say so ("File moved or missing"), wherever it's opened from (Downloads,
+  the ring, the toast, the notification). `DownloadsScreen.open` already has a "Couldn't open this
+  file" toast for when `actions.open` fails, so check first why it doesn't show: the open probably
+  "succeeds" with a stale URI and the other app fails instead. Check the file exists before opening;
+  maybe mark such rows in the list too.
+- **Bug: Save image waits for the full image, never works** (owner, 2026-11-13): on Google Images,
+  saving before the full picture has loaded should wait for it and save the full image (1.0.0-beta.1
+  CHANGELOG, Improved), but on the phone it never does. Starts in `engine/PageImages.kt` and the
+  `pageimage` extension (`assets/extensions/pageimage/content.js`): reproduce on the Xiaomi, log what
+  the extension reports, then fix or drop the wait.
+- **Bug: no check when a download finishes** (owner, 2026-11-13): the address bar's ring should fill
+  and draw a check before it goes (`ui/bar/AddressRow.kt`, the `done` state; `KoanRoot.kt` keeps it
+  for `DONE_MS`), but at the end of a download nothing shows. Check whether `done` is ever set (the
+  finished download may drop out of the running list before the ring sees it), and on which pages.
 
 ### Batch 4 leftovers (after the release)
 
