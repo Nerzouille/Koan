@@ -1,9 +1,19 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-12**.
+State of Koan for a session that starts with no context. Last updated **2026-11-13**.
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
+
+- **v1.0.0-beta.1 is published (2026-11-13)** as a GitHub pre-release: tag on `main` at `e65c771`,
+  APK 222,701,496 bytes, SHA-256 `7ed7b1ec…77e6`, built from `main` (R8; `reference/release-1.0.0-beta.1/`,
+  gitignored). Afterwards on `dev` and `main` (fast-forward, same commit): README rewritten (old
+  personal voice, new screenshots in `docs/media/`), CHANGELOG dated with the release's Known
+  limitations. `release-prep` is merged into `dev` (PR #3 merged). The Discord post is the owner's.
+- **Next:** 1.0.0-beta.2, list in ROADMAP › For 1.0.0-beta.2 (depth cue, player Rotate row, video
+  download quality, translate icon / ring / state reset, Find counter, missing download files, the
+  Google Images wait and the download ring's check, which don't work on the phone and are Known
+  limitations of beta.1). Then Spaces write-back (behind `writeBackEnabled`, off).
 
 - **Release prep for v1.0.0-beta.1 (2026-11-12):** branch **`release-prep`** (from `dev`, pushed),
   plan and night report in `docs/plans/NIGHT_PLAN.md`. Batch 5 tests (411 JVM tests, Robolectric
