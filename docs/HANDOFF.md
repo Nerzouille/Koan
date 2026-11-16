@@ -5,15 +5,13 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 
 ## Where things stand
 
-- **Tooling (2026-11-16), branch `tooling`** (from `dev`, pushed, PR to `dev`). See CLAUDE.md
+- **Tooling: merged into `dev` 2026-11-16 (PR #15).** See CLAUDE.md
   "Claude Code tooling":
   - the `.claude/` safety hook and the `/phone-check`, `/captures`, `/release`, `/night` commands;
   - CI split into three parallel jobs: tests, detekt + lint with baselines, and an R8 release
     build with the Zen icon check and the APK size in the job summary;
   - weekly Dependabot PRs to `dev`;
   - the privacy pre-commit hook (`tools/privacy-pre-commit.sh`).
-
-  Merge into `dev` once CI is green on the PR.
 - **v1.0.0-beta.1 is published (2026-11-13)** as a GitHub pre-release: tag on `main` at `e65c771`,
   APK 222,701,496 bytes, SHA-256 `7ed7b1ec…77e6`, built from `main` (R8; `reference/release-1.0.0-beta.1/`,
   gitignored). Afterwards on `dev` and `main` (fast-forward, same commit): README rewritten (old
@@ -235,14 +233,13 @@ each group (launch + kill + restore checked).
 |---|---|---|---|
 | `release-prep` | dev | v1.0.0-beta.1 prep: batch 5 tests, CI, baseline profile module, update check, README, release docs, the 2026-11-12 fixes. | Pushed up to 8b29879 (draft PR #3); later commits local only; not merged |
 | `depth-cue-proto` | release-prep | Depth-cue prototype A/B/C (31e6f5d), switched by `debug.koan.depthcue`. | Local only, **not for release** |
-| `tooling` | dev | Claude Code hook + commands, CI analysis/R8 jobs, Dependabot, privacy pre-commit hook. | Pushed, PR to `dev`; merge when CI is green |
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3, batch 4 and the fixes list merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
 
-The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and the audit branches
-(`audit-fixes`, `audit-docs`, `geckoview-160`) are merged and deleted.
+The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…), the audit branches
+(`audit-fixes`, `audit-docs`, `geckoview-160`) and `tooling` are merged and deleted.
 
 ## Two-way sync (M6), as it runs
 
