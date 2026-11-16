@@ -24,6 +24,9 @@ This repository is **public**. Everything committed (code, docs, tests, commit m
 - Measurements, screenshots and logs stay in gitignored folders (`app/build`, `reference/`,
   `docs/reference/`, `design-export/`) and are never committed.
 - Before every commit, check the diff for anything personal; if in doubt, ask the owner.
+- Privacy pre-commit hook: `tools/privacy-pre-commit.sh` refuses a commit whose added lines or file names
+  match `.privacy-patterns` (gitignored; start from `.privacy-patterns.example`). Install once per clone:
+  `ln -s ../../tools/privacy-pre-commit.sh .git/hooks/pre-commit`.
 - Personal context needed locally goes in a gitignored file (`CLAUDE.local.md`), not in the repo.
 
 ## Read these before doing anything

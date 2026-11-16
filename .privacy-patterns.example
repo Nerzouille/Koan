@@ -1,0 +1,10 @@
+# Patterns the local privacy pre-commit hook refuses in a commit (CLAUDE.md "Public repo").
+# Copy to .privacy-patterns (gitignored) and put the real ones there; never commit that file.
+# One case-insensitive extended regex (grep -E) per line. # comments and blank lines are ignored.
+# Only lines and file names a commit adds are checked.
+
+# Account emails
+you@example\.com
+# Device serials, personal names, private space or folder names, private hostnames
+ABC123SERIAL
+my-private-space
