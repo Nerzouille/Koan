@@ -1,0 +1,1984 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.4.1" type="baseline" client="gradle" dependencies="false" name="AGP (9.4.1)" variant="all" version="9.4.1">
+
+    <issue
+        id="PictureInPictureIssue"
+        message="An activity in this app supports picture-in-picture and the targetSdkVersion is 31 or above; it is therefore strongly recommended to call both `setAutoEnterEnabled(true)` and `setSourceRectHint(...)`"
+        errorLine1="    &lt;application"
+        errorLine2="     ~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="218"
+            column="6"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_airplane.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_american_football.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_baseball.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_basket.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_bed.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_bell.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_book.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_bookmark.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_briefcase.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_brush.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_bug.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_build.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_cafe.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_call.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_card.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_chat.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_checkbox.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_circle.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_cloud.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_code.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_coins.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_construct.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_cutlery.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_egg.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_extension_puzzle.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_eye.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_fast_food.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_fish.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_flag.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_flame.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_flask.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_game_controller.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_globe.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_globe_1.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_grid_2x2.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_grid_3x3.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_heart.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_ice_cream.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_image.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_inbox.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_key.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_layers.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_leaf.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_lightning.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_location.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_lock_closed.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_logo_github.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_logo_rss.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_logo_usd.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_mail.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_map.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_megaphone.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_moon.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_music.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_navigate.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_nuclear.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_page.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_palette.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_paw.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_people.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_pizza.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_planet.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_present.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_rocket.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_school.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_shapes.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_shirt.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_skull.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_square.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_squares.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_star.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_star_1.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_stats_chart.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_sun.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_tada.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_terminal.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_ticket.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_time.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_trash.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_triangle.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_video.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_volume_high.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_wallet.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_warning.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_water.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/zen_weight.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of Gradle than 9.7.1 is available: 9.9.1"
+        errorLine1="distributionUrl=https\://services.gradle.org/distributions/gradle-9.7.1-bin.zip"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/Delivery/fun/Koan/gradle/wrapper/gradle-wrapper.properties"
+            line="3"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 9.4.1 is available: 9.5.1"
+        errorLine1="agp = &quot;9.4.1&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/Delivery/fun/Koan/gradle/libs.versions.toml"
+            line="2"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.test than 9.4.1 is available: 9.5.1"
+        errorLine1="agp = &quot;9.4.1&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/Delivery/fun/Koan/gradle/libs.versions.toml"
+            line="2"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.core:core-ktx than 1.19.0 is available: 1.19.1"
+        errorLine1="coreKtx = &quot;1.19.0&quot;"
+        errorLine2="          ~~~~~~~~">
+        <location
+            file="$HOME/Delivery/fun/Koan/gradle/libs.versions.toml"
+            line="5"
+            column="11"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.datastore:datastore-preferences than 1.2.1 is available: 1.3.0"
+        errorLine1="datastore = &quot;1.2.1&quot;"
+        errorLine2="            ~~~~~~~">
+        <location
+            file="$HOME/Delivery/fun/Koan/gradle/libs.versions.toml"
+            line="18"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="LockedOrientationActivity"
+        message="Expecting `android:screenOrientation=&quot;unspecified&quot;` or `&quot;fullSensor&quot;` for this activity so the user can use the application in any orientation and provide a great experience on Chrome OS devices"
+        errorLine1="            android:screenOrientation=&quot;portrait&quot;"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="232"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.jetbrains.kotlin.plugin.compose than 2.4.20 is available: 2.4.21"
+        errorLine1="kotlin = &quot;2.4.20&quot;"
+        errorLine2="         ~~~~~~~~">
+        <location
+            file="$HOME/Delivery/fun/Koan/gradle/libs.versions.toml"
+            line="3"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="NewerVersionAvailable"
+        message="A newer version of org.robolectric:robolectric than 4.17 is available: 4.18"
+        errorLine1="robolectric = &quot;4.17&quot;"
+        errorLine2="              ~~~~~~">
+        <location
+            file="$HOME/Delivery/fun/Koan/gradle/libs.versions.toml"
+            line="22"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="RestrictedApi"
+        message="ComponentActivity.dispatchKeyEvent can only be called from within the same library group prefix (referenced groupId=`androidx.core` with prefix androidx from groupId=`Koan`)"
+        errorLine1="    override fun dispatchKeyEvent(event: KeyEvent): Boolean {"
+        errorLine2="                 ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/MainActivity.kt"
+            line="326"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="RestrictedApi"
+        message="ComponentActivity.dispatchKeyEvent can only be called from within the same library group prefix (referenced groupId=`androidx.core` with prefix androidx from groupId=`Koan`)"
+        errorLine1="        return super.dispatchKeyEvent(event)"
+        errorLine2="                     ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/MainActivity.kt"
+            line="329"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="RestrictedApi"
+        message="ComponentActivity.dispatchKeyEvent can only be called from within the same library group prefix (referenced groupId=`androidx.core` with prefix androidx from groupId=`Koan`)"
+        errorLine1="        return super.dispatchKeyEvent(event)"
+        errorLine2="                                      ~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/MainActivity.kt"
+            line="329"
+            column="39"/>
+    </issue>
+
+    <issue
+        id="SourceLockedOrientationActivity"
+        message="You should not lock orientation of your activities, so that you can support a good user experience for any device or orientation"
+        errorLine1="            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/browser/Fullscreen.kt"
+            line="74"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="SourceLockedOrientationActivity"
+        message="You should not lock orientation of your activities, so that you can support a good user experience for any device or orientation"
+        errorLine1="        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/browser/LayoutWatch.kt"
+            line="89"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="            SetGeckoPreference.setStringPref(name, value, GeckoPreferenceController.PREF_BRANCH_USER)"
+        errorLine2="                               ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/GeckoPrefs.kt"
+            line="44"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="            SetGeckoPreference.setStringPref(name, value, GeckoPreferenceController.PREF_BRANCH_USER)"
+        errorLine2="                                                                                    ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/GeckoPrefs.kt"
+            line="44"
+            column="85"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="        GeckoPreferenceController.setGeckoPrefs(prefs).accept("
+        errorLine2="                                  ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/GeckoPrefs.kt"
+            line="46"
+            column="35"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="                is Boolean -> SetGeckoPreference.setBoolPref(name, value, GeckoPreferenceController.PREF_BRANCH_USER)"
+        errorLine2="                                                 ~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/privacy/PrivacyEngine.kt"
+            line="79"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="                is Boolean -> SetGeckoPreference.setBoolPref(name, value, GeckoPreferenceController.PREF_BRANCH_USER)"
+        errorLine2="                                                                                                    ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/privacy/PrivacyEngine.kt"
+            line="79"
+            column="101"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="                is Int -> SetGeckoPreference.setIntPref(name, value, GeckoPreferenceController.PREF_BRANCH_USER)"
+        errorLine2="                                             ~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/privacy/PrivacyEngine.kt"
+            line="80"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="                is Int -> SetGeckoPreference.setIntPref(name, value, GeckoPreferenceController.PREF_BRANCH_USER)"
+        errorLine2="                                                                                               ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/privacy/PrivacyEngine.kt"
+            line="80"
+            column="96"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="                else -> SetGeckoPreference.setStringPref(name, value.toString(), GeckoPreferenceController.PREF_BRANCH_USER)"
+        errorLine2="                                           ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/privacy/PrivacyEngine.kt"
+            line="81"
+            column="44"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="                else -> SetGeckoPreference.setStringPref(name, value.toString(), GeckoPreferenceController.PREF_BRANCH_USER)"
+        errorLine2="                                                                                                           ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/privacy/PrivacyEngine.kt"
+            line="81"
+            column="108"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@org.mozilla.geckoview.ExperimentalGeckoViewApi` or `@OptIn(markerClass = org.mozilla.geckoview.ExperimentalGeckoViewApi.class)`"
+        errorLine1="        GeckoPreferenceController.setGeckoPrefs(prefs).accept("
+        errorLine2="                                  ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/privacy/PrivacyEngine.kt"
+            line="84"
+            column="35"/>
+    </issue>
+
+    <issue
+        id="ConfigurationScreenWidthHeight"
+        message="Using Configuration.screenHeightDp instead of LocalWindowInfo.current.containerSize"
+        errorLine1="    return remember(landscape, config.screenWidthDp, config.screenHeightDp, key) {"
+        errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/PlayerInsets.kt"
+            line="38"
+            column="54"/>
+    </issue>
+
+    <issue
+        id="ConfigurationScreenWidthHeight"
+        message="Using Configuration.screenWidthDp instead of LocalWindowInfo.current.containerSize"
+        errorLine1="    return remember(landscape, config.screenWidthDp, config.screenHeightDp, key) {"
+        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/PlayerInsets.kt"
+            line="38"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="ContextCastToActivity"
+        message="LocalContext should not be cast to Activity, use LocalActivity instead"
+        errorLine1="    val activity = LocalContext.current as? Activity"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/browser/Fullscreen.kt"
+            line="34"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ContextCastToActivity"
+        message="LocalContext should not be cast to Activity, use LocalActivity instead"
+        errorLine1="    val activity = LocalContext.current as? Activity"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/KoanRoot.kt"
+            line="618"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ContextCastToActivity"
+        message="LocalContext should not be cast to Activity, use LocalActivity instead"
+        errorLine1="    val window = (LocalContext.current as? Activity)?.window ?: return"
+        errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/kit/SecureWindow.kt"
+            line="18"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="LocalContextResourcesRead"
+        message="Reading Resources using LocalContext.current.resources is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="                context.resources.getIdentifier(name, &quot;drawable&quot;, context.packageName).takeIf { it != 0 }"
+        errorLine2="                ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/icons/ZenIcon.kt"
+            line="55"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="LocalContextResourcesRead"
+        message="Reading Resources using LocalContext.current.resources is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="                        context.resources.getIdentifier(&quot;zen_$near&quot;, &quot;drawable&quot;, context.packageName).takeIf { it != 0 }"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/icons/ZenIcon.kt"
+            line="58"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/bar/AddressRow.kt"
+            line="831"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/downloads/DownloadsScreen.kt"
+            line="91"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be named modifier"
+        errorLine1="    thumbModifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/menu/DuplicateDownloadPrompt.kt"
+            line="72"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    thumbModifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/menu/DuplicateDownloadPrompt.kt"
+            line="72"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be named modifier"
+        errorLine1="fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions, imageModifier: Modifier = Modifier, waiting: Boolean = false) {"
+        errorLine2="                                                                             ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/menu/LinkMenu.kt"
+            line="92"
+            column="78"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="internal fun PlayerSpinner(size: Dp, stroke: Dp, color: Color = PlayerTokens.Text, modifier: Modifier = Modifier) {"
+        errorLine2="                                                                                   ~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/PlayerParts.kt"
+            line="187"
+            column="84"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="fun SiteIcon(url: String, size: Dp, fallback: ImageVector, colour: Boolean = false, modifier: Modifier = Modifier) {"
+        errorLine2="                                                                                    ~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/kit/SiteIcon.kt"
+            line="40"
+            column="85"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be named modifier"
+        errorLine1="fun RowScope.SpaceTitle(icon: String, name: String, nameModifier: Modifier = Modifier) {"
+        errorLine2="                                                    ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/overview/SpaceTitle.kt"
+            line="23"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="DiscouragedApi"
+        message="Fixed screen orientations will be ignored in most cases, starting from Android 16. Android is moving toward a model where apps are expected to adapt to various orientations, display sizes, and aspect ratios."
+        errorLine1="            android:screenOrientation=&quot;portrait&quot;"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="232"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ChromeOsAbiSupport"
+        message="Missing x86_64 ABI support for ChromeOS"
+        errorLine1="            abiFilters += &quot;arm64-v8a&quot;"
+        errorLine2="                          ~~~~~~~~~~~">
+        <location
+            file="build.gradle.kts"
+            line="44"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="PermissionImpliesUnsupportedChromeOsHardware"
+        message="Permission exists without corresponding hardware `&lt;uses-feature android:name=&quot;android.hardware.camera&quot; android:required=&quot;false&quot; />` tag"
+        errorLine1="    &lt;uses-permission android:name=&quot;android.permission.CAMERA&quot; />"
+        errorLine2="     ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="10"
+            column="6"/>
+    </issue>
+
+    <issue
+        id="ExportedService"
+        message="Exported service does not require permission"
+        errorLine1="        &lt;service"
+        errorLine2="         ~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="281"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="DataExtractionRules"
+        message="The attribute `android:allowBackup` is deprecated from Android 12 and higher and may be removed in future versions. Consider adding the attribute `android:dataExtractionRules` specifying an `@xml` resource which configures cloud backups and device transfers on Android 12 and higher."
+        errorLine1="        android:allowBackup=&quot;false&quot;"
+        errorLine2="                             ~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="220"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="QueryAllPackagesPermission"
+        message="A `&lt;queries>` declaration should generally be used instead of QUERY_ALL_PACKAGES; see https://g.co/dev/packagevisibility for details"
+        errorLine1="    &lt;uses-permission android:name=&quot;android.permission.QUERY_ALL_PACKAGES&quot; tools:node=&quot;remove&quot; />"
+        errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="18"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 30"
+        errorLine1="    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/Immersive.kt"
+            line="25"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="Unnecessary; `SDK_INT` is always >= 30"
+        errorLine1="        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/MainActivity.kt"
+            line="58"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="VectorPath"
+        message="Very long vector path (3028 characters), which is bad for performance. Considering reducing precision, removing minor details or rasterizing vector."
+        errorLine1="        android:pathData=&quot;m 169.969,148.152 2.271,1.949 202.191,202.517 c 2.644,2.653 4.626,5.892 5.787,9.455 1.161,3.563 1.467,7.35 0.895,11.053 -0.572,3.704 -2.008,7.221 -4.19,10.266 -2.182,3.045 -5.049,5.532 -8.369,7.261 l -2.757,1.218 -247.51,91.334 C 71.7922,500.335 26.5139,456.576 40.6203,410.057 l 1.216,-3.491 91.2057,-247.819 c 1.208,-3.277 3.12,-6.249 5.6,-8.705 2.481,-2.457 5.47,-4.338 8.756,-5.511 3.286,-1.173 6.789,-1.609 10.262,-1.278 3.473,0.331 6.831,1.421 9.837,3.194 z m 215.204,103.633 c 21.727,1.137 51.481,5.724 77.342,21.312 5.186,3.145 8.979,8.152 10.608,14 1.629,5.848 0.972,12.097 -1.838,17.477 -2.81,5.38 -7.561,9.485 -13.287,11.48 -5.726,1.995 -11.996,1.73 -17.534,-0.741 l -2.432,-1.299 c -16.296,-9.742 -37.05,-13.639 -55.372,-14.573 -7.532,-0.5 -15.09,-0.473 -22.619,0.082 l -7.539,0.811 c -6.263,0.889 -12.621,-0.751 -17.676,-4.557 -5.055,-3.806 -8.394,-9.468 -9.281,-15.739 -0.887,-6.271 0.75,-12.638 4.551,-17.701 3.801,-5.062 9.455,-8.405 15.717,-9.293 13.035,-1.695 26.244,-2.117 39.36,-1.259 z m 48.278,-66.491 c 6.076,0.016 11.917,2.354 16.329,6.537 4.411,4.183 7.062,9.895 7.408,15.97 0.347,6.074 -1.636,12.052 -5.543,16.711 -3.907,4.66 -9.443,7.649 -15.478,8.357 l -2.716,0.122 h -16.903 c -6.025,-0.083 -11.795,-2.448 -16.149,-6.62 -4.354,-4.171 -6.969,-9.839 -7.318,-15.863 -0.349,-6.023 1.593,-11.956 5.435,-16.604 3.843,-4.648 9.301,-7.666 15.275,-8.447 l 2.757,-0.163 z M 357.65,166.987 c 4.075,4.128 6.515,9.597 6.866,15.391 0.35,5.795 -1.413,11.519 -4.961,16.109 l -1.946,2.233 -25.294,25.33 c -4.294,4.254 -10.042,6.717 -16.08,6.891 -6.038,0.173 -11.917,-1.956 -16.448,-5.957 -4.531,-4.001 -7.375,-9.575 -7.959,-15.596 -0.584,-6.021 1.138,-12.04 4.815,-16.838 l 1.987,-2.274 25.253,-25.289 c 4.481,-4.462 10.544,-6.966 16.863,-6.966 6.319,0 12.422,2.504 16.904,6.966 z M 295.954,41.3119 c 10.661,32.1495 4.946,67.3031 -1.702,91.9021 -4.03,15.317 -9.542,30.204 -16.458,44.449 -2.902,5.523 -7.85,9.687 -13.782,11.601 -5.932,1.914 -12.376,1.425 -17.952,-1.362 -5.577,-2.786 -9.841,-7.65 -11.88,-13.547 -2.039,-5.897 -1.691,-12.36 0.971,-18.003 5.539,-11.428 9.926,-23.381 13.093,-35.681 5.391,-19.891 8.107,-41.4049 3.972,-59.0627 l -1.499,-5.1553 c -0.993,-2.9745 -1.391,-6.1158 -1.172,-9.2444 0.22,-3.1285 1.052,-6.1832 2.451,-8.9895 1.398,-2.8063 3.335,-5.3093 5.699,-7.3661 2.364,-2.0568 5.11,-3.6272 8.081,-4.6213 2.97,-0.9942 6.107,-1.3928 9.231,-1.173 3.124,0.2198 6.174,1.0537 8.977,2.454 2.802,1.4004 5.302,3.3397 7.356,5.7074 2.053,2.3677 3.622,5.1172 4.614,8.0918 z m 129.025,58.21 c 4.444,4.4861 6.937,10.5481 6.937,16.8661 0,6.318 -2.493,12.381 -6.937,16.867 l -16.822,16.886 c -2.202,2.261 -4.831,4.061 -7.733,5.297 -2.902,1.236 -6.02,1.883 -9.173,1.903 -3.154,0.021 -6.28,-0.586 -9.198,-1.784 -2.918,-1.198 -5.569,-2.964 -7.801,-5.196 -2.231,-2.232 -3.998,-4.885 -5.198,-7.805 -1.2,-2.921 -1.809,-6.051 -1.792,-9.209 0.016,-3.158 0.659,-6.281 1.889,-9.189 1.231,-2.907 3.026,-5.541 5.28,-7.749 l 16.823,-16.8871 c 4.479,-4.4495 10.533,-6.9462 16.842,-6.9462 6.31,0 12.363,2.4967 16.843,6.9462&quot; />"
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/drawable/zen_tada.xml"
+            line="8"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="    internal var serial by mutableStateOf(0)"
+        errorLine2="                           ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/kit/KoanToast.kt"
+            line="88"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="    var drawnSerial by remember { mutableStateOf(-1) }"
+        errorLine2="                                  ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/kit/KoanToast.kt"
+            line="133"
+            column="35"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="    var decisionsVersion by remember { mutableStateOf(0) }"
+        errorLine2="                                       ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/overlays/MenuOverlays.kt"
+            line="116"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="    var year by remember { mutableStateOf(selected.year) }"
+        errorLine2="                           ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/menu/PagePrompts.kt"
+            line="562"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableFloatStateOf` instead of `mutableStateOf`"
+        errorLine1="    var aspect by remember { mutableStateOf(3f / 4f) }"
+        errorLine2="                             ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/signin/QrScanner.kt"
+            line="54"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="ViewConstructor"
+        message="Custom view `ClipView` is missing constructor used by tools: `(Context)` or `(Context,AttributeSet)` or `(Context,AttributeSet,int)`"
+        errorLine1="private class ClipView(context: Context, @RawRes private val res: Int) : TextureView(context), TextureView.SurfaceTextureListener {"
+        errorLine2="              ~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/tour/TourVideo.kt"
+            line="31"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.scale` instead?"
+        errorLine1="            val half = Bitmap.createScaledBitmap(full, full.width / 2, full.height / 2, true)"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/thumbs/BakedBlur.kt"
+            line="134"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="        val out = Bitmap.createBitmap(w, h * radiiPx.size, Bitmap.Config.ARGB_8888)"
+        errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/thumbs/BakedBlur.kt"
+            line="223"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val site = page?.let { Uri.parse(it).host }?.removePrefix(&quot;www.&quot;).orEmpty()"
+        errorLine2="                               ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/ExternalLinks.kt"
+            line="77"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val intent = (if (scheme == &quot;intent&quot;) parseIntent(uri) else Intent(Intent.ACTION_VIEW, Uri.parse(uri)))"
+        errorLine2="                                                                                               ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/ExternalLinks.kt"
+            line="79"
+            column="96"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val intent = (if (scheme == &quot;intent&quot;) parseIntent(uri) else Intent(Intent.ACTION_VIEW, Uri.parse(uri))) ?: return null"
+        errorLine2="                                                                                               ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/ExternalLinks.kt"
+            line="135"
+            column="96"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val view = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)"
+        errorLine2="                                              ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/ExternalLinks.kt"
+            line="149"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val browsers = handlers(Intent(Intent.ACTION_VIEW, Uri.parse(PROBE_URL)).addCategory(Intent.CATEGORY_BROWSABLE)).toSet()"
+        errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/ExternalLinks.kt"
+            line="150"
+            column="60"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        launch(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE).setPackage(app.pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))"
+        errorLine2="                                          ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/ExternalLinks.kt"
+            line="159"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        if (site.isNotEmpty()) prefs.edit().putBoolean(&quot;${siteHost(site)}|$pkg&quot;, true).apply()"
+        errorLine2="                               ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/ExternalLinks.kt"
+            line="215"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putStringSet(KEY, ids).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/data/HiddenLogins.kt"
+            line="23"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putStringSet(KEY, urls).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/data/HistoryDeletions.kt"
+            line="24"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.scale` instead?"
+        errorLine1="        return Bitmap.createScaledBitmap(cropped, (cropped.width * f).toInt().coerceAtLeast(1), (cropped.height * f).toInt().coerceAtLeast(1), true)"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/favicon/IconStore.kt"
+            line="151"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Int.toDrawable` instead?"
+        errorLine1="    window.setBackgroundDrawable(ColorDrawable(if (on) Color.BLACK else ContextCompat.getColor(window.context, R.color.koan_base)))"
+        errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/Immersive.kt"
+            line="37"
+            column="34"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="            translatePrefs.edit().putString(&quot;recent_$side&quot;, list.joinToString(&quot;,&quot;)).apply()"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt"
+            line="253"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    runCatching { DocumentsContract.getTreeDocumentId(Uri.parse(uri)) }.getOrNull()"
+        errorLine2="                                                      ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt"
+            line="323"
+            column="55"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val host = android.net.Uri.parse(origin).host ?: return@withContext emptyList()"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/data/Logins.kt"
+            line="103"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val existing = dao.loginsFor(clean, baseDomain(android.net.Uri.parse(clean).host ?: clean))"
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/data/Logins.kt"
+            line="123"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="private fun isAuthHost(url: String?) = url != null &amp;&amp; runCatching { Uri.parse(url).host }.getOrNull() == FxAWeb.HOST"
+        errorLine2="                                                                    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/signin/MozillaSignIn.kt"
+            line="316"
+            column="69"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            player.setDataSource(context, Uri.parse(uri))"
+        errorLine2="                                          ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/NativeVideo.kt"
+            line="83"
+            column="43"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    val host = url?.let { android.net.Uri.parse(it).host }?.removePrefix(&quot;www.&quot;)?.removePrefix(&quot;m.&quot;) ?: return false"
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/root/PlayerActions.kt"
+            line="11"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                    .putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse(video.uri))"
+        errorLine2="                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/root/PlayerActions.kt"
+            line="30"
+            column="68"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                val view = android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(android.net.Uri.parse(video.uri), &quot;video/*&quot;)"
+        errorLine2="                                                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/root/PlayerActions.kt"
+            line="38"
+            column="102"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    val file = android.net.Uri.parse(url).lastPathSegment.orEmpty()"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/PlayerModel.kt"
+            line="196"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    val host = android.net.Uri.parse(url).host?.removePrefix(&quot;www.&quot;).orEmpty()"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/PlayerModel.kt"
+            line="197"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    StandaloneVideo(uri, name ?: android.net.Uri.parse(uri).lastPathSegment.orEmpty().ifEmpty { &quot;Video&quot; }, &quot;From another app&quot;, PlayerMode.File)"
+        errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/PlayerModel.kt"
+            line="203"
+            column="34"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="    prefs.getLong(&quot;seed&quot;, 0L).takeIf { it != 0L } ?: Random.nextLong().also { prefs.edit().putLong(&quot;seed&quot;, it).apply() }"
+        errorLine2="                                                                              ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/privacy/PrivateAtmosphere.kt"
+            line="177"
+            column="79"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            referrer?.host?.takeIf { it != packageName }?.let { koan.putExtra(Intent.EXTRA_REFERRER, Uri.parse(&quot;android-app://$it&quot;)) }"
+        errorLine2="                                                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/SearchSelection.kt"
+            line="23"
+            column="102"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            val market = Intent(Intent.ACTION_VIEW, Uri.parse(&quot;market://details?id=$webViewPackage&quot;))"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/signin/SignInScreen.kt"
+            line="399"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            val web = Intent(Intent.ACTION_VIEW, Uri.parse(&quot;https://play.google.com/store/apps/details?id=$webViewPackage&quot;))"
+        errorLine2="                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/signin/SignInScreen.kt"
+            line="400"
+            column="50"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val host = android.net.Uri.parse(url).host ?: return false"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/SitePermissions.kt"
+            line="132"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="            val uri = android.net.Uri.parse(url)"
+        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/engine/SitePermissions.kt"
+            line="183"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX function `createBitmap` instead?"
+        errorLine1="        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)"
+        errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/favicon/SvgRasterizer.kt"
+            line="31"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.get` instead?"
+        errorLine1="                if (getPixel(x, y) != 0) return false"
+        errorLine2="                    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/favicon/SvgRasterizer.kt"
+            line="47"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putLong(&quot;last_run&quot;, System.currentTimeMillis()).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/data/SyncWrite.kt"
+            line="65"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="            if (known == null) prefs.edit().putString(&quot;syncid_$name&quot;, engine?.optString(&quot;syncID&quot;)).apply()"
+        errorLine2="                               ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/data/SyncWrite.kt"
+            line="76"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putString(&quot;backup_$collection&quot;, file.name).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/data/SyncWrite.kt"
+            line="214"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="        prefs.edit().putString(&quot;status_$collection&quot;, stamped).apply()"
+        errorLine2="        ~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/data/SyncWrite.kt"
+            line="232"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.scale` instead?"
+        errorLine1="            val next = Bitmap.createScaledBitmap(cur, cur.width / 2, cur.height / 2, true)"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/thumbs/ThumbnailStore.kt"
+            line="244"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Bitmap.scale` instead?"
+        errorLine1="        val out = Bitmap.createScaledBitmap(cur, width, h, true)"
+        errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/thumbs/ThumbnailStore.kt"
+            line="250"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    url?.let { runCatching { android.net.Uri.parse(it).host }.getOrNull() }?.removePrefix(&quot;www.&quot;).orEmpty()"
+        errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/dev/nerzouille/koan/ui/player/WebPlayer.kt"
+            line="157"
+            column="30"/>
+    </issue>
+
+</issues>

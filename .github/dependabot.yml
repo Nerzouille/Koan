@@ -1,0 +1,56 @@
+# Weekly dependency updates, as pull requests to dev (never main).
+version: 2
+
+registries:
+  # GeckoView and android-components only live on Mozilla's maven (settings.gradle.kts).
+  mozilla:
+    type: maven-repository
+    url: https://maven.mozilla.org/maven2
+  google:
+    type: maven-repository
+    url: https://dl.google.com/dl/android/maven2
+
+updates:
+  # Gradle: the version catalog (gradle/libs.versions.toml) and the build files.
+  - package-ecosystem: gradle
+    directory: /
+    target-branch: dev
+    registries:
+      - mozilla
+      - google
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      # One PR for all of AndroidX (Compose BOM, Room, DataStore, lifecycle, test libs…).
+      androidx:
+        patterns:
+          - "androidx.*"
+      # One PR for GeckoView + android-components: AC X.Y depends on one exact GeckoView build,
+      # so they must move together (check the pair before merging).
+      mozilla:
+        patterns:
+          - "org.mozilla.*"
+      # Kotlin, its Compose compiler plugin and KSP have to match each other.
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "com.google.devtools.ksp*"
+
+  # The SHA-pinned actions in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - "*"

@@ -4,4 +4,5 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.android.test) apply false
     alias(libs.plugins.androidx.baselineprofile) apply false
+    alias(libs.plugins.detekt) apply false
 }

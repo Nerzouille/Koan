@@ -33,3 +33,6 @@ design-export/
 # Audit reports: kept local until the security fixes are merged
 docs/AUDIT.md
 docs/audits/2026-11-11/
+
+# Local privacy check patterns (the pre-commit hook reads them; see CLAUDE.md)
+.privacy-patterns

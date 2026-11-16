@@ -1,0 +1,26 @@
+# Koan's detekt settings, on top of detekt's defaults (buildUponDefaultConfig).
+# Only what Compose code needs (so a normal new @Composable is not a new issue) and the line length.
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+
+style:
+  MaxLineLength:
+    # The code mostly stays under 100; 140 leaves room for long strings and signatures.
+    maxLineLength: 140
+  MagicNumber:
+    # Dp, durations and colours are literal numbers all over the UI.
+    ignoreAnnotated: ['Composable', 'Preview']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  UnusedPrivateFunction:
+    ignoreAnnotated: ['Preview']
+
+complexity:
+  LongMethod:
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    ignoreDefaultParameters: true
+    ignoreAnnotated: ['Composable']

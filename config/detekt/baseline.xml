@@ -1,0 +1,1015 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:BrowserScreen.kt:fullScreen || findOpen || (typingInPage &amp;&amp; keyboardPx &gt; navPx)</ID>
+    <ID>ComplexCondition:ClearDataCard.kt:history || cookies || cache || marks</ID>
+    <ID>ComplexCondition:DepthStack.kt:StackGeometry$!visible(d) || (a.gone &amp;&amp; a.fly == 0f &amp;&amp; a.swipeX == 0f)</ID>
+    <ID>ComplexCondition:FaviconLoader.kt:FaviconLoader$page != null &amp;&amp; host.isNotEmpty() &amp;&amp; !FaviconDiscovery.isLoopback(page) &amp;&amp; !isPrivateHost(host)</ID>
+    <ID>ComplexCondition:FaviconLoader.kt:FaviconLoader$type.isNotEmpty() &amp;&amp; !type.contains("html") &amp;&amp; !type.contains("xml") &amp;&amp; !type.contains("text/")</ID>
+    <ID>ComplexCondition:FxAClient.kt:FxAClient$uid == null || endpoint == null || id == null || key == null || duration == Int.MIN_VALUE</ID>
+    <ID>ComplexCondition:KoanRoot.kt:!startRequested || !tabsStarted || spaces.isEmpty() || !placeRestored</ID>
+    <ID>ComplexCondition:KoanRoot.kt:hideStatus &amp;&amp; !pageOnly &amp;&amp; !overviewVisible &amp;&amp; !fullScreen</ID>
+    <ID>ComplexCondition:KoanRoot.kt:tab == null || card == null || tab.pinned || tab.essential || stackItem(spaces[card.first].stack[card.second].id)?.tabs.orEmpty().size &gt; 1</ID>
+    <ID>ComplexCondition:KoanRoot.kt:tab == null || tab.pinned || tab.essential || rows.size &gt; 1</ID>
+    <ID>ComplexCondition:KoanRoot.kt:tabsStarted &amp;&amp; activeTabId == null &amp;&amp; spaces.isNotEmpty() &amp;&amp; !overviewOpen &amp;&amp; !startPage &amp;&amp; landing == null</ID>
+    <ID>ComplexCondition:MozillaSignIn.kt:command != "koan:login" &amp;&amp; command != "fxaccounts:login" &amp;&amp; command != "fxaccounts:verified" &amp;&amp; command != "fxaccounts:change_password" &amp;&amp; command != "fxaccount:change_password"</ID>
+    <ID>ComplexCondition:NativeVideo.kt:NativeVideo$vw &lt;= 0 || vh &lt;= 0 || w &lt;= 0 || h &lt;= 0</ID>
+    <ID>ComplexCondition:PagePrompts.kt:!card.open &amp;&amp; r != null &amp;&amp; !answered &amp;&amp; request === r</ID>
+    <ID>ComplexCondition:SwipeRow.kt:action != null &amp;&amp; r != 0f &amp;&amp; width &gt; 0 &amp;&amp; (far || flung)</ID>
+    <ID>ComplexCondition:SyncBackPlan.kt:LoginUpload$id.isEmpty() || id.length &gt; 64 || id.contains(',') || id.any { it.code !in 0x20..0x7e }</ID>
+    <ID>ComplexCondition:TabManager.kt:TabManager$tab != null &amp;&amp; tab.content.private == isPrivate &amp;&amp; tab.content.url == d.url &amp;&amp; !tab.content.firstContentfulPaint</ID>
+    <ID>ComplexCondition:TourVideo.kt:ClipView$clipWidth == 0 || clipHeight == 0 || width == 0 || height == 0</ID>
+    <ID>ComplexCondition:TranslateCue.kt:!offerFor(lang, phoneLanguages, offerOn) || s.translated || s.always || s.never</ID>
+    <ID>ComplexCondition:TranslateOfferHost.kt:!allowed || !always || key in auto || lang.equals(to, ignoreCase = true)</ID>
+    <ID>ComplexCondition:TranslatePage.kt:on &amp;&amp; !ui.working &amp;&amp; from.isNotEmpty() &amp;&amp; from != to</ID>
+    <ID>ComplexCondition:VideoPlayer.kt:!shown || locked || !state.playing || menuOpen || scrubbing || fingerDown</ID>
+    <ID>ComplexCondition:VideoPlayer.kt:mode == 0 &amp;&amp; !locked &amp;&amp; (abs(d.x) &gt; slop || abs(d.y) &gt; slop)</ID>
+    <ID>ComplexCondition:VideoPlayer.kt:mode == 0 &amp;&amp; (abs(d.x) &gt; slop || abs(d.y) &gt; slop) &amp;&amp; atEdge</ID>
+    <ID>ComplexCondition:WebPlayer.kt:!fullScreen || video == null || host.siteControls || tabId == null || host.standalone != null</ID>
+    <ID>ComplexCondition:ZenIcon.kt:base.isEmpty() || !base.all { it.isLetterOrDigit() || it == '-' || it == '_' }</ID>
+    <ID>ComplexCondition:ZiaIcons.kt:ZiaIcons$d &lt; bestDist || (d == bestDist &amp;&amp; best != null &amp;&amp; n.length &lt; best.length)</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** 1dp line all around a stack card, drawn over its depth dim so back cards keep their edge. */ val CardHairline: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** 1dp outline all around a card. */ val CardBorder: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Alpha of the active space pill's tint. */ val PillAlpha: Float</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Back cards fade towards Base (light: a haze) instead of black (dark: brightness). */ val DimToBase: Boolean</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Bar icons and the tab-count badge. */ val Icon: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Behind favicons too dark to read on dark surfaces; Unspecified = never needed. */ val IconBacking: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Dark only: 1dp light line along a stack card's top edge, inside (separates dark header strips). */ val CardRim: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Destructive actions: red text only, never a red fill (one exception: the delete swipe's background on every library page). ≥ 4.5:1 on every surface. */ val Destructive: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Every other match and its text. */ val FindMatch: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Fallback accent for spaces without a usable Zen colour. */ val DefaultAccent: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Grouped rows on a sheet or a screen (menu, settings). */ val GroupedRow: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Multiplies StackTokens.Dim, capped at DimMax (light haze is stronger than a dim). */ val DimGain: Float</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Off state of a control (toggle track, unselected radio ring): ≥ 3:1 against every row surface. */ val ToggleOff: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Over the overview while the drawer is open, at full open. */ val DrawerScrim: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Over the page while a sheet or a floating card is open (the menu, prompts). */ val SheetScrim: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Page background behind everything, and what the stack fades to above the dock. */ val Base: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Primary buttons: black in light, white in dark. */ val Primary: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Private mode's palettes (Dusk, Night) only: its accent, pill and ink (OVERVIEW_PRIVATE.md §5.1). */ val PrivateAccent: Color = Color.Unspecified</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Quiet sync notices and "not secure": amber, never red. ≥ 4.5:1 as text. */ val Attention: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Short, soft shadow a card casts on the card behind it, just above its top edge. */ val ContactShadow: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Small surfaces on Base: the header's space icon box, essentials tiles, pinned list. */ val Glass: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Soft shadow the dock casts upward over the content. */ val DockShadow: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** The address input's ring while typing (neutral; "@" turns it into the brand gradient). */ val FocusRing: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** The chosen option's pill in a segmented selector (on a [Glass] track). */ val SegmentPill: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** The current match and its text. */ val FindCurrent: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** The dock: the bottom bar's own surface (also the drawer sheet). */ val Dock: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** The overview header's "sync failed" dot (OVERVIEW_PRIVATE.md §3.1). */ val SyncDot: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** The same without blur behind the drawer (Android 11, DeviceProfile.liveBlur): stronger. */ val DrawerScrimNoBlur: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** What back cards fade towards (light: Base, a haze; dark: black, or Night's deep violet). */ val DimColor: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$/** Without blur, the drawer sheet also casts a taller shadow over the cards, at full open. */ val DrawerShadowNoBlur: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val AccentLightness: ClosedFloatingPointRange&lt;Float&gt;</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val BarField: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val Card: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val CardElevation: Dp</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val CardShadowColor: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val CardStrip: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val CloseButton: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val CloseIcon: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val ContactShadowLength: Dp</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val DimMax: Float</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val DrawerHandle: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val FieldHint: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val FindCurrentText: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val FindMatchText: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val InkLightness: Float</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val Notice: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val OnPrimary: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val PrivateInk: Color = Color.Unspecified</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val PrivatePill: Color = Color.Unspecified</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val Skeleton: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val TextDisabled: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val TextPrimary: Color</ID>
+    <ID>ConstructorParameterNaming:Tokens.kt:KoanPalette$val TextSecondary: Color</ID>
+    <ID>CyclomaticComplexMethod:AddressRow.kt:@Composable private fun AddressInput</ID>
+    <ID>CyclomaticComplexMethod:BarGestures.kt:fun Modifier.barGestures: Modifier</ID>
+    <ID>CyclomaticComplexMethod:BrowserMenu.kt:@Composable fun MenuRoot</ID>
+    <ID>CyclomaticComplexMethod:BrowserScreen.kt:@OptIn(ExperimentalLayoutApi::class) @Composable fun BrowserScreen</ID>
+    <ID>CyclomaticComplexMethod:DepthStack.kt:@Composable fun DepthStack</ID>
+    <ID>CyclomaticComplexMethod:DownloadsScreen.kt:@Composable fun DownloadsScreen</ID>
+    <ID>CyclomaticComplexMethod:DownloadsScreen.kt:@Composable private fun RunningRow</ID>
+    <ID>CyclomaticComplexMethod:EnginesPage.kt:@Composable internal fun EngineEditPage</ID>
+    <ID>CyclomaticComplexMethod:ExternalLinks.kt:ExternalLinks$override fun onLoadRequest: InterceptionResponse?</ID>
+    <ID>CyclomaticComplexMethod:FakeStorage.kt:FakeStorage$override fun execute: SyncHttpResponse</ID>
+    <ID>CyclomaticComplexMethod:FaviconDiscovery.kt:FaviconDiscovery$fun documentURL: URI?</ID>
+    <ID>CyclomaticComplexMethod:FaviconLoader.kt:FaviconLoader$private fun fetchDocument: Document?</ID>
+    <ID>CyclomaticComplexMethod:FaviconLoader.kt:FaviconLoader$private fun isPrivateHost: Boolean</ID>
+    <ID>CyclomaticComplexMethod:FilePrompt.kt:@Composable fun FilePrompt</ID>
+    <ID>CyclomaticComplexMethod:Fullscreen.kt:@Composable fun rememberFullscreen: Boolean</ID>
+    <ID>CyclomaticComplexMethod:HistoryScreen.kt:@Composable fun HistoryScreen</ID>
+    <ID>CyclomaticComplexMethod:KoanBar.kt:@Composable fun KoanBar</ID>
+    <ID>CyclomaticComplexMethod:KoanOverlays.kt:@OptIn(ExperimentalSharedTransitionApi::class) @Composable fun KoanOverlays</ID>
+    <ID>CyclomaticComplexMethod:KoanRoot.kt:@Composable private fun KoanRootContent</ID>
+    <ID>CyclomaticComplexMethod:KoanSheet.kt:private fun Modifier.sheetGestures: Modifier</ID>
+    <ID>CyclomaticComplexMethod:KoanToast.kt:@Composable fun KoanToastHost</ID>
+    <ID>CyclomaticComplexMethod:LayoutWatch.kt:suspend fun watchLayout</ID>
+    <ID>CyclomaticComplexMethod:LibraryOverlays.kt:@Composable internal fun LibraryOverlays</ID>
+    <ID>CyclomaticComplexMethod:LinkCardOverlay.kt:@OptIn(ExperimentalSharedTransitionApi::class) @Composable internal fun LinkCardOverlay</ID>
+    <ID>CyclomaticComplexMethod:LinkCardOverlay.kt:private fun fileThumbnail: ImageBitmap?</ID>
+    <ID>CyclomaticComplexMethod:MainActivity.kt:MainActivity$override fun onCreate</ID>
+    <ID>CyclomaticComplexMethod:MainActivity.kt:MainActivity$private fun handleIntent</ID>
+    <ID>CyclomaticComplexMethod:MenuOverlays.kt:@Composable internal fun MenuOverlays</ID>
+    <ID>CyclomaticComplexMethod:MozillaSignIn.kt:internal fun parseBridgeMessage: FxAWebLogin?</ID>
+    <ID>CyclomaticComplexMethod:OverviewScreen.kt:@Composable fun OverviewScreen</ID>
+    <ID>CyclomaticComplexMethod:PagePrompts.kt:@Composable fun PagePrompts</ID>
+    <ID>CyclomaticComplexMethod:PagePrompts.kt:@Composable private fun ColumnScope.ChoiceList</ID>
+    <ID>CyclomaticComplexMethod:PagePrompts.kt:@Composable private fun MonthGrid</ID>
+    <ID>CyclomaticComplexMethod:PagePrompts.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable private fun TimeSelection</ID>
+    <ID>CyclomaticComplexMethod:PasswordsPage.kt:@Composable internal fun PasswordsPage</ID>
+    <ID>CyclomaticComplexMethod:PermissionOverlays.kt:@Composable internal fun PermissionOverlays</ID>
+    <ID>CyclomaticComplexMethod:PlayerInsets.kt:fun playerInsets: PlayerInsets</ID>
+    <ID>CyclomaticComplexMethod:PrivateAtmosphere.kt:@Composable fun PrivateAtmosphere</ID>
+    <ID>CyclomaticComplexMethod:PullRefresh.kt:fun Modifier.pullToRefresh: Modifier</ID>
+    <ID>CyclomaticComplexMethod:SearchModel.kt:fun rank: Results</ID>
+    <ID>CyclomaticComplexMethod:SearchSheet.kt:@Composable private fun BoxScope.Results</ID>
+    <ID>CyclomaticComplexMethod:SearchState.kt:@Composable fun rememberSearch: SearchState</ID>
+    <ID>CyclomaticComplexMethod:SettingsOverlays.kt:@Composable internal fun SettingsOverlays</ID>
+    <ID>CyclomaticComplexMethod:SettingsScreen.kt:@Composable fun SettingsScreen</ID>
+    <ID>CyclomaticComplexMethod:SignInScreen.kt:@Composable fun SignInScreen</ID>
+    <ID>CyclomaticComplexMethod:SiteGlyph.kt:SiteGlyph.Companion$internal fun analyse: SiteGlyph?</ID>
+    <ID>CyclomaticComplexMethod:SitePermissions.kt:SitePermissions$fun askOf: SiteAsk?</ID>
+    <ID>CyclomaticComplexMethod:SiteSettings.kt:@Composable fun SiteSettingsPage</ID>
+    <ID>CyclomaticComplexMethod:SpacesSyncService.kt:SpacesSyncService$internal fun buildItems: List&lt;ZenSpaces.ZenItem&gt;</ID>
+    <ID>CyclomaticComplexMethod:SpacesSyncService.kt:SpacesSyncService$internal fun makeSpace: ZenSpaces.ZenSpace</ID>
+    <ID>CyclomaticComplexMethod:SpacesSyncService.kt:SpacesSyncService$suspend fun loadSnapshot: ZenSpaces.ZenSnapshot</ID>
+    <ID>CyclomaticComplexMethod:StandalonePlayer.kt:@Composable fun StandalonePlayer</ID>
+    <ID>CyclomaticComplexMethod:SwipeRow.kt:@Composable fun SwipeRow</ID>
+    <ID>CyclomaticComplexMethod:SyncBackPlan.kt:LoginUpload$fun problem: String?</ID>
+    <ID>CyclomaticComplexMethod:SyncClient.kt:SyncClient$private fun requestRaw: SyncHttpResponse</ID>
+    <ID>CyclomaticComplexMethod:TabCard.kt:@Composable fun TabCard</ID>
+    <ID>CyclomaticComplexMethod:TabManager.kt:TabManager$fun open</ID>
+    <ID>CyclomaticComplexMethod:TabManager.kt:TabManager$private fun watchEngine</ID>
+    <ID>CyclomaticComplexMethod:TabManager.kt:TabManager$private suspend fun captureNow</ID>
+    <ID>CyclomaticComplexMethod:TourOverlay.kt:@Composable fun TourOverlay</ID>
+    <ID>CyclomaticComplexMethod:TranslateOfferHost.kt:@Composable fun TranslateOfferHost</ID>
+    <ID>CyclomaticComplexMethod:TranslatePage.kt:@Composable fun TranslatePage</ID>
+    <ID>CyclomaticComplexMethod:TranslatePage.kt:@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class) @Composable private fun LanguagePicker</ID>
+    <ID>CyclomaticComplexMethod:VideoPlayer.kt:@Composable private fun ProgressBar</ID>
+    <ID>CyclomaticComplexMethod:VideoPlayer.kt:@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class) @Composable fun VideoPlayer</ID>
+    <ID>CyclomaticComplexMethod:WebPlayer.kt:@Composable fun WebPlayerLayer</ID>
+    <ID>CyclomaticComplexMethod:ZenDiff.kt:ZenDiff.Companion$fun between: ZenDiff</ID>
+    <ID>CyclomaticComplexMethod:ZenDiff.kt:ZenDiff.Companion$private fun stackPositions: Map&lt;String, Int&gt;?</ID>
+    <ID>CyclomaticComplexMethod:ZenIcon.kt:@SuppressLint("DiscouragedApi") // Zen names its icons at runtime; the drawable set is fixed. @Composable fun ZenIcon</ID>
+    <ID>CyclomaticComplexMethod:ZenRoomMapper.kt:ZenRoomMapper$fun map: ZenRows</ID>
+    <ID>CyclomaticComplexMethod:ZenSpaces.kt:ZenSpaces$fun decode: DecodedRecord?</ID>
+    <ID>CyclomaticComplexMethod:ZenSpaces.kt:ZenSpaces$fun decodeSnapshot: ZenSnapshot?</ID>
+    <ID>CyclomaticComplexMethod:ZenSpaces.kt:ZenSpaces$fun encodeSnapshot: JSONObject</ID>
+    <ID>CyclomaticComplexMethod:ZenSpaces.kt:ZenSpaces$private fun decodeItems: List&lt;ZenItem&gt;</ID>
+    <ID>CyclomaticComplexMethod:ZenSpaces.kt:ZenSpaces.ZenThemeDot.Companion$fun decodeAny: ZenThemeDot?</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:SignInScene.kt:Scene$(x, y, dx, dy)</ID>
+    <ID>EmptyElseBlock:DownloadsScreen.kt:if (i &gt; 0) SettingsDivider()</ID>
+    <ID>EmptyElseBlock:SearchSheet.kt:if (i &gt; 0) Divider()</ID>
+    <ID>EmptyFunctionBlock:TourVideo.kt:ClipView${}</ID>
+    <ID>EnumNaming:ZenSpaces.kt:ZenSpaces.RecordKind$container</ID>
+    <ID>EnumNaming:ZenSpaces.kt:ZenSpaces.RecordKind$folder</ID>
+    <ID>EnumNaming:ZenSpaces.kt:ZenSpaces.RecordKind$layout</ID>
+    <ID>EnumNaming:ZenSpaces.kt:ZenSpaces.RecordKind$space</ID>
+    <ID>EnumNaming:ZenSpaces.kt:ZenSpaces.RecordKind$split</ID>
+    <ID>EnumNaming:ZenSpaces.kt:ZenSpaces.RecordKind$tab</ID>
+    <ID>LongMethod:BarGestures.kt:fun Modifier.barGestures: Modifier</ID>
+    <ID>LongMethod:MainActivity.kt:MainActivity$override fun onCreate</ID>
+    <ID>LongMethod:MozillaSignIn.kt:FxAWeb$fun bridgeJS: String</ID>
+    <ID>LongMethod:SpacesSyncService.kt:SpacesSyncService$suspend fun loadSnapshot: ZenSpaces.ZenSnapshot</ID>
+    <ID>LongMethod:ZenDiff.kt:ZenDiff.Companion$fun between: ZenDiff</ID>
+    <ID>LoopWithTooManyJumpStatements:BrowserScreen.kt:for</ID>
+    <ID>LoopWithTooManyJumpStatements:DepthStack.kt:StackGeometry$for</ID>
+    <ID>LoopWithTooManyJumpStatements:DepthStack.kt:while</ID>
+    <ID>LoopWithTooManyJumpStatements:IconStore.kt:IconStore$for</ID>
+    <ID>LoopWithTooManyJumpStatements:KoanSheet.kt:while</ID>
+    <ID>LoopWithTooManyJumpStatements:PullRefresh.kt:while</ID>
+    <ID>LoopWithTooManyJumpStatements:SpacesSyncService.kt:SpacesSyncService$for</ID>
+    <ID>LoopWithTooManyJumpStatements:SyncBackPlan.kt:HistoryUpload$for</ID>
+    <ID>LoopWithTooManyJumpStatements:VideoPlayer.kt:while</ID>
+    <ID>LoopWithTooManyJumpStatements:ZenSpaces.kt:ZenSpaces$for</ID>
+    <ID>LoopWithTooManyJumpStatements:ZenSpaces.kt:ZenSpaces.ZenSnapshot$for</ID>
+    <ID>MagicNumber:AccountStore.kt:AccountStore$60_000</ID>
+    <ID>MagicNumber:AddressRow.kt:0.18f</ID>
+    <ID>MagicNumber:AddressRow.kt:3f</ID>
+    <ID>MagicNumber:AddressRow.kt:4f</ID>
+    <ID>MagicNumber:BakedBlur.kt:BakedBlur$0.3f</ID>
+    <ID>MagicNumber:BakedBlur.kt:BakedBlur$0.57735f</ID>
+    <ID>MagicNumber:BakedBlur.kt:BakedBlur$0.5f</ID>
+    <ID>MagicNumber:BakedBlur.kt:BakedBlur$0xFF</ID>
+    <ID>MagicNumber:BakedBlur.kt:BakedBlur$16</ID>
+    <ID>MagicNumber:BakedBlur.kt:BakedBlur$24</ID>
+    <ID>MagicNumber:BakedBlur.kt:BakedBlur$8</ID>
+    <ID>MagicNumber:BlankCheck.kt:BlankCheck$32</ID>
+    <ID>MagicNumber:BlankCheck.kt:BlankCheck$8</ID>
+    <ID>MagicNumber:BrandWash.kt:0.75f</ID>
+    <ID>MagicNumber:DepthCurve.kt:DepthCurve$0.5f</ID>
+    <ID>MagicNumber:DepthStack.kt:0.4f</ID>
+    <ID>MagicNumber:DepthStack.kt:StackGeometry$0.5f</ID>
+    <ID>MagicNumber:DeviceProfile.kt:DeviceProfile$3L</ID>
+    <ID>MagicNumber:DeviceProfile.kt:DeviceProfile$4</ID>
+    <ID>MagicNumber:DeviceProfile.kt:DeviceProfile$5L</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.High$24</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.High$3</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.High$4</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.High$64</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.High$720</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.Low$16</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.Low$480</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.Low$6</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.Mid$12</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.Mid$32</ID>
+    <ID>MagicNumber:DeviceProfile.kt:MemoryTier.Mid$540</ID>
+    <ID>MagicNumber:DownloadsScreen.kt:10</ID>
+    <ID>MagicNumber:DownloadsScreen.kt:20</ID>
+    <ID>MagicNumber:DownloadsScreen.kt:30</ID>
+    <ID>MagicNumber:DuplicateDownloads.kt:DuplicateDownloads$1000</ID>
+    <ID>MagicNumber:Favicon.kt:0x7fffffff</ID>
+    <ID>MagicNumber:FaviconDecoder.kt:FaviconDecoder$0xFF</ID>
+    <ID>MagicNumber:FaviconDecoder.kt:FaviconDecoder$12</ID>
+    <ID>MagicNumber:FaviconDecoder.kt:FaviconDecoder$16</ID>
+    <ID>MagicNumber:FaviconDecoder.kt:FaviconDecoder$24</ID>
+    <ID>MagicNumber:FaviconDecoder.kt:FaviconDecoder$3</ID>
+    <ID>MagicNumber:FaviconDecoder.kt:FaviconDecoder$6</ID>
+    <ID>MagicNumber:FaviconDecoder.kt:FaviconDecoder$8</ID>
+    <ID>MagicNumber:FaviconDiscovery.kt:FaviconDiscovery$3</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$10</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$100</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$127</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$16</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$168</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$169</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$172</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$192</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$200</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$254</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$299</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$3</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$300</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$31</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$399</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$4</ID>
+    <ID>MagicNumber:FaviconLoader.kt:FaviconLoader$64</ID>
+    <ID>MagicNumber:FullscreenOrientation.kt:180</ID>
+    <ID>MagicNumber:FullscreenOrientation.kt:270</ID>
+    <ID>MagicNumber:FullscreenOrientation.kt:360</ID>
+    <ID>MagicNumber:FullscreenOrientation.kt:90</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$1000L</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$102</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$103</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$110</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$200</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$299</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$300</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$32</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$39</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$3_000</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$40</ID>
+    <ID>MagicNumber:FxAClient.kt:FxAClient$64</ID>
+    <ID>MagicNumber:FxAClient.kt:RSAKeyPair.Companion$2048</ID>
+    <ID>MagicNumber:FxACrypto.kt:FxACrypto$16</ID>
+    <ID>MagicNumber:FxACrypto.kt:FxACrypto$32</ID>
+    <ID>MagicNumber:FxACrypto.kt:FxACrypto$4</ID>
+    <ID>MagicNumber:FxACrypto.kt:FxACrypto$64</ID>
+    <ID>MagicNumber:FxACrypto.kt:FxACrypto$96</ID>
+    <ID>MagicNumber:GeckoPrefs.kt:GeckoPrefs$0xFFFFFF</ID>
+    <ID>MagicNumber:IconStore.kt:IconStore$0.0722</ID>
+    <ID>MagicNumber:IconStore.kt:IconStore$0.2126</ID>
+    <ID>MagicNumber:IconStore.kt:IconStore$0.25</ID>
+    <ID>MagicNumber:IconStore.kt:IconStore$0.7152</ID>
+    <ID>MagicNumber:IconStore.kt:IconStore$100</ID>
+    <ID>MagicNumber:IconStore.kt:IconStore$128</ID>
+    <ID>MagicNumber:IconStore.kt:IconStore$16</ID>
+    <ID>MagicNumber:IconStore.kt:IconStore$24</ID>
+    <ID>MagicNumber:IconStore.kt:IconStore$255.0</ID>
+    <ID>MagicNumber:KoanBar.kt:4f</ID>
+    <ID>MagicNumber:KoanIcons.kt:KoanIcons$24f</ID>
+    <ID>MagicNumber:KoanIcons.kt:KoanIcons$4.9f</ID>
+    <ID>MagicNumber:KoanIcons.kt:KoanIcons$8f</ID>
+    <ID>MagicNumber:LayoutWatch.kt:40</ID>
+    <ID>MagicNumber:LayoutWatch.kt:50</ID>
+    <ID>MagicNumber:LinkCardOverlay.kt:128</ID>
+    <ID>MagicNumber:MotionKit.kt:1_000_000f</ID>
+    <ID>MagicNumber:NativeVideo.kt:NativeVideo$100.0</ID>
+    <ID>MagicNumber:PageImages.kt:PageImages$1000</ID>
+    <ID>MagicNumber:PagePrompts.kt:0xFF000000</ID>
+    <ID>MagicNumber:PagePrompts.kt:16</ID>
+    <ID>MagicNumber:PagePrompts.kt:6</ID>
+    <ID>MagicNumber:PictureInPicture.kt:PictureInPicture$4</ID>
+    <ID>MagicNumber:PictureInPicture.kt:PictureInPicture.Companion$100</ID>
+    <ID>MagicNumber:PictureInPicture.kt:PictureInPicture.Companion$2.39f</ID>
+    <ID>MagicNumber:PictureInPicture.kt:PictureInPicture.Companion$239</ID>
+    <ID>MagicNumber:PlayerModel.kt:200</ID>
+    <ID>MagicNumber:PlayerModel.kt:399</ID>
+    <ID>MagicNumber:PlayerParts.kt:0.01</ID>
+    <ID>MagicNumber:PrivateAtmosphere.kt:0.5f</ID>
+    <ID>MagicNumber:PrivateAtmosphere.kt:2000</ID>
+    <ID>MagicNumber:PrivateAtmosphere.kt:4000</ID>
+    <ID>MagicNumber:PrivateAtmosphere.kt:Glow$0.999f</ID>
+    <ID>MagicNumber:PrivateFlip.kt:0.001f</ID>
+    <ID>MagicNumber:PrivateFlip.kt:0.01f</ID>
+    <ID>MagicNumber:PrivateFlip.kt:PrivateFlip$0.45f</ID>
+    <ID>MagicNumber:PrivateFlip.kt:PrivateFlip$0.4f</ID>
+    <ID>MagicNumber:PrivateFlip.kt:PrivateFlip$0.6f</ID>
+    <ID>MagicNumber:QrScanner.kt:QrCamera$1080</ID>
+    <ID>MagicNumber:QrScanner.kt:QrCamera$1280</ID>
+    <ID>MagicNumber:QrScanner.kt:QrCamera$1920</ID>
+    <ID>MagicNumber:QrScanner.kt:QrCamera$720</ID>
+    <ID>MagicNumber:ScopedKeys.kt:ScopedKeys$128</ID>
+    <ID>MagicNumber:ScopedKeys.kt:ScopedKeys$3</ID>
+    <ID>MagicNumber:ScopedKeys.kt:ScopedKeys$32</ID>
+    <ID>MagicNumber:ScopedKeys.kt:ScopedKeys$4</ID>
+    <ID>MagicNumber:ScopedKeys.kt:ScopedKeys$5</ID>
+    <ID>MagicNumber:ScopedKeys.kt:ScopedKeys$64</ID>
+    <ID>MagicNumber:ScopedKeys.kt:ScopedKeys.SyncKey$32</ID>
+    <ID>MagicNumber:ScopedKeys.kt:ScopedKeys.SyncKey$64</ID>
+    <ID>MagicNumber:SearchRing.kt:0.001f</ID>
+    <ID>MagicNumber:SearchRing.kt:180f</ID>
+    <ID>MagicNumber:SecretBox.kt:KeystoreBox.Companion$256</ID>
+    <ID>MagicNumber:Settings.kt:Settings$7</ID>
+    <ID>MagicNumber:Settings.kt:StartPageAfter.FourHours$4</ID>
+    <ID>MagicNumber:Settings.kt:StartPageAfter.FourHours$60</ID>
+    <ID>MagicNumber:Settings.kt:StartPageAfter.FourHours$60_000L</ID>
+    <ID>MagicNumber:Settings.kt:StartPageAfter.HalfHour$30</ID>
+    <ID>MagicNumber:Settings.kt:StartPageAfter.HalfHour$60_000L</ID>
+    <ID>MagicNumber:Settings.kt:StartPageAfter.Hour$60</ID>
+    <ID>MagicNumber:Settings.kt:StartPageAfter.Hour$60_000L</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.001f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.025f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.02f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.035f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.09f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.13f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.15f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.16f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.17f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.18f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.25f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.2f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.38f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.4f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.55f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$0.85f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$1.1f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$1.5f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$11</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$151</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$2.2f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$5</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$5f</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$7</ID>
+    <ID>MagicNumber:SignInScene.kt:Scene$73</ID>
+    <ID>MagicNumber:SiteGlyph.kt:SiteGlyph.Companion$128</ID>
+    <ID>MagicNumber:SiteGlyph.kt:SiteGlyph.Companion$16</ID>
+    <ID>MagicNumber:SiteGlyph.kt:SiteGlyph.Companion$24</ID>
+    <ID>MagicNumber:SpaceDrawer.kt:24</ID>
+    <ID>MagicNumber:SpaceDrawer.kt:60</ID>
+    <ID>MagicNumber:SpaceScrub.kt:SpaceScrub$0.5f</ID>
+    <ID>MagicNumber:SpacesSyncService.kt:SpacesSyncService$4</ID>
+    <ID>MagicNumber:StackState.kt:StackState$0.002f</ID>
+    <ID>MagicNumber:StackState.kt:StackState$1_000_000_000f</ID>
+    <ID>MagicNumber:SvgRasterizer.kt:SvgRasterizer$4</ID>
+    <ID>MagicNumber:SyncBackPlan.kt:9</ID>
+    <ID>MagicNumber:SyncBackPlan.kt:HistoryUpload$65_536</ID>
+    <ID>MagicNumber:SyncBackPlan.kt:HistoryUpload$9</ID>
+    <ID>MagicNumber:SyncBackPlan.kt:HistoryUpload$978_307_200_000_000L</ID>
+    <ID>MagicNumber:SyncBackPlan.kt:LoginUpload$0x20</ID>
+    <ID>MagicNumber:SyncBackPlan.kt:LoginUpload$0x7e</ID>
+    <ID>MagicNumber:SyncBackPlan.kt:LoginUpload$64</ID>
+    <ID>MagicNumber:SyncClient.kt:SyncClient$200</ID>
+    <ID>MagicNumber:SyncClient.kt:SyncClient$299</ID>
+    <ID>MagicNumber:SyncClient.kt:SyncClient$404</ID>
+    <ID>MagicNumber:SyncClient.kt:SyncClient$412</ID>
+    <ID>MagicNumber:SyncClient.kt:SyncClient$50</ID>
+    <ID>MagicNumber:SyncCrypto.kt:SyncCrypto$16</ID>
+    <ID>MagicNumber:SyncCrypto.kt:SyncCrypto$32</ID>
+    <ID>MagicNumber:SyncCrypto.kt:SyncCrypto$64</ID>
+    <ID>MagicNumber:TabManager.kt:TabManager$8</ID>
+    <ID>MagicNumber:ThumbnailStore.kt:ThumbnailStore$10</ID>
+    <ID>MagicNumber:TranslatePage.kt:10</ID>
+    <ID>MagicNumber:TranslatePage.kt:20</ID>
+    <ID>MagicNumber:UBlock.kt:UBlock.Companion$1000</ID>
+    <ID>MagicNumber:VideoPlayer.kt:0.02f</ID>
+    <ID>MagicNumber:VideoPlayer.kt:0.04f</ID>
+    <ID>MagicNumber:VideoPlayer.kt:0.5f</ID>
+    <ID>MagicNumber:VideoPlayer.kt:0.96f</ID>
+    <ID>MagicNumber:VideoPlayer.kt:0.98f</ID>
+    <ID>MagicNumber:VideoPlayer.kt:0.999f</ID>
+    <ID>MagicNumber:Welcome.kt:0.001f</ID>
+    <ID>MagicNumber:Welcome.kt:0.02f</ID>
+    <ID>MagicNumber:Welcome.kt:0.2f</ID>
+    <ID>MagicNumber:Welcome.kt:0.6f</ID>
+    <ID>MagicNumber:Welcome.kt:0.8f</ID>
+    <ID>MagicNumber:Welcome.kt:0.999f</ID>
+    <ID>MagicNumber:Welcome.kt:1.8f</ID>
+    <ID>MagicNumber:Welcome.kt:Vortex$0.001f</ID>
+    <ID>MagicNumber:Welcome.kt:Vortex$0.12f</ID>
+    <ID>MagicNumber:Welcome.kt:Vortex$1.6f</ID>
+    <ID>MagicNumber:Welcome.kt:Vortex$47f</ID>
+    <ID>MagicNumber:WorkspaceSwitcher.kt:SwitcherGeometry$0.01f</ID>
+    <ID>MagicNumber:ZenIcon.kt:16</ID>
+    <ID>MagicNumber:ZenRoomMapper.kt:ZenRoomMapper$0xFFFFFFFFL</ID>
+    <ID>MagicNumber:ZenSpaces.kt:ZenSpaces$1000.0</ID>
+    <ID>MagicNumber:ZenSpaces.kt:ZenSpaces.ZenColorValue$16</ID>
+    <ID>MagicNumber:ZenSpaces.kt:ZenSpaces.ZenColorValue$24</ID>
+    <ID>MagicNumber:ZenSpaces.kt:ZenSpaces.ZenColorValue$8</ID>
+    <ID>MagicNumber:ZenSpaces.kt:ZenSpaces.ZenColorValue.Companion$255.0</ID>
+    <ID>MagicNumber:ZenSpaces.kt:ZenSpaces.ZenColorValue.Companion$3</ID>
+    <ID>MagicNumber:ZenSpaces.kt:ZenSpaces.ZenColorValue.Companion$6</ID>
+    <ID>MagicNumber:ZenSpaces.kt:ZenSpaces.ZenColorValue.Companion$8</ID>
+    <ID>MagicNumber:ZenSpaces.kt:ZenSpaces.ZenThemeDot.Companion$3</ID>
+    <ID>MatchingDeclarationName:Buttons.kt:ButtonKind</ID>
+    <ID>MatchingDeclarationName:ClearDataCard.kt:ClearChoice</ID>
+    <ID>MatchingDeclarationName:ClosedTabs.kt:ClosedTabEntity</ID>
+    <ID>MatchingDeclarationName:DisplayRefresh.kt:RefreshBooster</ID>
+    <ID>MatchingDeclarationName:Favicon.kt:FaviconLook</ID>
+    <ID>MatchingDeclarationName:HistoryGroups.kt:HistoryItem</ID>
+    <ID>MatchingDeclarationName:KoanOverlays.kt:Overlays</ID>
+    <ID>MatchingDeclarationName:PageCover.kt:CoverTarget</ID>
+    <ID>MatchingDeclarationName:Pairing.kt:PairingFlow</ID>
+    <ID>MatchingDeclarationName:PasswordsPage.kt:PasswordsUi</ID>
+    <ID>MatchingDeclarationName:PhoneLogins.kt:RoomPhoneData</ID>
+    <ID>MatchingDeclarationName:PlayerTaps.kt:TapAction</ID>
+    <ID>MatchingDeclarationName:SiteSettings.kt:SiteSettingsUi</ID>
+    <ID>MatchingDeclarationName:SpaceDrawer.kt:DrawerStatus</ID>
+    <ID>MatchingDeclarationName:StandalonePlayer.kt:StandaloneActions</ID>
+    <ID>MatchingDeclarationName:TabCard.kt:CardModel</ID>
+    <ID>MatchingDeclarationName:TranslationPage.kt:TranslationSettings</ID>
+    <ID>MatchingDeclarationName:UBlockPage.kt:UBlockUi</ID>
+    <ID>MatchingDeclarationName:WebPlayer.kt:WebControls : PlayerControls</ID>
+    <ID>MaxLineLength:AboutPage.kt:SettingsRow(null, "What's new in ${ui.version.split('.').take(2).joinToString(".")}", on, chevron = true, onClick = ui.onWhatsNew ?: { ui.onOpenUrl("$REPO/blob/main/CHANGELOG.md") })</ID>
+    <ID>MaxLineLength:AboutPage.kt:Text("Built to pair with Zen", color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.SemiBold)</ID>
+    <ID>MaxLineLength:AccountStore.kt:Account.Companion$Account(o.getString("email"), o.getString("uid"), null, null, o.getString("refreshToken"), o.getString("syncKey"), o.getString("kid"))</ID>
+    <ID>MaxLineLength:AccountStore.kt:AccountStore$suspend</ID>
+    <ID>MaxLineLength:AccountStoreTest.kt:AccountStoreTest$grant == "authorization_code"</ID>
+    <ID>MaxLineLength:AccountStoreTest.kt:AccountStoreTest$req.url.host == "profile.accounts.firefox.com" -&gt; 200 to JSONObject().put("email", "noa@example.com").put("uid", "uid-1").toString()</ID>
+    <ID>MaxLineLength:AccountStoreTest.kt:AccountStoreTest$req.url.host == "token.services.mozilla.com"</ID>
+    <ID>MaxLineLength:AccountStoreTest.kt:AccountStoreTest$val keys = JSONObject().put("default", JSONArray().put(Base64.getEncoder().encodeToString(ByteArray(32) { 1 })).put(Base64.getEncoder().encodeToString(ByteArray(32) { 2 })))</ID>
+    <ID>MaxLineLength:AccountStoreTest.kt:AccountStoreTest$val old = JSONObject().put("email", "noa@example.com").put("uid", "uid-1").put("sessionToken", secretSession).put("kB", secretKb).toString()</ID>
+    <ID>MaxLineLength:AddressRow.kt:.</ID>
+    <ID>MaxLineLength:AddressRow.kt:BarIcon(KoanIcons.Back, enabled = page.canGoBack, interactive = !overviewOpen, onClick = onBack, modifier = pageOnly, onHold = onBackMenu)</ID>
+    <ID>MaxLineLength:AddressRow.kt:BarIcon(KoanIcons.History, interactive = overviewOpen, onClick = onHistory, modifier = overviewOnly, onHold = onRecentlyClosed)</ID>
+    <ID>MaxLineLength:AddressRow.kt:Box(Modifier.flipTextDip(flip)) { TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu) }</ID>
+    <ID>MaxLineLength:AddressRow.kt:MaskedText(if (private) PRIVATE_HINT else SEARCH_HINT, primary = false, mask = private, modifier = Modifier.graphicsLayer { alpha = overview() }.flipTextDip(flip))</ID>
+    <ID>MaxLineLength:AddressRow.kt:drawArc(palette.TextSecondary, -90f, sweep, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))</ID>
+    <ID>MaxLineLength:AppLinkPrompt.kt:Text("Always for this site", color = palette.TextPrimary, fontSize = SheetTokens.RowTitleSize, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:BakedBlur.kt:BakedBlur$*</ID>
+    <ID>MaxLineLength:BlankCheckTest.kt:BlankCheckTest$assertTrue(blank(page(0xFFFFFFFF.toInt()) { px -&gt; for (y in 800 until 804) for (x in 300 until 304) px[y * w + x] = 0xFF000000.toInt() }))</ID>
+    <ID>MaxLineLength:BrowserMenu.kt:)</ID>
+    <ID>MaxLineLength:BrowserMenu.kt:SheetRow(KoanIcons.Search, "Add this search engine", on, subtitle = state.searchEngine.name, onClick = actions.addSearchEngine) { RowChevron() }</ID>
+    <ID>MaxLineLength:BrowserMenu.kt:Text("Open in ${app.label}", color = palette.TextPrimary, fontSize = SheetTokens.RowTitleSize, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:Buttons.kt:fun</ID>
+    <ID>MaxLineLength:CardHeader.kt:Text(title, color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize), maxLines = titleMaxLines, overflow = titleOverflow)</ID>
+    <ID>MaxLineLength:ClearDataCard.kt:SheetToggleRow(null, "Cookies and site data", interactive, checked = cookies, onChange = { cookies = it }, subtitle = "Signs you out of most sites")</ID>
+    <ID>MaxLineLength:ClearDataCard.kt:SheetToggleRow(null, "History", interactive, checked = history, onChange = { history = it }, subtitle = "Desktop history is only hidden here")</ID>
+    <ID>MaxLineLength:ClearDataCard.kt:onAction = { if (history || cookies || cache || marks) onClear(ClearChoice(history, cookies, cache, privateBookmarks &gt; 0 &amp;&amp; marks)) }</ID>
+    <ID>MaxLineLength:Components.kt:Components$.</ID>
+    <ID>MaxLineLength:Components.kt:Components$SpacesSync</ID>
+    <ID>MaxLineLength:Components.kt:Components$TranslationsMiddleware(engine = engine, scope = KoanScopes.guarded("translations", Dispatchers.Main), isTranslationsEnabled = { true })</ID>
+    <ID>MaxLineLength:Components.kt:Components$val</ID>
+    <ID>MaxLineLength:Components.kt:DuplicateAsk$class</ID>
+    <ID>MaxLineLength:CustomEnginesTest.kt:CustomEnginesTest$private val mine = SearchEngine("custom:1", "Example Search", "https://search.example.com/?q=%s", "https://search.example.com/ac?q=%s", "ex", custom = true)</ID>
+    <ID>MaxLineLength:DepthStack.kt:Array(steps) { step -&gt; if (step == 0) null else BlurEffect(step * 0.5f * density.density, step * 0.5f * density.density, TileMode.Clamp) }</ID>
+    <ID>MaxLineLength:DepthStack.kt:swipeCard(state, state.anim(focusedId, 0), down.id, slop.x, geo.cardWidth) { dir -&gt; flyOff(focusedId, dir) }</ID>
+    <ID>MaxLineLength:DownloadsScreen.kt:Text(d.fileName.orEmpty(), color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:DownloadsScreen.kt:if (query.isBlank()) (if (privateOnly) "Files you download in Private show up here." else "Files you download show up here.") else "No download matches “${query.trim()}”."</ID>
+    <ID>MaxLineLength:DownloadsScreen.kt:onToast(undoToast(if (list.size == 1) "File deleted" else "${list.size} files deleted", onGone = { actions.commit(list) }) { list.forEach(actions::restore) })</ID>
+    <ID>MaxLineLength:DownloadsScreen.kt:{ SelectionHeader(checked.size, interactive = true, onCancel = selection::clear, onSelectAll = { selection.set(done.mapTo(HashSet()) { it.id }) }) }</ID>
+    <ID>MaxLineLength:DuplicateDownloadPrompt.kt:)</ID>
+    <ID>MaxLineLength:DuplicateDownloadPrompt.kt:Image(thumbnail, null, contentScale = ContentScale.Crop, modifier = Modifier.size(SheetTokens.RowIconBox + SheetTokens.Gap * 2))</ID>
+    <ID>MaxLineLength:DuplicateDownloadPrompt.kt:Modifier.size(SheetTokens.EditTarget).clip(CircleShape).clickable(enabled = interactive) { if (editing) editing = false else startEditing() }</ID>
+    <ID>MaxLineLength:DuplicateDownloadPrompt.kt:SheetRow(KoanIcons.Download, "Replace", interactive, subtitle = listOfNotNull("Downloads it again over the old one", size).joinToString(" · "), onClick = { editing = false; onReplace(finalName) })</ID>
+    <ID>MaxLineLength:DuplicateDownloadPrompt.kt:SheetRow(KoanIcons.Plus, "Keep both", interactive, subtitle = listOfNotNull("Saves as ${keepBothName(finalName)}", size).joinToString(" · "), onClick = { editing = false; onKeepBoth(finalName) })</ID>
+    <ID>MaxLineLength:DuplicateDownloadPrompt.kt:Text("In $folder", color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:DuplicateDownloads.kt:DuplicateDownloads$val sameFile = all.firstOrNull { it.id != download.id &amp;&amp; it.private == download.private &amp;&amp; it.fileName == name &amp;&amp; it.directoryPath == folder &amp;&amp; it.status == DownloadState.Status.COMPLETED }</ID>
+    <ID>MaxLineLength:DuplicateDownloadsPrivateTest.kt:DuplicateDownloadsPrivateTest$private val fresh = DownloadState("https://example.com/report.pdf", fileName = "report.pdf", directoryPath = "/downloads", id = "new", private = false)</ID>
+    <ID>MaxLineLength:DuplicateDownloadsPrivateTest.kt:DuplicateDownloadsPrivateTest.Files$override fun createOpenFileIntent: android.content.Intent?</ID>
+    <ID>MaxLineLength:DuplicateDownloadsPrivateTest.kt:DuplicateDownloadsPrivateTest.Files$override fun deleteMediaFile: Boolean</ID>
+    <ID>MaxLineLength:DuplicateMiddleware.kt:DuplicateMiddleware$if (!d.fileName.isNullOrBlank()) d else d.copy(fileName = runCatching { files().guessFileName(null, d.url, d.contentType) }.getOrNull())</ID>
+    <ID>MaxLineLength:EnginesPage.kt:subtitle = if (engine.custom) listOfNotNull(engine.shortcut?.let { "@$it" }, displayHost(engine.home)).joinToString(" · ") else null</ID>
+    <ID>MaxLineLength:ExternalLinks.kt:ExternalLinks$if (fallback == null) messages.tryEmit(if (scheme in SYSTEM_SCHEMES) "No app can open this link" else "The app for this link isn't installed")</ID>
+    <ID>MaxLineLength:ExternalLinks.kt:ExternalLinks$if (tapped) messages.tryEmit(if (scheme in SYSTEM_SCHEMES) "No app can open this link" else "The app for this link isn't installed")</ID>
+    <ID>MaxLineLength:ExternalLinks.kt:ExternalLinks$launch(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE).setPackage(app.pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))</ID>
+    <ID>MaxLineLength:ExternalLinks.kt:ExternalLinks$runCatching { pm.queryIntentActivities(intent, PackageManager.MATCH_ALL).map { it.activityInfo.packageName }.distinct() }.getOrDefault(emptyList())</ID>
+    <ID>MaxLineLength:ExternalLinks.kt:ExternalLinks$val</ID>
+    <ID>MaxLineLength:ExternalLinks.kt:ExternalLinks.Companion$val ENGINE_SCHEMES = setOf("http", "https", "about", "data", "blob", "file", "javascript", "moz-extension", "resource", "chrome", "view-source", "")</ID>
+    <ID>MaxLineLength:FakeStorage.kt:FakeStorage$records.getOrPut(collection) { LinkedHashMap() }[id] = JSONObject().put("id", id).put("payload", payload).put("modified", tick(collection))</ID>
+    <ID>MaxLineLength:FakeStorage.kt:FakeStorage.Companion$fun</ID>
+    <ID>MaxLineLength:Favicon.kt:if (initial == null) LetterTile(url, size, shape, Modifier.graphicsLayer { alpha = 1f - reveal.value; compositingStrategy = CompositingStrategy.ModulateAlpha })</ID>
+    <ID>MaxLineLength:FilePrompt.kt:private fun takesImages</ID>
+    <ID>MaxLineLength:FirstRun.kt:Text("Connect your Zen Spaces", color = KoanTheme.colors.TextPrimary, fontSize = FirstRunTokens.ButtonSize, fontWeight = FontWeight.Medium)</ID>
+    <ID>MaxLineLength:Fullscreen.kt:activity?.requestedOrientation = dev.nerzouille.koan.ui.player.fullscreenOrientation(fullScreen, shapePortrait, rotationLocked, turned)</ID>
+    <ID>MaxLineLength:FullscreenOrientationTest.kt:FullscreenOrientationTest$assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, fullscreenOrientation(false, videoPortrait = false, rotationLocked = false, turned = true))</ID>
+    <ID>MaxLineLength:FullscreenOrientationTest.kt:FullscreenOrientationTest$assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR, fullscreenOrientation(true, videoPortrait = false, rotationLocked = false, turned = true))</ID>
+    <ID>MaxLineLength:FullscreenOrientationTest.kt:FullscreenOrientationTest$assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, fullscreenOrientation(true, videoPortrait = false, rotationLocked = false, turned = false))</ID>
+    <ID>MaxLineLength:FullscreenOrientationTest.kt:FullscreenOrientationTest$assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, fullscreenOrientation(true, videoPortrait = false, rotationLocked = true, turned = false))</ID>
+    <ID>MaxLineLength:FullscreenOrientationTest.kt:FullscreenOrientationTest$assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, fullscreenOrientation(true, videoPortrait = false, rotationLocked = true, turned = true))</ID>
+    <ID>MaxLineLength:FullscreenOrientationTest.kt:FullscreenOrientationTest$assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, fullscreenOrientation(true, videoPortrait = true, rotationLocked = false, turned = false))</ID>
+    <ID>MaxLineLength:FullscreenOrientationTest.kt:FullscreenOrientationTest$assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, fullscreenOrientation(true, videoPortrait = true, rotationLocked = true, turned = false))</ID>
+    <ID>MaxLineLength:HistoryGroupsTest.kt:HistoryGroupsTest$assertEquals(listOf("https://example.com/c", "https://www.example.com/b", "https://example.com/a"), group.pages.map { it.visit.url })</ID>
+    <ID>MaxLineLength:HistoryGroupsTest.kt:HistoryGroupsTest$val group = groupVisits(listOf(v("https://example.com/b"), v("https://example.com/a/"), v("https://example.com/a")))[0] as HistoryItem.Group</ID>
+    <ID>MaxLineLength:HistoryScreen.kt:SwipeRow</ID>
+    <ID>MaxLineLength:HistoryScreen.kt:Text("Show all $more more", color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium)</ID>
+    <ID>MaxLineLength:HistoryScreen.kt:contentPadding = PaddingValues(start = SettingsTokens.Padding, end = SettingsTokens.Padding, bottom = SettingsTokens.SectionTop)</ID>
+    <ID>MaxLineLength:HistoryScreen.kt:if (row.key in expanded) row.pages.forEach { checkable[it.key] = Checkable.Page(it.key, it.visit, it.all); keys += it.key }</ID>
+    <ID>MaxLineLength:HistoryScreen.kt:if (selecting) SelectionDayHeader(day, if (closedMode) emptyList() else dayKeys[day].orEmpty(), selection) else SettingsSection(day)</ID>
+    <ID>MaxLineLength:HistoryScreen.kt:if (selecting) press(row.key, false) else expanded = if (open) expanded - row.key else expanded + row.key</ID>
+    <ID>MaxLineLength:HistoryScreen.kt:onSelectAll = if (closedMode) null else { { selection.set(checkable.values.filter { it !is Checkable.Closed }.map { it.key }.toSet()) } }</ID>
+    <ID>MaxLineLength:IconStore.kt:IconStore$return Bitmap.createScaledBitmap(cropped, (cropped.width * f).toInt().coerceAtLeast(1), (cropped.height * f).toInt().coerceAtLeast(1), true)</ID>
+    <ID>MaxLineLength:KoanBar.kt:*</ID>
+    <ID>MaxLineLength:KoanBar.kt:Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DockShadow, startY = top - shadowPx, endY = top + r)</ID>
+    <ID>MaxLineLength:KoanBar.kt:Brush.verticalGradient(0f to Color.Transparent, 1f to palette.DrawerShadowNoBlur.copy(alpha = palette.DrawerShadowNoBlur.alpha * d), startY = top - noBlurShadowPx, endY = top + r)</ID>
+    <ID>MaxLineLength:KoanBar.kt:drawRect(brushes.brand, topLeft = Offset(0f, top + h / 2f - glow / 2f), size = Size(full, glow), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA * 0.35f)</ID>
+    <ID>MaxLineLength:KoanBar.kt:drawRect(brushes.brand, topLeft = Offset(0f, top + h / 2f - glow / 4f), size = Size(full, glow / 2f), alpha = alpha * BarTokens.PROGRESS_GLOW_ALPHA)</ID>
+    <ID>MaxLineLength:KoanCustomTabsService.kt:KoanCustomTabsService$override fun mayLaunchUrl: Boolean</ID>
+    <ID>MaxLineLength:KoanDatabase.kt:KoanDao$upsertTabs(tabs().filter { it.origin == TabOrigin.LOCAL &amp;&amp; it.spaceUuid != fallbackSpace.uuid }.map { it.copy(spaceUuid = fallbackSpace.uuid) })</ID>
+    <ID>MaxLineLength:KoanHaptics.kt:KoanHaptics$if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) HapticFeedbackConstants.SEGMENT_TICK else HapticFeedbackConstants.CLOCK_TICK</ID>
+    <ID>MaxLineLength:KoanIcons.kt:KoanIcons$moveTo(12f, 9.5f)</ID>
+    <ID>MaxLineLength:KoanIcons.kt:KoanIcons$moveTo(9f, 11f)</ID>
+    <ID>MaxLineLength:KoanIcons.kt:KoanIcons$path</ID>
+    <ID>MaxLineLength:KoanIcons.kt:KoanIcons$path(fill = SolidColor(Color.White), stroke = SolidColor(Color.White), strokeLineWidth = 1.2f, strokeLineJoin = StrokeJoin.Round, pathBuilder = head)</ID>
+    <ID>MaxLineLength:KoanIcons.kt:KoanIcons$stroked("download") { moveTo(12f, 4f); lineTo(12f, 15f); moveTo(7f, 10f); lineTo(12f, 15f); lineTo(17f, 10f); moveTo(5f, 20f); lineTo(19f, 20f) }</ID>
+    <ID>MaxLineLength:KoanOverlays.kt:LibraryOverlays(components, overlays, scope, downloads, private, folderName, clipboard, activeTabId, onToast, onOpenNew, onRestoreClosed, ::share)</ID>
+    <ID>MaxLineLength:KoanOverlays.kt:activeTabId?.let { dispatchTranslate(TranslationsAction.TranslateAction(it, from, to, TranslationOptions(downloadModel = true))) }</ID>
+    <ID>MaxLineLength:KoanOverlays.kt:activeTabId?.let { if (from.isNotEmpty() &amp;&amp; from != to) dispatchTranslate(TranslationsAction.FetchTranslationDownloadSizeAction(it, Language(from), Language(to))) }</ID>
+    <ID>MaxLineLength:KoanOverlays.kt:alwaysLanguage = { on -&gt; activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_ALWAYS_TRANSLATE_LANGUAGE, on)) } }</ID>
+    <ID>MaxLineLength:KoanOverlays.kt:neverLanguage = { on -&gt; activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_LANGUAGE, on)) } }</ID>
+    <ID>MaxLineLength:KoanOverlays.kt:neverSite = { on -&gt; activeTabId?.let { dispatchTranslate(TranslationsAction.UpdatePageSettingAction(it, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_SITE, on)) } }</ID>
+    <ID>MaxLineLength:KoanOverlays.kt:val downloads by components.store.observeSlice(private) { s -&gt; dev.nerzouille.koan.ui.downloads.visibleDownloads(s.downloads.values.toList(), private) }</ID>
+    <ID>MaxLineLength:KoanRoot.kt:DownloadState.Status.FAILED -&gt; toasts.show(Toast("Couldn't download $name", "Retry") { components.downloads.retry(download) })</ID>
+    <ID>MaxLineLength:KoanRoot.kt:actions = standaloneActions(components, androidx.compose.ui.platform.LocalContext.current, video, activeTabId, toasts::show)</ID>
+    <ID>MaxLineLength:KoanRoot.kt:components.accounts.completeWebLogin(login.email, login.uid, login.sessionToken, login.keyFetchToken, login.unwrapBKey, allowReplace = true)</ID>
+    <ID>MaxLineLength:KoanRoot.kt:detail = listOfNotNull(sizeText(download.contentLength ?: download.currentBytesCopied), host(download)).joinToString(" · ")</ID>
+    <ID>MaxLineLength:KoanRoot.kt:fun tabTarget</ID>
+    <ID>MaxLineLength:KoanRoot.kt:if</ID>
+    <ID>MaxLineLength:KoanRoot.kt:if (running.any { it.contentLength == null } || total &lt;= 0L) Float.NaN else running.sumOf { it.currentBytesCopied }.toFloat() / total</ID>
+    <ID>MaxLineLength:KoanRoot.kt:replacing = (accountState as? dev.nerzouille.koan.data.AccountState.SignedIn)?.email?.let { dev.nerzouille.koan.data.maskedEmail(it) }</ID>
+    <ID>MaxLineLength:KoanRoot.kt:val normalModels = remember(normalSpaces.value, normalCurrent.value, normalPalette) { normalSpaces.value.map { it.toModel(normalCurrent.value, normalPalette) } }</ID>
+    <ID>MaxLineLength:KoanRoot.kt:val privateModels = remember(privateSpaces.value, privateCurrent.value, privatePalette) { privateSpaces.value.map { it.toModel(privateCurrent.value, privatePalette) } }</ID>
+    <ID>MaxLineLength:KoanToast.kt:Text(it, color = palette.OnPrimary.copy(alpha = ToastTokens.DETAIL_ALPHA), fontSize = ToastTokens.DetailSize, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:LayoutWatchTest.kt:LayoutWatchTest$assertEquals(emptyList&lt;String&gt;(), staleLayers(portrait, mapOf("window" to Px(1080, 2460), "compose" to Px(1080, 2460), "gecko" to Px(1080, 2250))))</ID>
+    <ID>MaxLineLength:LibraryOverlays.kt:LaunchedEffect(Unit) { components.downloads.deleteFailed.collect { name -&gt; onToast(Toast("Couldn't delete $name", detail = "It's still in the list")) } }</ID>
+    <ID>MaxLineLength:LibraryRow.kt:Text(text, color = KoanTheme.colors.TextSecondary, fontSize = SettingsTokens.RowSubtitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:android.graphics.BitmapFactory.decodeStream(it, null, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:copy = { url -&gt; clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast); actionCard.animateTo(Detent.Closed) }</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:if (n != dup.existingName &amp;&amp; files.fileExists(dup.existingFolder, n)) files.deleteMediaFile(context.contentResolver, n, dup.existingFolder)</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:keepBothName = { n -&gt; if (!files.fileExists(dup.existingFolder, n)) n else DuplicateDownloads.keepBothName(n) { files.fileExists(dup.existingFolder, it) } }</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:private</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:type?.startsWith("image/") == true || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") || lower.endsWith(".webp") || lower.endsWith(".gif")</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:val cardPage: ActionPage? = dupAsk?.let { ActionPage.Duplicate } ?: downloadAsk?.let { ActionPage.Download } ?: overlays.link?.let { ActionPage.Link }</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:val folder = dup.existingFolder.takeIf { it.startsWith("content://") }?.let(::folderLabel) ?: dup.existingFolder.substringAfterLast('/').ifEmpty { "Download" }</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:val name = if (files.fileExists(dup.existingFolder, n)) DuplicateDownloads.keepBothName(n) { files.fileExists(dup.existingFolder, it) } else n</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:val opened = files.openFile(dup.existingName, dup.existingFolder, dup.earlier?.contentType ?: dup.download.contentType)</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:val path = (if (uri.scheme == "file") uri.path else java.io.File(folder, name).takeIf { folder.startsWith("/") &amp;&amp; it.canRead() }?.path) ?: return null</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:val site = components.store.state.findTab(d.sessionId.orEmpty())?.content?.url?.let(::displayHost)?.ifBlank { null } ?: host(d)</ID>
+    <ID>MaxLineLength:LinkCardOverlay.kt:value = withContext(Dispatchers.IO) { fileThumbnail(context, files, dup.existingName, dup.existingFolder, dup.download.contentType) }</ID>
+    <ID>MaxLineLength:LinkMenu.kt:LinkTarget.Companion$is HitResult.VIDEO -&gt; dev.nerzouille.koan.ui.player.downloadableVideo(hit.src)?.let { LinkTarget(null, null, hit.title ?: "", video = it) }</ID>
+    <ID>MaxLineLength:LinkMenu.kt:Text(shown, color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize, maxLines = 2, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:LoginPrompts.kt:)</ID>
+    <ID>MaxLineLength:LoginPrompts.kt:.</ID>
+    <ID>MaxLineLength:LoginPrompts.kt:Text("Sign in to ${displayHost(origin)} with", color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize))</ID>
+    <ID>MaxLineLength:LoginPrompts.kt:Text(masked(login.username), color = palette.TextPrimary, fontSize = SheetTokens.RowTitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:LoginPrompts.kt:Text(username.firstOrNull()?.uppercase() ?: "?", color = palette.TextPrimary, fontSize = SearchTokens.UrlSize, fontWeight = FontWeight.SemiBold)</ID>
+    <ID>MaxLineLength:Logins.kt:LoginStore$saveLocal(origin, formActionOrigin = origin, httpRealm = null, usernameField = "", passwordField = "", username = username, password = password)</ID>
+    <ID>MaxLineLength:Logins.kt:LoginStore$suspend</ID>
+    <ID>MaxLineLength:MainActivity.kt:MainActivity$Intent.ACTION_PROCESS_TEXT -&gt; intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.let { Incoming(it.toString(), Incoming.Kind.Selected) }</ID>
+    <ID>MaxLineLength:MainActivity.kt:MainActivity$components.downloadAsk.value = DownloadAsk(download, start = { positive.value(download) }, cancel = { negative.value() })</ID>
+    <ID>MaxLineLength:MainActivity.kt:MainActivity$contentResolver.query(data, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -&gt; if (c.moveToFirst()) c.getString(0) else null }</ID>
+    <ID>MaxLineLength:MainActivity.kt:MainActivity$val grants = IntArray(names.size) { if (results.getValue(names[it])) PackageManager.PERMISSION_GRANTED else PackageManager.PERMISSION_DENIED }</ID>
+    <ID>MaxLineLength:MenuOverlays.kt:bookmark = { if (private) components.privateBookmarks.toggle(page.url, title) else components.bookmarks.toggle(page.url, title) }</ID>
+    <ID>MaxLineLength:MenuOverlays.kt:dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_SUPPORTED_LANGUAGES))</ID>
+    <ID>MaxLineLength:MenuOverlays.kt:value = if (menu.open &amp;&amp; page.url.isNotEmpty()) withContext(Dispatchers.Default) { components.externalLinks.appFor(page.url) } else null</ID>
+    <ID>MaxLineLength:MozillaSignIn.kt:&lt;no name provided&gt;$runCatching { view.context.startActivity(Intent(Intent.ACTION_VIEW, request.url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }</ID>
+    <ID>MaxLineLength:MozillaSignIn.kt:FxAWeb$"try { var r = sessionStorage.getItem('koan.login'); if (r) { var o = JSON.parse(r); o.knonce = window.__knonce; KoanBridge.fxa(JSON.stringify(o)); } } catch (e) {} "</ID>
+    <ID>MaxLineLength:NativeVideo.kt:NativeVideo$player.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build())</ID>
+    <ID>MaxLineLength:OpenSearchTest.kt:OpenSearchTest$val noSearchUrl = """&lt;OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"&gt;&lt;ShortName&gt;X&lt;/ShortName&gt;&lt;/OpenSearchDescription&gt;"""</ID>
+    <ID>MaxLineLength:OverviewScreen.kt:.</ID>
+    <ID>MaxLineLength:OverviewScreen.kt:Page$private</ID>
+    <ID>MaxLineLength:OverviewScreen.kt:val anchorIndex = normalList.indexOfFirst { it.uuid == anchor.uuid }.takeIf { it &gt;= 0 } ?: pager.settled.coerceIn(0, (normalList.size - 1).coerceAtLeast(0))</ID>
+    <ID>MaxLineLength:OverviewScreen.kt:val openTabHere = remember(i) { { id: String -&gt; latestSpaces.value.getOrNull(i)?.findTab(id)?.let { latestOpenTab.value(i, it) } ?: Unit } }</ID>
+    <ID>MaxLineLength:PageImages.kt:PageImages$override fun answer: String?</ID>
+    <ID>MaxLineLength:PagePrompts.kt:.</ID>
+    <ID>MaxLineLength:PagePrompts.kt:Box(Modifier.size(SheetTokens.NavFieldHeight).clip(CircleShape).background(parsed ?: Color.Transparent).border(SheetTokens.Divider, palette.GroupedRow, CircleShape))</ID>
+    <ID>MaxLineLength:PagePrompts.kt:Buttons(interactive, primary = "Allow" to { answer(r) { r.onAllow() } }, secondary = "Block" to { answer(r) { r.onDeny() } })</ID>
+    <ID>MaxLineLength:PagePrompts.kt:Buttons(interactive, primary = "OK" to { answer(r) { blockIf(noMore); r.onConfirm(noMore, text) } }, secondary = "Cancel" to { answer(r) { r.onDismiss() } })</ID>
+    <ID>MaxLineLength:PagePrompts.kt:Buttons(interactive, primary = "Resend" to { answer(r) { r.onConfirm() } }, secondary = "Cancel" to { answer(r) { r.onDismiss() } })</ID>
+    <ID>MaxLineLength:PagePrompts.kt:Buttons(interactive, primary = "Sign in" to { answer(r) { r.onConfirm(user, password) } }, secondary = "Cancel" to { answer(r) { r.onDismiss() } })</ID>
+    <ID>MaxLineLength:PagePrompts.kt:ChoiceRow.Separator -&gt; Box(Modifier.fillMaxWidth().padding(vertical = PromptTokens.TextGap).height(SheetTokens.Divider).background(palette.GroupedRow))</ID>
+    <ID>MaxLineLength:PagePrompts.kt:Text("$year", color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize), modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)</ID>
+    <ID>MaxLineLength:PagePrompts.kt:Text(text, color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize), maxLines = 3, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:PagePrompts.kt:Text(text, color = if (enabled) KoanTheme.colors.TextPrimary else KoanTheme.colors.TextDisabled, fontSize = SheetTokens.CardTitleSize)</ID>
+    <ID>MaxLineLength:PagePrompts.kt:if (on &amp;&amp; !multiple) Icon(KoanIcons.Check, null, tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.RowGlyph))</ID>
+    <ID>MaxLineLength:PagePrompts.kt:is PromptRequest.MenuChoice -&gt; ChoiceList(r.choices, multiple = false, interactive) { picked -&gt; answer(r) { r.onConfirm(picked.first()) } }</ID>
+    <ID>MaxLineLength:PagePrompts.kt:is PromptRequest.MultipleChoice -&gt; ChoiceList(r.choices, multiple = true, interactive) { picked -&gt; answer(r) { r.onConfirm(picked.toTypedArray()) } }</ID>
+    <ID>MaxLineLength:PagePrompts.kt:is PromptRequest.SingleChoice -&gt; ChoiceList(r.choices, multiple = false, interactive) { picked -&gt; answer(r) { r.onConfirm(picked.first()) } }</ID>
+    <ID>MaxLineLength:PagePrompts.kt:is PromptRequest.TimeSelection -&gt; TimeSelection(r, interactive, onSet = { date -&gt; answer(r) { r.onConfirm(date) } }, onClear = { answer(r) { r.onClear() } })</ID>
+    <ID>MaxLineLength:PagePrompts.kt:others.forEach { (text, onClick) -&gt; SecondaryButton(text, onClick, Modifier.weight(1f), enabled = interactive, paddingH = 0.dp) }</ID>
+    <ID>MaxLineLength:PagePrompts.kt:primary = r.positiveButtonTitle.ifBlank { "OK" } to { answer(r) { blockIf(noMore); r.onConfirmPositiveButton(noMore) } }</ID>
+    <ID>MaxLineLength:PagePrompts.kt:secondary = r.negativeButtonTitle.ifBlank { "Cancel" } to { answer(r) { blockIf(noMore); r.onConfirmNegativeButton(noMore) } }</ID>
+    <ID>MaxLineLength:PagePrompts.kt:tabId?.let { s.findTab(it) }?.content?.promptRequests?.firstOrNull { it !is PromptRequest.File &amp;&amp; it !is PromptRequest.SelectLoginPrompt &amp;&amp; it !is PromptRequest.SaveLoginPrompt }</ID>
+    <ID>MaxLineLength:PagePrompts.kt:third = r.neutralButtonTitle.takeIf { it.isNotBlank() }?.let { it to { answer(r) { blockIf(noMore); r.onConfirmNeutralButton(noMore) } } }</ID>
+    <ID>MaxLineLength:PagePrompts.kt:val allowed = (min == null || !first.withDayOfMonth(first.lengthOfMonth()).isBefore(min)) &amp;&amp; (max == null || !first.isAfter(max))</ID>
+    <ID>MaxLineLength:PagePrompts.kt:val t = if (type == PromptRequest.TimeSelection.Type.TIME || type == PromptRequest.TimeSelection.Type.DATE_AND_TIME) LocalTime.of(time.hour, time.minute) else LocalTime.MIDNIGHT</ID>
+    <ID>MaxLineLength:PagePrompts.kt:visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None</ID>
+    <ID>MaxLineLength:PairingFlowTest.kt:PairingFlowTest$assertEquals("channel_id=1&amp;channel_key=2&amp;v=2", PairingFlow.parseChannel("https://accounts.firefox.com/pair#channel_id=1&amp;channel_key=2&amp;v=2"))</ID>
+    <ID>MaxLineLength:PairingWeb.kt:"window.dispatchEvent(new CustomEvent('WebChannelMessageToContent', { detail: ${JSONObject.quote(payload.toString())} }));"</ID>
+    <ID>MaxLineLength:PairingWeb.kt:&lt;no name provided&gt;$.</ID>
+    <ID>MaxLineLength:PairingWeb.kt:&lt;no name provided&gt;$if (data?.optString("state") != flow.state) return@post onError("The pairing didn't match this phone. Scan the code again.")</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:Field("Username", username, "name@example.com", null, help = "Leave empty if the site only asks for a password.", keyboard = KeyboardType.Email) { username = it }</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:PrimaryButton("Copy password", onClick = { if (on) copy(context, "Password", single.password, sensitive = true, ui.onCopied) }, modifier = Modifier.fillMaxWidth())</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:SettingsRow</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:Spacer(Modifier.height(if (selecting) SelectionTokens.BarHeight + SettingsTokens.SectionTop else PasswordTokens.AddButton + PasswordTokens.AddMargin))</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:Text("No saved passwords yet", color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.SemiBold)</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:Text(site, color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:Text(subtitle, color = palette.TextSecondary, fontSize = SettingsTokens.RowSubtitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:if (unlocked != null) askDelete(listOf(site to logins)) else ui.onUnlockThen { askDelete(listOf(site to logins)) }</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:onClick = if (login.username.isEmpty()) null else { { copy(context, "Username", login.username, sensitive = false, onCopied) } }</ID>
+    <ID>MaxLineLength:PasswordsPage.kt:private</ID>
+    <ID>MaxLineLength:PermissionOverlays.kt:val appRequest by components.store.observeSlice(activeTabId) { s -&gt; activeTabId?.let { s.findTab(it) }?.content?.appPermissionRequestsList?.firstOrNull() }</ID>
+    <ID>MaxLineLength:PermissionOverlays.kt:val request by components.store.observeSlice(activeTabId) { s -&gt; activeTabId?.let { s.findTab(it) }?.content?.permissionRequestsList?.firstOrNull() }</ID>
+    <ID>MaxLineLength:PictureInPicture.kt:PictureInPicture$combine(store.flow(), settings.pictureInPicture, videos) { s, on, v -&gt; Triple(on, s.selectedTab, s.selectedTab?.id?.let { v[it] }) }</ID>
+    <ID>MaxLineLength:PictureInPicture.kt:PictureInPicture.&lt;no name provided&gt;$AHEAD -&gt; media.positionState.let { p -&gt; c.seekTo(if (p.duration &gt; 0) (p.position + 10).coerceAtMost(p.duration) else p.position + 10, false) }</ID>
+    <ID>MaxLineLength:PlayerActions.kt:context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))</ID>
+    <ID>MaxLineLength:PlayerActions.kt:context.startActivity(android.content.Intent.createChooser(view, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))</ID>
+    <ID>MaxLineLength:PlayerActions.kt:toast(undoToast("File deleted", onGone = { components.downloads.commit(listOf(download)) }) { components.downloads.restore(download) })</ID>
+    <ID>MaxLineLength:PlayerActions.kt:val</ID>
+    <ID>MaxLineLength:PlayerActions.kt:val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, video.uri)</ID>
+    <ID>MaxLineLength:PlayerModel.kt:PlayerState.Companion$fun of</ID>
+    <ID>MaxLineLength:PlayerModel.kt:StandaloneVideo(uri, name ?: android.net.Uri.parse(uri).lastPathSegment.orEmpty().ifEmpty { "Video" }, "From another app", PlayerMode.File)</ID>
+    <ID>MaxLineLength:PlayerModel.kt:contentType.orEmpty().lowercase().let { it.startsWith("video/") || it.startsWith("application/octet-stream") &amp;&amp; downloadableVideo(url) != null }</ID>
+    <ID>MaxLineLength:PlayerModelTest.kt:PlayerModelTest$org.junit.Assert.assertEquals(VideoSave.Check("https://example.com/video?id=3"), videoSave("https://example.com/video?id=3", false, "", false))</ID>
+    <ID>MaxLineLength:PlayerModelTest.kt:PlayerModelTest$org.junit.Assert.assertEquals(VideoSave.No("This video can't be saved"), videoSave("https://example.org/wiki/File:Clip", false, "", false))</ID>
+    <ID>MaxLineLength:PlayerNoticeTest.kt:PlayerNoticeTest$DownloadState("https://example.com/v/clip.webm", fileName = name, contentLength = length, status = status, directoryPath = "/downloads")</ID>
+    <ID>MaxLineLength:PlayerParts.kt:.</ID>
+    <ID>MaxLineLength:PlayerParts.kt:&lt;no name provided&gt;$androidx.compose.ui.geometry.RoundRect(menuMorphRect(size, m, pill), androidx.compose.ui.geometry.CornerRadius(menuMorphRadius(m, pill, radius)))</ID>
+    <ID>MaxLineLength:PlayerParts.kt:&lt;no name provided&gt;$override</ID>
+    <ID>MaxLineLength:PlayerParts.kt:MenuRow(if (on) dev.nerzouille.koan.ui.icons.KoanIcons.Pip else dev.nerzouille.koan.ui.icons.KoanIcons.PipOff, "PiP on leave", on = on) { onChange(!on) }</ID>
+    <ID>MaxLineLength:PlayerParts.kt:Row</ID>
+    <ID>MaxLineLength:PlayerParts.kt:TextStyle(color = color, fontSize = size, fontWeight = weight, lineHeight = line, letterSpacing = tracking, fontFeatureSettings = "tnum")</ID>
+    <ID>MaxLineLength:PlayerParts.kt:drawArc(Color.White, -50f, 100f, false, topLeft = Offset(11.5f * u - rr, 12f * u - rr), size = Size(2 * rr, 2 * rr), style = stroke)</ID>
+    <ID>MaxLineLength:PlayerParts.kt:drawArc(color, 0f, 270f, false, topLeft = Offset(w / 2, w / 2), size = Size(this.size.width - w, this.size.height - w), style = Stroke(w, cap = StrokeCap.Round))</ID>
+    <ID>MaxLineLength:PlayerParts.kt:drawLine(Color.White, c + Offset(cos(a) * r1, sin(a) * r1), c + Offset(cos(a) * r2, sin(a) * r2), 2f * u, StrokeCap.Round)</ID>
+    <ID>MaxLineLength:PlayerParts.kt:drawPath(body, Color.White, style = Stroke(2f * u, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))</ID>
+    <ID>MaxLineLength:PlayerParts.kt:internal</ID>
+    <ID>MaxLineLength:PlayerParts.kt:row.on?.let { Text(if (it) "On" else "Off", style = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1) }</ID>
+    <ID>MaxLineLength:PlayerParts.kt:style = playerText(13.sp, if (selected) FontWeight.Bold else FontWeight.Medium, if (selected) Color.Black else PlayerTokens.Text)</ID>
+    <ID>MaxLineLength:PlayerParts.kt:val angle by turn.animateFloat(0f, 360f, infiniteRepeatable(tween(PlayerTokens.SPINNER_TURN_MS, easing = LinearEasing), RepeatMode.Restart), label = "angle")</ID>
+    <ID>MaxLineLength:PlayerTapsTest.kt:PlayerTapsTest$assertEquals(TapAction.ToggleLater, tapAction(false, zone = -1, seekSide = 0, sinceSeekMs = long, lastTapZone = 0, sinceTapMs = long))</ID>
+    <ID>MaxLineLength:PlayerTapsTest.kt:PlayerTapsTest$assertEquals(TapAction.ToggleLater, tapAction(false, zone = 1, seekSide = 0, sinceSeekMs = long, lastTapZone = -1, sinceTapMs = 100))</ID>
+    <ID>MaxLineLength:PlayerTapsTest.kt:PlayerTapsTest$assertEquals(TapAction.ToggleLater, tapAction(false, zone = 1, seekSide = 0, sinceSeekMs = long, lastTapZone = 1, sinceTapMs = PlayerTokens.TAP_PAIR_MS))</ID>
+    <ID>MaxLineLength:PrivacySettings.kt:Toggle(KoanIcons.Globe, "DNS over HTTPS", "Look up sites through Mozilla's resolver (Cloudflare), else the phone's DNS", settings.dnsOverHttps, false, settings::setDnsOverHttps)</ID>
+    <ID>MaxLineLength:PrivacySettings.kt:Toggle(KoanIcons.Link, "Skip Google AMP pages", "Open the original article (always in Private)", settings.ampNormalTabs, false, settings::setAmpNormalTabs)</ID>
+    <ID>MaxLineLength:PrivacySettings.kt:Toggle(KoanIcons.Private, "Allow screenshots", "Screenshots and screen recordings can show private tabs", settings.privateScreenshots, false, settings::setPrivateScreenshots)</ID>
+    <ID>MaxLineLength:PrivacySettings.kt:Toggle(KoanIcons.Private, "Lock private tabs", "Fingerprint or PIN after 1 min away or the screen off", settings.privateLock, true, settings::setPrivateLock)</ID>
+    <ID>MaxLineLength:PrivacySettings.kt:Toggle(KoanIcons.Search, "Search suggestions", "From the search engine while you type in Private", settings.privateSuggestions, false, settings::setPrivateSuggestions)</ID>
+    <ID>MaxLineLength:PrivacySettings.kt:Toggle(KoanIcons.Shield, "Bounce-tracking protection", "Clears data of sites that only redirect you", settings.bounceTracking, true, settings::setBounceTracking)</ID>
+    <ID>MaxLineLength:PrivacySettings.kt:Toggle(KoanIcons.Shield, "Refuse cookie banners", "Where Firefox's rules know the site", settings.privateCookieBanners, false, settings::setPrivateCookieBanners)</ID>
+    <ID>MaxLineLength:PrivacySettings.kt:Toggle(null, "Dev: screenshots in Private", "FLAG_SECURE off (dev builds only)", settings.devFlagSecureOff, false, settings::setDevFlagSecureOff)</ID>
+    <ID>MaxLineLength:PrivacySettings.kt:fun</ID>
+    <ID>MaxLineLength:PrivateAtmosphere.kt:Glow$fun</ID>
+    <ID>MaxLineLength:PrivateAtmosphere.kt:drawCircle(if (i % 5 &lt; 3) starA else starB, star.radius * sc, Offset(star.x, star.y), alpha = alpha.coerceIn(0f, 1f))</ID>
+    <ID>MaxLineLength:PrivateAtmosphere.kt:private inline</ID>
+    <ID>MaxLineLength:PrivateBookmarks.kt:PrivateBookmarks.Companion$put("bookmarks", JSONArray(list.map { b -&gt; JSONObject().put("url", b.url).put("title", b.title).put("createdAt", b.createdAt) }))</ID>
+    <ID>MaxLineLength:PrivateParts.kt:Text("Browse without leaving a trace on this phone.", color = palette.TextSecondary, fontSize = PrivateTokens.EmptyBody, lineHeight = PrivateTokens.EmptyBodyLine)</ID>
+    <ID>MaxLineLength:PrivateParts.kt:Text("New private tab", color = palette.OnPrimary, fontSize = dev.nerzouille.koan.ui.theme.ButtonTokens.TextSize, fontWeight = FontWeight.SemiBold)</ID>
+    <ID>MaxLineLength:PrivateParts.kt:Text("No private tabs", color = palette.TextPrimary, fontSize = PrivateTokens.EmptyTitle, lineHeight = PrivateTokens.EmptyTitleLine, fontWeight = FontWeight.SemiBold)</ID>
+    <ID>MaxLineLength:PrivateParts.kt:Text("Private tabs are locked", color = palette.TextPrimary, fontSize = PrivateTokens.EmptyTitle, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:PrivateParts.kt:Text("Unlock", color = palette.OnPrimary, fontSize = dev.nerzouille.koan.ui.theme.ButtonTokens.TextSize, fontWeight = FontWeight.SemiBold)</ID>
+    <ID>MaxLineLength:QrScanner.kt:QrCamera$manager.cameraIdList.firstOrNull { manager.getCameraCharacteristics(it).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK }</ID>
+    <ID>MaxLineLength:RootState.kt:signingIn</ID>
+    <ID>MaxLineLength:ScopedKeysTest.kt:ScopedKeysTest$"{\"https://identity.mozilla.com/apps/oldsync\":{\"kty\":\"oct\",\"scope\":\"https://identity.mozilla.com/apps/oldsync\",\"k\":\"8ek1VNk4sjrNP0DhGC4crzQtwmpoR64zHuFMHb4Tw-exR70Z2SSIfMSrJDTLEZid9lD05-hbA3n2Q4Esjlu1tA\",\"kid\":\"1526414944666-zgTjf5oXmPmBjxwXWFsDWg\"}}"</ID>
+    <ID>MaxLineLength:ScopedKeysTest.kt:ScopedKeysTest$val jwe = "eyJhbGciOiJFQ0RILUVTIiwia2lkIjoiNFBKTTl5dGVGeUtsb21ILWd2UUtyWGZ0a0N3ak9HNHRfTmpYVXhLM1VqSSIsImVwayI6eyJrdHkiOiJFQyIsImNydiI6IlAtMjU2IiwieCI6IlB3eG9Na1RjSVZ2TFlKWU4wM2R0Y3o2TEJrR0FHaU1hZWlNQ3lTZXEzb2MiLCJ5IjoiLUYtTllRRDZwNUdSQ2ZoYm1hN3NvNkhxdExhVlNub012S0pFcjFBeWlaSSJ9LCJlbmMiOiJBMjU2R0NNIn0..b9FPhjjpmAmo_rP8.ur9jTry21Y2trvtcanSFmAtiRfF6s6qqyg6ruRal7PCwa7PxDzAuMN6DZW5BiK8UREOH08-FyRcIgdDOm5Zq8KwVAn56PGfcH30aNDGQNkA_mpfjx5Tj2z8kI6ryLWew4PGZb-PsL1g-_eyXhktq7dAhetjNYttKwSREWQFokv7N3nJGpukBqnwL1ost-MjDXlINZLVJKAiMHDcu-q7Epitwid2c2JVGOSCJjbZ4-zbxVmZ4o9xhFb2lbvdiaMygH6bPlrjEK99uT6XKtaIZmyDwftbD6G3x4On-CqA2TNL6ILRaJMtmyX--ctL0IrngUIHg_F0Wz94v.zBD8NACkUcZTPLH0tceGnA"</ID>
+    <ID>MaxLineLength:ScopedKeysTest.kt:ScopedKeysTest$val payload = """{"https://identity.mozilla.com/apps/oldsync":{"kty":"oct","k":"${Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(64) { it.toByte() })}","kid":"1-abc"}}"""</ID>
+    <ID>MaxLineLength:ScopedKeysTest.kt:ScopedKeysTest.Companion$.</ID>
+    <ID>MaxLineLength:ScopedKeysTest.kt:ScopedKeysTest.Companion$fun coord</ID>
+    <ID>MaxLineLength:ScopedKeysTest.kt:ScopedKeysTest.Companion$val cek = FxACrypto.sha256(byteArrayOf(0, 0, 0, 1) + z + lp("A256GCM".toByteArray()) + lp(ByteArray(0)) + lp(ByteArray(0)) + ByteBuffer.allocate(4).putInt(256).array())</ID>
+    <ID>MaxLineLength:SearchEngine.kt:SearchEngine.Companion$val Baidu = SearchEngine("Baidu", "Baidu", "https://www.baidu.com/s?ie=utf-8&amp;wd=%s", "https://www.baidu.com/su?ie=utf-8&amp;action=opensearch&amp;wd=%s")</ID>
+    <ID>MaxLineLength:SearchEngine.kt:SearchEngine.Companion$val Brave = SearchEngine("Brave", "Brave Search", "https://search.brave.com/search?q=%s", "https://search.brave.com/api/suggest?q=%s")</ID>
+    <ID>MaxLineLength:SearchEngine.kt:SearchEngine.Companion$val DuckDuckGo = SearchEngine("DuckDuckGo", "DuckDuckGo", "https://duckduckgo.com/?q=%s", "https://ac.duckduckgo.com/ac/?type=list&amp;q=%s")</ID>
+    <ID>MaxLineLength:SearchEngine.kt:SearchEngine.Companion$val Google = SearchEngine("Google", "Google", "https://www.google.com/search?q=%s", "https://www.google.com/complete/search?client=firefox&amp;q=%s")</ID>
+    <ID>MaxLineLength:SearchEngine.kt:SearchEngine.Companion$val Startpage = SearchEngine("Startpage", "Startpage", "https://www.startpage.com/do/search?q=%s", "https://www.startpage.com/osuggestions?q=%s")</ID>
+    <ID>MaxLineLength:SearchModel.kt:Shortcut.Companion$val Baidu = Shortcut("bd", "Baidu", "https://www.baidu.com", { SearchEngine.Baidu.searchTemplate }, { SearchEngine.Baidu.suggestTemplate }, SearchEngine.Baidu.id)</ID>
+    <ID>MaxLineLength:SearchModel.kt:Shortcut.Companion$val DuckDuckGo = Shortcut("ddg", "DuckDuckGo", "https://duckduckgo.com", { SearchEngine.DuckDuckGo.searchTemplate }, { SearchEngine.DuckDuckGo.suggestTemplate }, SearchEngine.DuckDuckGo.id)</ID>
+    <ID>MaxLineLength:SearchModel.kt:Shortcut.Companion$val Google = Shortcut("g", "Google", "https://www.google.com", { SearchEngine.Google.searchTemplate }, { SearchEngine.Google.suggestTemplate }, SearchEngine.Google.id)</ID>
+    <ID>MaxLineLength:SearchModelTest.kt:SearchModelTest$assertEquals(2, rank("sal", emptyList(), pages, emptyList(), now = now).pages.size + rank("sam", emptyList(), pages, emptyList(), now = now).pages.size)</ID>
+    <ID>MaxLineLength:SearchSheet.kt:*</ID>
+    <ID>MaxLineLength:SearchSheet.kt:Chip</ID>
+    <ID>MaxLineLength:SearchSheet.kt:Group(label, KoanIcons.Reload) { results.pages.forEachIndexed { i, h -&gt; if (i &gt; 0) Divider(); HitRow(h, currentSpace, actions) } }</ID>
+    <ID>MaxLineLength:SearchSheet.kt:Row</ID>
+    <ID>MaxLineLength:SearchSheet.kt:Text("Search ${shortcut.label} for “${parsed.rest}”", color = palette.TextPrimary, fontSize = SearchTokens.TitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:SearchSheet.kt:Text("Search in", color = palette.TextSecondary, fontSize = SearchTokens.LabelSize, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = SearchTokens.ChipGap))</ID>
+    <ID>MaxLineLength:SearchSheet.kt:Text(bareUrl(hit.url), color = palette.TextSecondary, fontSize = SearchTokens.UrlSize, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:SearchSheet.kt:Text(hit.title.ifBlank { displayHost(hit.url) }, color = palette.TextPrimary, fontSize = SearchTokens.TitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:SearchSheet.kt:Text(s.label, color = palette.TextPrimary, fontSize = SearchTokens.TitleSize, fontWeight = FontWeight.Medium, maxLines = 1)</ID>
+    <ID>MaxLineLength:SearchSheet.kt:if (results.tabs.isNotEmpty()) Group(if (private) "Switch to private tab" else "Switch to tab", KoanIcons.Essentials) { results.tabs.forEachIndexed { i, h -&gt; if (i &gt; 0) Divider(); HitRow(h, currentSpace, actions) } }</ID>
+    <ID>MaxLineLength:SearchSheet.kt:val showing = !parsed.picking &amp;&amp; (private || !results.isEmpty || suggestions.isNotEmpty() || (shortcut != null &amp;&amp; parsed.rest.isNotEmpty()))</ID>
+    <ID>MaxLineLength:Selection.kt:.</ID>
+    <ID>MaxLineLength:Settings.kt:Settings$raw.orEmpty().split(',').mapNotNull { e -&gt; e.split(':').takeIf { it.size == 2 }?.let { (d, c) -&gt; c.toIntOrNull()?.let { d to it } } }.toMap()</ID>
+    <ID>MaxLineLength:SettingsKit.kt:Icon(icon, null, tint = if (enabled) palette.TextPrimary else palette.TextDisabled, modifier = Modifier.size(SettingsTokens.RowGlyph))</ID>
+    <ID>MaxLineLength:SettingsKit.kt:Text(shown, color = if (enabled) palette.TextSecondary else palette.TextDisabled, fontSize = SettingsTokens.RowValueSize, maxLines = 1)</ID>
+    <ID>MaxLineLength:SettingsOverlays.kt:(activeTabId ?: components.store.state.selectedTabId)?.let { dispatchTranslate(TranslationsAction.OperationRequestedAction(it, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS)) }</ID>
+    <ID>MaxLineLength:SettingsOverlays.kt:.</ID>
+    <ID>MaxLineLength:SettingsOverlays.kt:always = translateEngine.languageSettings.orEmpty().filterValues { it == LanguageSetting.ALWAYS }.keys.map { it to languageName(it) }.sortedBy { it.second }</ID>
+    <ID>MaxLineLength:SettingsOverlays.kt:dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_AUTOMATIC_LANGUAGE_SETTINGS))</ID>
+    <ID>MaxLineLength:SettingsOverlays.kt:dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_NEVER_TRANSLATE_SITES))</ID>
+    <ID>MaxLineLength:SettingsOverlays.kt:never = translateEngine.languageSettings.orEmpty().filterValues { it == LanguageSetting.NEVER }.keys.map { it to languageName(it) }.sortedBy { it.second }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt:SettingsRow</ID>
+    <ID>MaxLineLength:SettingsScreen.kt:SettingsRow(KoanIcons.Folder, "Save downloads to", on, value = ui.downloadFolder ?: "Download", chevron = true, onClick = { push(SettingsPage.DownloadFolder) })</ID>
+    <ID>MaxLineLength:SettingsScreen.kt:SettingsRow(KoanIcons.Search, "Search engine", on, value = ui.engine.label, chevron = true, onClick = { push(SettingsPage.SearchEngines) })</ID>
+    <ID>MaxLineLength:SettingsScreen.kt:SettingsRow(KoanIcons.Shield, "uBlock Origin", on, subtitle = "Blocks ads and trackers", value = "Install", onClick = ui.onInstallUblock)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt:if (ui.downloadFolder != null) Icon(KoanIcons.Check, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))</ID>
+    <ID>MaxLineLength:SettingsScreen.kt:if (ui.downloadFolder == null) Icon(KoanIcons.Check, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))</ID>
+    <ID>MaxLineLength:SettingsScreen.kt:null</ID>
+    <ID>MaxLineLength:SheetKit.kt:Icon(icon, null, tint = if (enabled) KoanTheme.colors.TextPrimary else KoanTheme.colors.TextDisabled, modifier = Modifier.size(SheetTokens.RowGlyph))</ID>
+    <ID>MaxLineLength:SheetKit.kt:KoanIconButton(KoanIcons.Back, page.onBack, SheetTokens.HeaderHeight, SheetTokens.TileGlyph, KoanTheme.colors.TextPrimary, interactive = page.interactive)</ID>
+    <ID>MaxLineLength:SheetState.kt:SheetState$if (scroll &gt; 0f &amp;&amp; target != Detent.Full) launch { animate(scroll, 0f, 0f, Motion.Drawer) { v, _ -&gt; scroll = v.coerceAtLeast(0f) } }</ID>
+    <ID>MaxLineLength:SignInPages.kt:Text(title, color = KoanTheme.colors.TextPrimary, fontSize = SignInTokens.ModeSize, fontWeight = FontWeight.SemiBold, maxLines = 1)</ID>
+    <ID>MaxLineLength:SignInScene.kt:Scene$Brush.verticalGradient(listOf(T.PhoneScreenTop, T.PhoneScreenBottom), startY = screenTopLeft.y, endY = screenTopLeft.y + screen.height)</ID>
+    <ID>MaxLineLength:SignInScene.kt:Scene$drawCircle(Brush.radialGradient(listOf(BrandTokens.Violet.copy(alpha = 0.3f * p), Color.Transparent), center, r * 2.2f), r * 2.2f, center)</ID>
+    <ID>MaxLineLength:SignInScene.kt:Scene$drawCircle(Brush.radialGradient(listOf(BrandTokens.Violet.copy(alpha = 0.45f * kIn), Color.Transparent), c, glowR), glowR, c)</ID>
+    <ID>MaxLineLength:SignInScene.kt:Scene$drawCircle(Brush.radialGradient(listOf(Color.Black.copy(alpha = 0.2f * p), Color.Transparent), shadowAt, shadowR), shadowR, shadowAt)</ID>
+    <ID>MaxLineLength:SignInScene.kt:Scene$drawPath(corners, Color.White, alpha = 0.7f * p * (1f - kIn), style = Stroke(phoneW * 0.025f, cap = StrokeCap.Round, join = StrokeJoin.Round))</ID>
+    <ID>MaxLineLength:SignInScene.kt:Scene$drawRoundRect(code, Offset(x + gap, y + gap), Size(module - 2 * gap, module - 2 * gap), CornerRadius(module * 0.25f), alpha = shown)</ID>
+    <ID>MaxLineLength:SignOutConfirm.kt:fun</ID>
+    <ID>MaxLineLength:SitePermissions.kt:SitePermissions$if (cookies) flags = flags or StorageController.ClearFlags.COOKIES or StorageController.ClearFlags.DOM_STORAGES or StorageController.ClearFlags.AUTH_SESSIONS</ID>
+    <ID>MaxLineLength:SiteSettings.kt:Icon(KoanIcons.Lock, null, tint = if (ui.secure) palette.TextSecondary else palette.Attention, modifier = Modifier.size(SheetTokens.NavLockGlyph))</ID>
+    <ID>MaxLineLength:SiteSettings.kt:KoanIconButton(KoanIcons.Back, scope.onBack, SheetTokens.HeaderHeight, SheetTokens.TileGlyph, palette.TextPrimary, interactive = on)</ID>
+    <ID>MaxLineLength:SiteSettings.kt:SheetToggleRow(d.ask.icon(), d.ask.label, on, checked = d.allowed, onChange = { allow -&gt; ui.onSet(d, allow) }, subtitle = if (d.allowed) "Allowed" else "Blocked")</ID>
+    <ID>MaxLineLength:SiteSettings.kt:Text(displayHost(ui.url), color = palette.TextPrimary, style = KoanType.headline(SheetTokens.HeaderTitleSize), maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:SiteSettings.kt:decisions.isEmpty() -&gt; SheetRow(null, "Nothing allowed or blocked yet", on, subtitle = "Koan asks the first time a site wants something")</ID>
+    <ID>MaxLineLength:SiteSettings.kt:if (ui.readerAvailable || ui.readerActive) KoanToggle(checked = ui.readerActive, onCheckedChange = if (on) { _ -&gt; ui.onReader() } else null)</ID>
+    <ID>MaxLineLength:SpaceDrawer.kt:Text(text, color = KoanTheme.colors.TextSecondary, fontSize = DrawerTokens.StatusTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:SpaceDrawer.kt:if (row.depth == 0) Icon(KoanIcons.Pin, null, tint = KoanTheme.colors.TextSecondary, modifier = Modifier.size(DrawerTokens.PinnedGlyph))</ID>
+    <ID>MaxLineLength:SpacePage.kt:DrawerRow.Folder$data</ID>
+    <ID>MaxLineLength:SpacePage.kt:internal</ID>
+    <ID>MaxLineLength:SpaceTitle.kt:Modifier.size(OverviewTokens.SpaceIconBox).clip(RoundedCornerShape(OverviewTokens.SpaceIconRadius)).background(KoanTheme.colors.Glass)</ID>
+    <ID>MaxLineLength:SpacesRepository.kt:SpacesRepository$if (card != null) dao.setEssential(tab.koanTabId, essential = false, order = card, cardOrder = null) else dao.deleteLocal(listOf(tab.koanTabId))</ID>
+    <ID>MaxLineLength:StandalonePlayer.kt:)</ID>
+    <ID>MaxLineLength:StandalonePlayer.kt:Text(middleEllipsis(name, 40) + " is deleted from the phone.", style = playerText(14.sp, FontWeight.Normal, PlayerTokens.TextSecondary))</ID>
+    <ID>MaxLineLength:StandalonePlayer.kt:fun</ID>
+    <ID>MaxLineLength:StandalonePlayer.kt:val</ID>
+    <ID>MaxLineLength:StartPage.kt:*</ID>
+    <ID>MaxLineLength:StartPage.kt:Text(host, color = palette.TextSecondary, fontSize = StartPageTokens.ContinueSubtitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:SwipeRow.kt:if (onDelete != null) Icon(KoanIcons.Trash, "Delete", tint = palette.OnPrimary, modifier = Modifier.size(SettingsTokens.RowGlyph))</ID>
+    <ID>MaxLineLength:SyncBackPlan.kt:LoginUpload$if (listOf("timeCreated", "timePasswordChanged", "timeLastUsed").any { r.optLong(it) !in MIN_MS..MAX_MS }) return "timestamp not in ms"</ID>
+    <ID>MaxLineLength:SyncBackPlan.kt:UploadPlan$"${invalid.size} left out"</ID>
+    <ID>MaxLineLength:SyncBackPlan.kt:WriteGuard$if (expected != null &amp;&amp; engine.optInt("version", -1) != expected) return "$collection engine version ${engine.opt("version")} != $expected"</ID>
+    <ID>MaxLineLength:SyncBackPlanTest.kt:SyncBackPlanTest$val plan = HistoryUpload.plan(listOf(PhoneVisit("https://example.com/b", "Phone title", now)), mapOf("https://example.com/b" to server))</ID>
+    <ID>MaxLineLength:SyncClientPostBatchTest.kt:SyncClientPostBatchTest$fake.enqueue(SyncHttpResponse(200, mapOf("x-last-modified" to "12.00"), """{"success":["a"],"failed":{"b":"invalid"}}""".toByteArray()))</ID>
+    <ID>MaxLineLength:SyncClientPostBatchTest.kt:SyncClientPostBatchTest$val (outcome, _) = client.postBatch("spaces", listOf(JSONObject().put("id", "{space}").put("name", "Example")), server.lastModified("spaces")!!)</ID>
+    <ID>MaxLineLength:SyncWrite.kt:SyncWrite$runCatching { client.decryptRecord("history", raw) }.getOrNull()?.takeIf { !it.optBoolean("deleted") }?.let { byUrl[v.url] = it }</ID>
+    <ID>MaxLineLength:SyncWrite.kt:SyncWrite$val write = HistoryWritePlan.plan(phone.map { dev.nerzouille.koan.sync.PhoneVisit(it.url, it.title, it.lastVisit) }, deleted, byUrl, ids)</ID>
+    <ID>MaxLineLength:SyncWritePlanTest.kt:SyncWritePlanTest$server = listOf(server("acct", "https://a.example.com", "ann", "old-pass"), server("gone", "https://d.example.com", "dan", "p"))</ID>
+    <ID>MaxLineLength:SyncWritePlanTest.kt:SyncWritePlanTest$val plan = PasswordEdits.plan(listOf(phone("l", "https://a.example.com", "ann", "same")), listOf(server("acct", "https://a.example.com", "ann", "same")), emptySet())</ID>
+    <ID>MaxLineLength:SyncWritePlanTest.kt:SyncWritePlanTest$val t = HistoryTombstones.plan(setOf("https://example.com/a", "https://example.com/never-synced"), mapOf("https://example.com/a" to "abcdefghijkl"))</ID>
+    <ID>MaxLineLength:SyncWriteTest.kt:SyncWriteTest$assertEquals(listOf(JSONObject().put("id", "hist-gone").put("deleted", true).toString()), sent.filter { it.optBoolean("deleted") }.map { it.toString() })</ID>
+    <ID>MaxLineLength:SyncWriteTest.kt:SyncWriteTest$val backupRead = index { it.method == "GET" &amp;&amp; it.url.path.endsWith("/storage/passwords") &amp;&amp; "limit=1000" in it.url.query.orEmpty() }</ID>
+    <ID>MaxLineLength:TabCard.kt:Box(Modifier.size(CardTokens.Favicon).clip(RoundedCornerShape(CardTokens.Favicon * 0.28f)).background(KoanTheme.colors.Skeleton))</ID>
+    <ID>MaxLineLength:TabCard.kt:Box(Modifier.width(CardTokens.SkeletonTitle).height(CardTokens.SkeletonBar).clip(CircleShape).background(KoanTheme.colors.Skeleton))</ID>
+    <ID>MaxLineLength:TabCard.kt:drawImage(bitmap, dstSize = IntSize(size.width.roundToInt(), h), alpha = reveal.value, filterQuality = FilterQuality.Low)</ID>
+    <ID>MaxLineLength:TabCard.kt:if (a &gt; 0f) drawImage(image, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), alpha = a, filterQuality = FilterQuality.Low)</ID>
+    <ID>MaxLineLength:TabCard.kt:if (palette.CardRim.alpha &gt; 0f) drawRect(palette.CardRim, size = androidx.compose.ui.geometry.Size(size.width, CardTokens.Hairline.toPx()))</ID>
+    <ID>MaxLineLength:TabCard.kt:renderEffect = if (covered || baked != null || !DeviceProfile.tier.bakePlaceholders) null else liveBlur(blurFor, depth())</ID>
+    <ID>MaxLineLength:TabCard.kt:val</ID>
+    <ID>MaxLineLength:TabManager.kt:TabManager$dropped.filter { dao.tab(it.koanTabId)?.closed != false }.mapNotNull { it.tab.thumbnailKey }.forEach { ThumbnailStore.delete(it) }</ID>
+    <ID>MaxLineLength:TabManager.kt:TabManager$if (tab != null &amp;&amp; tab.content.private == isPrivate &amp;&amp; tab.content.url == d.url &amp;&amp; !tab.content.firstContentfulPaint) dropDownloadTab(tab.id)</ID>
+    <ID>MaxLineLength:TabManager.kt:TabManager$if (tab.id == state.selectedTabId &amp;&amp; known[tab.id] != null) captureSoon(tab.id, "content changed", ThumbTokens.SETTLE_MS)</ID>
+    <ID>MaxLineLength:TabManager.kt:TabManager$store.dispatch(TabListAction.AddTabAction(createTab(url = row.url, id = row.koanTabId, engineSessionState = closed.state, private = isPrivate), select = false))</ID>
+    <ID>MaxLineLength:TabManager.kt:TabManager$val fallback = recent.firstOrNull { it !in present &amp;&amp; isMine(it) &amp;&amp; store.state.findTab(it)?.engineState?.engineSession != null }</ID>
+    <ID>MaxLineLength:TabManager.kt:TabManager$val json = closed.state?.let { state -&gt; runCatching { StringWriter().also { state.writeTo(JsonWriter(it)) }.toString() }.getOrNull() }</ID>
+    <ID>MaxLineLength:TabManager.kt:TabManager$var row = entry.tab.copy(closed = false, spaceUuid = if (spaceKnown) entry.tab.spaceUuid else fallbackSpace, folderId = null, splitId = null)</ID>
+    <ID>MaxLineLength:TabMenu.kt:MenuItem(KoanIcons.History, "Reopen closed tab", open &amp;&amp; onReopenClosed != null, onReopenClosed ?: {}, enabled = onReopenClosed != null)</ID>
+    <ID>MaxLineLength:TabMenu.kt:Text(title, color = if (enabled) palette.TextPrimary else palette.TextDisabled, fontSize = TabMenuTokens.TextSize, fontWeight = FontWeight.Medium)</ID>
+    <ID>MaxLineLength:Tokens.kt:KoanPalette$/** Destructive actions: red text only, never a red fill (one exception: the delete swipe's background on every library page). ≥ 4.5:1 on every surface. */</ID>
+    <ID>MaxLineLength:TourContent.kt:"Add your own search engines and @shortcuts in Settings › Search engine, or add a site's engine from ⋯ › Add this search engine."</ID>
+    <ID>MaxLineLength:TourContent.kt:"Play a video full screen: double-tap to skip, hold for 2×, swipe for brightness and volume. Go home and it keeps playing in a small window."</ID>
+    <ID>MaxLineLength:TourContent.kt:"Settings › Mozilla account › Send to your Mozilla account: passwords saved here, and history both ways. Off until you turn it on."</ID>
+    <ID>MaxLineLength:TourContent.kt:"Tap the translate icon in the address bar, or ⋯ › Translate page: pages are translated on the phone, their text never leaves it."</ID>
+    <ID>MaxLineLength:TourContent.kt:TourCard("Sign in from your computer", "On the sign-in screen, scan the code Zen shows: no password to type.", scene = TourScene.SignIn)</ID>
+    <ID>MaxLineLength:TourOverlay.kt:.</ID>
+    <ID>MaxLineLength:TourOverlay.kt:Box</ID>
+    <ID>MaxLineLength:TourOverlay.kt:TourButton</ID>
+    <ID>MaxLineLength:TourOverlay.kt:if (filled) (if (welcome() &gt; 0.5f) Color.Black else palette.OnPrimary) else lerpColor(palette.TextPrimary, Color.White, welcome())</ID>
+    <ID>MaxLineLength:TourOverlay.kt:if (last) onClosed() else scope.launch { pager.animateScrollToPage(pager.currentPage + 1, animationSpec = Motion.PagerSettle) }</ID>
+    <ID>MaxLineLength:TranslateCue.kt:fun</ID>
+    <ID>MaxLineLength:TranslateOfferHost.kt:onToast(Toast("${languageName(lang)} pages will be translated", detail = "On this phone; the first time downloads the language"))</ID>
+    <ID>MaxLineLength:TranslateOfferHost.kt:store.dispatch(TranslationsAction.UpdatePageSettingAction(id, TranslationPageSettingOperation.UPDATE_ALWAYS_TRANSLATE_LANGUAGE, true))</ID>
+    <ID>MaxLineLength:TranslateOfferHost.kt:store.dispatch(TranslationsAction.UpdatePageSettingAction(id, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_LANGUAGE, true))</ID>
+    <ID>MaxLineLength:TranslateOfferHost.kt:store.dispatch(TranslationsAction.UpdatePageSettingAction(id, TranslationPageSettingOperation.UPDATE_NEVER_TRANSLATE_SITE, true))</ID>
+    <ID>MaxLineLength:TranslateOfferHost.kt:val cue = if (tabId == null) TranslateCue.None else translateCue(signals, phoneLanguages, offerOn, searchPage, site in cues.dismissedSites)</ID>
+    <ID>MaxLineLength:TranslateOfferHost.kt:val engines by components.settings.searchEngines.collectAsStateWithLifecycle(initialValue = dev.nerzouille.koan.search.SearchEngine.builtIns)</ID>
+    <ID>MaxLineLength:TranslateOfferHost.kt:val t by store.observeSlice(tabId) { s -&gt; tabId?.let { s.findTab(it) }?.let { Triple(it.translationsState, it.content.url, it.readerState.readerable) } }</ID>
+    <ID>MaxLineLength:TranslatePage.kt:PrimaryButton("Translate again", onClick = { if (on &amp;&amp; from.isNotEmpty()) actions.translate(from, to) }, modifier = Modifier.weight(1f))</ID>
+    <ID>MaxLineLength:TranslatePage.kt:SheetRow(null, "From", on, onClick = { picking = "from" }) { RowValue(if (from.isEmpty()) "Pick" else name(from, ui.from)); RowChevron() }</ID>
+    <ID>MaxLineLength:TranslatePage.kt:SheetToggleRow(null, "Always translate ${name(from, ui.from)}", on, checked = ui.alwaysLanguage, onChange = actions.alwaysLanguage)</ID>
+    <ID>MaxLineLength:TranslatePage.kt:Text("Downloads ${sizeLabel(ui.downloadBytes)} once. Pages are translated on this phone, never sent anywhere.", color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize)</ID>
+    <ID>MaxLineLength:TranslatePage.kt:downloaded = engine.languageModels.orEmpty().filter { it.status == ModelState.DOWNLOADED }.mapNotNullTo(HashSet()) { it.language?.code }</ID>
+    <ID>MaxLineLength:TranslatePage.kt:drawRoundRect(BrandHorizontal, topLeft = Offset(x.coerceAtLeast(0f), 0f), size = Size((w + minOf(x, 0f)).coerceAtMost(size.width - x.coerceAtLeast(0f)), size.height), cornerRadius = r)</ID>
+    <ID>MaxLineLength:TranslatePage.kt:else -&gt; Text("Pages are translated on this phone, never sent anywhere.", color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize)</ID>
+    <ID>MaxLineLength:TranslatePage.kt:if (downloadBytes != null &amp;&amp; downloadBytes &gt; 0) "Downloading the language (${sizeLabel(downloadBytes)}) and translating…" else "Translating…"</ID>
+    <ID>MaxLineLength:TranslatePage.kt:if (heading != null) Text(heading, color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize, fontWeight = FontWeight.SemiBold)</ID>
+    <ID>MaxLineLength:TranslatePage.kt:lang.code == current -&gt; Icon(KoanIcons.Check, null, tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.RowGlyph))</ID>
+    <ID>MaxLineLength:TranslatePage.kt:langs.orEmpty().map { TranslateLanguage(it.code, it.localizedDisplayName?.ifBlank { null } ?: languageName(it.code)) }.sortedBy { it.name }</ID>
+    <ID>MaxLineLength:TranslatePage.kt:modelBytes = engine.languageModels.orEmpty().mapNotNull { m -&gt; m.language?.code?.let { code -&gt; m.size?.let { code to it } } }.toMap()</ID>
+    <ID>MaxLineLength:TranslatePage.kt:modifier = if (interactive) Modifier.combinedClickable(onClick = { onPick(lang.code) }, onLongClick = if (onPhone) ({ KoanHaptics.hold(view); onDelete(lang.code) }) else null) else Modifier</ID>
+    <ID>MaxLineLength:TranslatePage.kt:working = workingNow(t.isTranslated, t.translationEngineState?.let { hasPair(it.requestedTranslationPair) }, t.isTranslateProcessing, t.isRestoreProcessing)</ID>
+    <ID>MaxLineLength:TranslationPage.kt:*</ID>
+    <ID>MaxLineLength:TranslationPage.kt:Section("Always translate", t.always.map { it.second to { t.onRemoveLanguage(it.first) } }, "No language yet. Turn it on from ⋯ › Translate page.", on)</ID>
+    <ID>MaxLineLength:TranslationPage.kt:Section("Never translate these sites", t.neverSites.map { site -&gt; site.removePrefix("https://").removePrefix("http://") to { t.onRemoveSite(site) } }, "No site.", on)</ID>
+    <ID>MaxLineLength:Type.kt:KoanType$fun headline</ID>
+    <ID>MaxLineLength:UBlockPage.kt:AndroidView(factory = { view }, modifier = Modifier.fillMaxWidth().height(SheetTokens.UBlockPanelHeight)) { it.render(popup) }</ID>
+    <ID>MaxLineLength:UBlockPage.kt:ui == null -&gt; SheetRow(KoanIcons.Shield, "uBlock Origin", interactive, subtitle = "Blocks ads and trackers · Install", onClick = onInstall)</ID>
+    <ID>MaxLineLength:UpdateCheck.kt:UpdateCheck.Version$if (preRelease.isEmpty() || other.preRelease.isEmpty()) return other.preRelease.size.coerceAtMost(1) - preRelease.size.coerceAtMost(1)</ID>
+    <ID>MaxLineLength:UpdateCheckTest.kt:UpdateCheckTest$val order = listOf("1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-beta", "1.0.0-beta.2", "1.0.0-beta.11", "1.0.0-rc.1", "1.0.0", "1.0.1", "1.1.0-beta.1")</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:PlayerDisc(PlayerTokens.PlayDisc, onClick = onPlay) { PlayGlyph(glyphFor(state, false), PlayerTokens.PlayGlyph, PlayerTokens.PlayOptical) }</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:PlayerDisc(PlayerTokens.RoundPill, onClick = { if (buttonsLive) onPip() }) { PlayerIcon(KoanIcons.Pip, PlayerTokens.Glyph) }</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:PlayerDisc(PlayerTokens.RoundPill, onClick = { if (buttonsLive) { menuOpen = !menuOpen; used() } }) { PlayerIcon(KoanIcons.More, PlayerTokens.Glyph) }</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:PlayerSpinner(PlayerTokens.Spinner, PlayerTokens.SpinnerStroke, modifier = Modifier.align(Alignment.Center).graphicsLayer { alpha = spin.progress * hiddenAlpha(hidden) })</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:Row</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:Text(clock(state.duration), style = timeStyle.copy(color = PlayerTokens.TextSecondary), textAlign = TextAlign.End, modifier = Modifier.widthIn(min = PlayerTokens.TimeMinWidth))</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:Text(it, style = playerText(13.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:Text(subtitle, style = playerText(12.sp, FontWeight.Normal, PlayerTokens.TextSecondary, line = 15.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:activity?.window?.let { w -&gt; w.attributes = w.attributes.apply { screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE } }</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:if (sc.value) scf.value() else s.value.let { st -&gt; if (st.duration &gt; 0) (st.positionAt(frameNow()) / st.duration).toFloat() else 0f }</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:if (step == 0 || Build.VERSION.SDK_INT &lt; Build.VERSION_CODES.S) null else BlurEffect(step * 0.5f * density, step * 0.5f * density, TileMode.Decal)</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:private</ID>
+    <ID>MaxLineLength:VideoPlayer.kt:val thick by animateDpAsState(if (scrubbing) PlayerTokens.TrackThicknessPressed else PlayerTokens.TrackThickness, androidx.compose.animation.core.spring(0.8f, 600f), label = "track")</ID>
+    <ID>MaxLineLength:WebPlayer.kt:.</ID>
+    <ID>MaxLineLength:WebPlayer.kt:if (end == DownloadState.Status.FAILED) say(PlayerNotice("Couldn't download the video", components.store.state.downloads[id]?.fileName ?: name, error = true))</ID>
+    <ID>MaxLineLength:Welcome.kt:Vortex$Brush.sweepGradient(listOf(w.copy(alpha = 0f), w.copy(alpha = a), w.copy(alpha = 0f), w.copy(alpha = a * 0.55f), w.copy(alpha = 0f)), Offset.Zero)</ID>
+    <ID>MaxLineLength:WorkspaceSwitcher.kt:val pillChrome = (BarTokens.SwitcherIconInset + BarTokens.SwitcherIcon + BarTokens.SwitcherNameGap + BarTokens.SwitcherPillEnd).toPx()</ID>
+    <ID>MaxLineLength:ZenDiff.kt:ZenDiff.Companion$if (t.koanTabId in stayed) anchor = unit[t.koanTabId] else if (!zenPlaced(now)) anchored.getOrPut(anchor) { mutableListOf() } += t.koanTabId</ID>
+    <ID>MaxLineLength:ZenDiff.kt:ZenDiff.Companion$val arriving = after.filter { !zenPlaced(it) &amp;&amp; it.koanTabId !in known }.sortedWith(compareBy({ it.stackOrder }, { it.koanTabId }))</ID>
+    <ID>MaxLineLength:ZenDiff.kt:ZenDiff.Companion$val before = tabs.filter { it.spaceUuid == space.uuid &amp;&amp; it.inStack }.sortedWith(compareBy({ it.stackOrder }, { it.koanTabId }))</ID>
+    <ID>MaxLineLength:ZenDiff.kt:ZenDiff.Companion$val page = if (keepPhonePage) new.copy(url = old.url, title = old.title, iconUrl = old.iconUrl, staticIcon = old.staticIcon) else new</ID>
+    <ID>MaxLineLength:ZenIcon.kt:is ZenIconLook.Emoji -&gt; Text(look.text, fontSize = (size.value * 0.78f).sp, textAlign = TextAlign.Center, maxLines = 1, softWrap = false)</ID>
+    <ID>MaxLineLength:ZenIcon.kt:is ZenIconLook.Vector -&gt; Image(painterResource(look.res), null, Modifier.size(size * 0.82f), colorFilter = ColorFilter.tint(tint))</ID>
+    <ID>MaxLineLength:ZenIcon.kt:private</ID>
+    <ID>MaxLineLength:ZenRoomMapperTest.kt:ZenRoomMapperTest$private val home = ZenSpaces.ZenSpace(id = "space-home", name = "Home", icon = "🏡", containerGuid = null, theme = null, pinned = emptyList())</ID>
+    <ID>MaxLineLength:ZenSpaces.kt:ZenSpaces$defaultContainer = if (data.has("defaultContainer") &amp;&amp; !data.isNull("defaultContainer")) data.optBoolean("defaultContainer") else null</ID>
+    <ID>MaxLineLength:ZenSpaces.kt:ZenSpaces.ZenColorValue$override fun hashCode: Int</ID>
+    <ID>MaxLineLength:ZenSpaces.kt:ZenSpaces.ZenSpaceTheme.Companion$fun</ID>
+    <ID>MaxLineLength:ZenSpacesDecoderTests.kt:ZenSpacesDecoderTests$"""{"id":"a","kind":"space","data":{"uuid":"space-a","name":"A","theme":{"type":"gradient","gradientColors":[],"opacity":0.3},"children":[]}}"""</ID>
+    <ID>MaxLineLength:ZenSpacesDecoderTests.kt:ZenSpacesDecoderTests$"""{"id":"b","kind":"space","data":{"uuid":"space-b","name":"B","theme":{"type":"solid","gradientColors":[{"c":"#fff"}],"opacity":0.7},"children":[]}}"""</ID>
+    <ID>MayBeConstant:PlayerTokens.kt:PlayerTokens$val TitleMaxLandscape = 0.45f</ID>
+    <ID>NestedBlockDepth:FaviconLoader.kt:FaviconLoader$private fun downloadBytes: ByteArray?</ID>
+    <ID>NestedBlockDepth:HistoryScreen.kt:@Composable fun HistoryScreen</ID>
+    <ID>NestedBlockDepth:SpacesSyncService.kt:SpacesSyncService$internal fun buildItems: List&lt;ZenSpaces.ZenItem&gt;</ID>
+    <ID>NestedBlockDepth:ZenSpaces.kt:ZenSpaces$fun decodeSnapshot: ZenSnapshot?</ID>
+    <ID>NestedBlockDepth:ZenSpaces.kt:ZenSpaces$private fun decodeItems: List&lt;ZenItem&gt;</ID>
+    <ID>NestedBlockDepth:ZenSpaces.kt:ZenSpaces$private fun decodeLayout: ZenLayoutRecord</ID>
+    <ID>ReturnCount:AmpLinks.kt:AmpLinks$fun original: String?</ID>
+    <ID>ReturnCount:AmpLinks.kt:LinkCleaner$fun clean: String?</ID>
+    <ID>ReturnCount:BakedBlur.kt:BakedBlur$private fun fileFor: File?</ID>
+    <ID>ReturnCount:BakedBlur.kt:BakedBlur$private fun read: Pair&lt;Bitmap, Int&gt;?</ID>
+    <ID>ReturnCount:BarGestures.kt:private suspend fun AwaitPointerEventScope.awaitSlop: Slop?</ID>
+    <ID>ReturnCount:BlankCheck.kt:BlankCheck$fun looksBlank: Boolean</ID>
+    <ID>ReturnCount:CardHero.kt:CardHero$fun pageIn: Rect?</ID>
+    <ID>ReturnCount:CardHero.kt:CardHero$fun screenBottomIn: Float?</ID>
+    <ID>ReturnCount:CardTitle.kt:fun cardTitle: String</ID>
+    <ID>ReturnCount:CleanTap.kt:private suspend fun AwaitPointerEventScope.awaitCleanUp: Boolean</ID>
+    <ID>ReturnCount:CleanTap.kt:private suspend fun AwaitPointerEventScope.awaitLiftOrSlop</ID>
+    <ID>ReturnCount:CustomEngines.kt:CustomEngines$fun fromJson: List&lt;SearchEngine&gt;</ID>
+    <ID>ReturnCount:DepthStack.kt:private suspend fun AwaitPointerEventScope.reorder: List&lt;String&gt;?</ID>
+    <ID>ReturnCount:DuplicateDownloads.kt:DuplicateDownloads$fun find: DuplicateDownload?</ID>
+    <ID>ReturnCount:ExternalLinks.kt:ExternalLinks$fun appFor: AppTarget?</ID>
+    <ID>ReturnCount:ExternalLinks.kt:ExternalLinks$fun openTyped: String?</ID>
+    <ID>ReturnCount:ExternalLinks.kt:ExternalLinks$override fun onLoadRequest: InterceptionResponse?</ID>
+    <ID>ReturnCount:ExternalLinks.kt:ExternalLinks$private fun resolve: AppTarget?</ID>
+    <ID>ReturnCount:FakeStorage.kt:FakeStorage$private fun post: SyncHttpResponse</ID>
+    <ID>ReturnCount:FaviconDecoder.kt:FaviconDecoder$fun image: Bitmap?</ID>
+    <ID>ReturnCount:FaviconDecoder.kt:FaviconDecoder$internal fun extractLargestFrameBytes: ByteArray?</ID>
+    <ID>ReturnCount:FaviconDiscovery.kt:FaviconDiscovery$fun documentURL: URI?</ID>
+    <ID>ReturnCount:FaviconDiscovery.kt:FaviconDiscovery$fun siteKey: String?</ID>
+    <ID>ReturnCount:FaviconDiscovery.kt:FaviconDiscovery$private fun attribute: String?</ID>
+    <ID>ReturnCount:FaviconDiscovery.kt:FaviconDiscovery$private fun httpURL: URI?</ID>
+    <ID>ReturnCount:FaviconDiscovery.kt:FaviconDiscovery$private fun icon: Icon?</ID>
+    <ID>ReturnCount:FaviconDiscovery.kt:FaviconDiscovery$private fun kind: Kind</ID>
+    <ID>ReturnCount:FaviconDiscovery.kt:FaviconDiscovery$private fun originFavicon: String?</ID>
+    <ID>ReturnCount:FaviconDiscovery.kt:FaviconDiscovery$private fun resolutionBase: URI</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$fun cachedOnly: Bitmap?</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$fun dataBytes: ByteArray?</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$private fun diskCachedBitmap: Bitmap?</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$private fun downloadBytes: ByteArray?</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$private fun fetch: Bitmap?</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$private fun fetchCandidate: Bitmap?</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$private fun fetchDocument: Document?</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$private fun imageBlocking: Bitmap?</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$private fun isPrivateHost: Boolean</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$private fun load: Bitmap?</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$private fun loadIndex</ID>
+    <ID>ReturnCount:FaviconLoader.kt:FaviconLoader$suspend fun image: Bitmap?</ID>
+    <ID>ReturnCount:FaviconResolver.kt:FaviconResolver$fun cacheKey: String?</ID>
+    <ID>ReturnCount:FilePrompt.kt:UploadUris$fun allowed: Boolean</ID>
+    <ID>ReturnCount:IconStore.kt:IconStore$private fun decodeDataUrl: Bitmap?</ID>
+    <ID>ReturnCount:IconStore.kt:IconStore$private fun fileFor: File?</ID>
+    <ID>ReturnCount:IconStore.kt:IconStore$suspend fun load: Icon?</ID>
+    <ID>ReturnCount:KoanRoot.kt:fun closeCurrentTab</ID>
+    <ID>ReturnCount:KoanRoot.kt:fun openNewTab: String?</ID>
+    <ID>ReturnCount:LayoutWatch.kt:private fun firstSurface: View?</ID>
+    <ID>ReturnCount:LayoutWatch.kt:suspend fun watchLayout</ID>
+    <ID>ReturnCount:LibrarySync.kt:LibrarySync$private fun loginOf: LoginEntity?</ID>
+    <ID>ReturnCount:Logins.kt:LoginStore.Companion$fun originOf: String?</ID>
+    <ID>ReturnCount:MainActivity.kt:MainActivity$private fun handleIntent</ID>
+    <ID>ReturnCount:MozillaSignIn.kt:internal fun parseBridgeMessage: FxAWebLogin?</ID>
+    <ID>ReturnCount:OpenSearch.kt:OpenSearch$private fun template: String?</ID>
+    <ID>ReturnCount:PageBridge.kt:PageBridge$protected suspend fun ask: String?</ID>
+    <ID>ReturnCount:PageVideo.kt:PageVideo$private suspend fun loadPoster: Bitmap?</ID>
+    <ID>ReturnCount:Pairing.kt:PairingFlow.Companion$fun parseChannel: String?</ID>
+    <ID>ReturnCount:PlayerModel.kt:fun downloadableVideo: String?</ID>
+    <ID>ReturnCount:PlayerModel.kt:fun videoOfDownload: StandaloneVideo?</ID>
+    <ID>ReturnCount:PrivateFlip.kt:PrivateFlip$fun star: Pair&lt;Float, Float&gt;</ID>
+    <ID>ReturnCount:PrivateSwitch.kt:PrivateSwitch$fun toggle</ID>
+    <ID>ReturnCount:PrivateTabs.kt:PrivateTabs$private suspend fun restore: String?</ID>
+    <ID>ReturnCount:QrScanner.kt:QrCamera$@SuppressLint("MissingPermission") fun open: Size?</ID>
+    <ID>ReturnCount:SearchField.kt:SearchField$private fun completed: TextFieldValue?</ID>
+    <ID>ReturnCount:SearchModel.kt:fun completion: String?</ID>
+    <ID>ReturnCount:SearchModel.kt:fun parseQuery: Parsed</ID>
+    <ID>ReturnCount:SearchModel.kt:private fun Hit.matches: Boolean</ID>
+    <ID>ReturnCount:SignInScreen.kt:private fun oldWebView: String?</ID>
+    <ID>ReturnCount:SiteGlyph.kt:SiteGlyph.Companion$internal fun analyse: SiteGlyph?</ID>
+    <ID>ReturnCount:SiteGlyph.kt:SiteGlyph.Companion$suspend fun load: SiteGlyph?</ID>
+    <ID>ReturnCount:SpacesSyncService.kt:SpacesSyncService$internal fun makeTab: ZenSpaces.ZenTab?</ID>
+    <ID>ReturnCount:SyncBackPlan.kt:HistoryUpload$fun problem: String?</ID>
+    <ID>ReturnCount:SyncBackPlan.kt:LoginUpload$fun origin: String</ID>
+    <ID>ReturnCount:SyncBackPlan.kt:LoginUpload$fun problem: String?</ID>
+    <ID>ReturnCount:SyncBackPlan.kt:WriteGuard$fun refusal: String?</ID>
+    <ID>ReturnCount:SyncClient.kt:SyncClient$fun postBatch: Pair&lt;PostOutcome, String?&gt;</ID>
+    <ID>ReturnCount:SyncClient.kt:SyncClient$private fun requestJSONObject: JSONObject</ID>
+    <ID>ReturnCount:SyncClient.kt:SyncClient$private fun requestRaw: SyncHttpResponse</ID>
+    <ID>ReturnCount:SyncWritePlan.kt:ReadBack$fun mismatch: String?</ID>
+    <ID>ReturnCount:TabManager.kt:TabManager$private suspend fun captureNow</ID>
+    <ID>ReturnCount:TabManager.kt:TabManager$private suspend fun freshState: EngineSessionState?</ID>
+    <ID>ReturnCount:TabManager.kt:TabManager$suspend fun grabScreen: Bitmap?</ID>
+    <ID>ReturnCount:TabManager.kt:TabManager$suspend fun restoreClosed: ClosedTab?</ID>
+    <ID>ReturnCount:TabSwipe.kt:TabSwipe$fun grab: Boolean</ID>
+    <ID>ReturnCount:ThumbnailStore.kt:ThumbnailStore$fun decodeTop: Bitmap?</ID>
+    <ID>ReturnCount:ThumbnailStore.kt:ThumbnailStore$private fun fileFor: File?</ID>
+    <ID>ReturnCount:TourContent.kt:fun dueSheet: TourSheet?</ID>
+    <ID>ReturnCount:TranslateCue.kt:fun isSearchResults: Boolean</ID>
+    <ID>ReturnCount:TranslateCue.kt:fun translateCue: TranslateCue</ID>
+    <ID>ReturnCount:UBlock.kt:UBlock.Companion$fun count: Int</ID>
+    <ID>ReturnCount:UpdateCheck.kt:UpdateCheck$internal fun parse: Version?</ID>
+    <ID>ReturnCount:UpdateCheck.kt:UpdateCheck$internal fun status: UpdateStatus</ID>
+    <ID>ReturnCount:UpdateCheck.kt:UpdateCheck.Version$override fun compareTo: Int</ID>
+    <ID>ReturnCount:UrlInput.kt:fun displayHost: String</ID>
+    <ID>ReturnCount:UrlInput.kt:fun resolveInput: String</ID>
+    <ID>ReturnCount:Urls.kt:fun baseDomain: String</ID>
+    <ID>ReturnCount:WorkspaceSwitcher.kt:SwitcherGeometry$private fun start: Float</ID>
+    <ID>ReturnCount:ZenIcon.kt:@SuppressLint("DiscouragedApi") // Zen names its icons at runtime; the drawable set is fixed. @Composable fun ZenIcon</ID>
+    <ID>ReturnCount:ZenIcon.kt:internal fun assetName: String?</ID>
+    <ID>ReturnCount:ZenIcon.kt:internal fun emojiFromDataUrl: String?</ID>
+    <ID>ReturnCount:ZenSpaces.kt:ZenSpaces$fun decode: DecodedRecord?</ID>
+    <ID>ReturnCount:ZenSpaces.kt:ZenSpaces$private fun decodeCachedTab: ZenTab?</ID>
+    <ID>ReturnCount:ZenSpaces.kt:ZenSpaces$private fun decodeTab: ZenTabRecord?</ID>
+    <ID>ReturnCount:ZenSpaces.kt:ZenSpaces$private fun optStringList: List&lt;String&gt;?</ID>
+    <ID>ReturnCount:ZenSpaces.kt:ZenSpaces.ZenColorValue.Companion$fun fromHex: ZenColorValue?</ID>
+    <ID>ReturnCount:ZenSpaces.kt:ZenSpaces.ZenThemeDot.Companion$fun decodeAny: ZenThemeDot?</ID>
+    <ID>ReturnCount:ZiaIcons.kt:ZiaIcons$fun svg: String?</ID>
+    <ID>SafeCast:ZenSpaces.kt:ZenSpaces$if (v is String) v else null</ID>
+    <ID>SwallowedException:AccountStoreTest.kt:AccountStoreTest$e: AccountStore.OtherAccount</ID>
+    <ID>SwallowedException:AccountStoreTest.kt:AccountStoreTest$e: SyncError.SessionExpired</ID>
+    <ID>SwallowedException:ContractFixtureTests.kt:ContractFixtureTests$e: SyncError.TotpRequired</ID>
+    <ID>SwallowedException:FxAClient.kt:FxAClient$e: Exception</ID>
+    <ID>SwallowedException:FxAClient.kt:FxAClient$e: SyncError.Auth</ID>
+    <ID>SwallowedException:SpacesSync.kt:SpacesSync$e: IOException</ID>
+    <ID>SwallowedException:SpacesSync.kt:SpacesSync$e: SyncError.NotSignedIn</ID>
+    <ID>SwallowedException:SpacesSync.kt:SpacesSync$e: SyncError.SessionExpired</ID>
+    <ID>SwallowedException:SpacesSync.kt:SpacesSync$e: SyncError.TotpRequired</ID>
+    <ID>SwallowedException:SpacesWriteGateTest.kt:SpacesWriteGateTest$e: SyncError.WriteBackDisabled</ID>
+    <ID>SwallowedException:SyncTransportTests.kt:SyncTransportTests$e: SyncError.Crypto</ID>
+    <ID>ThrowsCount:FxAClient.kt:FxAClient$@Throws(Exception::class) suspend fun syncCredentials: TokenServerCreds</ID>
+    <ID>ThrowsCount:FxAClient.kt:FxAClient$private suspend fun fetchKB: ByteArray</ID>
+    <ID>ThrowsCount:FxAClient.kt:FxAClient$private suspend fun oauthAccessToken: String</ID>
+    <ID>ThrowsCount:FxAClient.kt:FxAClient$private suspend fun tokenServerCreds: TokenServerCreds</ID>
+    <ID>ThrowsCount:FxAClient.kt:FxAClient$suspend fun profile: Pair&lt;String, String&gt;</ID>
+    <ID>ThrowsCount:ScopedKeys.kt:ScopedKeys$fun decryptJwe: ByteArray</ID>
+    <ID>ThrowsCount:SyncClient.kt:SyncClient$fun bundle: SyncCrypto.KeyBundle</ID>
+    <ID>ThrowsCount:SyncCrypto.kt:SyncCrypto$fun decryptBSO: ByteArray</ID>
+    <ID>ThrowsCount:SyncWrite.kt:SyncWrite$private fun post: String</ID>
+    <ID>TooGenericExceptionCaught:FxAClient.kt:FxAClient$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SpacesSync.kt:SpacesSync$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SyncWrite.kt:SyncWrite$e: Throwable</ID>
+    <ID>TooManyFunctions:AddressRow.kt:dev.nerzouille.koan.ui.bar.AddressRow.kt</ID>
+    <ID>TooManyFunctions:BakedBlur.kt:BakedBlur</ID>
+    <ID>TooManyFunctions:Downloads.kt:Downloads</ID>
+    <ID>TooManyFunctions:ExternalLinks.kt:ExternalLinks : RequestInterceptor</ID>
+    <ID>TooManyFunctions:FaviconDiscovery.kt:FaviconDiscovery</ID>
+    <ID>TooManyFunctions:FaviconLoader.kt:FaviconLoader</ID>
+    <ID>TooManyFunctions:FxAClient.kt:FxAClient</ID>
+    <ID>TooManyFunctions:KoanDatabase.kt:KoanDao</ID>
+    <ID>TooManyFunctions:MainActivity.kt:MainActivity : FragmentActivity</ID>
+    <ID>TooManyFunctions:PagePrompts.kt:dev.nerzouille.koan.ui.menu.PagePrompts.kt</ID>
+    <ID>TooManyFunctions:PageVideo.kt:PageVideo</ID>
+    <ID>TooManyFunctions:PlayerParts.kt:dev.nerzouille.koan.ui.player.PlayerParts.kt</ID>
+    <ID>TooManyFunctions:SearchModel.kt:dev.nerzouille.koan.search.SearchModel.kt</ID>
+    <ID>TooManyFunctions:Settings.kt:Settings</ID>
+    <ID>TooManyFunctions:SitePermissions.kt:SitePermissions</ID>
+    <ID>TooManyFunctions:SpacesSyncService.kt:SpacesSyncService</ID>
+    <ID>TooManyFunctions:StackState.kt:StackState</ID>
+    <ID>TooManyFunctions:SyncClient.kt:SyncClient</ID>
+    <ID>TooManyFunctions:SyncWrite.kt:SyncWrite</ID>
+    <ID>TooManyFunctions:TabCard.kt:dev.nerzouille.koan.ui.overview.TabCard.kt</ID>
+    <ID>TooManyFunctions:TabManager.kt:TabManager</ID>
+    <ID>TooManyFunctions:ThumbnailStore.kt:ThumbnailStore</ID>
+    <ID>TooManyFunctions:VideoPlayer.kt:dev.nerzouille.koan.ui.player.VideoPlayer.kt</ID>
+    <ID>TooManyFunctions:ZenSpaces.kt:ZenSpaces</ID>
+    <ID>UnusedParameter:CardHero.kt:headerPx: Float</ID>
+    <ID>UnusedParameter:PlayerInsets.kt:width: Dp</ID>
+    <ID>UnusedParameter:ZenSpaces.kt:ZenSpaces$id: String</ID>
+  </CurrentIssues>
+</SmellBaseline>
