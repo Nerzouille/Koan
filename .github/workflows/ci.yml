@@ -1,5 +1,6 @@
-# Build and unit tests on every push and pull request to dev and main.
-# No secrets, no signing: the debug build only (release signing stays on the owner's machine).
+# Build, tests, static analysis and an R8 release build on every push and pull request to dev and
+# main. Three jobs run in parallel to stay under ~15 min. No secrets, no signing: without the
+# gitignored keystore.properties, release builds fall back to the debug key (app/build.gradle.kts).
 name: CI
 
 on:
@@ -21,9 +22,10 @@ env:
   ZSYNC_COMMIT: 9f49bc92cc01689be4a16414bb83c1638b6b6f0c
 
 jobs:
-  build:
+  test:
+    name: Unit tests + debug build
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -61,3 +63,83 @@ jobs:
           name: test-reports
           path: app/build/reports/tests/
           retention-days: 7
+
+  analysis:
+    name: detekt + Android lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Android SDK platform 37.2
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
+
+      # Both have a baseline (config/detekt/baseline.xml, app/lint-baseline.xml): only new issues fail.
+      - name: detekt
+        run: ./gradlew :app:detekt --stacktrace
+
+      - name: Android lint
+        if: success() || failure()
+        run: ./gradlew :app:lintDebug --stacktrace
+
+      - name: Reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: analysis-reports
+          path: |
+            app/build/reports/detekt/
+            app/build/reports/lint-results-debug.*
+          retention-days: 7
+
+  release:
+    name: R8 release build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Android SDK platform 37.2
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.2" "build-tools;37.0.0" > /dev/null
+
+      # R8 + resource shrinking, debug-signed (no keystore.properties here). Catches R8-only
+      # breakage and missing keep rules; checkReleaseZenIcons fails if the shrinker dropped the
+      # zen_* space icons.
+      - name: Release build (R8)
+        run: ./gradlew assembleRelease checkReleaseZenIcons --stacktrace
+
+      - name: APK size
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          bytes=$(stat -c %s "$apk")
+          {
+            echo "### Release APK (R8, debug-signed)"
+            echo
+            echo "| APK | Size |"
+            echo "|---|---|"
+            echo "| \`$(basename "$apk")\` | $(awk -v b="$bytes" 'BEGIN { printf "%.1f MB (%d bytes)", b / 1048576, b }') |"
+            echo
+            echo "Zen icons: $(cat app/build/reports/zenIcons/release.txt)"
+          } >> "$GITHUB_STEP_SUMMARY"

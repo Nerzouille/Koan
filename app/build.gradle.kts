@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.baselineprofile)
+    alias(libs.plugins.detekt)
 }
 
 // Local release signing. keystore.properties (gitignored) points at a keystore outside the repo.
@@ -128,6 +129,13 @@ android {
                 .forEach { resources.srcDir(contract.resolve(it)) }
         }
     }
+    // CI runs lintDebug. Issues already in the baseline are ignored; only new ones fail.
+    // Refresh it after fixing old ones: ./gradlew :app:updateLintBaselineDebug
+    lint {
+        baseline = file("lint-baseline.xml")
+        abortOnError = true
+        checkDependencies = false
+    }
     // UI strings are English only (CLAUDE.md): the libraries' translations stay out.
     androidResources {
         localeFilters += "en"
@@ -148,6 +156,17 @@ android {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+// Static analysis (CI). Plain `./gradlew :app:detekt` (no type resolution: fast, no compile).
+// Findings already in the baseline are ignored; only new ones fail. After fixing old ones:
+// ./gradlew :app:detektBaseline
+detekt {
+    source.setFrom("src/main/java", "src/test/java")
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true
+    baseline = rootProject.file("config/detekt/baseline.xml")
+    parallel = true
 }
 
 /**

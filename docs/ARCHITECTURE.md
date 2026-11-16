@@ -382,6 +382,8 @@ fragment, lifecycle-runtime(-compose), biometric, browser; Compose BOM (ui, ui-g
 foundation, animation, material3); Room (KSP); DataStore Preferences;
 kotlinx.coroutines; GeckoView omni and the AC modules listed under "Engine"; androidsvg (favicons);
 zxing-core (QR sign-in, decoding only). Tests: JUnit, `org.json:json`, kotlinx-coroutines-test.
+Build tooling: detekt 2.0 (Gradle plugin `dev.detekt`, CI static analysis, owner-approved
+2026-11-16; the 2.0 line is the one built on Kotlin 2.4).
 
 Allowed, not used yet: navigation-compose, WorkManager, kotlinx.serialization, androidx.security,
 Coil 3, baselineprofile, Turbine, Robolectric.
