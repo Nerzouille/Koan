@@ -1,25 +1,30 @@
 package dev.nerzouille.koan.ui.start
 
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,26 +34,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.bar.EssentialsGrid
+import dev.nerzouille.koan.ui.kit.rememberPresence
+import dev.nerzouille.koan.ui.kit.swipeDownToDismiss
 import dev.nerzouille.koan.ui.overview.Favicon
-import dev.nerzouille.koan.ui.icons.ZenIcon
 import dev.nerzouille.koan.ui.overview.SpaceModel
+import dev.nerzouille.koan.ui.overview.SpaceTitle
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.KoanType
-import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.StartPageTokens
 
 /**
  * Where Koan comes back after a while unused: the current space's essentials and a "Continue" card
  * for the last tab ([last], none if it's gone) above the dock, whose search field is focused. Not a tab: nothing exists until a search or an essential opens one.
  * Swipe down (or Back, or the field's ✕) goes back to the last tab. It shows at once and fades out.
- * [bottom]: the dock's height above the keyboard.
+ * [bottom]: the dock's height; the keyboard and navigation bar are added in layout.
  */
 @Composable
 fun StartPage(
@@ -59,39 +63,26 @@ fun StartPage(
     onOpenTab: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val alpha = remember { Animatable(0f) }
+    val alpha = rememberPresence(open, enter = snap(), exit = tween(StartPageTokens.FADE_OUT_MS), snapIn = true)
     // The last space shown stays while it fades out.
     var shown by remember { mutableStateOf(space) }
     if (open && space != null) shown = space
     var shownLast by remember { mutableStateOf(last) }
     if (open) shownLast = last
-    LaunchedEffect(open) {
-        if (open) alpha.snapTo(1f) else alpha.animateTo(0f, tween(StartPageTokens.FADE_OUT_MS))
-    }
-    if (!open && alpha.value == 0f) return
+    if (!alpha.composed) return
     val current = shown ?: return
     val dismiss by rememberUpdatedState(onDismiss)
     val palette = KoanTheme.colors
     Box(
         Modifier
             .fillMaxSize()
-            .graphicsLayer { this.alpha = alpha.value }
+            .graphicsLayer { this.alpha = alpha.progress }
             .background(palette.Base)
             .then(
                 if (!open) {
                     Modifier
                 } else {
-                    Modifier.pointerInput(Unit) {
-                        var total = 0f
-                        detectVerticalDragGestures(onDragStart = { total = 0f }) { change, dy ->
-                            total += dy
-                            if (total > StartPageTokens.SwipeDownToDismiss.toPx()) {
-                                total = Float.NEGATIVE_INFINITY
-                                dismiss()
-                            }
-                            change.consume()
-                        }
-                    }
+                    Modifier.swipeDownToDismiss(StartPageTokens.SwipeDownToDismiss) { dismiss() }
                 },
             ),
     ) {
@@ -100,21 +91,11 @@ fun StartPage(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = StartPageTokens.SidePadding)
+                .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime).only(WindowInsetsSides.Bottom))
                 .padding(bottom = bottom + StartPageTokens.BottomGap),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(OverviewTokens.SpaceIconBox).clip(RoundedCornerShape(OverviewTokens.SpaceIconRadius)).background(palette.Glass),
-                    contentAlignment = Alignment.Center,
-                ) { ZenIcon(current.icon, OverviewTokens.SpaceIconGlyph, tint = palette.TextPrimary) }
-                Spacer(Modifier.width(OverviewTokens.TitleGap))
-                Text(
-                    current.name,
-                    color = palette.TextPrimary,
-                    style = KoanType.title(OverviewTokens.TitleSize),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                SpaceTitle(current.icon, current.name)
             }
             Spacer(Modifier.height(StartPageTokens.TitleGap))
             if (current.essentials.isEmpty()) {

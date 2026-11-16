@@ -211,7 +211,7 @@ class SyncWrite(
         }
         if (count == 0 && collection == "passwords") throw Stop("backup read no records")
         context.getExternalFilesDir("sync-backup")?.let { ext -> runCatching { file.copyTo(File(ext, file.name), overwrite = true) } }
-        prefs.edit().putString("backup_$collection", file.name).putInt("backup_count_$collection", count).apply()
+        prefs.edit().putString("backup_$collection", file.name).apply()
         log("$collection: backup of $count encrypted records written")
     }
 

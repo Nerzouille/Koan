@@ -15,7 +15,14 @@ import kotlinx.coroutines.flow.first
  * private tabs need the fingerprint or PIN before they show again (on by default: after 1 min
  * away from Koan, or the screen turning off). Per process: a cold start opens normal mode, locked.
  */
-class PrivateMode(private val settings: Settings, private val count: StateFlow<Int>) {
+class PrivateMode(
+    private val settings: Settings,
+    private val count: StateFlow<Int>,
+    /** Private bookmarks (they're kept with no private tab open): the lock covers them too. */
+    private val bookmarks: suspend () -> Int = { 0 },
+    /** Time since boot, for the 1 min away (a test passes its own clock). */
+    private val now: () -> Long = SystemClock::elapsedRealtime,
+) {
     /** Private is shown: the private overview, or a private tab in the page view. */
     val on = MutableStateFlow(false)
 
@@ -32,27 +39,36 @@ class PrivateMode(private val settings: Settings, private val count: StateFlow<I
         context.applicationContext.registerReceiver(
             object : BroadcastReceiver() {
                 override fun onReceive(c: Context, intent: Intent) {
-                    if (intent.action == Intent.ACTION_SCREEN_OFF) locked.value = true
+                    if (intent.action == Intent.ACTION_SCREEN_OFF) onScreenOff()
                 }
             },
             IntentFilter(Intent.ACTION_SCREEN_OFF),
         )
     }
 
-    /** Koan went to the background. */
-    fun onHidden() {
-        hiddenAt = SystemClock.elapsedRealtime()
+    /** The screen turned off: locked at once, also with a PiP window on screen. */
+    fun onScreenOff() {
+        locked.value = true
     }
 
-    /** Koan is back: locked again if it was away [LOCK_AFTER_MS] or more. */
+    /**
+     * Nothing of Koan on screen any more (onStop): Koan went to the background, its PiP window was
+     * closed, or "Audio only" ended it. A PiP window still on screen is not this: it counts as
+     * Private open, with no timer.
+     */
+    fun onHidden() {
+        hiddenAt = now()
+    }
+
+    /** Koan is back (onStart): locked again if it was away [LOCK_AFTER_MS] or more. */
     fun onShown() {
         val at = hiddenAt ?: return
         hiddenAt = null
-        if (SystemClock.elapsedRealtime() - at >= LOCK_AFTER_MS) locked.value = true
+        if (now() - at >= LOCK_AFTER_MS) locked.value = true
     }
 
-    /** Whether showing Private needs the fingerprint first: the lock is on, there are private tabs, locked. */
-    suspend fun needsUnlock(): Boolean = locked.value && count.value > 0 && settings.privateLock.first()
+    /** Whether showing Private needs the fingerprint first: the lock is on, there are private tabs or bookmarks, locked. */
+    suspend fun needsUnlock(): Boolean = locked.value && (count.value > 0 || bookmarks() > 0) && settings.privateLock.first()
 
     companion object {
         const val LOCK_AFTER_MS = 60_000L

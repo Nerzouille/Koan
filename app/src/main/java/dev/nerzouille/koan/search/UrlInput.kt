@@ -55,7 +55,8 @@ fun displayHost(url: String): String {
     // about:, data:, … show as-is (a data: page may contain "://" further on).
     if (scheme.isEmpty() || !url.startsWith("$scheme://")) return if (scheme == "data") "data:" else url
     val afterScheme = url.substring(scheme.length + 3)
-    val host = afterScheme.substringBefore('/').substringBefore('?').substringBefore('#')
-        .substringAfter('@').substringBefore(':')
+    val authority = afterScheme.substringBefore('/').substringBefore('?').substringBefore('#').substringAfter('@')
+    // An IPv6 literal keeps its brackets and colons: "[::1]:8080" → "[::1]".
+    val host = if (authority.startsWith('[')) authority.substringBefore(']') + "]" else authority.substringBefore(':')
     return host.removePrefix("www.")
 }

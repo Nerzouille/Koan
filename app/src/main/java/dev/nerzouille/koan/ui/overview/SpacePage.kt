@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.overview
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -7,11 +8,12 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,11 +21,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -32,34 +34,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.kit.PrimaryButton
+import dev.nerzouille.koan.ui.kit.swipeDownToDismiss
+import dev.nerzouille.koan.ui.privacy.PrivateEmptyState
+import dev.nerzouille.koan.ui.privacy.PrivateTitle
+import dev.nerzouille.koan.ui.privacy.PrivateToggle
 import dev.nerzouille.koan.ui.theme.FirstRunTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.OverviewTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
-import dev.nerzouille.koan.ui.theme.SpaceColors
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import dev.nerzouille.koan.ui.kit.PrimaryButton
-import kotlin.math.abs
-import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
-import dev.nerzouille.koan.ui.privacy.PrivateEmptyState
-import dev.nerzouille.koan.ui.privacy.PrivateTitle
-import dev.nerzouille.koan.ui.privacy.PrivateToggle
 import dev.nerzouille.koan.ui.theme.PrivateTokens
+import dev.nerzouille.koan.ui.theme.SpaceColors
 import dev.nerzouille.koan.ui.topSafe
+import kotlin.math.abs
 
 @Immutable
 data class SpaceModel(
@@ -235,17 +231,7 @@ internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit
             }
             .fillMaxWidth()
             .height(OverviewTokens.HeaderHeight)
-            .pointerInput(Unit) {
-                var total = 0f
-                detectVerticalDragGestures(onDragStart = { total = 0f }) { change, dy ->
-                    total += dy
-                    if (total > OverviewTokens.SwipeDownToDismiss.toPx()) {
-                        total = Float.NEGATIVE_INFINITY
-                        onBack()
-                    }
-                    change.consume()
-                }
-            }
+            .swipeDownToDismiss(OverviewTokens.SwipeDownToDismiss, onBack)
             .padding(start = OverviewTokens.HeaderPadding, end = OverviewTokens.HeaderPaddingEnd),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -254,19 +240,7 @@ internal fun SpaceHeader(space: SpaceModel, badge: SyncBadge, onBack: () -> Unit
             if (privatePage) {
                 PrivateTitle()
             } else {
-                Box(
-                    Modifier.size(OverviewTokens.SpaceIconBox).clip(RoundedCornerShape(OverviewTokens.SpaceIconRadius)).background(KoanTheme.colors.Glass),
-                    contentAlignment = Alignment.Center,
-                ) { ZenIcon(space.icon, OverviewTokens.SpaceIconGlyph, tint = KoanTheme.colors.TextPrimary) }
-                Spacer(Modifier.width(OverviewTokens.TitleGap))
-                Text(
-                    space.name,
-                    color = KoanTheme.colors.TextPrimary,
-                    style = KoanType.title(OverviewTokens.TitleSize),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
+                SpaceTitle(space.icon, space.name, Modifier.weight(1f, fill = false))
                 SyncBadgeView(badge, onBadge)
             }
         }

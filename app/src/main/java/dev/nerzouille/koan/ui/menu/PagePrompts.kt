@@ -37,12 +37,12 @@ import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,12 +59,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.browser.observeSlice
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.CardChoices
 import dev.nerzouille.koan.ui.kit.KoanFieldFrame
 import dev.nerzouille.koan.ui.kit.PrimaryButton
+import dev.nerzouille.koan.ui.kit.SecondaryButton
 import dev.nerzouille.koan.ui.sheet.Detent
 import dev.nerzouille.koan.ui.sheet.KoanCard
 import dev.nerzouille.koan.ui.sheet.SheetState
@@ -73,10 +76,6 @@ import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.PromptTokens
 import dev.nerzouille.koan.ui.theme.SheetTokens
-import mozilla.components.browser.state.action.ContentAction
-import mozilla.components.browser.state.selector.findTab
-import mozilla.components.concept.engine.prompt.Choice
-import mozilla.components.concept.engine.prompt.PromptRequest
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -86,6 +85,10 @@ import java.time.ZoneOffset
 import java.time.format.TextStyle as DateTextStyle
 import java.util.Date
 import java.util.Locale
+import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.selector.findTab
+import mozilla.components.concept.engine.prompt.Choice
+import mozilla.components.concept.engine.prompt.PromptRequest
 
 /**
  * Everything a page asks through the engine that Koan answers on its floating card (design 7j):
@@ -357,34 +360,17 @@ private fun Buttons(
     Spacer(Modifier.height(SheetTokens.Gap * 2))
     // Two choices: side by side, the way out on the left (one rule for every card).
     if (secondary != null && third == null) {
-        Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
-            SecondaryButton(secondary.first, interactive, secondary.second, Modifier.weight(1f))
-            PrimaryButton(primary.first, onClick = { if (interactive) primary.second() }, modifier = Modifier.weight(1f))
-        }
+        CardChoices(primary.first, interactive, onAction = primary.second, onCancel = secondary.second, cancel = secondary.first)
         return
     }
     val others = listOfNotNull(secondary, third)
     if (others.isNotEmpty()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
-            others.forEach { (text, onClick) -> SecondaryButton(text, interactive, onClick, Modifier.weight(1f)) }
+        Row(horizontalArrangement = Arrangement.spacedBy(ButtonTokens.ChoiceGap)) {
+            others.forEach { (text, onClick) -> SecondaryButton(text, onClick, Modifier.weight(1f), enabled = interactive, paddingH = 0.dp) }
         }
         Spacer(Modifier.height(SheetTokens.Gap))
     }
     PrimaryButton(primary.first, onClick = { if (interactive) primary.second() }, modifier = Modifier.fillMaxWidth())
-}
-
-@Composable
-private fun SecondaryButton(text: String, interactive: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier
-            .height(ButtonTokens.Height)
-            .clip(CircleShape)
-            .background(KoanTheme.colors.GroupedRow)
-            .clickable(enabled = interactive, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text, color = KoanTheme.colors.TextPrimary, fontSize = ButtonTokens.TextSize, fontWeight = FontWeight.Medium, maxLines = 1)
-    }
 }
 
 // ---- <select> ------------------------------------------------------------------------------

@@ -211,12 +211,6 @@ object KoanIcons {
             moveTo(18f, 6.5f); arcTo(7.5f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 18f, y1 = 17.5f)
         }
     }
-    val Rotate: ImageVector by lazy {
-        stroked("rotate") {
-            moveTo(7f, 4f); lineTo(17f, 4f); lineTo(17f, 20f); lineTo(7f, 20f); close()
-            moveTo(20f, 9f); arcTo(6f, 6f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 20f, y1 = 15f)
-        }
-    }
     val ExitFullscreen: ImageVector by lazy {
         stroked("exit-fullscreen") {
             moveTo(9f, 4f); lineTo(9f, 9f); lineTo(4f, 9f)
@@ -254,6 +248,26 @@ object KoanIcons {
         stroked("pip") {
             moveTo(20f, 11f); lineTo(20f, 6f); lineTo(4f, 6f); lineTo(4f, 18f); lineTo(10f, 18f)
             moveTo(13f, 14f); lineTo(20f, 14f); lineTo(20f, 19f); lineTo(13f, 19f); close()
+        }
+    }
+    /** Turn the screen: a phone between two arrows going round. */
+    val Rotate: ImageVector by lazy {
+        stroked("rotate") {
+            moveTo(9f, 8f); lineTo(15f, 8f); lineTo(15f, 16f); lineTo(9f, 16f); close()
+            moveTo(4f, 12f); arcTo(8f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 12f, y1 = 4f)
+            moveTo(12f, 4f); lineTo(10f, 2f)
+            moveTo(12f, 4f); lineTo(10f, 6f)
+            moveTo(20f, 12f); arcTo(8f, 8f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 12f, y1 = 20f)
+            moveTo(12f, 20f); lineTo(14f, 18f)
+            moveTo(12f, 20f); lineTo(14f, 22f)
+        }
+    }
+    /** [Pip] crossed out: picture-in-picture off. */
+    val PipOff: ImageVector by lazy {
+        stroked("pip_off") {
+            moveTo(20f, 11f); lineTo(20f, 6f); lineTo(4f, 6f); lineTo(4f, 18f); lineTo(10f, 18f)
+            moveTo(13f, 14f); lineTo(20f, 14f); lineTo(20f, 19f); lineTo(13f, 19f); close()
+            moveTo(3f, 3f); lineTo(21f, 21f)
         }
     }
     val Unlock: ImageVector by lazy {
@@ -295,20 +309,6 @@ object KoanIcons {
             }
             path(fill = SolidColor(Color.White), stroke = SolidColor(Color.White), strokeLineWidth = 1.2f, strokeLineJoin = StrokeJoin.Round) {
                 moveTo(19.6f, 3.6f); lineTo(19.6f, 9.4f); lineTo(13.8f, 9.4f); close()
-            }
-        }.build()
-    }
-    /** Headphones (audio only). */
-    val Headphones: ImageVector by lazy {
-        ImageVector.Builder("headphones", 24.dp, 24.dp, 24f, 24f).apply {
-            path(stroke = SolidColor(Color.White), strokeLineWidth = 2f, strokeLineCap = StrokeCap.Round) {
-                moveTo(4.5f, 15f); lineTo(4.5f, 12f)
-                arcTo(7.5f, 7.5f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 19.5f, y1 = 12f)
-                lineTo(19.5f, 15f)
-            }
-            path(fill = SolidColor(Color.White)) {
-                moveTo(4f, 14f); lineTo(8f, 14f); lineTo(8f, 20f); lineTo(4f, 20f); close()
-                moveTo(16f, 14f); lineTo(20f, 14f); lineTo(20f, 20f); lineTo(16f, 20f); close()
             }
         }.build()
     }
@@ -379,12 +379,6 @@ object KoanIcons {
                 close()
             }
         }.build()
-    }
-    val Book: ImageVector by lazy {
-        stroked("book") {
-            moveTo(12f, 6.5f); curveTo(10f, 5f, 7f, 4.5f, 4f, 5f); lineTo(4f, 18.5f); curveTo(7f, 18f, 10f, 18.5f, 12f, 20f)
-            curveTo(14f, 18.5f, 17f, 18f, 20f, 18.5f); lineTo(20f, 5f); curveTo(17f, 4.5f, 14f, 5f, 12f, 6.5f); lineTo(12f, 20f)
-        }
     }
     /** Private mode (OVERVIEW_PRIVATE.md §7): a domino mask with two eye slits. */
     val Private: ImageVector by lazy {

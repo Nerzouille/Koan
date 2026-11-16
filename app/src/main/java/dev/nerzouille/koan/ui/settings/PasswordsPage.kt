@@ -1,80 +1,76 @@
 package dev.nerzouille.koan.ui.settings
 
 import android.annotation.SuppressLint
-import android.content.ClipData
-import android.content.ClipDescription
-import android.content.ClipboardManager
 import android.content.Context
-import android.os.PersistableBundle
 import android.view.View
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.platform.LocalView
-import androidx.biometric.BiometricManager.Authenticators
-import androidx.biometric.BiometricPrompt
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import dev.nerzouille.koan.data.Login
+import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.data.LoginSummary
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.kit.SecureWindow
 import dev.nerzouille.koan.ui.kit.KoanField
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.kit.PrimaryButton
+import dev.nerzouille.koan.ui.kit.SecureWindow
 import dev.nerzouille.koan.ui.kit.SelectionAction
 import dev.nerzouille.koan.ui.kit.SelectionBar
 import dev.nerzouille.koan.ui.kit.SelectionCheck
 import dev.nerzouille.koan.ui.kit.SelectionHeader
 import dev.nerzouille.koan.ui.kit.SiteIcon
 import dev.nerzouille.koan.ui.kit.SwipeRow
+import dev.nerzouille.koan.ui.kit.TextLink
+import dev.nerzouille.koan.ui.kit.copyText
+import dev.nerzouille.koan.ui.kit.deviceAuth
 import dev.nerzouille.koan.ui.kit.rememberSelection
 import dev.nerzouille.koan.ui.kit.selectionWash
-import dev.nerzouille.koan.ui.theme.ButtonTokens
-import dev.nerzouille.koan.ui.theme.SelectionTokens
-import dev.nerzouille.koan.ui.topSafePadding
-import androidx.activity.compose.BackHandler
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.style.TextOverflow
-import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.ui.theme.DownloadTokens
-import dev.nerzouille.koan.ui.theme.PasswordTokens
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import kotlinx.coroutines.launch
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.PasswordTokens
+import dev.nerzouille.koan.ui.theme.SelectionTokens
 import dev.nerzouille.koan.ui.theme.SettingsTokens
+import dev.nerzouille.koan.ui.topSafePadding
+import kotlinx.coroutines.launch
 
 /**
  * What the Passwords pages need. [unlocked]: the logins opened so far after the fingerprint or PIN
@@ -107,7 +103,7 @@ class PasswordsUi(
  * (ui/kit/LibraryRow): a tap opens the site's accounts (after the fingerprint or the device PIN,
  * once per visit), a swipe right to left deletes, a long press enters selection mode (Visit,
  * Delete). A delete always asks first; then Undo. Locked, a swipe or a long press asks for the
- * fingerprint or PIN first. The round + next to the search adds one by hand.
+ * fingerprint or PIN first. The floating + adds one by hand.
  */
 @Composable
 internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpenSite: (String) -> Unit, onAdd: () -> Unit) {
@@ -278,13 +274,14 @@ internal fun confirmDelete(ui: PasswordsUi, picked: List<Pair<String, List<Login
 @Composable
 private fun SiteRow(origin: String, site: String, subtitle: String?, value: String?, checked: Boolean?, on: Boolean, onTap: () -> Unit, onLong: () -> Unit) {
     val palette = KoanTheme.colors
-    val haptics = LocalHapticFeedback.current
+    val view = LocalView.current
+    val wash = selectionWash(checked == true)
     Row(
         Modifier
             .rowArea(
                 if (on) onTap else null,
-                if (on) { { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onLong() } } else null,
-                wash = selectionWash(checked == true),
+                if (on) { { KoanHaptics.hold(view); onLong() } } else null,
+                wash = { wash.value },
             )
             .height(if (subtitle != null) SettingsTokens.RowTallHeight else SettingsTokens.RowHeight),
         verticalAlignment = Alignment.CenterVertically,
@@ -432,14 +429,8 @@ private fun Account(s: LoginSummary, login: Login?, open: Boolean, on: Boolean, 
 
 /** A quiet word at a row's end ("Copy", "Reveal"); tappable on its own when [onClick] is given. */
 @Composable
-internal fun RowAction(label: String, onClick: (() -> Unit)? = null) {
-    Text(
-        label,
-        color = KoanTheme.colors.TextSecondary,
-        fontSize = SettingsTokens.RowValueSize,
-        modifier = if (onClick == null) Modifier else Modifier.clip(CircleShape).clickable(onClick = onClick).padding(SettingsTokens.Divider * 6),
-    )
-}
+internal fun RowAction(label: String, onClick: (() -> Unit)? = null) =
+    TextLink(label, onClick, SettingsTokens.RowValueSize, PaddingValues(SettingsTokens.Divider * 6))
 
 /** The site a login is for, as the list shows it. */
 private fun siteOf(s: LoginSummary): String = displayHost(s.origin).ifEmpty { s.origin }
@@ -450,25 +441,14 @@ private fun siteOf(s: LoginSummary): String = displayHost(s.origin).ifEmpty { s.
  */
 @SuppressLint("InlinedApi")
 private fun copy(context: Context, label: String, value: String, sensitive: Boolean, onCopied: (String) -> Unit) {
-    val clip = ClipData.newPlainText(label, value)
-    if (sensitive) clip.description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
-    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(clip)
+    copyText(context, label, value, sensitive)
     onCopied(label)
 }
 
-/** Asks for the fingerprint (or the device PIN / pattern) before passwords show. */
+/**
+ * Asks for the fingerprint (or the device PIN / pattern) before passwords show ([deviceAuth]); a
+ * phone with no screen lock opens them at once.
+ */
 fun authenticate(activity: FragmentActivity, title: String, onSuccess: () -> Unit) {
-    val prompt = BiometricPrompt(
-        activity,
-        ContextCompat.getMainExecutor(activity),
-        object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onSuccess()
-        },
-    )
-    prompt.authenticate(
-        BiometricPrompt.PromptInfo.Builder()
-            .setTitle(title)
-            .setAllowedAuthenticators(Authenticators.BIOMETRIC_STRONG or Authenticators.DEVICE_CREDENTIAL)
-            .build(),
-    )
+    activity.lifecycleScope.launch { if (deviceAuth(activity, title)) onSuccess() }
 }

@@ -163,13 +163,7 @@ class LoginStore(private val dao: KoanDao, private val box: SecretBox, private v
         @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
         private val KEYSTORE_POOL = Dispatchers.IO.limitedParallelism(4)
 
-        /** "accounts.example.co.uk" → "example.co.uk", roughly: the last two labels (three for short ccSLDs). */
-        fun baseDomain(host: String): String {
-            val labels = host.removePrefix("www.").split('.')
-            if (labels.size <= 2) return labels.joinToString(".")
-            val secondLevel = labels[labels.size - 2]
-            val keep = if (secondLevel.length <= 3 && labels.last().length == 2) 3 else 2
-            return labels.takeLast(keep).joinToString(".")
-        }
+        /** The site a login belongs to ([dev.nerzouille.koan.search.baseDomain]). */
+        fun baseDomain(host: String): String = dev.nerzouille.koan.search.baseDomain(host)
     }
 }

@@ -19,7 +19,6 @@ class FxAClient(
     private val transport: SyncHttpTransport = UrlConnectionTransport(readTimeoutMs = 30_000),
 ) {
     suspend fun completeWebLogin(
-        email: String,
         uid: String,
         sessionToken: String,
         keyFetchToken: String,

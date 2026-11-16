@@ -1,13 +1,5 @@
 package dev.nerzouille.koan.ui.overview
 
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.LayoutCoordinates
-import android.os.Build
-import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -17,11 +9,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.snapshots.Snapshot
-import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
@@ -29,14 +19,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.TileMode
@@ -49,25 +42,29 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.KoanPalette
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlin.math.PI
-import kotlinx.coroutines.flow.first
 import kotlin.math.abs
 import kotlin.math.ceil
-import kotlin.math.floor
 import kotlin.math.cos
+import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
+import kotlinx.coroutines.flow.first
 
 /**
  * The upright perspective stack (docs/UI_SPEC.md "Depth stack"). Cards are laid out once; every
@@ -268,7 +265,7 @@ fun DepthStack(
             val i = ids.indexOf(id)
             val card = currentById[id]
             if (i < 0 || card == null) return
-            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            KoanHaptics.confirm(view)
             val a = state.anim(id, i)
             a.flyDepth = geo.depthOf(a)
             a.gone = true
@@ -364,9 +361,9 @@ fun DepthStack(
                                 }
                             }
                             Gesture.LongPress -> if (hit != null) {
-                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                KoanHaptics.hold(view)
                                 reorder(state, hit.id, currentIds, down.id) {
-                                    view.performHapticFeedback(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) HapticFeedbackConstants.SEGMENT_TICK else HapticFeedbackConstants.CLOCK_TICK)
+                                    KoanHaptics.notch(view)
                                 }?.let { order ->
                                     pendingOrder = order
                                     currentOnReorder(order)

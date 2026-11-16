@@ -149,7 +149,7 @@ text on the pill ("ink") = the accent at 38% / 80% lightness.
 | `SheetScrim` | `#1C1C284D` | `#00000080` | Over the page while a sheet or floating card is open |
 | `DrawerScrim` | `#1C1C2829` | `#00000073` | Over the overview at full drawer open (with 14dp blur) |
 | `DrawerScrimNoBlur` | `#1C1C2852` | `#0000009E` | Same on Android 11 (no live blur) |
-| Stack dim | haze towards `DimColor` (= `Base`), ×1.25, max 0.60 | towards black, ×1, max 0.80 | Back cards in the depth stack (see 3.B Depth stack) |
+| Stack dim | haze towards `DimColor` (= `Base`), ×1.25, max 0.85 | towards black, ×1, max 1.0 (as in v0.4.0) | Back cards in the depth stack (see 3.B Depth stack) |
 
 ### 1.2 Typography
 
@@ -187,7 +187,7 @@ Type scale (every text size token, sp):
 | **15** | `TourTokens.LineSize`, `FirstRunTokens.ButtonSize`, `SignInTokens.BodySize`, `DrawerTokens.PinnedTitleSize`, `ToastTokens.TextSize`, `TabMenuTokens.TextSize`, `StartPageTokens.ContinueTitleSize`, `SearchTokens.TitleSize` |
 | **14.5** | `CardTokens.TitleSize` (tab card title, line 18sp) |
 | **14** | `CardTokens.PlaceholderDomainSize`, `OverviewTokens.EmptyBodySize`, `FirstRunTokens.BodySize`, `SignInTokens.NoticeSize`, `SignInTokens.LinkSize`, `BarTokens.SwitcherNameSize`, `SheetTokens.RowTrailingSize`, `SheetTokens.CardTextSize`, `SettingsTokens.RowValueSize`, `SettingsTokens.SegmentTextSize`, `SettingsTokens.VersionSize`, `SearchTokens.ChipTextSize` |
-| **13** | `SignInTokens.SubtitleSize`, `SignInTokens.StepNumberSize`, `DrawerTokens.MoreTextSize`, `DrawerTokens.FolderCountSize`, `DrawerTokens.StatusTextSize`, `SheetTokens.TileLabelSize`, `SettingsTokens.SectionTitleSize`, `SettingsTokens.ChipTextSize`, `DownloadTokens.ChipTextSize`, `StartPageTokens.ContinueSubtitleSize`, `StartPageTokens.LabelSize` |
+| **13** | `SignInTokens.SubtitleSize`, `SignInTokens.StepNumberSize`, `DrawerTokens.FolderCountSize`, `DrawerTokens.StatusTextSize`, `SheetTokens.TileLabelSize`, `SettingsTokens.SectionTitleSize`, `SettingsTokens.ChipTextSize`, `DownloadTokens.ChipTextSize`, `StartPageTokens.ContinueSubtitleSize`, `StartPageTokens.LabelSize` |
 | **12** | `BarTokens.TabsCountSize`, `SheetTokens.RowSubtitleSize`, `SettingsTokens.RowSubtitleSize`, `SettingsTokens.FooterSize`, `ToastTokens.DetailSize`, `SearchTokens.LabelSize`, `SearchTokens.UrlSize` |
 | **11.5** | `CardTokens.HostSize` (tab card host line, line 14sp) |
 | **11** | `SignInTokens.BadgeSize` |
@@ -247,6 +247,8 @@ drawer, sheets, first run), 16dp (start page), 20dp (settings, sign-in pages), 2
 | Depth-stack thumbnails | radius by depth `[0, 0, 0, 0.9, 1.9, 2.9, 4]` dp (CSS σ `[0, 0, .5, 1, 1.6, 2.2, 2.8]`); only the top 512 px slice is blurred |
 
 ### 1.7 Hairlines
+
+All 1dp lines share `SharedTokens.Hairline` (`SheetTokens.Divider`, `SettingsTokens.Divider`, `CardTokens.Hairline`, `SignInTokens.CardBorder`, `TourTokens.FrameBorder` point at it); grouped blocks share `SharedTokens.GroupRadius` 18dp (sheet, search and Downloads groups).
 
 1dp everywhere: card outline (`CardBorder`, light `#E4E4EA`, dark white 8%), sheet and settings
 dividers, sign-in choice cards' border, tour clip frame border. Focus rings are thicker: search
@@ -353,6 +355,16 @@ Gesture thresholds:
 | Pull to refresh | indicator moves 0.5× the finger; reloads past 72dp (max 120dp) |
 | Dismiss overview / start page by pulling down | 48dp / 64dp |
 | Dock on page scroll | always shown within 48dp of the top |
+
+Motion helpers in `ui/kit` (use them instead of writing the pattern again):
+
+- `rememberPresence(open, enter, exit, snapIn, startShown)` (`kit/Presence.kt`): anything that shows
+  and hides with a 0…1 animation. `progress` is read in layer / draw / layout lambdas only;
+  `composed` decides whether it is in the composition and changes only at the two ends (rule 9).
+  A second overload wraps an `Animatable` the caller drives itself (the toast). `startShown`
+  starts at the first target, like `animateFloatAsState`.
+- `animationsOff(context)` / `rememberAnimationsOff()` and `frameClock { deltaMs -> }`
+  (`kit/MotionKit.kt`): the system's "Remove animations", and an idle clock for illustrations.
 
 ### 1.9 Icons
 
@@ -517,7 +529,7 @@ address row; in the overview it grows a space-switcher row and further into the 
 | Dock top corner radius as drawer | 28dp | `DrawerTokens.TopRadius` |
 | Dock corner radius in page view | 0 (square) | `bar/KoanBar.kt` (`r` = 24·row·(1−d) + 28·d; row = 0 in page view) |
 | Upward shadow height | 28dp, vertical gradient transparent → `DockShadow`, also spans the corner radius | `BarTokens.DockShadowHeight`, `bar/KoanBar.kt` |
-| Drawer handle | bar 36 × 4dp, pill-shaped, 8dp from top, `DrawerHandle` colour; touch area 72 × 24dp | `BarTokens.HandleWidth`, `BarTokens.HandleHeight`, `BarTokens.HandleTop`, `BarTokens.HandleTouch`, `bar/KoanBar.kt` |
+| Drawer handle | bar 36 × 4dp, pill-shaped, 8dp from top, `DrawerHandle` colour; touch area 72 × 24dp | `BarTokens.HandleWidth`, `BarTokens.HandleHeight`, `SheetTokens.HandleTop`, `BarTokens.HandleTouch`, `kit/DragHandle.kt` |
 
 **Page load line** (page view only; fades out as the switcher row shows, `bar/KoanBar.kt`)
 
@@ -629,7 +641,7 @@ address row; in the overview it grows a space-switcher row and further into the 
 
 **Screenshots needed**
 1. Page view dock, counter showing "3" (light and dark).
-2. Counter at "∞" (a space with more than 99 tabs; use fake tabs from the debug fill).
+2. Counter at "∞" (a space with more than 99 tabs).
 3. Tab menu open above the dock, all three rows enabled.
 4. Tab menu with "Reopen closed tab" greyed out.
 
@@ -1237,13 +1249,13 @@ cover, atmosphere, the flip driver), `privacy/` (private tabs, vault, engine set
 full table is in the spec §5.1. Main values: Base `#DEDAF0` / `#110F24`, Card `#FFFFFF` /
 `#1E1C38`, Dock `#F6F4FD` / `#18162F`, text `#17142E` / white, `PrivateAccent` `#4B3FD6` /
 `#9C8CFF`, `PrivatePill` accent at 16% / 20%, `PrivateInk` `#2E2399` / `#CFC6FF`. Stack dim to
-`DimColor` (`#DEDAF0` haze, gain 1.25, max 0.60 / `#050412`, gain 1.0, max 0.80). Settings, History,
+`DimColor` (`#DEDAF0` haze, gain 1.25, max 0.85 / `#050412`, gain 1.0, max 1.0: the normal stack's v0.4.0 values, owner 2026-11-12). Settings, History,
 Downloads and the ⋯ sheet keep the normal palette (`KoanNormalTheme`).
 
 **Toggle** (`PrivateTokens`): 56×48 touch, 56×32 track (radius 16), 26dp white knob at x 3 → 27dp,
 mask 17dp inside. Track off `#86868B` / `#636366`, on `#4B3FD6` / `#7B6CF0`; mask off `#6E6E73` /
-`#636366`, on `#2E2399` / `#3A2FB8`. `Role.Switch`, "Private browsing". `CLOCK_TICK` on tap; taps
-ignored during the flip. (The other toggles keep `ToggleOff` `#848489` / `#8E8E93`: the spec's
+`#636366`, on `#2E2399` / `#3A2FB8`. `Role.Switch`, "Private browsing". `CLOCK_TICK` on tap; every
+tap acts, mid-flip too (its place stays a tap target while the headers slide). (The other toggles keep `ToggleOff` `#848489` / `#8E8E93`: the spec's
 `#636366` would be 2.2:1 on a dark grouped row, under the 3:1 rule.)
 
 **Header:** back · "Private" 20sp Bold · 10dp · "Not saved" chip (24dp, radius 12, padding 10,
@@ -1263,9 +1275,13 @@ per install. Static at rest.
 is one more page beside the space you were on, and a flip is the space pager's own motion between
 the two (`Motion.PagerSettle`, page + 40dp gap, same parallax and fade): into Private from the
 right, back to normal from the left. The overview gets both modes' models; during a flip it draws
-only those two pages, each in its own palette, and the normal one stays composed while Private
-shows (nothing composes on the way back). The tabs switch first and the slide waits for two quick
-frames (at most 12) while the incoming page composes off screen. Private's base colour (72dp soft
+only those two pages, each in its own palette. Both stay ready: the normal one stays composed
+while Private shows, and Private's page is composed off screen once the overview has settled, so
+nothing composes when a flip starts. The screen is one position (0 normal … 1 Private) on the
+pager's spring (damping 0.86, stiffness 300), advanced at most 20 ms per frame (a slow frame
+slows it, never skips it). A toggle mid-flip turns it around from where it is, speed kept; the
+screen always ends on the latest state. The tabs switch at the tap. Locked: the knob moves at
+once, the fingerprint is asked, the screen follows (the knob goes back if it's refused). Private's base colour (72dp soft
 edge) and its sky travel with its page; entering, stars and sparkles appear right to left (from
 140ms, spread 700ms, 480ms each, small twinkle). Knob 200ms. Dock: colour crossfades with the slide;
 its texts dip out and back in around 35% of it, where they switch. Reduced motion: a 150ms slide,
@@ -1737,14 +1753,14 @@ corners, 20dp padding, 10dp margins, scrim). Never the brand gradient. Shared pa
   20dp (18 + 2) `TextPrimary` (app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt).
 - **Card title** 18sp SemiBold `TextPrimary` (`CardTitleSize`); **card text** 14sp
   `TextSecondary` (`CardTextSize`).
-- **CardButton** (secondary on permission and download cards): height 50dp, pill, `GroupedRow`,
-  16sp Medium `TextPrimary`, no side padding (fills its weight) (app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt).
+- **Secondary buttons on cards**: the kit's `SecondaryButton` (50dp pill, `GroupedRow`, 16sp
+  SemiBold `TextPrimary`), `enabled = interactive`, no side padding when two share a row by weight.
 
 #### Permission prompt (app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt)
 
 **Anatomy:** column with 10dp gaps: [icon tile + 12dp gap + title "example.com wants to use your
 location" + reason ("It can see where this phone is.")]; 5dp spacer; row of "Block" and
-"Always allow" CardButtons (weight 1 each, 8dp gap); full-width PrimaryButton "Allow once".
+"Always allow" SecondaryButtons (weight 1 each, 10dp gap, `ButtonTokens.ChoiceGap`); full-width PrimaryButton "Allow once".
 Glyph per permission: Location, Camera (camera and camera+mic), Mic, Database (storage), Lock
 (protected media), Link (cross-site cookies), Globe (local network), Desktop (VR).
 **Behaviour:** Block = block and remember; Always allow = allow and remember; Allow once = allow now;
@@ -1756,8 +1772,8 @@ closing the card (tap outside, drag, Back) = blocked this time, nothing remember
 
 Shown when a page starts a download with no tap just before. Icon tile with the Download glyph;
 file name 18sp SemiBold, middle ellipsis; detail "1.2 MB · example.com" 14sp `TextSecondary`
-(size omitted when unknown) (app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt); 5dp spacer; row: "Cancel" CardButton +
-"Download" PrimaryButton, weight 1 each, 8dp gap. Closing the card = Cancel.
+(size omitted when unknown) (app/src/main/java/dev/nerzouille/koan/ui/KoanOverlays.kt); 5dp spacer; `CardChoices`: "Cancel" +
+"Download", weight 1 each, 10dp gap. Closing the card = Cancel.
 **Screenshot:** "example.pdf", "1.2 MB · example.com", light and dark.
 
 #### Duplicate download (app/src/main/java/dev/nerzouille/koan/ui/menu/DuplicateDownloadPrompt.kt)
@@ -1776,7 +1792,7 @@ A page wants to open an app. Floating card, column with 10dp gaps: the app's own
 10; else a `GroupedRow` tile with `Open` 18dp), 12dp, "Open in {app}?" 18sp SemiBold (1 line) over
 "{site} wants to open the app" 14sp `TextSecondary`; a row "Always for this site" (50dp,
 `GroupedRow`, 18dp corners, 16sp `TextPrimary`, trailing `KoanToggle`, the whole row toggles); 5dp;
-"Cancel" `CardButton` + "Open" `PrimaryButton`, weight 1 each, 8dp gap. Closing the card = Cancel.
+`CardChoices`: "Cancel" + "Open", weight 1 each, 10dp gap. Closing the card = Cancel.
 **Screenshot:** a demo page's app link, light and dark.
 
 #### File prompt (app/src/main/java/dev/nerzouille/koan/ui/menu/FilePrompt.kt)
@@ -1872,7 +1888,8 @@ stay." / "Sign out". The same `Confirm` is used for "Clear data for example.com?
 
 ### Buttons (app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt)
 
-**Purpose:** the four kit button styles. All 50dp tall (`ButtonTokens.Height`), pill
+**Purpose:** one `KoanButton(kind = Primary | Secondary | Destructive | Quiet)`; the four named
+buttons below are one-line wrappers. All 50dp tall (`ButtonTokens.Height`), pill
 shape, 28dp side padding (`ButtonTokens.PaddingH`), label 16sp (`ButtonTokens.TextSize`), content centred.
 
 | Variant | Fill | Label | Ref |
@@ -1882,22 +1899,21 @@ shape, 28dp side padding (`ButtonTokens.PaddingH`), label 16sp (`ButtonTokens.Te
 | `SecondaryButton` | `GroupedRow` (`#F2F2F5` / white @ 7%), overridable `surface` | `TextPrimary`, SemiBold | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt |
 | `DestructiveButton` | `GroupedRow`, overridable `surface` (`Card` when it sits on `Base`, e.g. History/Downloads' Clear) | `Destructive` (`#C42A20` / `#FF8077`), **SemiBold**; never a red fill | app/src/main/java/dev/nerzouille/koan/ui/kit/Buttons.kt |
 
-Related non-kit buttons: `CardButton` (`GroupedRow`, Medium, no padding;
-app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt), PagePrompts' private secondary (same, 1 line;
-app/src/main/java/dev/nerzouille/koan/ui/menu/PagePrompts.kt). **One destructive button:**
+Cards: two choices side by side are `CardChoices` (Cancel on the left, the action on the right,
+10dp gap, no side padding); the permission card and the page prompts put their secondaries side
+by side the same way above a full-width primary. Labels are one line. **One destructive button:**
 History/Downloads' "Clear", Site settings' "Clear site data", Delete (search engine) and the
 confirm cards all use `DestructiveButton` (their own pills are gone). A destructive *row* ("Sign
 out", "Delete password") is a `SettingsRow` with a red title; a destructive selection-bar action
 has a red glyph and label. The one red fill in the app is the library rows' delete swipe
 background (`ui/kit/SwipeRow.kt`: History, Downloads, Passwords).
 
-**States:** default; pressed = Material 3 ripple clipped to the pill. **No disabled style**: the
-kit buttons have no `enabled` parameter; callers ignore taps when not interactive
-(e.g. app/src/main/java/dev/nerzouille/koan/ui/menu/PermissionPrompt.kt). Never the brand gradient (UI_SPEC agrees).
+**States:** default; pressed = Material 3 ripple clipped to the pill. **No disabled style**:
+`enabled = false` (a card closing) only removes the click and the ripple. Never the brand gradient (UI_SPEC agrees).
 
 **Light vs dark:** Primary flips black ↔ white; the others only change their fill/label tokens.
 
-**Screenshot needed:** a permission card (Primary + two CardButtons) and the sign-out card
+**Screenshot needed:** a permission card (Primary + two secondaries) and the sign-out card
 (Destructive + Quiet), light and dark; Primary with a leading icon if one is used on the sign-in
 screen.
 
@@ -2108,6 +2124,18 @@ square with corners at 24% of its size (`TILE_RADIUS`). `colour = true` crossfad
 colours in 220ms (`COLOUR_MS`, two stacked images, layer alpha only). No usable icon (none cached,
 or one that can't be seen on this theme): the fallback glyph in `TextPrimary`, never a letter tile.
 
+### Small shared pieces (`ui/kit`, batch 4)
+
+Use these instead of rebuilding them: `DragHandle` (sheet and drawer grab handle),
+`Modifier.brandWash(height, alpha)` (the three-spot brand glow; `settingsWash`, the tour's title
+glow), `Modifier.swipeDownToDismiss(threshold, onDismiss)`, `KoanIconButton` (glyph on a round
+target, touch / glyph sizes passed), `CardHeader` + `CardIconTile` (floating cards' header),
+`EmptyLine` (one-line "nothing here"), `FileGlyph` (file glyph over its extension), `TextLink`
+(secondary text with a round ripple), `KoanDivider(inset, thickness)`, `RowTexts` (a row's title
+over subtitle, shared by `SheetRow` and `SettingsRow`), `SettingsToggleRow` / `SheetToggleRow`. In
+`ui/overview`: `SpaceTitle`. Confirmations go through `Overlays.ask` (one card) rather than their
+own `SheetState`.
+
 ### KoanClipboard (app/src/main/java/dev/nerzouille/koan/ui/kit/KoanClipboard.kt)
 
 Koan's own copies ("Copy link"). In private mode the clip is flagged sensitive, so Android 13+
@@ -2190,7 +2218,7 @@ Alpha `a`: light **0.20** (`WASH_ALPHA_LIGHT`), dark **0.16** (`WASH_ALPHA_DARK`
 
 **Purpose.** Small grey title above a group of settings rows (also used as day headers in History and Downloads).
 
-**Anatomy / sizes** (`SettingsKit.kt`): text `SectionTitleSize` **13sp** SemiBold, colour `TextSecondary`; padding top `SectionTop` **22dp**, bottom `Divider*4` = **4dp**. No icon, no uppercase transform (text as given: "General", "Display", "Privacy", "Koan", "Developer"; `SettingsScreen.kt`).
+**Anatomy / sizes** (`SettingsKit.kt`): text `SectionTitleSize` **13sp** SemiBold, colour `TextSecondary`; padding top `SectionTop` **22dp**, bottom `Divider*4` = **4dp**. No icon, no uppercase transform (text as given: "General", "Display", "Privacy", "Koan"; `SettingsScreen.kt`).
 
 **States.** Static.
 
@@ -2560,7 +2588,7 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 6. **16dp** (`Gap`) · **page dots** · 16dp.
 7. **Primary button**: "Next", last card "Get started" (tour) or "Got it" (What's new); full width minus 24dp each side (`Padding`); then 12dp.
 
-**Title glow** (`titleGlow`): same 3-spot layout as the Settings wash, `h = GlowHeight` **240dp**, radius h·0.75 = 180dp, alpha light **0.16** / dark **0.12** (`TourTokens.GLOW_ALPHA_LIGHT`, `TourTokens.GLOW_ALPHA_DARK`). Spots: Pink (0.10·w, 0.15·h), Violet (0.55·w, 0.05·h), Blue (0.95·w, 0.30·h). Drawn on every card (under the welcome backdrop).
+**Title glow** (`titleGlow`): same 3-spot layout as the Settings wash, `h = GlowHeight` **240dp**, radius h·0.75 = 180dp, alpha light **0.16** / dark **0.12** (`TourTokens.GLOW_ALPHA_LIGHT`, `TourTokens.GLOW_ALPHA_DARK`). Spots: Pink (0.10·w, 0.15·h), Violet (0.55·w, 0.05·h), Blue (0.95·w, 0.30·h). Drawn on every card whose title sits at the top (under the welcome backdrop); it fades out on a centred card (no media) and crossfades with the pager's position (`TourCard.centred`, read at draw time).
 
 **TourButton**: height **50dp** (`ButtonTokens.Height`), full pill, horizontal padding 28dp, text **16sp** (SemiBold filled / Medium unfilled). Filled = fill `lerp(Primary → White, FastOutSlowIn(welcome))`; label `OnPrimary` until welcome > 0.5, then **Black** (flips at mid-grey). Unfilled (Skip) = no fill, label `lerp(TextPrimary → White, welcome)`. Pressed = ripple. Note: Skip sits in the 44dp `SkipHeight` box, so its 50dp height is constrained to 44dp by the parent (Compose `height` respects incoming max constraints).
 
@@ -2579,10 +2607,10 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 
 **Purpose.** One tour/What's new card: title, one line, then a looping clip, still or drawn scene in a phone frame.
 
-**Card data** (`ui/tour/TourContent.kt`): title, line, dark/light MP4 (`res/raw`), framing (`Screen` = aspect **720/1478** (`SCREEN_CLIP_ASPECT`) or `Focus` = fill the slot), `welcome`, optional `icon`, dark/light still (`res/drawable-nodpi`), optional `scene` (`TourScene.SignIn`).
+**Card data** (`ui/tour/TourContent.kt`): title, line, dark/light MP4 (`res/raw`), framing (`Screen` = aspect **720/1478** (`SCREEN_CLIP_ASPECT`), `Landscape` = **1280/590** (`LANDSCAPE_CLIP_ASPECT`, the phone held sideways) or `Focus` = fill the slot), `welcome`, optional `icon`, dark/light still (`res/drawable-nodpi`), optional `scene` (`TourScene.SignIn`).
 
 **Anatomy** (`ui/tour/TourOverlay.kt`), centred column:
-1. (Text-only card with an `icon`: icon tile **96dp** (`TourTokens.IconTile`), radius **28dp** (`TourTokens.IconTileRadius`), `GroupedRow`, glyph **44dp** (`TourTokens.IconGlyph`) `TextPrimary`, then 24dp (Gap·1.5); content vertically centred. No current card uses this path: every card in `TourCards` and `Highlights` has a clip, still or scene, `TourContent.kt`.)
+1. (Text-only card with an `icon`: icon tile **96dp** (`TourTokens.IconTile`), radius **28dp** (`TourTokens.IconTileRadius`), `GroupedRow`, glyph **44dp** (`TourTokens.IconGlyph`) `TextPrimary`, then 24dp (Gap·1.5); content vertically centred. Used only by What's new "1.0"'s Two-way sync card (`KoanIcons.Key`), `TourContent.kt`; no title glow on it.)
 2. Title **22sp** Bold centred `TextPrimary` (`TitleSize`), horizontal padding 24dp.
 3. **6dp** (`TitleGap`); line **15sp** `TextSecondary` centred (`LineSize`), `minLines = 2` so frames line up across cards.
 4. 16dp; frame slot: **90%** of the width (`FRAME_WIDTH`), all the height left; frame sized to the clip's aspect (plus bezels) or the whole slot for Focus; then **10dp** (FrameShadow/2).
@@ -2592,7 +2620,7 @@ Without live blur (Android 11, `DeviceProfile.liveBlur` = SDK ≥ 31, `DevicePro
 
 **TourVideo** (`ui/tour/TourVideo.kt`): muted, looping MP4 via MediaPlayer on a TextureView, centre-crop to cover; view alpha 0 until the first rendered frame, then fades to 1 in **150ms** (`FADE_MS`); decoded only while composed. Stills: `Image` with `ContentScale.Crop`, top-centre aligned (`TourOverlay.kt`).
 
-**Clips in the app** (`TourContent.kt`, files `app/src/main/res/raw/*_{dark,light}.mp4`): tour_spaces (Focus), tour_stack (Screen), tour_tabs (Focus), tour_scrub (Focus), tour_search (Screen), tour_holds (Focus); What's new 0.4: SignIn scene (Focus), whatsnew_search (Screen), whatsnew_reopen (Screen), whatsnew_engines still (Screen). The dark/light variant follows Koan's theme (`TourOverlay.kt`).
+**Clips in the app** (`TourContent.kt`, files `app/src/main/res/raw/*_{dark,light}.mp4`): tour_spaces (Focus), tour_stack (Screen), tour_tabs (Focus), tour_scrub (Focus), tour_search (Screen), tour_holds (Focus); What's new 0.4: SignIn scene (Focus), whatsnew_search (Screen), whatsnew_reopen (Screen), whatsnew_engines still (Screen); What's new 1.0, every media card but the player in the same Screen frame, title and line at the top: whatsnew_private still (Screen, from the README captures), whatsnew_player clip (Landscape, the only sideways frame: Koan's player full screen on Big Buck Bunny from Wikimedia Commons, a tap for the controls, a hold for 2×, a double-tap for +10 s; one clip for both themes, the player is always dark), whatsnew_translate clip (Screen: the address bar's translate icon, the card, Translate, the page turns English), whatsnew_openapp clip (Screen: ⋯ › Open in Wikipedia, the article opens in the Wikipedia app), Two-way sync text + icon. Recorded on the Xiaomi with demo pages and public sites, status bar cropped off, taps drawn in post as rings. The dark/light variant follows Koan's theme (`TourOverlay.kt`).
 
 **Tour card list** (`TourContent.kt`): 1 Welcome to Koan / Your Zen Spaces, in your pocket. (welcome) · 2 Your Zen Spaces, on your phone · 3 Swipe up for your tabs · 4 Swipe sideways to switch tabs · 5 Hold and slide to change space · 6 Search shortcuts · 7 Long presses.
 
@@ -2729,7 +2757,6 @@ Without live blur only the first **3** (`SPARKLES_SIMPLE`).
 | Image, Install | Downloads' Open by type: picture, APK ("Install") `downloads/DownloadsScreen.kt` (22dp in the selection bar) |
 | Private | dock and address pill in private mode `bar/AddressRow.kt`; private parts `privacy/PrivateParts.kt`; Settings `settings/PrivacySettings.kt`; private download mark `downloads/DownloadsScreen.kt` (14dp, `DownloadTokens.PrivateGlyph`) |
 | Video player: Volume, VolumeOff, Fullscreen, ExitFullscreen, Pip, Unlock, Speed, SiteControls, PlayFilled, PauseFilled, SkipBackFilled, SkipAheadFilled, ReplayFilled | `player/VideoPlayer.kt`, `player/PlayerParts.kt`, `player/WebPlayer.kt` (sizes in `PlayerTokens`, see `docs/VIDEO_PLAYER.md`) |
-| Book, Rotate, Headphones | defined (`icons/KoanIcons.kt`) but **not used** anywhere |
 
 Rendered sizes come from: `BarTokens.Icon` 24dp, `SheetTokens.RowGlyph` 18dp, `SheetTokens.TileGlyph` 22dp, `SettingsTokens.RowGlyph` 20dp, `SearchTokens.ChipIcon` 14dp, `TabMenuTokens.Icon` 18dp, and the multipliers noted per row (e.g. `RowGlyph·0.8` = 16dp, `RowGlyph·0.85` = 17dp).
 
@@ -2765,7 +2792,7 @@ Definition: `BrandTokens.Colors` = Pink `#FF5FA2` → Violet `#B46BFF` → Blue 
 ---
 
 ### Spec vs code disagreements (brief)
-- `docs/UI_SPEC.md` "Screens" lists Settings as "account, sync, search engine, write-back toggle, add-ons, about". Code: sections General / Display / Privacy / Koan (+ Developer in debug); **no write-back toggle** on the Settings page (`ui/settings/SettingsScreen.kt`).
+- `docs/UI_SPEC.md` "Screens" lists Settings as "account, sync, search engine, write-back toggle, add-ons, about". Code: sections General / Display / Privacy / Koan; **no write-back toggle** on the Settings page (`ui/settings/SettingsScreen.kt`).
 - Typography: UI_SPEC now describes the code (system sans, `KoanType` styles, em line heights); resolved in the 2026-11-10 audit.
 - `docs/UI_SPEC.md` "Visual tokens" "cards 28dp": settings cards are **22dp**, choice cards 22dp, day cards 18dp, tour frame 30dp; the floating card and tour sheet match (28dp / 32dp top).
 - `docs/UI_SPEC.md` "Controls" "Destructive = red text only … never a red fill": the library rows' delete swipe background is a full `Destructive` fill (`ui/kit/SwipeRow.kt`).

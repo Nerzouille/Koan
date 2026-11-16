@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.view.TextureView
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -23,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.blockTouches
+import dev.nerzouille.koan.ui.theme.Motion
 import kotlinx.coroutines.launch
 
 /** What the standalone player's ⋯ menu does outside the player. */
@@ -51,6 +54,8 @@ class StandaloneActions(
     val download: () -> Unit,
     val shareLink: () -> Unit,
     val pip: () -> Unit,
+    /** Settings › Picture-in-picture, from the ⋯ menu. */
+    val setPipOnLeave: (Boolean) -> Unit = {},
 )
 
 /**
@@ -59,7 +64,7 @@ class StandaloneActions(
  * the screen under it as it was. Grows from [StandaloneVideo.from] (or the centre) and goes back.
  */
 @Composable
-fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: Boolean, onClosed: () -> Unit, onPlaying: (Boolean, Pair<Int, Int>?) -> Unit, onControls: (PlayerControls?, (() -> PlayerState)?) -> Unit) {
+fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: Boolean, pipOnLeave: Boolean = true, onClosed: () -> Unit, onPlaying: (Boolean, Pair<Int, Int>?) -> Unit, onControls: (PlayerControls?, (() -> PlayerState)?) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val native = remember(video.uri) { NativeVideo(context.applicationContext, video.uri) }
@@ -75,15 +80,25 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
     LaunchedEffect(st.playing, st.width, st.height) {
         onPlaying(st.playing, if (st.width > 0 && st.height > 0) st.width to st.height else null)
     }
-    // Any orientation while it is open (the phone's sensor), portrait again once closed.
+    // Any orientation while it is open (the phone's sensor), portrait again once closed. With the
+    // phone's auto-rotate off: the video's shape once it is known (F2), as a web fullscreen does.
     val activity = context as? Activity
+    val rotationLocked = rememberRotationLocked()
+    val shape = if (st.width > 0 && st.height > 0) st.height > st.width else null
+    // The rotate pill (auto-rotate off) turns it the other way.
+    var rotated by remember { mutableStateOf(false) }
+    LaunchedEffect(rotationLocked, shape, rotated) {
+        activity?.requestedOrientation = when {
+            !rotationLocked -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+            shape == null -> return@LaunchedEffect
+            else -> fullscreenOrientation(fullscreen = true, videoPortrait = shape != rotated, rotationLocked = true, turned = false)
+        }
+    }
     DisposableEffect(Unit) {
         val before = activity?.requestedOrientation
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
         val window = activity?.window
         val bars = window?.let { androidx.core.view.WindowCompat.getInsetsController(it, it.decorView) }
         bars?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        bars?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
         window?.let { immersive(it, true) }
         onDispose {
             window?.let { immersive(it, false) }
@@ -93,14 +108,22 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
         }
     }
 
+    // Portrait: the status bar stays and the top row sits under it; landscape: both bars away.
+    val orientation = androidx.compose.ui.platform.LocalConfiguration.current.orientation
+    LaunchedEffect(orientation) {
+        activity?.window?.let { playerBars(it, orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT) }
+    }
+
     val open = remember { Animatable(if (noMotion) 1f else 0f) }
+    // Controls wait until the morph is mostly done; read through a derived state, not per frame.
+    val early by remember { derivedStateOf { open.value < 0.6f } }
     val backdrop = remember { Animatable(if (noMotion) 1f else 0f) }
     val dragY = remember { mutableFloatStateOf(0f) }
     val dragScale = remember { mutableFloatStateOf(1f) }
     var closing by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        launch { backdrop.animateTo(1f, tween(180)) }
+        launch { backdrop.animateTo(1f, Motion.Fade) }
         open.animateTo(1f, PlayerTokens.OpenSpring)
     }
     fun close() {
@@ -109,8 +132,8 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
         native.pause()
         scope.launch {
             if (!noMotion) {
-                launch { backdrop.animateTo(0f, tween(200)) }
-                open.animateTo(0f, if (video.from != null) PlayerTokens.CloseSpring else tween(200))
+                launch { backdrop.animateTo(0f, Motion.FadeSlow) }
+                open.animateTo(0f, if (video.from != null) PlayerTokens.CloseSpring else Motion.FadeSlow)
             }
             onClosed()
         }
@@ -159,7 +182,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 modifier = Modifier.align(Alignment.Center),
             )
         }
-        val rows = when (video.mode) {
+        val rows = remember(video.mode, video.download, actions, native, pipOnLeave) { listOf(pipOnLeaveRow(pipOnLeave, actions.setPipOnLeave)) + when (video.mode) {
             PlayerMode.File -> listOf(
                 MenuRow(KoanIcons.Share, "Share") { actions.share() },
                 MenuRow(KoanIcons.Open, "Open with another app") { native.pause(); actions.openWith() },
@@ -168,8 +191,9 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 MenuRow(KoanIcons.Download, "Download video") { actions.download() },
                 MenuRow(KoanIcons.Share, "Share link") { actions.shareLink() },
             )
-        }
+        } }
         VideoPlayer(
+            onRotate = { rotated = !rotated },
             state = st,
             controls = native,
             mode = video.mode,
@@ -185,7 +209,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 dragY.floatValue = dy
                 dragScale.floatValue = s
             },
-            hidden = inPip || closing || open.value < 0.6f,
+            hidden = inPip || closing || early,
             modifier = Modifier.graphicsLayer { alpha = if (closing) 0f else 1f },
         )
         if (confirmDelete) {
@@ -216,7 +240,7 @@ private fun DeleteCard(name: String, onCancel: () -> Unit, onDelete: () -> Unit)
             Modifier
                 .width(300.dp)
                 .playerPanel(RoundedCornerShape(PlayerTokens.MenuRadius), PlayerTokens.PanelMenu)
-                .pointerInput(Unit) { awaitEachGesture { awaitFirstDown().consume() } }
+                .blockTouches()
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -235,7 +259,7 @@ private fun CardButton(label: String, color: androidx.compose.ui.graphics.Color,
     Box(
         modifier
             .height(44.dp)
-            .playerPanel(RoundedCornerShape(22.dp), PlayerTokens.Chip)
+            .playerPanel(RoundedCornerShape(PlayerTokens.PillRadius), PlayerTokens.Chip)
             .pressable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

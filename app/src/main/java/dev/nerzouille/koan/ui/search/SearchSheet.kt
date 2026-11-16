@@ -11,46 +11,48 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import dev.nerzouille.koan.search.Hit
-import dev.nerzouille.koan.search.parseQuery
 import dev.nerzouille.koan.search.Scope
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.search.Shortcut
 import dev.nerzouille.koan.search.Source
 import dev.nerzouille.koan.search.bareUrl
 import dev.nerzouille.koan.search.displayHost
+import dev.nerzouille.koan.search.parseQuery
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.kit.KoanDivider
+import dev.nerzouille.koan.ui.kit.rememberPresence
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
@@ -77,8 +79,8 @@ class SearchActions(
  * The search sheet above the address field while typing (design 7a): the page dims behind it,
  * the results are laid out bottom-up from the field (the best match right above it, less relevant
  * groups further up), capped below the status bar (it scrolls inside). "@" shows the engines and
- * scopes instead (7d). A tap outside the results closes it. [bottom]: the dock's height above the
- * keyboard. [open]: the address field is being edited; the dim fades in and out with it, whether
+ * scopes instead (7d). A tap outside the results closes it. [bottom]: the dock's height; the
+ * keyboard and navigation bar are added in layout ([keyboardRoom]). [open]: the address field is being edited; the dim fades in and out with it, whether
  * or not there is anything to show yet.
  */
 @Composable
@@ -95,14 +97,13 @@ fun SearchSheet(
     /** Private: the notice first, bookmarks and private tabs only. */
     private: Boolean = false,
 ) {
-    val fade = remember { Animatable(0f) }
-    LaunchedEffect(open) { fade.animateTo(if (open) 1f else 0f, Motion.SearchScrim) }
-    if (!open && fade.value == 0f) return
+    val fade = rememberPresence(open, Motion.SearchScrim)
+    if (!fade.composed) return
     val palette = KoanTheme.colors
     Box(
         modifier
             .fillMaxSize()
-            .drawBehind { drawRect(palette.SheetScrim, alpha = fade.value) }
+            .drawBehind { drawRect(palette.SheetScrim, alpha = fade.progress) }
             .then(if (open) Modifier.pointerInput(Unit) { detectTapGestures { actions.cancel() } } else Modifier),
     ) {
         if (open) Results(field, search, engine, shortcuts, bottom, currentSpace, actions, private)
@@ -126,15 +127,17 @@ private fun BoxScope.Results(
     val results = search.results
     val suggestions = search.suggestions
     val shortcut = parsed.shortcut
-    val density = LocalDensity.current
-    val screen = LocalWindowInfo.current.containerSize.height
-    val statusTop = WindowInsets.topSafe.getTop(density)
-    val cap = with(density) { (screen - statusTop - SearchTokens.StatusGap.toPx() - bottom.toPx() - SearchTokens.GroupGap.toPx()).toDp() }
     val pickable = parsed.picking && (
         shortcuts.any { pickMatch(parsed.rest, it.key, it.label) } || Scope.entries.any { pickMatch(parsed.rest, it.key, it.label) }
         )
     if (pickable) {
-        Picker(parsed.rest, engine, shortcuts, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom).heightIn(max = cap))
+        Picker(
+            parsed.rest, engine, shortcuts, actions,
+            Modifier
+                .align(Alignment.BottomCenter)
+                .keyboardRoom()
+                .padding(top = SearchTokens.StatusGap + SearchTokens.GroupGap, bottom = bottom),
+        )
         return
     }
     val showing = !parsed.picking && (private || !results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty()))
@@ -142,9 +145,9 @@ private fun BoxScope.Results(
     Column(
         Modifier
             .align(Alignment.BottomCenter)
-            .padding(bottom = bottom + SearchTokens.GroupGap)
+            .keyboardRoom()
+            .padding(top = SearchTokens.StatusGap, bottom = bottom + SearchTokens.GroupGap)
             .padding(horizontal = SearchTokens.Margin)
-            .heightIn(max = cap)
             // Starts at its bottom (the best results), scrolls up to the rest.
             .verticalScroll(rememberScrollState(), reverseScrolling = true)
             // Taps between groups land here, not on the "close" behind.
@@ -225,15 +228,7 @@ private fun Group(label: String?, icon: ImageVector?, favicon: String? = null, c
 }
 
 @Composable
-private fun Divider() {
-    Box(
-        Modifier
-            .padding(start = SearchTokens.RowPadding * 2 + SearchTokens.Favicon)
-            .fillMaxWidth()
-            .height(SearchTokens.ChipGap / 8)
-            .background(KoanTheme.colors.CardBorder),
-    )
-}
+private fun Divider() = KoanDivider(inset = SearchTokens.RowPadding * 2 + SearchTokens.Favicon, thickness = SearchTokens.ChipGap / 8)
 
 /** A page: favicon, title and address; an open tab shows its space. */
 @Composable
@@ -355,3 +350,12 @@ private fun Picker(typed: String, engine: SearchEngine, shortcuts: List<Shortcut
 /** "@wi" picks Wikipedia: what's typed after "@" starts its key or its name. */
 private fun pickMatch(typed: String, key: String, label: String) =
     typed.isEmpty() || key.startsWith(typed, ignoreCase = true) || label.startsWith(typed, ignoreCase = true)
+
+/**
+ * Keeps clear of the keyboard and navigation bar (bottom) and the status bar or camera (top), in
+ * layout: the keyboard's inset animates every frame and is never read in composition.
+ */
+@Composable
+internal fun Modifier.keyboardRoom(): Modifier = this
+    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime).only(WindowInsetsSides.Bottom))
+    .windowInsetsPadding(WindowInsets.topSafe)

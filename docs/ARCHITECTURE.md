@@ -43,7 +43,7 @@ relative to it unless they start with `app/`, `docs/` or `tools/`).
 | Package | What it holds |
 |---|---|
 | (root) | `KoanApp`, `MainActivity`, `SearchSelection` ("Search in Koan" trampoline), `DeviceProfile` (RAM tiers) |
-| `data` | Room (`KoanDatabase`, `KoanDao`, entities), `SpacesRepository`, `Settings`, `LastPlace`, `AccountStore`, `SecretBox`/`KeystoreBox`, `SafeStores` (DataStores that survive a corrupted file), `LoginStore`, `Bookmarks`, sync runs (`SpacesSync`, `LibrarySync`, `SyncWrite`, `SyncBack`), `ZenDiff` |
+| `data` | Room (`KoanDatabase`, `KoanDao`, entities), `SpacesRepository`, `Settings`, `LastPlace`, `AccountStore`, `SecretBox`/`KeystoreBox`, `SafeStores` (DataStores that survive a corrupted file), `LoginStore`, `Bookmarks`, sync runs (`SpacesSync`, `LibrarySync`, `SyncWrite`, `PhoneLogins`), `ZenDiff` |
 | `engine` | `Components`, `KoanScopes` (guarded process scopes), `KoanHttp` (Koan's own small requests), `TabManager`, `HistoryRecorder`, `ExternalLinks`, `SitePermissions`, `PageTools` (reader, find), `PageEngines`, `PageImages`, `PageVideo`, `PictureInPicture`, `UBlock`, `LoginAutofill`, `GeckoPrefs`, `GeckoFinder.java`, Custom Tabs and media services |
 | `engine/downloads` | `Downloads`, duplicate detection (`DuplicateDownloads`, `DuplicateMiddleware`), `KoanDownloadService` |
 | `favicon` | `IconStore` (Koan's), and Z-Sync's favicon loader, discovery, decoder, SVG rasteriser |
@@ -53,12 +53,14 @@ relative to it unless they start with `app/`, `docs/` or `tools/`).
 | `thumbs` | `ThumbnailStore`, `BakedBlur`, `BlankCheck` |
 | `update` | `UpdateCheck` |
 | `ui` (root files) | `KoanRoot.kt`, `KoanOverlays.kt`, `OverviewMotion.kt`, `DisplayRefresh.kt` (`RefreshBooster`), `SystemBars.kt` |
+| `ui/root` | Pieces of the root (`KoanRoot.kt` keeps layout, layers and the transitions): `RootState` (navigation state, saved value by value), `PrivateSwitch` (Private on / off), `IncomingLinks` (links and text from other apps), `PlayerActions` (the standalone player's menu) |
+| `ui/overlays` | One file per group of overlays drawn by `KoanOverlays` (menu, permissions, logins, link card, settings, library, tour) |
 | `ui/bar` | The dock: `KoanBar`, `AddressRow` (address field, find bar), `WorkspaceSwitcher`, `SpaceDrawer`, `BarGestures`, `SpaceScrub` |
 | `ui/browser` | `BrowserScreen` (hosts the `GeckoEngineView`), `DockState`, `PageCover`, `PullRefresh`, `TabSwipe`, `Fullscreen`, `ClosingPage`, `TranslateOfferHost`, `observeSlice` |
 | `ui/overview` | `OverviewScreen`, `SpacePage`, `SpacePager`, `DepthStack`, `StackState`, `DepthCurve`, `TabCard`, `CardHero`, `Favicon`, first-run card |
 | `ui/search`, `ui/start` | Search sheet and its state; start page |
 | `ui/menu` | The ⋯ menu pages and every prompt card (link, page prompts, file, logins, permissions, app links, downloads, translate, uBlock, site settings) |
-| `ui/sheet`, `ui/kit` | Sheet and card primitives (`SheetState`, `KoanSheet`, `KoanCard`); shared controls (buttons, field, toggle, toast, list pages, selection, swipe rows, `SecureWindow`) |
+| `ui/sheet`, `ui/kit` | Sheet and card primitives (`SheetState`, `KoanSheet`, `KoanCard`); shared controls (buttons, field, toggle, toast, list pages, selection, swipe rows, `SecureWindow`); motion helpers (`MotionKit`: `animationsOff`, `frameClock`; `Presence`: `rememberPresence`) |
 | `ui/settings`, `ui/history`, `ui/downloads` | Full-screen pages: settings (passwords, engines, privacy, translation, about), history, downloads |
 | `ui/player` | `VideoPlayer`, `WebPlayerLayer`, `StandalonePlayer`, `NativeVideo`, `PlayerModel.kt` (`PlayerHost`, `PlayerState`) |
 | `ui/privacy` | `PrivateFlip`, `PrivateAtmosphere`, private parts (toggle, lock cover), `unlockPrivate` |
@@ -285,7 +287,12 @@ native port per engine session. Bump the manifest version when a script changes.
   → hero morph layer → `StartPage` → `SearchSheet` → `KoanBar` (dock) → `KoanOverlays` → translate
   offer → standalone player → toasts → sign-in → private lock cover.
 - `ui/KoanOverlays.kt`: `Overlays` is the state of everything that opens over the page (⋯ menu,
-  prompt cards, Settings, Downloads, History, tour); `KoanOverlays` draws them.
+  prompt cards, Settings, Downloads, History, tour); `KoanOverlays` holds the state they share and
+  calls one composable per group, in z-order, from `ui/overlays/`: `MenuOverlays` (⋯ menu, clear
+  site data, `DockMenus`, `LanguageDeleteOverlay`), `PermissionOverlays`, `LoginOverlays` (logins,
+  file field, page prompts), `LinkCardOverlay` (link / image / download / duplicate card),
+  `SettingsOverlays` (+ `SignOutOverlay`), `LibraryOverlays` (Downloads, History, ask card),
+  `TourOverlays`.
 - Overview ↔ page: the hero morph animates the tab's screenshot between its card and the page
   rectangle; the live GeckoView is swapped in once it lands. A page cover shows the screenshot
   until the engine reports a first paint.
@@ -372,7 +379,7 @@ Both versions move together (`gradle/libs.versions.toml`). After a bump, check b
 
 In use (`gradle/libs.versions.toml`, `app/build.gradle.kts`): AndroidX core-ktx, activity-compose,
 fragment, lifecycle-runtime(-compose), biometric, browser; Compose BOM (ui, ui-graphics,
-foundation, animation, material3, tooling); Room (KSP); DataStore Preferences;
+foundation, animation, material3); Room (KSP); DataStore Preferences;
 kotlinx.coroutines; GeckoView omni and the AC modules listed under "Engine"; androidsvg (favicons);
 zxing-core (QR sign-in, decoding only). Tests: JUnit, `org.json:json`, kotlinx-coroutines-test.
 

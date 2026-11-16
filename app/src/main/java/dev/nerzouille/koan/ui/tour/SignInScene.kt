@@ -9,7 +9,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
@@ -30,6 +29,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import dev.nerzouille.koan.DeviceProfile
 import dev.nerzouille.koan.R
+import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.frameClock
 import dev.nerzouille.koan.ui.theme.BrandTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SignInSceneTokens as T
@@ -53,13 +54,7 @@ fun SignInScene(modifier: Modifier) {
     var clock by remember { mutableFloatStateOf(if (still) T.STILL_MS else 0f) }
     if (!still) {
         LaunchedEffect(Unit) {
-            var last = -1L
-            while (true) {
-                withFrameNanos { now ->
-                    if (last >= 0) clock = (clock + (now - last) / 1_000_000f) % T.LOOP_MS
-                    last = now
-                }
-            }
+            frameClock { clock = (clock + it) % T.LOOP_MS }
         }
     }
     val k = painterResource(R.drawable.koan_k)

@@ -58,8 +58,15 @@ class Toast(
     val action: String? = null,
     val detail: String? = null,
     val moment: Boolean = false,
+    /** Called once when this toast leaves the screen: timed out, swiped away, covered or replaced. */
+    val onGone: (() -> Unit)? = null,
+    /** Last, so `Toast("…", "Undo") { … }` is the action. */
     val onAction: (() -> Unit)? = null,
 )
+
+/** "… · Undo": [onUndo] puts it back; [onGone] runs when the toast leaves without it. */
+fun undoToast(message: String, detail: String? = null, onGone: (() -> Unit)? = null, onUndo: () -> Unit) =
+    Toast(message, "Undo", detail = detail, onGone = onGone, onAction = onUndo)
 
 /**
  * Confirms a copy to the clipboard. Android 13+ shows its own confirmation; below it nothing would,
@@ -84,13 +91,23 @@ class ToastState {
         private set
 
     fun show(toast: Toast) {
+        val old = this.toast
+        if (visible && old != null && old !== toast) old.onGone?.invoke()
         this.toast = toast
         serial++
         visible = true
     }
 
     fun dismiss() {
+        if (visible) toast?.onGone?.invoke()
         visible = false
+    }
+
+    /** Its action was tapped: the toast goes without its [Toast.onGone] first (the action decides). */
+    internal fun actionTaken(): Toast? {
+        val t = toast
+        visible = false
+        return t
     }
 }
 
@@ -102,6 +119,7 @@ class ToastState {
 @Composable
 fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) {
     val shown = remember { Animatable(0f) }
+    val presence = rememberPresence(shown) { state.visible }
     // A swipe sideways or down sends the toast away early (no action).
     val dragX = remember { Animatable(0f) }
     val dragY = remember { Animatable(0f) }
@@ -143,7 +161,7 @@ fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) 
     }
     val toast = drawn ?: state.toast
     val old = leaving
-    if (old == null && (toast == null || (!state.visible && shown.value == 0f))) return
+    if (old == null && (toast == null || !presence.composed)) return
     Box(
         modifier
             .fillMaxWidth()
@@ -168,13 +186,14 @@ fun KoanToastHost(state: ToastState, bottom: Dp, modifier: Modifier = Modifier) 
                 },
             )
         }
-        if (toast != null && (state.visible || shown.value > 0f)) {
+        if (toast != null && presence.composed) {
             ToastCard(
                 toast,
                 actionEnabled = state.visible,
                 onAction = {
-                    state.dismiss()
+                    state.actionTaken()
                     toast.onAction?.invoke()
+                    toast.onGone?.invoke()
                 },
                 modifier = Modifier
                     .graphicsLayer {

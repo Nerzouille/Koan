@@ -1,9 +1,8 @@
 package dev.nerzouille.koan.ui.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import dev.nerzouille.koan.ui.kit.SELECTION_FADE_MS
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,10 +15,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,28 +27,30 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onSizeChanged
-import dev.nerzouille.koan.ui.kit.CollapsingBar
-import dev.nerzouille.koan.ui.theme.KoanType
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.theme.BrandTokens
+import dev.nerzouille.koan.ui.kit.CollapsingBar
+import dev.nerzouille.koan.ui.kit.KoanDivider
+import dev.nerzouille.koan.ui.kit.KoanToggle
+import dev.nerzouille.koan.ui.kit.RowTexts
+import dev.nerzouille.koan.ui.kit.SELECTION_FADE_MS
+import dev.nerzouille.koan.ui.kit.brandWash
 import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 import dev.nerzouille.koan.ui.topSafePadding
 
@@ -59,18 +60,8 @@ import dev.nerzouille.koan.ui.topSafePadding
  */
 
 /** The soft pink → violet → blue glow behind the top of a settings page. */
-fun Modifier.settingsWash(dark: Boolean): Modifier = drawBehind {
-    val h = SettingsTokens.WashHeight.toPx()
-    val a = if (dark) SettingsTokens.WASH_ALPHA_DARK else SettingsTokens.WASH_ALPHA_LIGHT
-    val spots = listOf(
-        BrandTokens.Pink to Offset(size.width * 0.1f, h * 0.15f),
-        BrandTokens.Violet to Offset(size.width * 0.55f, h * 0.05f),
-        BrandTokens.Blue to Offset(size.width * 0.95f, h * 0.3f),
-    )
-    for ((color, center) in spots) {
-        drawCircle(Brush.radialGradient(listOf(color.copy(alpha = a), Color.Transparent), center, h * 0.75f), h * 0.75f, center)
-    }
-}
+fun Modifier.settingsWash(dark: Boolean): Modifier =
+    brandWash(SettingsTokens.WashHeight, if (dark) SettingsTokens.WASH_ALPHA_DARK else SettingsTokens.WASH_ALPHA_LIGHT)
 
 /**
  * One settings page (docs/UI_SPEC.md "Page header"): the page bar on top, a large [title] under it
@@ -138,14 +129,7 @@ fun SettingsSection(title: String) {
 }
 
 @Composable
-fun SettingsDivider() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(SettingsTokens.Divider)
-            .background(KoanTheme.colors.CardBorder),
-    )
-}
+fun SettingsDivider() = KoanDivider(thickness = SettingsTokens.Divider)
 
 /**
  * Glyph, title (and [subtitle]), then a quiet [value] and a chevron when it opens something.
@@ -180,23 +164,7 @@ fun SettingsRow(
             Icon(icon, null, tint = if (enabled) palette.TextPrimary else palette.TextDisabled, modifier = Modifier.size(SettingsTokens.RowGlyph))
             Spacer(Modifier.width(SettingsTokens.RowGlyphGap))
         }
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                color = when {
-                    !enabled -> palette.TextDisabled
-                    titleColor != Color.Unspecified -> titleColor
-                    else -> palette.TextPrimary
-                },
-                fontSize = SettingsTokens.RowTitleSize,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (subtitle != null) {
-                Text(subtitle, color = palette.TextSecondary, fontSize = SettingsTokens.RowSubtitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
+        RowTexts(title, subtitle, enabled, titleColor, SettingsTokens.RowTitleSize, SettingsTokens.RowSubtitleSize)
         val shown = if (!enabled) "Soon" else value
         if (shown != null) {
             Text(shown, color = if (enabled) palette.TextSecondary else palette.TextDisabled, fontSize = SettingsTokens.RowValueSize, maxLines = 1)
@@ -215,7 +183,8 @@ fun SettingsRow(
  * content stays aligned with the page's text and dividers.
  */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-internal fun Modifier.rowArea(onClick: (() -> Unit)?, onLongClick: (() -> Unit)? = null, wash: Color = Color.Transparent): Modifier =
+/** [wash]: a background colour read in draw only (the selection wash), or none. */
+internal fun Modifier.rowArea(onClick: (() -> Unit)?, onLongClick: (() -> Unit)? = null, wash: (() -> Color)? = null): Modifier =
     layout { measurable, constraints ->
         val inset = SettingsTokens.RowInset.roundToPx()
         val width = constraints.maxWidth + 2 * inset
@@ -223,7 +192,7 @@ internal fun Modifier.rowArea(onClick: (() -> Unit)?, onLongClick: (() -> Unit)?
         layout(constraints.maxWidth, placeable.height) { placeable.place(-inset, 0) }
     }
         .clip(RoundedCornerShape(SettingsTokens.RowRadius))
-        .background(wash)
+        .then(if (wash != null) Modifier.drawBehind { drawRect(wash()) } else Modifier)
         .then(
             when {
                 onClick != null && onLongClick != null -> Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
@@ -275,5 +244,20 @@ fun <T> Segmented(options: List<Pair<T, String>>, selected: T, interactive: Bool
                 )
             }
         }
+    }
+}
+
+/** A settings row with a switch: the whole row toggles; greyed and inert when not [on]. */
+@Composable
+fun SettingsToggleRow(
+    icon: ImageVector?,
+    title: String,
+    on: Boolean,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+    subtitle: String? = null,
+) {
+    SettingsRow(icon, title, on, subtitle = subtitle, onClick = { onChange(!checked) }) {
+        KoanToggle(checked = checked, onCheckedChange = if (on) onChange else null)
     }
 }

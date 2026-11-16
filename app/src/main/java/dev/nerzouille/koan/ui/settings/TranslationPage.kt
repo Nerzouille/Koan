@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import dev.nerzouille.koan.ui.kit.EmptyLine
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 
@@ -25,6 +26,9 @@ class TranslationSettings(
     val onRemoveSite: (String) -> Unit = {},
     /** The page opened: Gecko's lists are fetched again. */
     val onOpen: () -> Unit = {},
+    /** The card on pages in another language; ⋯ › Translate page works either way. */
+    val offer: Boolean = true,
+    val onOffer: (Boolean) -> Unit = {},
 )
 
 /**
@@ -41,11 +45,19 @@ internal fun TranslationPage(t: TranslationSettings, on: Boolean, onBack: () -> 
             color = palette.TextSecondary,
             fontSize = SettingsTokens.RowValueSize,
         )
+        SettingsToggleRow(
+            null,
+            "Offer to translate pages",
+            on,
+            checked = t.offer,
+            onChange = t.onOffer,
+            subtitle = "A card on pages in a language that isn't on your phone",
+        )
         Section("Always translate", t.always.map { it.second to { t.onRemoveLanguage(it.first) } }, "No language yet. Turn it on from ⋯ › Translate page.", on)
         Section("Never translate", t.never.map { it.second to { t.onRemoveLanguage(it.first) } }, "No language.", on)
         SettingsSection("On this phone")
         if (t.onPhone.isEmpty()) {
-            Text("No language downloaded yet.", color = palette.TextSecondary, fontSize = SettingsTokens.RowValueSize, modifier = Modifier.padding(vertical = SettingsTokens.Divider * 4))
+            EmptyLine("No language downloaded yet.", Modifier.padding(vertical = SettingsTokens.Divider * 4))
         }
         t.onPhone.forEachIndexed { i, (code, name, bytes) ->
             if (i > 0) SettingsDivider()
@@ -61,7 +73,7 @@ internal fun TranslationPage(t: TranslationSettings, on: Boolean, onBack: () -> 
 private fun Section(title: String, rows: List<Pair<String, () -> Unit>>, empty: String, on: Boolean) {
     SettingsSection(title)
     if (rows.isEmpty()) {
-        Text(empty, color = KoanTheme.colors.TextSecondary, fontSize = SettingsTokens.RowValueSize, modifier = Modifier.padding(vertical = SettingsTokens.Divider * 4))
+        EmptyLine(empty, Modifier.padding(vertical = SettingsTokens.Divider * 4))
         return
     }
     rows.forEachIndexed { i, (label, remove) ->

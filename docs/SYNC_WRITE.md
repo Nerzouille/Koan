@@ -41,7 +41,7 @@ refuses every request other than GET/HEAD on `spaces` while it is off (see [SYNC
    time.
 
 **Not built:** the undo journal and "Undo last sync writes" (rule 9), the dry-run mode (rule 2),
-bookmark uploads (the planner `BookmarkUpload` exists, nothing sends it), Spaces writes.
+bookmark uploads (the planner was removed in batch 4; nothing sends bookmarks), Spaces writes.
 
 **Accounts:** it runs on the owner's real account (not on a separate test account, see "Test
 plan"). Logins made on the phone use plain UUID ids (no braces); Firefox reads them back.
@@ -49,7 +49,8 @@ plan"). Logins made on the phone use plain UUID ids (no braces); Firefox reads t
 **Files:** `data/SyncWrite.kt` (the runs, backup, batches), `sync/SyncWritePlan.kt` (`PasswordAdds`,
 `PasswordEdits`, `HistoryWritePlan` = the history run's plan, built from `HistoryUpload` and
 `HistoryTombstones`, `ReadBack`), `sync/SyncBackPlan.kt`
-(`WriteGuard`, `LoginUpload`, `HistoryUpload`, `BookmarkUpload`: record building and validation),
+(`WriteGuard`, `LoginUpload`, `HistoryUpload`: record building and validation),
+`data/PhoneLogins.kt` (the phone's own logins, opened for the plan),
 `data/HistoryDeletions.kt` (pages removed on the phone, waiting for their tombstone),
 `sync/SpacesWriteGate.kt`.
 
@@ -234,7 +235,7 @@ whoever syncs in between), dropped titles/unknown fields on the parent folder.
 Bookmarks" on desktop). Koan doesn't edit or move the account's bookmarks in step 2. Koan's local
 bookmark ids aren't 12-char base64url today: new ids are generated at upload and stored.
 
-### Plan (original plan; as built: `HistoryUpload` and `BookmarkUpload` in `sync/SyncBackPlan.kt`, only history is sent)
+### Plan (original plan; as built: `HistoryUpload` in `sync/SyncBackPlan.kt`; the bookmark planner was removed, unused)
 
 `HistoryUpload` and `BookmarkUpload`, pure planners like passwords: history = the
 phone's own visits since the last upload, merged into the server records (or new records with fresh

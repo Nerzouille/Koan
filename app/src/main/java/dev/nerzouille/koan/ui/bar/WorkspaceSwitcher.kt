@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.bar
 
-import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,8 +20,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -33,6 +32,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.kit.KoanHaptics
 import dev.nerzouille.koan.ui.overview.SpaceModel
 import dev.nerzouille.koan.ui.overview.SpacePager
 import dev.nerzouille.koan.ui.theme.BarTokens
@@ -93,7 +93,7 @@ fun WorkspaceSwitcher(
                                 val target = geo.hit(p.x, s.toFloat(), s, s)
                                 if (target >= 0 && target != pager.settled) {
                                     pager.animateTo(target)
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    KoanHaptics.tick(view)
                                 }
                             }
                         }

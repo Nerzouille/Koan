@@ -124,9 +124,23 @@ owner's approval before going on.
 5. **Technical checks:** full unit test suite; full R8 release build from `main`; update path tested
    on the phone (previous release → new one: data kept, tour / What's new shown once);
    `tools/perf` against the previous release on the phone.
-6. **Release:** merge `dev` into `main`, tag on `main` (`vX.Y.Z`), draft the GitHub release (a
-   normal release, not a pre-release) with the APK and its SHA-256. **→ Stop: the owner publishes.**
+6. **Release:** merge `dev` into `main`, tag on `main` (`vX.Y.Z`), draft the GitHub release (a normal release, or a pre-release: see below) with the APK and its SHA-256. **→ Stop: the owner publishes.**
 7. **After the owner publishes:** draft a short Discord update post for the owner's thread.
+
+**Pre-release (beta / release candidate):** the same steps, with these differences.
+
+- Version `X.Y.Z-beta.N` or `X.Y.Z-rc.N` (`versionName`); `versionCode` still goes up by one.
+  Tag `vX.Y.Z-beta.N` on `main`, `gh release create … --prerelease`.
+- GitHub's `/releases/latest` skips pre-releases: never link to it (README, What's new); link to
+  `/releases` or the version's own tag page (`releaseUrl()` in `ui/tour`).
+- About's update check (`update/UpdateCheck.kt`) reads tags in semver order: a beta user is
+  offered the next beta and the final release; a user on a final 1.x never sees pre-releases.
+- What's new is keyed by feature version (`"1.0"`): a later beta of the same version shows
+  nothing unless that version's highlights change. Leave them as they are, or bump the key only
+  for a real new feature version.
+- Obtainium users only get it with **Include prereleases** on: say so in the release notes.
+- The final release after betas reuses the betas' CHANGELOG section (rename its heading, add what
+  changed since the last beta) and is a normal release (no `--prerelease`).
 
 ## Dev environment
 

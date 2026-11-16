@@ -1,9 +1,54 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-12**.
+State of Koan for a session that starts with no context. Last updated **2026-11-13**.
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
+
+- **v1.0.0-beta.1 is published (2026-11-13)** as a GitHub pre-release: tag on `main` at `e65c771`,
+  APK 222,701,496 bytes, SHA-256 `7ed7b1ec…77e6`, built from `main` (R8; `reference/release-1.0.0-beta.1/`,
+  gitignored). Afterwards on `dev` and `main` (fast-forward, same commit): README rewritten (old
+  personal voice, new screenshots in `docs/media/`), CHANGELOG dated with the release's Known
+  limitations. `release-prep` is merged into `dev` (PR #3 merged). The Discord post is the owner's.
+- **Next:** 1.0.0-beta.2, list in ROADMAP › For 1.0.0-beta.2 (depth cue, player Rotate row, video
+  download quality, translate icon / ring / state reset, Find counter, missing download files, the
+  Google Images wait and the download ring's check, which don't work on the phone and are Known
+  limitations of beta.1). Then Spaces write-back (behind `writeBackEnabled`, off).
+
+- **Release prep for v1.0.0-beta.1 (2026-11-12):** branch **`release-prep`** (from `dev`, pushed),
+  plan and night report in `docs/plans/NIGHT_PLAN.md`. Batch 5 tests (411 JVM tests, Robolectric
+  added), CI workflow (not run yet: open a draft PR to `dev`), semver update check, What's new
+  "1.0", the baseline profile (generated 2026-11-12, small gain: see the plan's "Morning
+  session"), README and release docs. Fixed in the morning: stuck start page after What's new,
+  "Translated" on every page. Staging R8 check and the update path done on the POCO. Still to do:
+  the owner's phone recheck (plan "Afternoon": rotation with the phone turning, the Private
+  switch, the lock, translation), then the release steps. Afternoon: translation offer change,
+  rotation safety net (`ui/browser/LayoutWatch.kt`, logs `KoanSize`), Private switch rework
+  (interruptible flip), captures done; CI green on PR #3 (draft, pushed head only). Evening:
+  the translation offer is an icon in the pill, the card on its own only on readable pages
+  (`ui/browser/TranslateCue.kt`); APK size explained (nothing by mistake).
+  Late: depth dim caps back to v0.4.0 (`DepthDimTest`); a depth-cue proposal for beta.2 is
+  prototyped on the local branch `depth-cue-proto` only (ROADMAP › For 1.0.0-beta.2).
+  Final prep (2026-11-12, night): README images in `docs/media/` (1080 wide, from the Xiaomi;
+  `docs/screenshots/` removed; retaken 2026-11-13: one image each (light, Private dark),
+  Wikipedia / Commons / this repo, 256-colour PNGs; grid of 6, the player full width, then About,
+  Settings signed out (staging copy) and What's new), tour cards 2 and 5 keep their clips
+  (owner: approved, fine to ship), CHANGELOG / FEATURES brought up
+  to date (translation icon, Private switch, rotation safety net, depth caps). Release notes and
+  the Discord post in `reference/` wait for the owner's approval. Local commits not pushed.
+  ⋯ menu shots retaken with the dev build (no translation state). APK size everywhere in decimal
+  MB (10⁶ bytes) from the R8 release build: 222,701,496 bytes = about 223 MB (2026-11-13, with the final What's new clips) (GitHub's asset list
+  shows binary units, ~212). Depth stays out of the release notes (a beta.2 item).
+  Next: owner's approvals, the phone recheck list, push, then release steps 6–7.
+  beta.2 list: ROADMAP › For 1.0.0-beta.2 (depth cue A/B/C and the blur, the player's Rotate row,
+  the Download video quality choice).
+  What's new "1.0" reworked (owner, 2026-11-12 night): every media card in the same Screen frame
+  (Private still, a translate clip, a new "Open in app" clip with the Wikipedia app), the player in
+  a sideways `Framing.Landscape` frame (a clip on Big Buck Bunny: controls, hold 2×, double-tap
+  +10 s, one clip for both themes), Two-way sync text + icon; the title glow fades on that centred
+  card. Clips 2026-11-13 recorded in the owner's Koan, scripts in
+  `reference/capture-tools/` (`take_openapp.sh`, `take_bbb.sh` + `bbb.txt` for the injector).
+  1.0.0-beta.1 replaces the planned 0.5; versionCode 10.
 
 - **Latest release: v0.4.0** ("Koan 0.4 (beta)"), tagged on `main` at `d4f3a2e`, published on
   2026-10-30 as a GitHub **pre-release**. versionName `0.4.0`, versionCode `9`: the next release
@@ -30,9 +75,17 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
      `docs/ARCHITECTURE.md` rewritten; `NIGHT_REPORT.md` and `REVIEW_NIGHT.md` removed (their
      rules are in `docs/UI_SPEC.md`).
   3. `geckoview-160` (merged into `dev`): GeckoView / android-components 160, see "Engine".
-  4. Refactoring, from **`docs/plans/BATCH4_BRIEF.md`** (branch `refactor` from `dev`): **next**,
-     before the release (see "Next concrete steps").
+  4. Refactoring (`docs/plans/BATCH4_PLAN.md`): merged into `dev` on 2026-11-12, see "Batch 4";
+     leftovers in `docs/ROADMAP.md` "Batch 4 leftovers".
   5. Tests, CI, baseline profile: after batch 4.
+- **The owner's fixes list** (`docs/FIXES.md`, 10 items, plus two rounds of the owner's phone
+  feedback and the stuck play button): built on branch `fixes`, the owner's recheck passed,
+  **merged into `dev` on 2026-11-12** (`0477033`, commits kept); `fixes` deleted, not pushed.
+  Plan `docs/plans/FIXES_PLAN.md`; checks and what was verified in `docs/plans/FIXES_CHECKS.md`.
+  346 JVM tests green on `dev`. Still worth watching: F2 / F4 on the Xiaomi (only the POCO was
+  used), the buffering-spinner case of the play button (fixed in code, not seen on the phone),
+  F10's sealed file (`files/private/bookmarks.sealed`, Keystore alias `koan_private_bookmarks`).
+  For beta.2: the Rotate row and the download quality choice (`docs/ROADMAP.md` "For 1.0.0-beta.2").
 - Engine: android-components **160.0** / GeckoView **160.0.20261104181552**
   (`gradle/libs.versions.toml`, the two versions move together), compileSdk **37.2** (AC 160
   requires it). Bump notes: ARCHITECTURE "Bumping android-components + GeckoView". Tested on the
@@ -43,16 +96,138 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
 - Milestones done and tagged: `m0`, `m1`, `m2`, `m3`, `m5`. M4 partly done (no tag), M6 passwords
   + history done on `dev` (Spaces, tabs, bookmarks never written), M7 partly done. Details per
   item in `docs/ROADMAP.md`.
-- Unit tests: 301 JVM tests on `dev`, green (`./gradlew testDebugUnitTest`). R8 staging build of
+- Unit tests: 301 JVM tests on `dev`, green (after batch 4: dead-code tests removed, batch 4 tests added)  (`./gradlew testDebugUnitTest`). R8 staging build of
   `dev` + 160 launched on the POCO without a crash (2026-11-11).
+
+## Batch 4 (branch `refactor`, merged into `dev` 2026-11-12)
+
+Plan: `docs/plans/BATCH4_PLAN.md` (defaults: SemiBold + 10 dp, 3.37 skipped, SeedData deleted). One
+commit per step; full suite + dev build per step; R8 release build installed on the POCO at the end of
+each group (launch + kill + restore checked).
+
+- **Group A, dead code (done, 6 commits):** SyncBack chain + bookmark planner, SyncClient's
+  single-record writes (postBatch is the only write left; its tests replace the postRecords ones),
+  favicon prefetch / synced-icon paths, small unused items + compose tooling + the 10 legacy
+  launcher bitmaps, SeedData + the debug fake-tab menu, three stale KDocs. 301 → 290 tests (all
+  deleted ones covered deleted code). R8 build: launches, restores after a kill, no crash.
+  **Check on the phone:** launcher and Settings › Apps still show the Koan icon (themed icon too);
+  favicons in the overview, search and History after a cold start; Settings › Mozilla account ›
+  Send to your Mozilla account still shows the three switches; a password sync and a history sync
+  still run (Sync now, status line under the switches).
+- **Group B, per-frame recompositions (done, 15 commits):** `ui/kit/MotionKit.kt` (one
+  `animationsOff`, `frameClock`), `ui/kit/Presence.kt` (`rememberPresence`) for the toast, dock
+  popup, search sheet, start page, player overlays and play glyph; the pill's space-mode fade and
+  the selection wash / check read in layers or draw; the standalone player's open morph; the
+  keyboard inset applied in layout (search sheet, start page); page load progress read only by the
+  load line, which now has its own layer and cached brushes; the seek scrub read in draw / layout
+  and the mist's blurs cached; card dims through layer alpha; overview page lambdas kept.
+  Measured on the POCO (staging copies, speed-profile, `tools/perf/frames.sh` + hand scenarios
+  keyboard and pull-to-refresh, local scripts): no scenario got worse beyond noise; reload p90
+  10 → 8–9 ms, space p90 19 → 13 ms at B2. The phone drops to half rate when warm after ~1 h of
+  runs: compare interleaved runs only (A/B/A/B). The player (B6) was not measured on the phone
+  (no player scenario). R8 build: launches, restores after a kill, no crash.
+  **Check on the phone:** toast in and out (and a toast replaced by another); dock popups (tab
+  counter long press, Back long press); typing in the address field on a page and on the start
+  page: results sit just above the keyboard and move with it, the "@" picker too; a page load: the
+  line runs, shimmers and fades as before, above the dock's top edge; Select all on History /
+  Passwords (wash and check marks fade); the player: open from Downloads (morph), tap to show /
+  hide the controls (soft blur), drag the seek bar (bubble follows the finger, time updates),
+  double-tap seek glow, brightness / volume swipe, 2× long press, ⋯ menu; overview scroll (dims
+  unchanged), space switch.
+- **Group C, root and overlays split (done, 6 commits; C4 skipped, optional):** `KoanOverlays`
+  1 370 → 313 lines, one composable per group in `ui/overlays/` (one commit: the groups were cut
+  from one function sharing state; a line-by-line check found every original line, verbatim).
+  `ui/root/`: `RootState` (the navigation values, each still its own `rememberSaveable`; the
+  root reads them through property delegates), `PrivateSwitch`, `IncomingLinks`, `PlayerActions`.
+  **Not done as planned:** the root's transitions stay in `KoanRoot.kt` and there is no
+  `RootStateTest`: the transitions call `TabManager`, `SpacePager`, `OverviewMotion` and the store,
+  so a JVM test needs interfaces over them (a design change, not a move): left for batch 5.
+  Checked on the staging copy: ⋯ menu, Site settings, Back, tab-counter menu, overview, Settings,
+  History, Private on / off, a link from another app while the overview is up, overview restored
+  after a kill. Perf, interleaved end of B / end of C: same or better except the drawer, janky
+  4.3 → 4.7–4.9 % and p99 36 → 40–42 ms in both pairs (inside the noise threshold, but consistent:
+  watch it). R8 build: launches, restores after a kill, no crash.
+  **Check on the phone:** every overlay opens and closes as before (⋯ menu and its pages, clear
+  site data, a site permission, "Open in app", logins chip / list / save, a page's <select> /
+  alert, long press on a link and an image, Save image, a download and a duplicate, tab counter
+  and Back long press, Settings and its pages, sign out card, Downloads, History, Clear data, the
+  tour from Settings › About); Private on / off and the lock; a link shared from another app;
+  kill Koan in the background with the overview open and come back. Open and close the drawer a
+  few times: it should feel the same.
+- **Group D, shared UI components (done, 14 commits; D12 dropped, as the plan allowed):**
+  `DragHandle`, `brandWash`, `SpaceTitle`, `swipeDownToDismiss`; `KoanButton(kind)` under the
+  four buttons (prompt cards' private secondaries gone); `SettingsToggleRow` / `SheetToggleRow`;
+  `KoanIconButton`; `CardHeader` + `CardIconTile`; `FileGlyph`, `PrivateIconTile`; `TextLink`;
+  `EmptyLine`; `KoanDivider`; `RowTexts` in both kit rows; clear site data, delete a language and
+  clear downloads now ask on `Overlays.ask`. **Visible change (decided):** prompt cards' secondary
+  buttons SemiBold (were Medium), 10dp between two buttons (were 8). **Left out:** touch-size
+  alignment (3.3, every icon button keeps its size), the chips (3.7: no two alike), the 4
+  hand-built rows (3.2), the scrim / spinner / field / label merges (3.12), the player's delete
+  dialog (draws over the overlays, so `ask` would sit under it). R8 build: launches, restores
+  after a kill, no crash.
+  **Check on the phone, light, dark and Private:** permission card (Block / Always allow / Allow
+  once), download card, "Open in app" card, a page's alert / confirm / <select> / date: buttons
+  SemiBold and 10dp apart, nothing else moved; sign-out and Clear browsing data cards; ⋯ › Site
+  settings › Clear site data, Settings › Translation › delete a downloaded language, Downloads ›
+  Clear: each asks on the floating card and does the same thing; Settings toggles (search
+  suggestions, hide status bar, picture-in-picture, uBlock, the three sync switches, Private
+  browsing's toggles); the menu's Desktop site, Translate's three switches, Site settings'
+  permission switches; the overview header and start page title, pull down to dismiss both;
+  sheet and drawer handles; empty Downloads / History; the private empty state and lock cover.
+- **Group E, motion and gestures (partly done, 6 commits):** duplicate springs merged (E1); three
+  fade tokens `Motion.FadeQuick / Fade / FadeSlow` for the player, `Modifier.mist` renamed
+  `flipTextDip` (E2); `Modifier.pressScale` and `slideUpPage` in `ui/kit/MotionKit.kt` (E3);
+  `KoanHaptics` everywhere (E4); `SwipeTokens.FLING_DP_PER_S` (E5, `SwipeTokensTest`);
+  `Modifier.blockTouches` (part of E9). **Not done, waiting for you:** E6 (`NeighbourDrag`), E7
+  (one drag loop) and E8 (one `swipeToDismiss`): the plan needs your feel check on a release build
+  after each caller, so they were left for a session with you. E9's system long-press timeout and
+  `tapOutside` would change behaviour (not in the allowed list): skipped. R8 build: launches,
+  restores after a kill, no crash.
+  **Check on the phone:** the player: tap the speed pill, Unlock, Replay (they now shrink on press
+  like the round buttons), the level indicator, spinner and 2× badge fades (20 ms longer or
+  shorter), the standalone player opening from Downloads; delete a History / Downloads /
+  Passwords row with a swipe (now a short haptic), long-press a downloaded language in ⋯ ›
+  Translate (now a haptic); a quick short swipe on a library row still deletes / hides; every
+  other haptic (toggles, dock scrub, stack, long presses) feels the same; Private's flip still
+  dips the dock's text.
+- **Group F, logic helpers (done except F6, 10 commits):** `search/Urls.kt` (`isWebUrl`,
+  `siteHost`, `baseDomain`; `UrlsTest` first) and its three fixes: an IPv6 address shows whole in
+  the pill, a `*.github.io` / `pages.dev`… login stays on its own site, an app-link "Always" holds
+  for `m.` / `www.` hosts (old choices still read); `copyText`; `ui/kit/DeviceAuth.kt` for
+  Private and Passwords (Passwords now open on a phone without a screen lock); Downloads' Undo tied
+  to its toast (`Toast.onGone`, `PendingDeletes`, `UndoWindowTest`): a replaced toast no longer
+  deletes the file seconds later; the player's Delete gains Undo (`undoToast`); `PageBridge` under
+  `PageEngines` / `PageImages`. **Left out:** the other host call sites (player `siteOf`,
+  `ownPlayer`, origins: same results, low value), the size formatters (merging would change shown
+  sizes), F6 (two favicon caches: memory only, needs a fair meminfo A/B). R8 build: launches,
+  restores after a kill, no crash.
+  **Check on the phone:** Downloads: delete a file, then before the toast goes do something that
+  shows another toast (copy a link): the file is gone at once and stays gone; delete then Undo:
+  it's back; hide then Undo; delete and wait: gone after the toast. The player: open a downloaded
+  video, ⋯ › Delete: "File deleted · Undo" brings it back in Downloads. Passwords: unlock with the
+  fingerprint as before; copy a username / password. A login saved on one `*.github.io` site is not
+  offered on another; one on `accounts.example.com` still is on `example.com`. "Open in app" with
+  "Always" on `m.youtube.com`, then a link on `youtube.com`: no card. ⋯ on a page that declares a
+  search engine: "Add this search engine"; long-press an image on Google Images: Save image waits
+  for the full one.
+- **Group G, tokens (G1, G2 done; G3 not started, it waits for your yes):** 13 unused tokens
+  deleted; `SharedTokens.Hairline` and `SharedTokens.GroupRadius` behind the five 1dp line tokens
+  and the three 18dp group radii; the player's corner radii as `PlayerTokens`. Values unchanged.
+  **Check on the phone:** nothing should look different: a sheet, Settings, the search sheet,
+  Downloads, the player's pills, bubble, badge and level indicator.
+- **Batch 4 overall:** the phone checks, riskiest first: `docs/plans/BATCH4_CHECKS.md`. E6–E8,
+  F6 and G3 are in `docs/ROADMAP.md` "Batch 4 leftovers" (after the release). 299 JVM tests, green. Final R8 release build installed on the POCO (real
+  app). Merged into `dev` on 2026-11-12 after the owner's tier 1 checks (`a4d39a3`); `refactor` deleted. Open for you: E6–E8 (gesture merges, need your feel check per
+  caller), G3, F6, the drawer's small perf drift (group C).
 
 ## Open branches
 
 | Branch | Base | What it contains | Status |
 |---|---|---|---|
-| `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3 merged. | Active |
+| `release-prep` | dev | v1.0.0-beta.1 prep: batch 5 tests, CI, baseline profile module, update check, README, release docs, the 2026-11-12 fixes. | Pushed up to 8b29879 (draft PR #3); later commits local only; not merged |
+| `depth-cue-proto` | release-prep | Depth-cue prototype A/B/C (31e6f5d), switched by `debug.koan.depthcue`. | Local only, **not for release** |
+| `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3, batch 4 and the fixes list merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
-| `fix/system-passkeys` | dev | System WebAuthn permissions, lifecycle-owned result routing, abandoned-result draining and Android Autofill. Credential UI uses the Activity context and a retained logical host; user dismissal is distinct from DOM abort. The pinned GeckoView 160 adapter preserves remote-only preparation results, with no generated callback class number. Design and limits: `docs/PASSKEYS.md`; source comparison/install identity: `docs/PASSKEYS_REVIEW.md`. | PR #2. 308 app + 11 adapter JVM tests (no skips), 15 Android integration tests. Debug and final ARM64 R8 flows passed creation/P-256 assertion, discoverable login, locked-supplier unlock handoff, nonmatching credential IDs with prompt failure/retry, pre-abort/invalid RP, user dismissal, provider errors/malformed responses, default links, bound Custom Tabs and system Autofill with GMS disabled. Preview .5 → .6 installed in place. Remote-only routing is checked through transformed bytecode and all candidate flag combinations; physical QR/security keys and real-device/provider interoperability remain unverified. |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
 | `statusbar` | dev (old) | Prototype: hide the status bar only while scrolling. | **Dropped** by the owner; kept for reference. Don't merge |
 
@@ -124,8 +299,8 @@ The night-batch branches (`library`, `sync-two-way`, `video`, `nightly`…) and 
 
 In this order (owner, 2026-11-11, changed the same day):
 
-1. **Batch 4**, refactoring, from `docs/plans/BATCH4_BRIEF.md` (branch `refactor` from `dev`).
-2. **The owner's fixes list** (the owner brings it).
+1. ~~**Batch 4**, refactoring~~: merged into `dev` 2026-11-12.
+2. ~~**The owner's fixes list**~~: merged into `dev` 2026-11-12 (not pushed yet).
 3. **Release 0.5** (CLAUDE.md release checklist; versionCode ≥ 10). It was planned for Friday
    2026-11-13, before batch 4 moved ahead of it: confirm the date with the owner. The owner's
    batch 1 phone checks (list under "Untested / unverified") come before it.
@@ -236,7 +411,7 @@ is ever committed (CLAUDE.md "Public repo").
 3. Per-theme find colours make light pages in dark Koan heavy (navy blocks); per page scheme is a one-line change in `GeckoPrefs.findPrefs`.
 4. Light toggle OFF `#848489` looks heavy: lighter fill + thin darker outline would also pass 3:1.
 5. About shows "About" then "Koan": start that page collapsed, or drop its large title.
-6. Tour clips (cards 2 and 5) show real data: re-record before a public release.
+6. ~~Tour clips (cards 2 and 5) show real data~~: the owner approved them for release (2026-11-12).
 
 ## Private mode (merged into `dev`, 2026-11-11)
 

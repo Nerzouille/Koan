@@ -1,8 +1,6 @@
 package dev.nerzouille.koan.ui.kit
 
 import androidx.compose.animation.core.animate
-import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.Job
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
@@ -13,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -24,19 +23,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.SettingsTokens
 import dev.nerzouille.koan.ui.theme.SwipeTokens
-import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /**
  * A library row's swipes (ui/kit/LibraryRow): right to left [onDelete] over red with the bin;
@@ -57,6 +58,7 @@ fun SwipeRow(
     shape: Shape = RectangleShape,
     content: @Composable () -> Unit,
 ) {
+    val view = LocalView.current
     val palette = KoanTheme.colors
     val scope = rememberCoroutineScope()
     // One owner for the offset: the drag writes it, the settle animation writes it, nothing else.
@@ -65,6 +67,7 @@ fun SwipeRow(
     val gesture = remember { Gesture() }
     var width by remember { mutableIntStateOf(0) }
     val nudge = with(LocalDensity.current) { SwipeTokens.Nudge.toPx() }
+    val flingPx = SwipeTokens.FLING_DP_PER_S * LocalDensity.current.density
     val delete by rememberUpdatedState(onDelete)
     val hide by rememberUpdatedState(onHide)
 
@@ -145,8 +148,9 @@ fun SwipeRow(
                         gesture.raw = 0f
                         val action = if (r < 0) delete else hide
                         val far = abs(r) > width * SwipeTokens.COMMIT
-                        val flung = abs(velocity) > SwipeTokens.FLING && (velocity < 0) == (r < 0)
+                        val flung = abs(velocity) > flingPx && (velocity < 0) == (r < 0)
                         if (action != null && r != 0f && width > 0 && (far || flung)) {
+                            if (r < 0) KoanHaptics.confirm(view)
                             settle(if (r < 0) -width.toFloat() else width.toFloat()) {
                                 action()
                                 if (springBack) settle(0f)

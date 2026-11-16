@@ -1,6 +1,5 @@
 package dev.nerzouille.koan.ui.kit
 
-import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.size
@@ -12,12 +11,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import dev.nerzouille.koan.ui.theme.BrandTokens
@@ -41,7 +40,7 @@ fun KoanToggle(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier
         indication = null,
         role = Role.Switch,
         onValueChange = {
-            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            KoanHaptics.tick(view)
             onCheckedChange(it)
         },
     )

@@ -8,17 +8,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,22 +26,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.kit.CardCancel
-import dev.nerzouille.koan.ui.downloads.fileOpenLook
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.text.style.TextOverflow
+import dev.nerzouille.koan.ui.downloads.fileOpenLook
+import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.CardCancel
+import dev.nerzouille.koan.ui.kit.FileGlyph
 import dev.nerzouille.koan.ui.sheet.SheetDivider
 import dev.nerzouille.koan.ui.sheet.SheetGroup
 import dev.nerzouille.koan.ui.sheet.SheetRow
@@ -97,9 +96,7 @@ fun DuplicateDownloadPrompt(
                     Image(thumbnail, null, contentScale = ContentScale.Crop, modifier = Modifier.size(SheetTokens.RowIconBox + SheetTokens.Gap * 2))
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(KoanIcons.File, null, tint = palette.TextPrimary, modifier = Modifier.size(SheetTokens.RowGlyph))
-                        val ext = name.substringAfterLast('.', "").take(4).uppercase()
-                        if (ext.isNotEmpty()) Text(ext, color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize * 0.7f, fontWeight = FontWeight.SemiBold)
+                        FileGlyph(name, SheetTokens.RowGlyph, SheetTokens.RowSubtitleSize * 0.7f)
                     }
                 }
             }

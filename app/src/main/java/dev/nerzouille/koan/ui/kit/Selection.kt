@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,11 +28,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.settings.SettingsSection
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SelectionTokens
@@ -66,6 +69,19 @@ class Selection<K> {
         keys = all
     }
 
+    /** Checks every key of [some] (a day), keeping what was already checked. */
+    fun addAll(some: Collection<K>) {
+        keys = keys + some
+    }
+
+    /** Unchecks every key of [some] (a day). */
+    fun removeAll(some: Collection<K>) {
+        keys = keys - some.toSet()
+    }
+
+    /** True when every key of [some] is checked (and there is at least one). */
+    fun hasAll(some: Collection<K>): Boolean = some.isNotEmpty() && keys.containsAll(some)
+
     fun clear() {
         keys = emptySet()
     }
@@ -94,15 +110,10 @@ fun SelectionHeader(count: Int, interactive: Boolean, onCancel: () -> Unit, onSe
             .padding(horizontal = SettingsTokens.Padding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(SettingsTokens.TopBar)
-                .clip(CircleShape)
-                .then(if (interactive) Modifier.clickable(onClick = onCancel) else Modifier),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            Icon(KoanIcons.Close, "Leave selection", tint = palette.TextPrimary, modifier = Modifier.size(SettingsTokens.BackGlyph))
-        }
+        KoanIconButton(
+            KoanIcons.Close, onCancel, SettingsTokens.TopBar, SettingsTokens.BackGlyph, palette.TextPrimary,
+            interactive = interactive, alignment = Alignment.CenterStart, contentDescription = "Leave selection",
+        )
         Text(
             "$count selected",
             color = palette.TextPrimary,
@@ -121,6 +132,33 @@ fun SelectionHeader(count: Int, interactive: Boolean, onCancel: () -> Unit, onSe
                     .clip(CircleShape)
                     .then(if (interactive) Modifier.clickable(onClick = onSelectAll) else Modifier)
                     .padding(horizontal = SelectionTokens.SelectAllPadH, vertical = SelectionTokens.SelectAllPadV),
+            )
+        }
+    }
+}
+
+/**
+ * A day's header in selection mode: the day, and at the end "Select all" (or "Deselect" once the
+ * whole day is checked). Same height as the plain day header, so nothing moves when selection
+ * starts. [keys] are the day's rows that can be checked now; empty = no link.
+ */
+@Composable
+fun <K> SelectionDayHeader(day: String, keys: Collection<K>, selection: Selection<K>) {
+    val palette = KoanTheme.colors
+    Box(Modifier.fillMaxWidth()) {
+        SettingsSection(day)
+        if (keys.isNotEmpty()) {
+            val all = selection.hasAll(keys)
+            Text(
+                if (all) "Deselect" else "Select all",
+                color = palette.TextPrimary,
+                fontSize = SettingsTokens.SectionTitleSize,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .clip(CircleShape)
+                    .clickable { if (all) selection.removeAll(keys) else selection.addAll(keys) }
+                    .padding(start = SelectionTokens.SelectAllPadH, end = SelectionTokens.SelectAllPadH, top = SelectionTokens.SelectAllPadV, bottom = SettingsTokens.Divider * 4),
             )
         }
     }
@@ -169,12 +207,12 @@ fun SelectionBar(actions: List<SelectionAction>, interactive: Boolean, modifier:
 @Composable
 fun SelectionCheck(checked: Boolean) {
     val palette = KoanTheme.colors
-    val fill by animateColorAsState(if (checked) palette.Primary else Color.Transparent, label = "check")
+    val fill = animateColorAsState(if (checked) palette.Primary else Color.Transparent, label = "check")
     Box(
         Modifier
             .size(SelectionTokens.Check)
             .clip(CircleShape)
-            .background(fill)
+            .drawBehind { drawRect(fill.value) }
             .then(if (checked) Modifier else Modifier.border(SelectionTokens.CheckRing, palette.TextSecondary, CircleShape)),
         contentAlignment = Alignment.Center,
     ) {
@@ -182,10 +220,9 @@ fun SelectionCheck(checked: Boolean) {
     }
 }
 
-/** A checked row's background: a light wash over the row's own surface. */
+/** A checked row's background: a light wash over the row's own surface. Read it in draw only. */
 @Composable
-fun selectionWash(checked: Boolean): Color {
+fun selectionWash(checked: Boolean): State<Color> {
     val palette = KoanTheme.colors
-    val wash by animateColorAsState(if (checked) palette.Glass else Color.Transparent, label = "wash")
-    return wash
+    return animateColorAsState(if (checked) palette.Glass else Color.Transparent, label = "wash")
 }

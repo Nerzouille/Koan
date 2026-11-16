@@ -1,8 +1,39 @@
 # Changelog
 
-## Unreleased (on `dev`)
+## Unreleased
 
 ### New
+
+- **System passkey integration:** website create/sign-in requests can reach Android's selected
+  credential provider. Providers may require Koan to be on their trusted-browser list.
+- Android's selected password Autofill service can suggest logins alongside Koan's own logins.
+
+### Improved
+
+- Passkey result routing follows Activity recreation, isolates retries and distinguishes user
+  dismissal from a website's abort. Credential Manager outcomes wait for the browser to resume.
+- Keep remote-only credential preparation results and handle missing Google services promptly
+  on the legacy fallback path.
+
+### Known limitations
+
+- Real-device and credential-provider interoperability still needs validation. GeckoView Android
+  does not implement conditional passkey suggestions or native in-flight cancellation.
+
+## 1.0.0-beta.1 — 2026-11-13 (pre-release)
+
+### New
+
+- **Private bookmarks:** the star in a private tab saves a bookmark kept apart from your normal
+  ones, shown only in Private, encrypted on the phone and never synced. Clear browsing data (in
+  Private) can delete them all. Bookmarks starred in Private before this version stay normal
+  bookmarks.
+- **Select all per day** in History and Downloads selection mode.
+- **Download video** always in the video player's ⋯ menu: it says in the player how the download
+  goes, saves a streamed video's plain file when its page offers one (Wikimedia Commons), and is
+  greyed out with the reason otherwise; a **PiP on leave** switch there too. The ⋯ menu grows
+  out of its pill.
+- Full-screen video **follows the phone's rotation**, portrait included, unless auto-rotate is off.
 
 - **Private browsing** (the switch at the right of the overview's header): private tabs in their
   own set, kept until you close them, also after a restart (sites sign you out then). Locked
@@ -26,8 +57,9 @@
   and pages you remove). Editing and deleting your account's passwords has its own switch, off by
   default. Before its first change, Koan keeps an encrypted copy of what your account had; any
   surprise stops it and turns the switch off. Spaces, tabs and bookmarks are never written.
-- **Translate pages on the phone** (Firefox Translations, nothing sent anywhere): an offer card on a
-  page in another language, ⋯ › **Translate page** (From / To with search, Recent and On this phone,
+- **Translate pages on the phone** (Firefox Translations, nothing sent anywhere): a translate icon in
+  the address bar on a page in another language (the offer card opens by itself only on articles),
+  ⋯ › **Translate page** (From / To with search, Recent and On this phone,
   Show original), **Always translate** a language, and **Settings › Translation** for your Always
   and Never lists and the languages on the phone.
 - **"Open in app" asks first:** a page's "Open app" button shows a card with the app's name and
@@ -38,8 +70,6 @@
   the bar at the bottom (Select all, ✕ or Back to leave).
 - **Add a password by hand:** Settings › Passwords › the round **+**.
 - Space icons picked with Zen's **Zia** mod show on the phone too.
-- **System passkeys:** website create/sign-in prompts can use Android's selected credential
-  provider. Providers may require Koan to be on their trusted-browser list.
 - **Safer sign-in links:** a Mozilla pairing link opened from another app (or pasted in the
   address field) shows a card first: Sign in, or Replace account when you're already signed in.
   When you're already signed in, the sign-in screen says which account a new sign-in replaces.
@@ -58,9 +88,10 @@
 - **A toast replacing another** lets the old one sink away while the new one rises.
 - **Cards:** two choices sit side by side (Cancel on the left); a card leading to another one (Save
   image → already downloaded) changes into it instead of closing and opening.
-- **Save image on Google Images** before the full picture has loaded waits for it and saves the full
-  image, not the small preview.
 - **Settings pages:** the large title stays solid until you really scroll.
+- **About's update check** knows betas: on a beta you're offered the next beta and the final
+  release, on a final release only final releases. "What's new" links to this version's own
+  release page (the old link pointed at a page that pre-releases don't have).
 - Koan no longer asks Android for the list of every installed app: it only looks for the apps
   behind web links and the app links sites use.
 - **Passwords pages** can't be captured in screenshots or the recent-apps preview.
@@ -71,34 +102,44 @@
 
 ### Fixed
 
+- After an update, Koan no longer stays stuck on the start page when What's new and the start
+  page come up together.
+- The ⋯ menu no longer says a page is translated when it isn't, and Translate works on it.
+- **Private's switch always reacts**, even mid-transition (it ignored taps for over a second):
+  the slide turns around from where it is and ends on your last tap. The slide no longer skips to
+  the end, and coming back from Private no longer shows blank cards first.
+- Leaving or entering a full-screen video checks that Koan's layout follows the rotation, and
+  repairs it within about 2 s if it stayed at the old size.
+- **Translation is offered quietly:** a small icon in the address bar on pages in a language that
+  isn't on your phone (any of your phone's languages counts), and the card opens by itself only
+  on real articles, never on search results; closed on a site, it waits until Koan restarts.
+  Settings › Translation › Offer to translate pages turns both off.
+- Private downloads no longer show in normal mode (list, ring, menu count, toast); Private has a
+  **Private** pill in Downloads.
+- Coming back to Private after a full-screen video no longer leaves it locked in landscape.
+- Double-tap to seek no longer flashes the controls; swipes from the top or bottom edge no longer
+  move brightness, volume or the timeline.
+- Picture-in-picture on leaving a full-screen video now also starts on sites where it didn't.
+- Video player: the play / pause button no longer gets stuck pressed or misses a tap (while the
+  video buffers, or as the controls fade); hidden controls no longer swallow a tap; portrait full screen keeps the status bar
+  and its top row clear of the camera; no white flash when a full-screen video turns; with
+  auto-rotate off a landscape video flips sides by itself and a rotate button (a few seconds after
+  you turn the phone) turns it to portrait.
+
+- A download already made in a private tab no longer shows up behind a normal download's "same
+  file" card.
 - Space icons picked from Zen's built-in icons were missing in release builds (0.4.0 and before).
 - **Downloads keep the name the site gives them** (for example "report.pdf"), instead of a name
   made from the link ("download.php").
 
-### Fixed
-
-- WebAuthn results reach the page after an Activity recreation; canceled or overlapping prompts
-  no longer leave an abandoned callback. Each Activity result is tied to its own request so a
-  late result cannot complete a retry; stopped hosts reject new launches.
-- Abandoned Activity results are drained after callback loss so credential responses do not
-  remain queued for a new sign-in. Destroyed hosts cannot restart the bridge.
-- Credential Manager uses the browser Activity's task. Results wait for the page to resume
-  before a website can start its next credential request, avoiding overlapping closing panels.
-- Credential outcomes follow their own Activity recreation, without waiting for an unrelated
-  new window. User dismissal returns NotAllowedError, distinct from a website's AbortSignal.
-- A system preparation result containing only a remote credential entry keeps its native
-  pending handle, rather than being discarded as if no credential option were available.
-- Devices with Android Credential Manager no longer depend on Google FIDO for their platform
-  passkey capability check. Missing/disabled Google services fail promptly on legacy fallback.
-- Legacy Google FIDO login tasks now return failures/cancellations to the page; dismissing their
-  Activity returns NotAllowedError, consistently with the system credential flow.
-- Android's selected password Autofill service can suggest logins alongside Koan's own logins.
-
 ### Known limitations
 
-- The full-image wait on Google Images can still pick the wrong moment; it will get another look.
-- Conditional passkey suggestions in username fields are not implemented by GeckoView Android.
-  This is separate from explicit passkey buttons and ordinary username/password Autofill.
+- **Long screenshots** on HyperOS still don't scroll Koan's pages.
+- **Save image on Google Images** before the full picture has loaded doesn't wait for it yet: it
+  saves the preview.
+- The download ring's check at the end of a download doesn't show yet.
+- **arm64 only** (64-bit ARM phones); APK about 223 MB.
+- Spaces stay read-only for now: two-way sync for Spaces is the next big step.
 
 ## 0.4.0 — 2026-10-30 (beta)
 

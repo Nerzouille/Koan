@@ -154,6 +154,9 @@ class Components(context: Context) {
     /** The activity's picture-in-picture (MainActivity): whether Koan is in its PiP window. */
     val pip = MutableStateFlow<PictureInPicture?>(null)
 
+    /** The translate icon in the address pill and its card (lives until Koan restarts). */
+    val translateCue = dev.nerzouille.koan.ui.browser.TranslateCueState()
+
     /** A download Koan didn't see a tap for, waiting on its card (KoanOverlays). */
     val downloadAsk = MutableStateFlow<DownloadAsk?>(null)
 
@@ -169,6 +172,9 @@ class Components(context: Context) {
     fun watchDownloadLocation() = appScope.launch {
         settings.downloadLocation.collect { pickedDownloadFolder = it }
     }
+
+    /** Gecko's own HTTP client (the engine's network, cookies and private session): Koan's requests on a tab's behalf. */
+    val fetchClient by lazy { mozilla.components.browser.engine.gecko.fetch.GeckoViewFetchClient(appContext, runtime) }
 
     // ---- private mode ----
 
@@ -186,7 +192,18 @@ class Components(context: Context) {
     fun shownTabs(): TabManager = if (privateMode.on.value) privateTabs.tabs else tabs
 
     /** Private shown or not, and its lock. */
-    val privateMode by lazy { dev.nerzouille.koan.privacy.PrivateMode(settings, privateTabs.count) }
+    val privateMode by lazy { dev.nerzouille.koan.privacy.PrivateMode(settings, privateTabs.count, bookmarks = { privateBookmarks.count() }) }
+
+    /** Bookmarks made in private tabs: sealed with their own Keystore key, never in Room, never synced. */
+    val privateBookmarks by lazy {
+        dev.nerzouille.koan.privacy.PrivateBookmarks(
+            dev.nerzouille.koan.privacy.SealedFile(
+                java.io.File(appContext.filesDir, "private/bookmarks.sealed"),
+                dev.nerzouille.koan.data.KeystoreBox("koan_private_bookmarks"),
+            ),
+            appScope,
+        )
+    }
 
     private var privacyStarted = false
 
@@ -228,7 +245,7 @@ class Components(context: Context) {
                 .distinctUntilChanged()
                 .collect { playing ->
                     playing.forEach { (id, url) ->
-                        val icon = FaviconLoader.image(url, null) ?: return@forEach
+                        val icon = FaviconLoader.image(url) ?: return@forEach
                         withContext(Dispatchers.Main) { store.dispatch(ContentAction.UpdateIconAction(id, url, icon)) }
                     }
                 }

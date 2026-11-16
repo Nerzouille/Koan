@@ -1,8 +1,8 @@
 package dev.nerzouille.koan.ui.tour
 
-import android.content.Context
+import dev.nerzouille.koan.ui.kit.animationsOff
+import dev.nerzouille.koan.ui.kit.frameClock
 import dev.nerzouille.koan.ui.theme.KoanType
-import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -27,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -70,10 +69,6 @@ import kotlinx.coroutines.launch
  * already in place and only pops (play's [pop]). Swiping on flies it off to the left, following the pager
  * both ways. Everything moves in layers and draw only: nothing recomposes per frame.
  */
-
-/** The system's "remove animations" (animator duration scale 0): no motion, everything just shows. */
-fun animationsOff(context: Context): Boolean =
-    Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
 
 /** The welcome card's clocks, read in layers and draw only. */
 @Stable
@@ -139,13 +134,7 @@ class WelcomeMotion {
 
     /** Advances the idle clock every frame until cancelled (the card left the screen). */
     suspend fun run() {
-        var last = -1L
-        while (true) {
-            withFrameNanos { now ->
-                if (last >= 0) clock += (now - last) / 1_000_000f
-                last = now
-            }
-        }
+        frameClock { clock += it }
     }
 
     private companion object {

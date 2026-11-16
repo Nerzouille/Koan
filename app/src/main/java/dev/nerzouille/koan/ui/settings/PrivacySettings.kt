@@ -7,7 +7,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import dev.nerzouille.koan.BuildConfig
 import dev.nerzouille.koan.data.Settings
 import dev.nerzouille.koan.ui.icons.KoanIcons
-import dev.nerzouille.koan.ui.kit.KoanToggle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
@@ -22,9 +21,7 @@ fun PrivacySettings(settings: Settings, on: Boolean) {
     @Composable
     fun Toggle(icon: androidx.compose.ui.graphics.vector.ImageVector?, title: String, subtitle: String, flow: Flow<Boolean>, default: Boolean, set: suspend (Boolean) -> Unit) {
         val value by flow.collectAsState(default)
-        SettingsRow(icon, title, on, subtitle = subtitle, onClick = { scope.launch { set(!value) } }) {
-            KoanToggle(checked = value, onCheckedChange = if (on) ({ v -> scope.launch { set(v) } }) else null)
-        }
+        SettingsToggleRow(icon, title, on, checked = value, onChange = { v -> scope.launch { set(v) } }, subtitle = subtitle)
     }
 
     SettingsSection("Private browsing")

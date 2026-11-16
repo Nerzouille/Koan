@@ -49,9 +49,6 @@ interface KoanDao {
     @Query("SELECT * FROM tabs WHERE spaceUuid = :spaceUuid AND NOT pinned AND NOT essential AND NOT closed ORDER BY `order`, koanTabId")
     suspend fun stackTabs(spaceUuid: String): List<TabEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSpaces(spaces: List<SpaceEntity>)
-
     @Upsert
     suspend fun upsertSpaces(spaces: List<SpaceEntity>)
 
@@ -138,9 +135,6 @@ interface KoanDao {
 
     @Query("DELETE FROM tabs WHERE koanTabId IN (:ids) AND origin = 'LOCAL'")
     suspend fun deleteLocal(ids: List<String>)
-
-    @Query("DELETE FROM tabs WHERE koanTabId LIKE :prefix || '%'")
-    suspend fun deleteTabsWithPrefix(prefix: String)
 
     @Query("UPDATE tabs SET `order` = :order WHERE koanTabId = :koanTabId")
     suspend fun setTabOrder(koanTabId: String, order: Int)
@@ -299,9 +293,6 @@ interface KoanDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertBookmarkIfNew(bookmark: BookmarkEntity)
 
-    @Query("SELECT url FROM bookmarks WHERE id LIKE 'sync:%'")
-    fun observeSyncedBookmarkUrls(): Flow<List<String>>
-
     /** Logins pulled from Sync replace the previous pull's; the phone's own stay. */
     @Transaction
     suspend fun replaceSyncedLogins(logins: List<LoginEntity>) {
@@ -326,13 +317,9 @@ interface KoanDao {
     @Query("DELETE FROM visits WHERE url IN (:urls)")
     suspend fun deleteVisits(urls: List<String>)
 
-    /** Two-way sync (dry run): pages first visited on the phone, not the account's copy. */
+    /** Two-way sync: pages first visited on the phone, not the account's copy. */
     @Query("SELECT * FROM visits WHERE NOT fromSync AND NOT hidden ORDER BY lastVisit DESC LIMIT :limit")
     suspend fun phoneVisits(limit: Int): List<VisitEntity>
-
-    /** Two-way sync (dry run): bookmarks added on the phone. */
-    @Query("SELECT * FROM bookmarks WHERE id NOT LIKE 'sync:%'")
-    suspend fun phoneBookmarks(): List<BookmarkEntity>
 
     @Query("SELECT * FROM logins WHERE origin = :origin OR origin LIKE '%.' || :baseDomain OR origin LIKE '%//' || :baseDomain")
     suspend fun loginsFor(origin: String, baseDomain: String): List<LoginEntity>

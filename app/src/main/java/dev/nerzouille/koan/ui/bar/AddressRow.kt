@@ -1,25 +1,29 @@
 package dev.nerzouille.koan.ui.bar
 
-import dev.nerzouille.koan.ui.privacy.PrivateFlip
-import dev.nerzouille.koan.ui.privacy.mist
-import dev.nerzouille.koan.ui.theme.PrivateTokens
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -30,90 +34,88 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
-import android.view.HapticFeedbackConstants
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import dev.nerzouille.koan.ui.theme.DownloadTokens
-import dev.nerzouille.koan.ui.search.SearchField
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreInterceptKeyBeforeSoftKeyboard
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.draw.clipToBounds
-import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.icons.ZenIcon
+import dev.nerzouille.koan.ui.kit.KoanHaptics
+import dev.nerzouille.koan.ui.kit.frameClock
+import dev.nerzouille.koan.ui.kit.rememberAnimationsOff
 import dev.nerzouille.koan.ui.overview.Favicon
+import dev.nerzouille.koan.ui.privacy.PrivateFlip
+import dev.nerzouille.koan.ui.privacy.flipTextDip
+import dev.nerzouille.koan.ui.search.SearchField
 import dev.nerzouille.koan.ui.theme.BarTokens
-import dev.nerzouille.koan.ui.theme.Motion
-import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.BrandHorizontal
-import dev.nerzouille.koan.ui.theme.brandOutline
+import dev.nerzouille.koan.ui.theme.DownloadTokens
+import dev.nerzouille.koan.ui.theme.KoanTheme
+import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.ui.theme.PrivateTokens
 import dev.nerzouille.koan.ui.theme.SearchFieldTokens
-import androidx.compose.animation.core.Animatable
-import android.provider.Settings
-import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.platform.LocalContext
+import dev.nerzouille.koan.ui.theme.brandOutline
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** What the address row shows about the live page. */
 @Immutable
 data class PageInfo(
     val url: String,
     val loading: Boolean,
-    val progress: Float,
     val canGoBack: Boolean,
     val canGoForward: Boolean,
     val desktopSite: Boolean = false,
@@ -189,7 +191,12 @@ fun AddressRow(
     find: FindUi? = null,
     /** Something is downloading: its progress (0..1, NaN = size unknown), shown as a ring in the pill. */
     download: Float? = null,
+    /** A download just finished and nothing else runs: the ring fills, shows a check, then goes. */
+    downloadDone: Boolean = false,
     onDownloads: () -> Unit = {},
+    /** The page is in a language that isn't on the phone: the translate icon (tap = the card). */
+    translate: Boolean = false,
+    onTranslate: () -> Unit = {},
     /** The text being edited, shared with the search sheet. */
     search: SearchField = remember { SearchField() },
     /** Inline completion: the full address for what was typed, if a page starts with it. */
@@ -235,14 +242,17 @@ fun AddressRow(
                 shownUrl = shownUrl,
                 space = space,
                 download = if (overviewOpen) null else download,
+                downloadDone = !overviewOpen && downloadDone,
                 onDownloads = onDownloads,
+                translate = !overviewOpen && translate,
+                onTranslate = onTranslate,
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 onPress = pillPressed,
                 modifier = Modifier.weight(1f),
                 private = private,
                 flip = flip,
             )
-            Box(Modifier.mist(flip)) { TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu) }
+            Box(Modifier.flipTextDip(flip)) { TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu) }
             Box {
                 BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
                 BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
@@ -266,7 +276,10 @@ private fun AddressField(
     shownUrl: String?,
     space: SwipeTarget?,
     download: Float?,
+    downloadDone: Boolean,
     onDownloads: () -> Unit,
+    translate: Boolean,
+    onTranslate: () -> Unit,
     onClick: () -> Unit,
     /** A finger lands on the pill (before the bar's drags see it). */
     onPress: () -> Unit,
@@ -280,8 +293,10 @@ private fun AddressField(
     var lastSpace by remember { mutableStateOf(space) }
     if (space != null) lastSpace = space
     val spaceMode = animateFloatAsState(if (space != null) 1f else 0f, tween(Motion.SPACE_MODE_FADE_MS), label = "spaceMode")
-    // Two hit areas side by side, never overlapping: the text (tap = edit) and, while something
-    // downloads, the ring at the end (tap = Downloads).
+    // Two hit areas side by side, never overlapping: the text (tap = edit) and, at the end, the
+    // download ring while something downloads (tap = Downloads), else the translate icon.
+    val ring = download != null || downloadDone
+    val translateIcon = translate && !ring
     Box(
         modifier
             .height(BarTokens.FieldHeight)
@@ -297,12 +312,53 @@ private fun AddressField(
         Box(
             Modifier
                 .fillMaxSize()
-                .padding(end = if (download != null) BarTokens.IconTouch - BarTokens.FieldPadding else 0.dp)
+                .padding(end = if (ring || translateIcon) BarTokens.IconTouch - BarTokens.FieldPadding else 0.dp)
                 .cleanTap(onTap = onClick)
                 .padding(horizontal = BarTokens.FieldPadding),
             contentAlignment = Alignment.Center,
-        ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, spaceMode.value, private, flip) }
-        if (download != null) DownloadRing(download, onDownloads, Modifier.align(Alignment.CenterEnd))
+        ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, { spaceMode.value }, private, flip) }
+        if (ring) DownloadRing(download, downloadDone, onDownloads, Modifier.align(Alignment.CenterEnd))
+        TranslateIcon(translateIcon, onTranslate, Modifier.align(Alignment.CenterEnd))
+    }
+}
+
+/**
+ * The translate icon at the end of the pill: it pops in (a small spring scale and a fade, layer
+ * only) when the page is in a language that isn't on the phone, and out again; a tap opens the
+ * translation card.
+ */
+@Composable
+private fun TranslateIcon(shown: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    val view = LocalView.current
+    val instant = rememberAnimationsOff()
+    val t = remember { Animatable(if (shown) 1f else 0f) }
+    LaunchedEffect(shown) {
+        val goal = if (shown) 1f else 0f
+        if (instant) t.snapTo(goal) else t.animateTo(goal, if (shown) BarTokens.TranslateIn else tween(BarTokens.TRANSLATE_OUT_MS))
+    }
+    val visible by remember { derivedStateOf { t.value > 0.01f } }
+    if (!visible && !shown) return
+    Box(
+        modifier
+            .size(BarTokens.IconTouch)
+            .clip(CircleShape)
+            .then(if (shown) Modifier.cleanTap { KoanHaptics.tick(view); onClick() } else Modifier)
+            .semantics { contentDescription = "Translate page" },
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.material3.Icon(
+            KoanIcons.Translate,
+            contentDescription = null,
+            tint = KoanTheme.colors.TextSecondary,
+            modifier = Modifier
+                .size(BarTokens.TranslateIcon)
+                .graphicsLayer {
+                    val v = t.value
+                    alpha = v.coerceIn(0f, 1f)
+                    scaleX = 0.6f + 0.4f * v
+                    scaleY = 0.6f + 0.4f * v
+                },
+        )
     }
 }
 
@@ -315,7 +371,8 @@ private fun FieldLabels(
     previous: SwipeTarget?,
     next: SwipeTarget?,
     lastSpace: SwipeTarget?,
-    spaceMode: Float,
+    /** 0…1, read in layers only. */
+    spaceMode: () -> Float,
     private: Boolean = false,
     flip: PrivateFlip? = null,
 ) {
@@ -327,13 +384,13 @@ private fun FieldLabels(
             modifier = Modifier.graphicsLayer {
                 val f = swipe()
                 translationX = -f * size.width * SWIPE_TRAVEL
-                alpha = (1f - overview()) * (1f - spaceMode) * swipeOut(f)
+                alpha = (1f - overview()) * (1f - spaceMode()) * swipeOut(f)
             },
         )
         lastSpace?.let { current ->
-            SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode })
+            SwipeLabel(current, 0f, swipe, overview, Modifier.graphicsLayer { alpha = spaceMode() })
         }
-        MaskedText(if (private) PRIVATE_HINT else SEARCH_HINT, primary = false, mask = private, modifier = Modifier.graphicsLayer { alpha = overview() }.mist(flip))
+        MaskedText(if (private) PRIVATE_HINT else SEARCH_HINT, primary = false, mask = private, modifier = Modifier.graphicsLayer { alpha = overview() }.flipTextDip(flip))
         previous?.let { SwipeLabel(it, -1f, swipe, overview) }
         next?.let { SwipeLabel(it, 1f, swipe, overview) }
     }
@@ -342,17 +399,29 @@ private fun FieldLabels(
 /**
  * A download is running (design 7g): a small neutral ring at the end of the pill, filling with
  * its progress. Its own 48dp hit target, outside the text's: tap = Downloads, with a light tick.
+ * [done]: the download just finished (fixes F8): the ring fills up, a check draws in, then the
+ * whole ring fades and shrinks away; it stays tappable until it leaves. Read in draw / layer only.
  */
 @Composable
-private fun DownloadRing(progress: Float, onClick: () -> Unit, modifier: Modifier) {
+private fun DownloadRing(progress: Float?, done: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val palette = KoanTheme.colors
     val view = LocalView.current
+    val instant = rememberAnimationsOff()
+    // The progress the fill starts from once the download is done.
+    val last = remember { floatArrayOf(0f) }
+    if (progress != null) last[0] = if (progress.isNaN()) 0.25f else progress.coerceIn(0f, 1f)
+    val t = remember { Animatable(if (done) 1f else 0f) }
+    LaunchedEffect(done) {
+        if (!done) t.snapTo(0f)
+        else if (instant) t.snapTo(1f)
+        else t.animateTo(1f, tween(DownloadTokens.DONE_MS, easing = LinearEasing))
+    }
     Box(
         modifier
             .size(BarTokens.IconTouch)
             .clip(CircleShape)
             .cleanTap {
-                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                KoanHaptics.tick(view)
                 onClick()
             },
         contentAlignment = Alignment.Center,
@@ -360,23 +429,60 @@ private fun DownloadRing(progress: Float, onClick: () -> Unit, modifier: Modifie
         Box(
             Modifier
                 .size(DownloadTokens.Ring)
+                .graphicsLayer {
+                    // The last part: fade and shrink out (none while running; gone at once without animations).
+                    val out = if (!done) 0f else if (instant) 1f else phase(t.value, 0.78f, 1f)
+                    alpha = 1f - out
+                    val s = 1f + 0.12f * phase(t.value, 0.3f, 0.5f) * (1f - phase(t.value, 0.5f, 0.7f)) - 0.3f * out
+                    scaleX = s
+                    scaleY = s
+                }
                 .drawBehind {
                     val stroke = DownloadTokens.RingStroke.toPx()
                     val inset = stroke / 2f
                     val arcSize = Size(size.width - stroke, size.height - stroke)
                     drawArc(palette.Glass, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                    val fill = phase(t.value, 0f, 0.3f)
                     // Size unknown: a quarter, so it still reads as "working".
-                    val sweep = if (progress.isNaN()) 90f else 360f * progress.coerceIn(0f, 1f)
+                    val running = if (progress == null) last[0] else if (progress.isNaN()) 0.25f else progress.coerceIn(0f, 1f)
+                    val sweep = 360f * (running + (1f - running) * fill)
                     drawArc(palette.TextSecondary, -90f, sweep, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                    val check = phase(t.value, 0.25f, 0.55f)
+                    if (check > 0f) drawCheck(check, palette.TextPrimary, stroke)
                 },
         )
     }
 }
 
-/**
- * A tab or space in the pill: icon and name. [side] -1 / 1: a neighbour a swipe heads to, sliding
- * in from that side; 0: the one in the middle, sliding out as the swipe goes.
- */
+/** 0 before [from], 1 after [to], linear (eased) in between. */
+private fun phase(t: Float, from: Float, to: Float): Float {
+    val x = ((t - from) / (to - from)).coerceIn(0f, 1f)
+    return x * x * (3f - 2f * x)
+}
+
+/** The ✓ of KoanIcons.Check, drawn in up to [part] of its length, inside the ring. */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCheck(part: Float, color: Color, stroke: Float) {
+    val k = size.width / 24f
+    val a = Offset(7f * k, 12.5f * k)
+    val b = Offset(10.5f * k, 16f * k)
+    val c = Offset(17f * k, 8.5f * k)
+    val first = (b - a).getDistance()
+    val second = (c - b).getDistance()
+    val len = (first + second) * part
+    val path = androidx.compose.ui.graphics.Path().apply {
+        moveTo(a.x, a.y)
+        if (len <= first) {
+            val p = a + (b - a) * (len / first)
+            lineTo(p.x, p.y)
+        } else {
+            lineTo(b.x, b.y)
+            val p = b + (c - b) * ((len - first) / second)
+            lineTo(p.x, p.y)
+        }
+    }
+    drawPath(path, color, style = Stroke(stroke, cap = StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+}
+
 @Composable
 private fun SwipeLabel(target: SwipeTarget, side: Float, swipe: () -> Float, overview: () -> Float, modifier: Modifier = Modifier) {
     Row(
@@ -459,14 +565,14 @@ private fun AddressInput(
     // While in "@" mode the gradient turns slowly; only the shader moves (drawn, never recomposed).
     // Off when the system removes animations.
     val turn = remember { mutableFloatStateOf(0f) }
-    val resolver = LocalContext.current.contentResolver
+    val still = rememberAnimationsOff()
     LaunchedEffect(at) {
-        if (!at) return@LaunchedEffect
-        if (Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f) return@LaunchedEffect
-        val start = withFrameNanos { it }
+        if (!at || still) return@LaunchedEffect
         val from = turn.floatValue
-        while (true) {
-            withFrameNanos { now -> turn.floatValue = from + ringTurn((now - start) / 1e9f) }
+        var elapsedMs = 0f
+        frameClock {
+            elapsedMs += it
+            turn.floatValue = from + ringTurn(elapsedMs / 1000f)
         }
     }
     val palette = KoanTheme.colors
@@ -694,7 +800,7 @@ private fun TabsButton(count: Int, onClick: () -> Unit, onHold: (() -> Unit)?) {
             .holdPress(
                 enabled = onHold != null,
                 onHold = {
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    KoanHaptics.hold(view)
                     onHold?.invoke()
                 },
             ),
@@ -735,7 +841,7 @@ private fun BarIcon(
             .holdPress(
                 enabled = onHold != null && enabled && interactive,
                 onHold = {
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    KoanHaptics.hold(view)
                     onHold?.invoke()
                 },
             ),

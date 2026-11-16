@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -25,8 +24,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.KoanDivider
+import dev.nerzouille.koan.ui.kit.KoanIconButton
+import dev.nerzouille.koan.ui.kit.KoanToggle
+import dev.nerzouille.koan.ui.kit.RowTexts
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
@@ -51,15 +53,7 @@ fun SheetGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.(
 
 /** Hairline between two rows of a [SheetGroup], aligned with the titles. */
 @Composable
-fun SheetDivider() {
-    Box(
-        Modifier
-            .padding(start = SheetTokens.RowPadding * 2 + SheetTokens.RowIconBox)
-            .fillMaxWidth()
-            .height(SheetTokens.Divider)
-            .background(KoanTheme.colors.CardBorder),
-    )
-}
+fun SheetDivider() = KoanDivider(inset = SheetTokens.RowPadding * 2 + SheetTokens.RowIconBox, thickness = SheetTokens.Divider)
 
 /**
  * Icon box, title (and a quiet [subtitle]), then [trailing]. [onClick] null = not tappable; a row
@@ -90,23 +84,7 @@ fun SheetRow(
             MenuIconTile(icon, enabled, palette.Dock)
             Spacer(Modifier.width(SheetTokens.RowPadding))
         }
-        Column(Modifier.weight(1f)) {
-            Text(
-                title,
-                color = when {
-                    !enabled -> palette.TextDisabled
-                    titleColor != Color.Unspecified -> titleColor
-                    else -> palette.TextPrimary
-                },
-                fontSize = SheetTokens.RowTitleSize,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (subtitle != null) {
-                Text(subtitle, color = palette.TextSecondary, fontSize = SheetTokens.RowSubtitleSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
+        RowTexts(title, subtitle, enabled, titleColor, SheetTokens.RowTitleSize, SheetTokens.RowSubtitleSize)
         if (!enabled) SoonLabel() else trailing()
     }
 }
@@ -177,15 +155,7 @@ fun SheetHeader(title: String, page: SheetPageScope) {
             .height(SheetTokens.HeaderHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(SheetTokens.HeaderHeight)
-                .clip(CircleShape)
-                .then(if (page.interactive) Modifier.clickable(onClick = page.onBack) else Modifier),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(KoanIcons.Back, null, tint = KoanTheme.colors.TextPrimary, modifier = Modifier.size(SheetTokens.TileGlyph))
-        }
+        KoanIconButton(KoanIcons.Back, page.onBack, SheetTokens.HeaderHeight, SheetTokens.TileGlyph, KoanTheme.colors.TextPrimary, interactive = page.interactive)
         Text(title, color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.HeaderTitleSize))
     }
 }
@@ -200,4 +170,19 @@ fun SheetSectionTitle(text: String) {
         fontWeight = FontWeight.Medium,
         modifier = Modifier.padding(start = SheetTokens.RowPadding, top = SheetTokens.Gap / 2),
     )
+}
+
+/** A sheet row with a switch: the whole row toggles; inert while not [interactive]. */
+@Composable
+fun SheetToggleRow(
+    icon: ImageVector?,
+    title: String,
+    interactive: Boolean,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit,
+    subtitle: String? = null,
+) {
+    SheetRow(icon, title, interactive, subtitle = subtitle, onClick = { onChange(!checked) }) {
+        KoanToggle(checked = checked, onCheckedChange = if (interactive) onChange else null)
+    }
 }

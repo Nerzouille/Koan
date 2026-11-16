@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -28,10 +27,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.ui.icons.KoanIcons
+import dev.nerzouille.koan.ui.kit.CardChoices
+import dev.nerzouille.koan.ui.kit.CardHeader
 import dev.nerzouille.koan.ui.kit.KoanToggle
-import dev.nerzouille.koan.ui.kit.PrimaryButton
 import dev.nerzouille.koan.ui.theme.KoanTheme
-import dev.nerzouille.koan.ui.theme.KoanType
 import dev.nerzouille.koan.ui.theme.SheetTokens
 
 /**
@@ -43,16 +42,11 @@ fun AppLinkPrompt(app: String, icon: Bitmap?, site: String, interactive: Boolean
     val palette = KoanTheme.colors
     var always by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AppIcon(icon, SheetTokens.RowIconBox + SheetTokens.Gap)
-            Spacer(Modifier.width(SheetTokens.RowPadding))
-            Column {
-                Text("Open in $app?", color = palette.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (site.isNotEmpty()) {
-                    Text("$site wants to open the app", color = palette.TextSecondary, fontSize = SheetTokens.CardTextSize, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-        }
+        CardHeader(
+            "Open in $app?", if (site.isNotEmpty()) "$site wants to open the app" else null,
+            leading = { AppIcon(icon, SheetTokens.RowIconBox + SheetTokens.Gap) },
+            titleMaxLines = 1, titleOverflow = TextOverflow.Ellipsis, textMaxLines = 1,
+        )
         if (site.isNotEmpty()) {
             Row(
                 Modifier
@@ -69,10 +63,7 @@ fun AppLinkPrompt(app: String, icon: Bitmap?, site: String, interactive: Boolean
             }
         }
         Spacer(Modifier.height(SheetTokens.Gap / 2))
-        Row(horizontalArrangement = Arrangement.spacedBy(SheetTokens.TileGap)) {
-            CardButton("Cancel", interactive, onCancel, Modifier.weight(1f))
-            PrimaryButton("Open", onClick = { if (interactive) onOpen(always) }, modifier = Modifier.weight(1f))
-        }
+        CardChoices("Open", interactive, onAction = { onOpen(always) }, onCancel = onCancel)
     }
 }
 
