@@ -104,6 +104,30 @@ The canonical Zen sync wire format lives in Z-Sync's repo: `reference/Z-Sync/sha
   `git commit` commands. Commit, push, tag or release yourself only when the owner asks for it.
   Message style: Conventional Commits, `type(scope): summary`.
 
+## Claude Code tooling (`.claude/`, since 2026-11-16)
+
+- **Safety hook** (`.claude/hooks/guard.py`, PreToolUse on Bash, wired in `.claude/settings.json`).
+  It blocks, with a message:
+  - anything that wipes the real app's data on a phone: `adb uninstall` (with or without `-k`),
+    `pm` / `cmd package` uninstall or clear, `run-as dev.nerzouille.koan` deleting files;
+  - `git push` to `main` (so the owner pushes `main` at release time);
+  - `git add .` / `-A` / `--all` (stage files by name).
+
+  Installs of any build stay allowed, and the `.staging`, `.bp` and test ids are never blocked.
+  A block is final: don't work around it. If an install fails on a signature mismatch, stop and
+  tell the owner; never uninstall.
+- **Commands** (`.claude/commands/`):
+  - `/phone-check [focus]`: R8 staging build on the POCO (id checked with aapt2 first), launch,
+    process death and restore, crash check in logcat, short report.
+  - `/captures [what]`: the screenshot and recording rules.
+  - `/release <version>`: the release checklist below, pre-release case included.
+  - `/night <batch>`: the rules for an unattended run.
+
+  Keep them in line with this file when a rule changes.
+- **Status line:** user-level, not in the repo (`~/.claude/statusline.sh`, `statusLine` in
+  `~/.claude/settings.json`). It shows the model, context %, session (5 h) usage with its reset
+  time, and week usage.
+
 ## Release checklist
 
 Every release follows these steps, in this order. **→ Stop** marks a point where you wait for the

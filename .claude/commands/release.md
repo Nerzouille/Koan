@@ -64,7 +64,8 @@ changed since the last beta, and publish it as a normal release.
 
 ## 6. Release → Stop
 - The owner commits by default: give the exact `git add <files>` / `git commit` commands, with no
-  Claude trailers. Merge, tag and push only when the owner asks for that step.
+  Claude trailers. Merge and tag only when the owner asks for that step; the push of `main` is
+  the owner's (the safety hook blocks it), so give the exact `git push` commands.
 - Merge `dev` into `main` (fast-forward), then put an annotated tag `vX.Y.Z[-beta.N]` on `main`.
 - `./gradlew assembleRelease` from `main`. The release key comes from the gitignored
   `keystore.properties`; never print it.
