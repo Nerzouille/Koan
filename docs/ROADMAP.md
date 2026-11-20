@@ -149,6 +149,16 @@ losing data, and the owner has approved and published the release.
   and draw a check before it goes (`ui/bar/AddressRow.kt`, the `done` state; `KoanRoot.kt` keeps it
   for `DONE_MS`), but at the end of a download nothing shows. Check whether `done` is ever set (the
   finished download may drop out of the running list before the ring sees it), and on which pages.
+- **Passkeys: get Koan on password managers' trusted-browser lists** (tested 2026-11-19 on both
+  phones): with the Credential Manager permissions, the request reaches the provider, but Google
+  Password Manager rejects Koan ("not in the list of trusted browsers") and the Mi password manager
+  fails after its Create sheet. Koan's code can't fix this. Find out whether Bitwarden accepts
+  community browsers and how (its list of privileged apps, a request process), and whether Google
+  has a process to add a browser to its allowlist. The permissions themselves come with a
+  contributor's minimal PR (the split asked for on PR #2).
+- **A message when a passkey request fails** (only once that minimal PR is merged): today the page
+  gets an abort error and Koan shows nothing. Show a short Koan message instead, e.g. "Your password
+  manager doesn't support Koan for passkeys yet".
 
 ### Batch 4 leftovers (after the release)
 
