@@ -59,6 +59,10 @@ cue, Rotate row, video quality, translate icon and ring slot, passkeys) stay in 
    file deleted while Downloads is open is only marked on the next opening.
 8. **Save image:** Google Images, long-press the large preview at once, Save image; watch
    `adb logcat -s KoanPageImage` for the reason when it fails.
+10. **Player research checks** (`docs/plans/PLAYER_TRACKS.md`), staging, public pages only: a
+   Commons video in fullscreen, the extension's view of `currentSrc` (stream `blob:` or a WebM)
+   and whether `<track>`s are still on the `<video>`; a public Vimeo video, its `<video>`'s
+   `textTracks`. Results into PLAYER_TRACKS.md, then wait for the owner's OK before coding.
 9. **End of phase:** R8 release build launched on the POCO, process death and restore.
 
 Branch: `beta2-bugs`, from `dev`. Order: the items below, one commit each.

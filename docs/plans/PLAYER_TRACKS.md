@@ -89,7 +89,41 @@ rebuffer. The candidates are the ones `fileSource` already finds for Download vi
 every file, even when playback is a stream (Commons with DASH): saving a file doesn't touch the
 player.
 
-## Proposal for 1.0.0-beta.2
+## Approved scope for 1.0.0-beta.2 (owner, 2026-11-20)
+
+Every row shows only when there is a real choice (two or more options, or Off plus at least one
+track).
+
+- **Web player:**
+  - **⋯ › Captions** from `video.textTracks`; Koan draws the cue.
+  - **⋯ › Quality** from the page's plain files, shared with the Download video quality list.
+  - **No audio tracks on the web.**
+- **Standalone player (Downloads and phone files), in beta.2, not later:**
+  - **⋯ › Audio** and **⋯ › Subtitles** for embedded tracks, through `MediaPlayer.getTrackInfo()` /
+    `selectTrack()` (audio) and timed text with `OnTimedTextListener` (subtitles).
+  - **A subtitle file next to the video**, same name, `.srt` or `.vtt`, added with
+    `addTimedTextSource`. MediaPlayer reads SubRip only, so a `.vtt` is converted to SubRip first
+    (a small converter, unit tested).
+  - **Open point for the owner (found 2026-11-20, scoped storage):** Koan has no storage
+    permission, so on Android 11+ it can read a file next to the video only when:
+    - Koan downloaded that subtitle file itself (it owns it in the Download folder);
+    - or the video sits in the download folder picked in Settings (Koan holds that folder's grant).
+
+    A subtitle file another app put in the Download folder can't be read. A video opened from
+    another app (a `content://` address) gives no access to its folder at all. To cover those, the
+    options are:
+    - **A, ⋯ › Subtitles › "Choose a file…"** with the system file picker (`ACTION_OPEN_DOCUMENT`,
+      no permission). Recommended.
+    - **B, all-files access** (`MANAGE_EXTERNAL_STORAGE`). Not recommended: a broad permission for
+      a small feature.
+    - **C, only the cases above.**
+
+    Decide before coding.
+
+**Checks before coding (POCO, staging build, with the beta.2 bug checks):** the three below. Results
+go here, then wait for the owner's OK.
+
+## Proposal for 1.0.0-beta.2 (first version, 2026-11-20)
 
 1. **Captions (web): ⋯ › Captions,** Off plus each subtitle / caption track (label, else language
    name), shown only when the video has tracks. The chosen track is set to `hidden`; the extension
@@ -106,9 +140,9 @@ player.
 3. **Not in beta.2:** audio tracks on the web (needs a pref Firefox doesn't ship, rare files, the
    switch unverified); the standalone player's tracks (in-band captions and audio via `MediaPlayer`):
    a small later item; anything on hls.js / dash.js / Vimeo beyond captions (⋯ › Use the site's
-   controls covers it).
+   controls covers it). *(Superseded: the owner put the standalone player in beta.2, see above.)*
 
-**First, before building (an hour on the POCO with a staging build):**
-- Does Commons play the DASH `.mpd` or a WebM in GeckoView (`currentSrc`)?
-- Does its player leave the `<track>`s on the `<video>`?
-- Do Vimeo videos carry `<track>`s?
+**Checks before building (POCO, staging build), results to fill in:**
+- Does Commons play the DASH `.mpd` or a WebM in GeckoView (`currentSrc`)? *Result: pending.*
+- Does its player leave the `<track>`s on the `<video>`? *Result: pending.*
+- Do Vimeo videos carry `<track>`s? *Result: pending.*

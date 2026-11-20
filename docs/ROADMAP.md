@@ -132,9 +132,14 @@ losing data, and the owner has approved and published the release.
   - **⋯ › Quality for playback,** from the same list: only when the video plays a plain file (not a
     `blob:` stream) and there are two or more playable renditions; switch `src`, keep the time,
     speed and play state. Streams (hls.js, dash.js, Vimeo) keep ⋯ › Use the site's controls.
-  - Not in beta.2: audio track choice on the web (Gecko's `audioTracks` needs the pref
-    `media.track.enabled`, which Firefox doesn't ship; multi-audio files are rare and the switch
-    is unverified); captions and audio tracks in the standalone player (`MediaPlayer`), later.
+  - **Standalone player (Downloads and phone files), approved for beta.2:** ⋯ › Audio and
+    ⋯ › Subtitles for embedded tracks (`MediaPlayer.getTrackInfo` / `selectTrack`, timed text),
+    and a `.srt` / `.vtt` file next to the video with the same name. Scoped storage limits which
+    files next to the video Koan can read: owner's choice pending (PLAYER_TRACKS.md).
+  - Every row only when there's a real choice. No audio track choice on the web (Gecko's
+    `audioTracks` needs the pref `media.track.enabled`, which Firefox doesn't ship; multi-audio
+    files are rare and the switch is unverified).
+  - Coding waits for the three checks on the POCO and the owner's OK.
 - **Translate icon after translating** (owner, 2026-11-13): the icon stays in the address pill once
   the page is translated, in an active state (filled icon, no brand gradient); a tap opens the card
   with **Show original** and the language choice. Today `translateCue` returns `None` once
