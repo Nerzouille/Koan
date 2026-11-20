@@ -160,6 +160,18 @@ losing data, and the owner has approved and published the release.
   gets an abort error and Koan shows nothing. Show a short Koan message instead, e.g. "Your password
   manager doesn't support Koan for passkeys yet".
 
+### After the betas (GitHub issues, triaged 2026-11-20)
+
+- **Links into a chosen space** (#12): a setting to open links from other apps in a given space
+  (by kind of link), and a default space. Today they open in the current space.
+- **Copy link from the address** (#8): a copy button in the address sheet (when you tap the URL).
+  Not a long press on the pill: that's space mode. The ⋯ menu's copy button already exists.
+- **Full URL in the toolbar** (#7): a setting to show the whole address in the pill instead of the
+  site only.
+- **Search widget** (#5): a home-screen widget that opens Koan straight into search.
+- **Firefox add-ons** (#4): install other add-ons from addons.mozilla.org, with an add-on manager
+  and each add-on's settings. Today uBlock Origin is the only one. A big job.
+
 ### Batch 4 leftovers (after the release)
 
 From the batch 4 refactoring (`docs/plans/BATCH4_PLAN.md`, branch `refactor`), left for after the
