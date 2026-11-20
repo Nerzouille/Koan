@@ -1,9 +1,27 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-16**.
+State of Koan for a session that starts with no context. Last updated **2026-11-20**.
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
+
+- **Current work (2026-11-20): branch `beta2-bugs`** (from `dev` 6975314, local, **not pushed**).
+  Start with `docs/plans/BETA2_BUGS.md` (status, causes, the one-run phone checklist) and
+  `docs/plans/PLAYER_TRACKS.md` (player captions / quality / audio research and approved scope).
+  - Bugs 1–5 and 8 fixed and committed (with JVM tests: full suite 460 green after item 8, then `MissingFilesTest` +3 green; rerun the full suite at the end of the phase); item 5 also greys missing
+    files in Downloads (Download again / Remove from list). **None checked on a phone yet.**
+  - **Next, when the POCO is plugged in:** one staging run of every check in BETA2_BUGS
+    "Phone checks", item 1's kill test first, plus the three player checks (Commons stream vs
+    WebM, Commons `<track>`s kept, Vimeo tracks) with a throwaway staging-only log patch in the
+    video extension (no URLs, never committed); then one checklist for the owner, results into
+    PLAYER_TRACKS.md, and the end-of-phase R8 release build (kill + restore). Checks marked
+    "needs the owner" (downloads, file manager, notification, Google Images) need them holding
+    the phone.
+  - **Waiting for the owner:** OK before coding the player tracks (approved scope: web captions
+    and Quality, standalone audio / subtitles + side files; no web audio); the side-file storage
+    choice A/B/C (PLAYER_TRACKS.md); item 8 fix or drop after the logcat reasons
+    (`KoanPageImage`); item 6 drawer height (two options on the POCO); item 7 dock feel check on
+    a release build.
 
 - **Tooling: merged into `dev` 2026-11-16 (PR #15).** See CLAUDE.md
   "Claude Code tooling":
@@ -233,6 +251,7 @@ each group (launch + kill + restore checked).
 |---|---|---|---|
 | `release-prep` | dev | v1.0.0-beta.1 prep: batch 5 tests, CI, baseline profile module, update check, README, release docs, the 2026-11-12 fixes. | Pushed up to 8b29879 (draft PR #3); later commits local only; not merged |
 | `depth-cue-proto` | release-prep | Depth-cue prototype A/B/C (31e6f5d), switched by `debug.koan.depthcue`. | Local only, **not for release** |
+| `beta2-bugs` | dev (6975314) | beta.2 bugs 1–5, 8 + player tracks research (docs/plans/BETA2_BUGS.md). | Local only, phone checks pending |
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3, batch 4 and the fixes list merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |
