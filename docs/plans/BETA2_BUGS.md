@@ -24,8 +24,10 @@ cue, Rotate row, video quality, translate icon and ring slot, passkeys) stay in 
   5. Missing download files (2419d4e): `engine/downloads/CheckedDownloadFiles.kt` wraps
      `DownloadFileUtils.openFile`, used by Downloads, the toast's Open and the notification:
      "File moved or missing" (Koan's toast on screen, the system's from the notification with
-     Koan in the background). Rows are not marked in the list: **ask the owner** whether to.
-     `CheckedDownloadFilesTest`.
+     Koan in the background). `CheckedDownloadFilesTest`. Then (c47a2a2, owner's choice): when
+     Downloads opens, finished files are checked once; a missing one is greyed with "Moved or
+     deleted"; a tap offers Download again (same address and mode, replaces the row) or Remove
+     from list (Undo). `MissingFilesTest`.
   8. Save image (e1c40b7): not reproduced. The page script now checks every image covering the
      pressed point (it missed images with `pointer-events: none`), and when it gives up, logs why
      (`adb logcat -s KoanPageImage`: `no-press`, `no-image`, `preview-only`, `not-loaded`, never an
@@ -52,6 +54,9 @@ cue, Rotate row, video quality, translate icon and ring slot, passkeys) stay in 
    it goes, once. Two downloads at once: the check for the first, the ring keeps going.
 5. **Missing file:** download a file, delete it with a file manager, open it from Downloads, the
    toast's Open, the notification (Koan in front and in the background), a video from Downloads.
+   In Downloads: the row is greyed, "Moved or deleted"; tap → Download again (a private one stays
+   private, the old row goes) and Remove from list (Undo); swipe left and right still work; a
+   file deleted while Downloads is open is only marked on the next opening.
 8. **Save image:** Google Images, long-press the large preview at once, Save image; watch
    `adb logcat -s KoanPageImage` for the reason when it fails.
 9. **End of phase:** R8 release build launched on the POCO, process death and restore.
