@@ -118,6 +118,8 @@ class Components(context: Context) {
         BrowserStore(
             middleware = EngineMiddleware.create(engine) + ReaderViewMiddleware() +
                 DuplicateMiddleware({ downloadFiles }, duplicateAsk) +
+                // A new page starts with no translation state (not the previous page's).
+                TranslationResetMiddleware() +
                 DownloadMiddleware(
                     appContext, KoanDownloadService::class.java,
                     // Removing a download from the list never deletes the file (Delete does that explicitly).

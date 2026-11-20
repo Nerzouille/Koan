@@ -16,7 +16,9 @@ import androidx.compose.ui.Modifier
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.ui.kit.Toast
 import dev.nerzouille.koan.ui.menu.TranslateOffer
+import dev.nerzouille.koan.ui.menu.hasPair
 import dev.nerzouille.koan.ui.menu.languageName
+import dev.nerzouille.koan.ui.menu.translatedNow
 import dev.nerzouille.koan.ui.theme.TranslateTokens
 import kotlinx.coroutines.delay
 import mozilla.components.browser.state.action.TranslationsAction
@@ -44,6 +46,8 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
     val url = t?.second.orEmpty()
     val readable = t?.third == true
     val detected = state?.translationEngineState?.detectedLanguages
+    // What the page shows (Gecko's pair first), as the ⋯ › Translate page reads it.
+    val translated = state != null && translatedNow(state.isTranslated, state.translationEngineState?.let { hasPair(it.requestedTranslationPair) })
     val from = detected?.documentLangTag?.takeIf { detected.supportedDocumentLang == true }
     val to = remember { Locale.getDefault().language }
     // Every language set on the phone (Settings › Languages), not only the first: never offered.
@@ -53,8 +57,8 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
     // Done: the toast says so, with the way back ([autoFrom]: translated on its own, from that language).
     var asked by remember { mutableStateOf<String?>(null) }
     var autoFrom by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(state?.isTranslated, asked) {
-        if (state?.isTranslated == true && asked == tabId && tabId != null) {
+    LaunchedEffect(translated, asked) {
+        if (translated && asked == tabId && tabId != null) {
             asked = null
             val what = autoFrom?.let { "Translated from ${languageName(it)}" } ?: "Page translated"
             autoFrom = null
@@ -72,7 +76,7 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
         pageLanguage = from,
         confident = from != null && detected?.documentLangTag != null,
         readable = readable,
-        translated = state?.isTranslated == true,
+        translated = translated,
         processing = state?.isTranslateProcessing == true,
         always = always,
         never = state?.pageSettings?.neverTranslateLanguage == true || state?.pageSettings?.neverTranslateSite == true,
@@ -103,7 +107,7 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
         auto = auto + key
         asked = id
         autoFrom = lang
-        if (!now.isTranslated && !now.isTranslateProcessing) {
+        if (!translatedNow(now.isTranslated, now.translationEngineState?.let { hasPair(it.requestedTranslationPair) }) && !now.isTranslateProcessing) {
             store.dispatch(TranslationsAction.TranslateAction(id, lang, to, TranslationOptions(downloadModel = true)))
         }
     }
