@@ -4,6 +4,17 @@ The bugs for 1.0.0-beta.2, in one list: two from GitHub issues (triaged 2026-11-
 noted in `docs/ROADMAP.md` › For 1.0.0-beta.2 and `docs/HANDOFF.md`. The beta.2 features (depth
 cue, Rotate row, video quality, translate icon and ring slot, passkeys) stay in ROADMAP.
 
+## Status (2026-11-20)
+
+- **Branch:** `beta2-bugs`, from `dev` (6975314), local, not pushed.
+- **Item 1: done and committed** (6ffea26, with `RootStatePrivateRestoreTest`, 3/3 passing). **Its
+  phone check is still to do** (no phone was connected): the steps are under item 1's "Check".
+- **Next: items 2, 3, 4, 5 and 8**, in that order, one commit each. Item 1's phone check comes
+  first when the POCO is plugged in (`adb devices -l`).
+- **Later: items 6 and 7.** 6 needs the owner to choose between two options, shown on the POCO;
+  7 needs the owner's feel check on a release build.
+- The owner commits by default. Give the exact `git add` / `git commit` commands.
+
 Branch: `beta2-bugs`, from `dev`. Order: the items below, one commit each.
 For each item, follow these steps:
 1. Reproduce on the POCO (staging build, its own data).
