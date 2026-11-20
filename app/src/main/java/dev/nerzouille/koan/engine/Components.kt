@@ -3,6 +3,7 @@ package dev.nerzouille.koan.engine
 import dev.nerzouille.koan.data.SyncWrite
 import dev.nerzouille.koan.data.HistoryDeletions
 import mozilla.components.browser.state.selector.selectedTab
+import dev.nerzouille.koan.engine.downloads.CheckedDownloadFiles
 import dev.nerzouille.koan.engine.downloads.DuplicateMiddleware
 import mozilla.components.browser.state.engine.middleware.TranslationsMiddleware
 import mozilla.components.browser.state.action.TranslationsAction
@@ -145,8 +146,26 @@ class Components(context: Context) {
 
     // A download from a private tab always goes to the phone's Download folder.
     val downloadFiles by lazy {
-        DefaultDownloadFileUtils(appContext) {
-            if (store.state.selectedTab?.content?.private == true) defaultDownloadFolder else pickedDownloadFolder ?: defaultDownloadFolder
+        CheckedDownloadFiles(
+            DefaultDownloadFileUtils(appContext) {
+                if (store.state.selectedTab?.content?.private == true) defaultDownloadFolder else pickedDownloadFolder ?: defaultDownloadFolder
+            },
+            onMissing = ::downloadMissing,
+        )
+    }
+
+    /** A download opened while its file was moved or deleted: its name, for Koan's toast. */
+    val downloadMissingFile = MutableSharedFlow<String>(extraBufferCapacity = 4)
+
+    // On screen, Koan's toast says it; from the notification with Koan in the background, the
+    // system's toast (Koan's wouldn't be seen).
+    private fun downloadMissing(fileName: String?) {
+        val info = android.app.ActivityManager.RunningAppProcessInfo()
+        android.app.ActivityManager.getMyMemoryState(info)
+        if (info.importance <= android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+            downloadMissingFile.tryEmit(fileName ?: "This file")
+        } else {
+            android.widget.Toast.makeText(appContext, "File moved or missing", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
     val downloadStorage by lazy { DownloadStorage(appContext) }

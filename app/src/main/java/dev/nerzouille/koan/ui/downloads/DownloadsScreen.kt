@@ -107,7 +107,8 @@ fun DownloadsScreen(
     val checked = done.filter { it.id in selection }
     fun open(d: DownloadState) {
         if (onPlayVideo(d)) return
-        if (!actions.open(d)) onToast(Toast("Couldn't open this file", detail = "It may have been moved or deleted"))
+        // A moved or deleted file says so on its own (CheckedDownloadFiles); false: no app for it.
+        if (!actions.open(d)) onToast(Toast("Couldn't open this file", detail = "No app on this phone opens it"))
     }
     fun share(list: List<DownloadState>) {
         val ok = if (list.size == 1) actions.share(list[0]) else actions.shareAll(list)
