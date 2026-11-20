@@ -4,16 +4,57 @@ The bugs for 1.0.0-beta.2, in one list: two from GitHub issues (triaged 2026-11-
 noted in `docs/ROADMAP.md` › For 1.0.0-beta.2 and `docs/HANDOFF.md`. The beta.2 features (depth
 cue, Rotate row, video quality, translate icon and ring slot, passkeys) stay in ROADMAP.
 
-## Status (2026-11-20)
+## Status (2026-11-20, later)
 
 - **Branch:** `beta2-bugs`, from `dev` (6975314), local, not pushed.
-- **Item 1: done and committed** (6ffea26, with `RootStatePrivateRestoreTest`, 3/3 passing). **Its
-  phone check is still to do** (no phone was connected): the steps are under item 1's "Check".
-- **Next: items 2, 3, 4, 5 and 8**, in that order, one commit each. Item 1's phone check comes
-  first when the POCO is plugged in (`adb devices -l`).
+- **Done and committed, phone checks still to do** (no phone was connected), one commit each:
+  1. Private after a kill (6ffea26, `RootStatePrivateRestoreTest`).
+  2. Translation state reset on each page load (c84d836): `engine/TranslationReset.kt`, a
+     middleware that clears the tab's translation state when a load starts (not on a same-page
+     link). `TranslationResetTest`.
+  3. Find in page (3c75827). Cause, from GeckoView's `GeckoViewContent.sys.mjs`: Gecko answers
+     `found = true` with a count of 0 when its match counter skips text the find reached (likely
+     Wikipedia's collapsed sections); Android Components passes only the count. Find now reads
+     GeckoView's own result (`GeckoFinder.find`), keyed by query and tab; a found but uncounted
+     match shows no counter. `FindCountTest`.
+  4. Download ring check (92c95c1). Cause: the store marks the download completed before the
+     "stopped" broadcast; the running ring left, came back already done and was drawn at its
+     faded-out end (`Animatable(1f)`). The finish is now read from the store update itself
+     (`ui/downloads/DownloadRingState.kt`); the animation starts at 0. `DownloadRingStateTest`.
+  5. Missing download files (2419d4e): `engine/downloads/CheckedDownloadFiles.kt` wraps
+     `DownloadFileUtils.openFile`, used by Downloads, the toast's Open and the notification:
+     "File moved or missing" (Koan's toast on screen, the system's from the notification with
+     Koan in the background). Rows are not marked in the list: **ask the owner** whether to.
+     `CheckedDownloadFilesTest`.
+  8. Save image (e1c40b7): not reproduced. The page script now checks every image covering the
+     pressed point (it missed images with `pointer-events: none`), and when it gives up, logs why
+     (`adb logcat -s KoanPageImage`: `no-press`, `no-image`, `preview-only`, `not-loaded`, never an
+     address). Fix or drop after the phone check. Extension 1.1.
+- 460 JVM tests green.
 - **Later: items 6 and 7.** 6 needs the owner to choose between two options, shown on the POCO;
   7 needs the owner's feel check on a release build.
 - The owner commits by default. Give the exact `git add` / `git commit` commands.
+
+### Phone checks (POCO, staging build, all in one go)
+
+`./gradlew assembleStaging`, `adb install -r app/build/outputs/apk/staging/app-staging.apk`
+(own data: set up fake tabs on public pages first).
+
+1. **Private after a kill:** on a normal space other than the first, Private on, Home, `adb shell
+   am kill dev.nerzouille.koan.staging`, reopen: normal mode on that space. Then swipe Koan away
+   and reopen: the same space.
+2. **Translation:** translate a page; open a page in another language in the same tab (sheet's
+   "From" is right, icon shows); Back to the translated page; a same-page anchor link (stays
+   translated); reload.
+3. **Find:** a word on a Wikipedia article (also one only in a collapsed section), next and
+   previous, a word with no match (0/0), clear the field, switch tab while finding.
+4. **Ring:** a small and a large download with Koan in front: the ring fills, the check draws,
+   it goes, once. Two downloads at once: the check for the first, the ring keeps going.
+5. **Missing file:** download a file, delete it with a file manager, open it from Downloads, the
+   toast's Open, the notification (Koan in front and in the background), a video from Downloads.
+8. **Save image:** Google Images, long-press the large preview at once, Save image; watch
+   `adb logcat -s KoanPageImage` for the reason when it fails.
+9. **End of phase:** R8 release build launched on the POCO, process death and restore.
 
 Branch: `beta2-bugs`, from `dev`. Order: the items below, one commit each.
 For each item, follow these steps:
