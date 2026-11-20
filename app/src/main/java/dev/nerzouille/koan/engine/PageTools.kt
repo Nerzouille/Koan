@@ -42,21 +42,30 @@ class PageTools(context: Context, engine: Engine, private val store: BrowserStor
 
     // ---- find in page ------------------------------------------------------------------------
 
-    /** Highlights every match of [text] in the tab (empty = clear). Results land in the tab's content.findResults. */
+    /** Gecko's latest answer to find in page (the find bar's counter: [findCount]). */
+    val findHit = kotlinx.coroutines.flow.MutableStateFlow<FindHit?>(null)
+
+    /** Highlights every match of [text] in the tab (empty = clear). The answer lands in [findHit]. */
     fun find(tabId: String, text: String) {
         val session = store.state.findTab(tabId)?.engineState?.engineSession ?: return
+        findHit.value = null
         if (text.isEmpty()) {
             session.clearFindMatches()
             store.dispatch(ContentAction.ClearFindResultsAction(tabId))
-        } else {
-            store.dispatch(ContentAction.ClearFindResultsAction(tabId))
-            GeckoFinder.highlightAll(session)
+        } else if (!GeckoFinder.find(session, text, false, answer(tabId, text))) {
             session.findAll(text)
         }
     }
 
-    fun findNext(tabId: String, forward: Boolean) {
-        store.state.findTab(tabId)?.engineState?.engineSession?.findNext(forward)
+    /** The next or previous match of [text], the current search. */
+    fun findNext(tabId: String, text: String, forward: Boolean) {
+        val session = store.state.findTab(tabId)?.engineState?.engineSession ?: return
+        if (!GeckoFinder.find(session, null, !forward, answer(tabId, text))) session.findNext(forward)
+    }
+
+    // Gecko answers with the search it ran: an answer for an older query is kept but not shown.
+    private fun answer(tabId: String, text: String) = GeckoFinder.Result { searched, found, current, total ->
+        findHit.value = FindHit(tabId, searched ?: text, found, current, total)
     }
 
     fun stopFind(tabId: String) = find(tabId, "")

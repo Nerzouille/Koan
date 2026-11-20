@@ -20,6 +20,7 @@ import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.engine.SiteAsk
 import dev.nerzouille.koan.engine.UBlock
+import dev.nerzouille.koan.engine.findCount
 import dev.nerzouille.koan.search.SearchEngine
 import dev.nerzouille.koan.ui.bar.DrawerStatus
 import dev.nerzouille.koan.ui.bar.FindUi
@@ -296,20 +297,15 @@ fun KoanOverlays(
 @Composable
 fun rememberFindUi(components: Components, overlays: Overlays, activeTabId: String?): FindUi? {
     if (!overlays.finding || activeTabId == null) return null
-    val result by components.store.observeSlice(activeTabId) { s -> s.findTab(activeTabId)?.content?.findResults?.lastOrNull() }
-    val count = when {
-        overlays.findQuery.isEmpty() -> ""
-        result == null -> ""
-        result!!.numberOfMatches == 0 -> "0/0"
-        else -> "${result!!.activeMatchOrdinal + 1}/${result!!.numberOfMatches}"
-    }
+    val hit by components.pageTools.findHit.collectAsStateWithLifecycle()
+    val count = findCount(activeTabId, overlays.findQuery, hit)
     return FindUi(
         count = count,
         onQuery = { q ->
             overlays.findQuery = q
             components.pageTools.find(activeTabId, q)
         },
-        onNext = { forward -> if (overlays.findQuery.isNotEmpty()) components.pageTools.findNext(activeTabId, forward) },
+        onNext = { forward -> if (overlays.findQuery.isNotEmpty()) components.pageTools.findNext(activeTabId, overlays.findQuery, forward) },
         onClose = {
             overlays.finding = false
             overlays.findQuery = ""
