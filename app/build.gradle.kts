@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    id("koan.passkeys")
     alias(libs.plugins.androidx.baselineprofile)
     alias(libs.plugins.detekt)
 }
@@ -38,6 +39,7 @@ android {
         // preview (0.2.2-preview.1).
         versionCode = 10
         versionName = "1.0.0-beta.1"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // GeckoView-omni ships every ABI; both owner phones are arm64. `-Pkoan.emulatorAbi` adds
         // x86_64 for emulator test runs only, never for a build that goes on a phone.
         ndk {
@@ -89,6 +91,8 @@ android {
         create("staging") {
             initWith(getByName("release"))
             applicationIdSuffix = ".staging"
+            // Identify a local test APK without changing the upstream release version.
+            versionNameSuffix = providers.gradleProperty("koan.testVersionSuffix").orNull
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += "release"
         }
@@ -283,6 +287,8 @@ dependencies {
     ksp(libs.room.compiler)
 
     implementation(libs.geckoview)
+    // Already part of GeckoView's runtime dependency graph; named here for the FIDO task bridge.
+    implementation(libs.gms.tasks)
     implementation(libs.mozilla.browser.engine.gecko)
     implementation(libs.mozilla.browser.state)
     implementation(libs.mozilla.concept.engine)
@@ -304,6 +310,9 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
     testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation("androidx.test:core-ktx:1.7.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
     // Robolectric: tests that need a real Context, Room or DataStore (migrations, two-way sync, Private).
     testImplementation(libs.robolectric)
     testImplementation(libs.room.testing)

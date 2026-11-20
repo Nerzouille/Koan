@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### New
+
+- **System passkey integration:** website create/sign-in requests can reach Android's selected
+  credential provider. Providers may require Koan to be on their trusted-browser list.
+- Android's selected password Autofill service can suggest logins alongside Koan's own logins.
+
+### Improved
+
+- Passkey result routing follows Activity recreation, isolates retries and distinguishes user
+  dismissal from a website's abort. Credential Manager outcomes wait for the browser to resume.
+- Keep remote-only credential preparation results and handle missing Google services promptly
+  on the legacy fallback path.
+
+### Known limitations
+
+- Real-device and credential-provider interoperability still needs validation. GeckoView Android
+  does not implement conditional passkey suggestions or native in-flight cancellation.
+
 ## 1.0.0-beta.1 — 2026-11-13 (pre-release)
 
 ### New

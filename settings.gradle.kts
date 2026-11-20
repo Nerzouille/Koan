@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google()
         mavenCentral()
@@ -20,5 +21,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "Koan"
 include(":app")
+include(":credential-fixture")
 // Generates the app's baseline profile on a phone (./gradlew :app:generateReleaseBaselineProfile).
 include(":baselineprofile")
