@@ -115,12 +115,26 @@ losing data, and the owner has approved and published the release.
   3 s after the phone turns. Same switch as the pill (`PlayerHost.fullscreenRotated`); the
   standalone player needs the same. With auto-rotate on it isn't needed (the screen follows the
   phone): hide it there or keep it, the owner's call.
-- **Quality choice for Download video:** when the page offers several files of the same video
-  (Wikimedia Commons: 240p … 1080p renditions and the 2.8 GB original), let the owner pick one
-  (a short list in the ⋯ menu, with sizes when the page or a HEAD request gives them) instead of
-  always taking the original or the largest rendition. Starts in the video extension's
-  `fileSource` (`assets/extensions/video/content.js`), which then reports every candidate, not
-  just the best one.
+- **Player captions and quality** (research 2026-11-20: `docs/plans/PLAYER_TRACKS.md`, which also
+  covers audio tracks and what each site allows). First check three things on the POCO: whether
+  Commons plays its DASH stream or a WebM, whether its player keeps the `<track>`s, and whether
+  Vimeo's videos carry `<track>`s. Then:
+  - **Captions (web):** ⋯ › Captions, Off plus the video's subtitle / caption tracks
+    (`video.textTracks`, mode `hidden`); Koan draws the active cue above the bottom pill. Works on
+    plain files, hls.js and dash.js sites; Commons likely (its player hides its own captions in
+    Koan's fullscreen today); not YouTube (its own controls).
+  - **Quality choice for Download video:** when the page offers several files of the same video
+    (Wikimedia Commons: 240p … 1080p renditions and the 2.8 GB original), let the owner pick one
+    (a short list in the ⋯ menu, with sizes when the page or a HEAD request gives them) instead of
+    always taking the original or the largest rendition. Starts in the video extension's
+    `fileSource` (`assets/extensions/video/content.js`), which then reports every candidate, not
+    just the best one.
+  - **⋯ › Quality for playback,** from the same list: only when the video plays a plain file (not a
+    `blob:` stream) and there are two or more playable renditions; switch `src`, keep the time,
+    speed and play state. Streams (hls.js, dash.js, Vimeo) keep ⋯ › Use the site's controls.
+  - Not in beta.2: audio track choice on the web (Gecko's `audioTracks` needs the pref
+    `media.track.enabled`, which Firefox doesn't ship; multi-audio files are rare and the switch
+    is unverified); captions and audio tracks in the standalone player (`MediaPlayer`), later.
 - **Translate icon after translating** (owner, 2026-11-13): the icon stays in the address pill once
   the page is translated, in an active state (filled icon, no brand gradient); a tap opens the card
   with **Show original** and the language choice. Today `translateCue` returns `None` once
