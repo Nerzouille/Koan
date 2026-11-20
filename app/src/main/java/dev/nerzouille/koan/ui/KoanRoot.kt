@@ -238,7 +238,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     // already has it.
     var placeRestored by root::placeRestored
     LaunchedEffect(Unit) {
-        if (placeRestored) return@LaunchedEffect
+        if (placeRestored) {
+            root.leavePrivatePlace(privateOnState.value)
+            return@LaunchedEffect
+        }
         components.lastPlace.read().spaceUuid?.let { currentSpaceUuid = it }
         placeRestored = true
     }

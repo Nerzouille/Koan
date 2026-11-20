@@ -36,12 +36,14 @@ least sure: it can end with the wait dropped.
   find that id among the normal spaces (`anchored = -1`), falls back to `currentSpace` (0), and
   snaps there. Then `currentSpaceUuid` becomes the first space, and the effect above saves it to
   `lastPlace`.
-- **Fix:** when the restored id is Private's, stay on Private: don't anchor the pager, don't
-  overwrite `currentSpaceUuid`, keep `normalSpaceUuid` for the way back. The lock rules apply as
-  usual: after 1 minute away, Private asks for the fingerprint.
-- **Check:** Private on screen, `adb shell am kill` with Koan in the background, reopen: Private,
-  locked if the minute has passed. Switch Private off: back on the last normal space. Same check
-  with a cold start (swiped away): Private has no place on disk, so it's the saved normal space.
+- **Fix:** Private is per process by design (`PrivateMode`: a new process opens normal mode,
+  locked; FEATURES: "Koan opens in normal mode after a restart"). So a restored Private id goes
+  back to the last normal space (`normalSpaceUuid`, saved when Private was switched on):
+  `RootState.leavePrivatePlace`, called from the restore effect in `KoanRoot.kt`. A configuration
+  change with Private still on keeps Private.
+- **Check:** on a normal space other than the first, switch Private on, put Koan in the background,
+  `adb shell am kill`, reopen: normal mode on that space. Then a cold start (swiped away): the same
+  space. JVM test: `RootStatePrivateRestoreTest`.
 
 ## 2. Translation state carried over to the next page
 

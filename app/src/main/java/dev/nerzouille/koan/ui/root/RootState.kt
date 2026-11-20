@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import dev.nerzouille.koan.privacy.PrivateTabs
 
 /**
  * The root's navigation state, moved out of `KoanRootContent` as it was: which space and tab, the
@@ -60,6 +61,15 @@ class RootState internal constructor(
     var closedFrom by closedFrom
     var normalSpaceUuid by normalSpaceUuid
     var firstRunHandled by firstRunHandled
+
+    /**
+     * Restored after a kill while Private showed: a new process opens normal mode (`PrivateMode`),
+     * so go back to the last normal space. Left on Private's id, the pager found no such space,
+     * fell back to the first one and saved it as the last place.
+     */
+    fun leavePrivatePlace(privateOn: Boolean) {
+        if (!privateOn && currentSpaceUuid == PrivateTabs.SPACE.uuid) currentSpaceUuid = normalSpaceUuid
+    }
 }
 
 /** The root's [RootState]: saved values through `rememberSaveable`, the others for the composition. */
