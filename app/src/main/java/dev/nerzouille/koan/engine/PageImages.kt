@@ -12,7 +12,12 @@ import org.json.JSONObject
  * Bump its manifest version whenever content.js changes, or Gecko keeps the old one.
  */
 class PageImages(engine: Engine, store: BrowserStore, scope: CoroutineScope) : PageBridge(engine, store, scope, ID, URL, PORT) {
-    override fun answer(reply: JSONObject): String? = reply.optString("url").takeIf { it.startsWith("https://") || it.startsWith("http://") }
+    override fun answer(reply: JSONObject): String? {
+        val url = fullImageUrl(reply)
+        // Why the page found no full image (a reason and a count, never an address).
+        if (url == null) android.util.Log.i("KoanPageImage", "no full image: ${reply.optString("reason", "unknown")}, images=${reply.optInt("images", 0)}")
+        return url
+    }
 
     /**
      * The full image at the spot last long-pressed in the tab's page, once it has loaded there
@@ -28,3 +33,7 @@ class PageImages(engine: Engine, store: BrowserStore, scope: CoroutineScope) : P
         const val WAIT_MS = 10_000L
     }
 }
+
+/** The full image's address in the page's reply: a web address only (null otherwise). */
+internal fun fullImageUrl(reply: JSONObject): String? =
+    reply.optString("url").takeIf { it.startsWith("https://") || it.startsWith("http://") }

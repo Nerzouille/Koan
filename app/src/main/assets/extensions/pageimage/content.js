@@ -19,29 +19,45 @@ function isPreview(src) {
   }
 }
 
-/** The largest fully loaded, real (not preview, not data:) image under the pressed point. */
+/** Every image covering the pressed point, even one that ignores touches (pointer-events: none). */
+function imagesAt(x, y) {
+  const found = new Set(document.elementsFromPoint(x, y).filter(el => el instanceof HTMLImageElement));
+  for (const el of document.images) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) found.add(el);
+  }
+  return [...found];
+}
+
+/**
+ * The largest fully loaded, real (not preview, not data:) image under the pressed point, or why
+ * there is none (a short reason for Koan's log; never an address).
+ */
 function best() {
-  if (!pressed) return null;
+  if (!pressed) return { reason: "no-press" };
+  const images = imagesAt(pressed.x, pressed.y);
+  if (images.length === 0) return { reason: "no-image" };
   let found = null;
   let area = 0;
-  for (const el of document.elementsFromPoint(pressed.x, pressed.y)) {
-    if (!(el instanceof HTMLImageElement)) continue;
+  let real = 0;
+  for (const el of images) {
     const src = el.currentSrc || el.src;
     if (!src || !/^https?:/.test(src) || isPreview(src)) continue;
+    real++;
     if (!el.complete || el.naturalWidth === 0) continue;
     const a = el.naturalWidth * el.naturalHeight;
     if (a > area) { area = a; found = src; }
   }
-  return found;
+  if (found) return { url: found };
+  return { reason: real === 0 ? "preview-only" : "not-loaded", images: images.length };
 }
 
 function resolve(timeoutMs) {
   return new Promise(done => {
     const start = Date.now();
     const tick = () => {
-      const src = best();
-      if (src) return done(src);
-      if (Date.now() - start > timeoutMs) return done(null);
+      const result = best();
+      if (result.url || Date.now() - start > timeoutMs) return done(result);
       setTimeout(tick, 200);
     };
     tick();
@@ -52,8 +68,8 @@ function connect() {
   const port = browser.runtime.connectNative("koanPageImage");
   port.onMessage.addListener(async message => {
     if (message.action !== "full") return;
-    const url = await resolve(message.timeout || 10000);
-    port.postMessage({ id: message.id, url });
+    const result = await resolve(message.timeout || 10000);
+    port.postMessage({ id: message.id, ...result });
   });
   return port;
 }
