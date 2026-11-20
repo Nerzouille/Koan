@@ -31,11 +31,11 @@ fun SignOutConfirm(interactive: Boolean, onSignOut: () -> Unit, onCancel: () -> 
  * (red when [destructive], else the primary button).
  */
 @Composable
-fun Confirm(title: String, text: String, confirm: String, interactive: Boolean, onConfirm: () -> Unit, onCancel: () -> Unit, destructive: Boolean = true) {
+fun Confirm(title: String, text: String, confirm: String, interactive: Boolean, onConfirm: () -> Unit, onCancel: () -> Unit, destructive: Boolean = true, cancel: String = "Cancel") {
     Column(verticalArrangement = Arrangement.spacedBy(SheetTokens.Gap)) {
         Text(title, color = KoanTheme.colors.TextPrimary, style = KoanType.headline(SheetTokens.CardTitleSize))
         Text(text, color = KoanTheme.colors.TextSecondary, fontSize = SheetTokens.CardTextSize)
         Spacer(Modifier.height(SheetTokens.Gap / 2))
-        CardChoices(confirm, interactive, onAction = onConfirm, onCancel = onCancel, destructive = destructive)
+        CardChoices(confirm, interactive, onAction = onConfirm, onCancel = onCancel, destructive = destructive, cancel = cancel)
     }
 }

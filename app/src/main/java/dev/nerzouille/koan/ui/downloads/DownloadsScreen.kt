@@ -25,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -39,6 +41,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import dev.nerzouille.koan.engine.downloads.Downloads
+import dev.nerzouille.koan.engine.downloads.missingDownloads
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.DayCard
@@ -91,6 +96,10 @@ fun DownloadsScreen(
     modifier: Modifier = Modifier,
     /** A finished video: Koan's player (false = not a video, or it can't). */
     onPlayVideo: (DownloadState) -> Boolean = { false },
+    /** A row whose file is gone was tapped: offer [again] (Download again) or [remove] (Remove from list). */
+    onMissing: (d: DownloadState, again: () -> Unit, remove: () -> Unit) -> Unit = { _, _, _ -> },
+    /** Starts [DownloadState] again as a new download (false: no tab to start it on). */
+    onDownloadAgain: (DownloadState) -> Boolean = { false },
 ) {
     val palette = KoanTheme.colors
     var query by remember { mutableStateOf("") }
@@ -105,6 +114,12 @@ fun DownloadsScreen(
     val selection = rememberSelection<String>()
     SideEffect { selection.keepOnly(done.mapTo(HashSet()) { it.id }) }
     val checked = done.filter { it.id in selection }
+    // Files moved or deleted outside Koan: checked once, when Downloads opens (it reads the disk),
+    // never per frame. A download finished while the page is open has its file.
+    val missing by produceState(emptySet<String>()) {
+        val finished = downloads.toList()
+        value = withContext(Dispatchers.IO) { missingDownloads(finished, actions::fileThere) }
+    }
     fun open(d: DownloadState) {
         if (onPlayVideo(d)) return
         // A moved or deleted file says so on its own (CheckedDownloadFiles); false: no app for it.
@@ -124,13 +139,26 @@ fun DownloadsScreen(
         list.forEach { actions.removeLater(it, deleteFile = true) }
         onToast(undoToast(if (list.size == 1) "File deleted" else "${list.size} files deleted", onGone = { actions.commit(list) }) { list.forEach(actions::restore) })
     }
+    fun again(d: DownloadState) {
+        if (onDownloadAgain(d)) {
+            // The new download takes its place: the old row goes.
+            actions.clearRows(listOf(d))
+            onToast(Toast("Downloading again", detail = d.fileName))
+        } else {
+            onToast(Toast("Couldn't download it again", detail = "Open a tab first"))
+        }
+    }
+    fun gone(d: DownloadState) = onMissing(d, { again(d) }) {
+        actions.removeLater(d, deleteFile = false)
+        onToast(undoToast("Removed from the list", onGone = { actions.commit(listOf(d)) }) { actions.restore(d) })
+    }
     fun act(run: () -> Unit) = { selection.clear(); run() }
     // Hide is a swipe only (left to right); the bar keeps what a tap can't do.
     val bar: List<SelectionAction> = if (checked.size == 1) {
         val d = checked[0]
         val (icon, label) = openLook(d)
         listOf(
-            SelectionAction(icon, label, onClick = act { open(d) }),
+            SelectionAction(icon, label, onClick = act { if (d.id in missing) gone(d) else open(d) }),
             SelectionAction(KoanIcons.Link, "Copy link", onClick = act { onCopyLink(d.url) }),
             SelectionAction(KoanIcons.Share, "Share", onClick = act { share(listOf(d)) }),
             SelectionAction(KoanIcons.Trash, "Delete", destructive = true, onClick = act { delete(listOf(d)) }),
@@ -211,10 +239,12 @@ fun DownloadsScreen(
                             enabled = !selecting,
                             shape = dayRowShape(first = i == 0, last = i == items.lastIndex),
                         ) {
+                            val isMissing = d.id in missing
                             DoneRow(
                                 d, first = i == 0,
+                                missing = isMissing,
                                 checked = if (selecting) d.id in selection else null,
-                                onTap = { if (selecting) selection.toggle(d.id) else open(d) },
+                                onTap = { if (selecting) selection.toggle(d.id) else if (isMissing) gone(d) else open(d) },
                                 onLong = { if (selecting) selection.toggle(d.id) else selection.start(d.id) },
                             )
                         }
@@ -332,19 +362,26 @@ private fun PrivateMark() {
 }
 
 @Composable
-private fun DoneRow(d: DownloadState, first: Boolean, checked: Boolean?, onTap: () -> Unit, onLong: () -> Unit) {
+private fun DoneRow(d: DownloadState, first: Boolean, missing: Boolean, checked: Boolean?, onTap: () -> Unit, onLong: () -> Unit) {
     LibraryRowFrame(first, onClick = onTap, onLongClick = onLong, checked = checked) {
-        FileTile(d)
-        Spacer(Modifier.width(DownloadTokens.RowGap))
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (d.private) PrivateMark()
-                LibraryRowTitle(d.fileName.orEmpty())
+        // A file moved or deleted outside Koan: the row greyed, "Moved or deleted" for its size.
+        Row(Modifier.weight(1f).graphicsLayer { alpha = if (missing) DownloadTokens.MissingAlpha else 1f }, verticalAlignment = Alignment.CenterVertically) {
+            FileTile(d)
+            Spacer(Modifier.width(DownloadTokens.RowGap))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (d.private) PrivateMark()
+                    LibraryRowTitle(d.fileName.orEmpty())
+                }
+                LibraryRowSubtitle(doneRowDetail(d, missing))
             }
-            LibraryRowSubtitle(listOfNotNull((d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · "))
         }
     }
 }
+
+/** A finished row's second line: its size (or "Moved or deleted") and where it came from. */
+internal fun doneRowDetail(d: DownloadState, missing: Boolean): String =
+    listOfNotNull(if (missing) "Moved or deleted" else (d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · ")
 
 @Composable
 private fun RoundButton(icon: ImageVector, onClick: () -> Unit) {

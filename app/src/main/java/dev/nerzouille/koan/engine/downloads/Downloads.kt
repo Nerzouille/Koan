@@ -29,6 +29,12 @@ class Downloads(
     fun open(download: DownloadState): Boolean =
         files.openFile(download.fileName, download.directoryPath, download.contentType)
 
+    /** The file is still where it was downloaded (reads the disk: not per frame). */
+    fun fileThere(download: DownloadState): Boolean {
+        val name = download.fileName?.ifEmpty { null } ?: return false
+        return runCatching { files.fileExists(download.directoryPath, name) }.getOrDefault(false)
+    }
+
     /** The finished file's content:// address, for Koan's player; null if it is gone. */
     fun uri(download: DownloadState): String? =
         files.findShareableDownloadFileUri(download.fileName, download.directoryPath)?.toString()

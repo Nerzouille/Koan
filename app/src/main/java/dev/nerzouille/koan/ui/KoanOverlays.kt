@@ -93,12 +93,13 @@ class Overlays(scope: CoroutineScope, density: Density) {
     var ask by mutableStateOf<Ask?>(null)
 
     /** [destructive]: the action deletes or loses something (red); otherwise the primary button. */
-    fun ask(title: String, text: String, confirm: String, destructive: Boolean = true, action: () -> Unit) {
-        ask = Ask(title, text, confirm, destructive, action)
+    /** [other]: a second action in place of Cancel (its label, what it does); dismissing does nothing. */
+    fun ask(title: String, text: String, confirm: String, destructive: Boolean = true, other: Pair<String, () -> Unit>? = null, action: () -> Unit) {
+        ask = Ask(title, text, confirm, destructive, action, other)
         askCard.animateTo(Detent.Compact)
     }
 
-    class Ask(val title: String, val text: String, val confirm: String, val destructive: Boolean, val action: () -> Unit)
+    class Ask(val title: String, val text: String, val confirm: String, val destructive: Boolean, val action: () -> Unit, val other: Pair<String, () -> Unit>? = null)
     val clearDataCard = SheetState(scope, splineBasedDecay(density))
 
     /** Logins: the full "Sign in with" list (7e), and "Save in Koan". */

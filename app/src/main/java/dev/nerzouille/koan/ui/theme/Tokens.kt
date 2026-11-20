@@ -1241,6 +1241,8 @@ object TranslateTokens {
 
 /** The Downloads page (design 7i) and the in-progress ring in the address pill (7g). */
 object DownloadTokens {
+    /** A finished download whose file was moved or deleted: its row, greyed. */
+    const val MissingAlpha = 0.45f
     /** A private download's mask before its name. */
     val PrivateGlyph = 14.dp
     val PrivateGap = 6.dp

@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.overlays
 
+import mozilla.components.browser.state.action.ContentAction
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.Composable
@@ -68,6 +69,22 @@ internal fun LibraryOverlays(
             onToast = onToast,
             onCopyLink = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast) },
             onConfirm = { title, text, confirm, action -> overlays.ask(title, text, confirm, action = action) },
+            onMissing = { d, again, remove ->
+                overlays.ask(
+                    "File moved or deleted", "${d.fileName ?: "This file"} is no longer in its folder.", "Download again",
+                    destructive = false, other = "Remove from list" to remove, action = again,
+                )
+            },
+            onDownloadAgain = { d ->
+                // Like a page's download: on the current tab, which the downloads feature watches.
+                val tab = activeTabId ?: components.store.state.selectedTabId
+                if (tab != null) {
+                    components.store.dispatch(ContentAction.UpdateDownloadAction(tab, dev.nerzouille.koan.engine.downloads.downloadAgainOf(d)))
+                    true
+                } else {
+                    false
+                }
+            },
             modifier = Modifier.slideUpPage { downloadsSlide.progress },
             onPlayVideo = { d ->
                 val video = dev.nerzouille.koan.ui.player.videoOfDownload(d, components.downloads)
@@ -153,7 +170,11 @@ internal fun LibraryOverlays(
                 askCard.animateTo(Detent.Closed)
                 ask.action()
             },
-            onCancel = { askCard.animateTo(Detent.Closed) },
+            onCancel = {
+                askCard.animateTo(Detent.Closed)
+                ask.other?.second?.invoke()
+            },
+            cancel = ask.other?.first ?: "Cancel",
         )
     }
 }
