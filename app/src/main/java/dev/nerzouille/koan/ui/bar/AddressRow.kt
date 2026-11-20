@@ -410,7 +410,8 @@ private fun DownloadRing(progress: Float?, done: Boolean, onClick: () -> Unit, m
     // The progress the fill starts from once the download is done.
     val last = remember { floatArrayOf(0f) }
     if (progress != null) last[0] = if (progress.isNaN()) 0.25f else progress.coerceIn(0f, 1f)
-    val t = remember { Animatable(if (done) 1f else 0f) }
+    // From 0 even when it first shows already done: starting at 1 is the faded-out end.
+    val t = remember { Animatable(0f) }
     LaunchedEffect(done) {
         if (!done) t.snapTo(0f)
         else if (instant) t.snapTo(1f)

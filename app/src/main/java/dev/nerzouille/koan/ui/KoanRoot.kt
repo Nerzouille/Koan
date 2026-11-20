@@ -83,6 +83,8 @@ import dev.nerzouille.koan.ui.browser.TranslateOfferHost
 import dev.nerzouille.koan.ui.browser.observeSlice
 import dev.nerzouille.koan.ui.browser.rememberFullscreen
 import dev.nerzouille.koan.ui.downloads.visibleIn
+import dev.nerzouille.koan.ui.downloads.DownloadRingState
+import dev.nerzouille.koan.ui.downloads.nextRingState
 import dev.nerzouille.koan.ui.downloads.host
 import dev.nerzouille.koan.ui.downloads.sizeText
 import dev.nerzouille.koan.ui.kit.KoanToastHost
@@ -132,6 +134,9 @@ import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PageTokens
 import dev.nerzouille.koan.ui.theme.PagerTokens
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import mozilla.components.lib.state.ext.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import mozilla.components.browser.state.selector.findTab
@@ -921,26 +926,20 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             activeTabId?.let { state.findTab(it) }?.content?.progress?.let { it / 100f } ?: 0f
         }
         val findUi = rememberFindUi(components, overlays, activeTabId)
-        // Downloads running: their combined progress for the ring in the pill (NaN = size unknown).
-        val downloadProgress by store.observeSlice(privateOn) { s ->
-            val running = s.downloads.values.filter { it.status == DownloadState.Status.DOWNLOADING && visibleIn(it, privateOn) }
-            if (running.isEmpty()) {
-                null
-            } else {
-                val total = running.sumOf { it.contentLength ?: 0L }
-                if (running.any { it.contentLength == null } || total <= 0L) Float.NaN else running.sumOf { it.currentBytesCopied }.toFloat() / total
-            }
+        // Downloads running: their combined progress for the ring in the pill (NaN = size unknown),
+        // and each one that just completed: the ring's check for DONE_MS (restarted by the next
+        // one), unless another download still runs (the ring then keeps showing progress).
+        var ring by remember(privateOn) { mutableStateOf(nextRingState(DownloadRingState(), store.state.downloads.values, privateOn)) }
+        LaunchedEffect(privateOn) {
+            store.flow().map { it.downloads }.distinctUntilChanged().collect { ring = nextRingState(ring, it.values, privateOn) }
         }
-        // A download finished: the ring's check for DONE_MS (restarted by the next one), unless
-        // another download still runs (the ring then keeps showing progress).
-        var ringDoneTick by remember { mutableIntStateOf(0) }
-        var ringDone by remember { mutableStateOf(false) }
-        LaunchedEffect(ringDoneTick) {
-            if (ringDoneTick == 0) return@LaunchedEffect
-            ringDone = true
+        val downloadProgress = ring.progress
+        var ringExpired by remember(privateOn) { mutableIntStateOf(ring.doneTick) }
+        LaunchedEffect(ring.doneTick) {
             kotlinx.coroutines.delay(DownloadTokens.DONE_MS.toLong())
-            ringDone = false
+            ringExpired = ring.doneTick
         }
+        val ringDone = ring.doneTick != ringExpired
         // A download finished (or failed): say so, with Open (or Retry).
         LaunchedEffect(Unit) {
             components.downloadDone.collect { (download, status) ->
@@ -949,7 +948,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 val name = download.fileName ?: "File"
                 when (status) {
                     DownloadState.Status.COMPLETED -> {
-                        ringDoneTick++
                         toasts.show(
                             Toast(
                                 "$name downloaded", "Open",
