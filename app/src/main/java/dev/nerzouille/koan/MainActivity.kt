@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationManagerCompat
 import dev.nerzouille.koan.engine.GeckoPrefs
 import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.engine.auth.WebAuthnController
 import dev.nerzouille.koan.engine.downloads.KoanDownloadService
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
@@ -64,6 +65,9 @@ class MainActivity : FragmentActivity() {
         val app = application as KoanApp
         val components = app.components
         app.componentsReady = true
+        WebAuthnController(this, components.engine) {
+            components.sessionUseCases.exitFullscreen(components.store.state.selectedTabId)
+        }
         IconStore.initialize(this)
         // A private tab's site is never fetched for its icon nor written to the icon index.
         IconStore.isPrivatePage = { url -> components.store.state.tabs.any { it.content.private && it.content.url == url } }
