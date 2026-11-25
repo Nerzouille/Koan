@@ -582,8 +582,6 @@ Playback keeps going with Koan in the background or the screen off.
   login isn't offered to be saved twice.
 - **Passkeys:** website buttons to create or use a passkey can open Android's credential flow.
   The selected password manager may require Koan to be on its trusted-browser list.
-  The contributor's fork has the [emulator fixture and scripts][passkey-test-fixture] and
-  [preview install notes][passkey-preview-install].
 - **Settings › Passwords:** screenshots, screen recordings and the recent-apps preview are blocked
   on these pages.
   - One row per site, with a search field and the site's icon when Koan already has it (never
@@ -808,6 +806,3 @@ only **Unlock** and **Back to normal tabs**. (Settings › Lock private tabs, on
   Cloudflare) over an encrypted connection, falling back to the phone's DNS if it fails. Your
   network no longer sees which sites you look up, the resolver does. Android's own **Private DNS**
   setting does the same for every app.
-
-[passkey-test-fixture]: https://github.com/zy6p/Koan/tree/b8ef086717871a5766fc8c5876accb11c00d82d3/tools/passkey-test
-[passkey-preview-install]: https://github.com/zy6p/Koan/blob/b8ef086717871a5766fc8c5876accb11c00d82d3/docs/PASSKEYS_REVIEW.md#install-and-upgrade-identity
