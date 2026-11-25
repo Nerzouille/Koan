@@ -7,6 +7,44 @@
 - **Passkeys:** a website's button to create or use a passkey now opens Android's credential
   flow (Android 14 and up). Your password manager may still refuse Koan until it adds Koan to its
   list of trusted browsers. Thanks zy6p, #16.
+- **Captions in Koan's video player:** ⋯ › Captions lists a web video's subtitles and captions;
+  Koan draws them above its controls. The language you pick comes back on the next video.
+- **Quality** for a web video that plays a plain file and offers others (⋯ › Quality), and
+  **Download video** lets you pick the file when the page offers really different ones
+  (another resolution or format).
+- **Audio and Subtitles** for videos from Downloads and other apps: choose the audio track, show
+  the embedded subtitles, a `.srt` or `.vtt` file with the same name next to a downloaded video, or
+  ⋯ › Subtitles › Choose a file….
+- **Rotate** in the video player's ⋯ menu when the phone's auto-rotate is off.
+
+### Improved
+
+- The translate icon stays in the address bar once a page is translated, filled; a tap opens
+  Translate page (Show original, the languages). While a download runs, its ring takes the
+  icon's place.
+- With Find in page open, the translation card no longer opens by itself over the counter.
+- The space drawer keeps one height when you swipe between spaces (#11).
+- The dock no longer comes back after the smallest scroll up: it waits for a real one (#9).
+- Downloads: a file moved or deleted outside Koan is greyed out ("Moved or deleted") with
+  Download again and Remove from list, and opening it from anywhere says "File moved or missing".
+
+### Fixed
+
+- Private mode: after Android closed Koan in the background, it came back on the first space
+  instead of the last one.
+- A translated page's state no longer carries over to the next page in the same tab.
+- Find in page: no more "0/0" while a match is highlighted, and an empty field leaves no
+  highlight behind.
+- The download ring's check at the end of a download shows again.
+
+### Known limitations
+
+- **Passkeys that fail say nothing in Koan:** when your password manager refuses Koan, only the
+  site sees it fail.
+- **Save image on Google Images** before the full picture has loaded may still save the preview.
+- **Long screenshots** on HyperOS still don't scroll Koan's pages.
+- **arm64 only** (64-bit ARM phones).
+- Spaces stay read-only for now.
 
 ## 1.0.0-beta.1 — 2026-11-13 (pre-release)
 
