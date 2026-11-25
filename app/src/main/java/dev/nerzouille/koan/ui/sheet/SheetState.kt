@@ -19,6 +19,13 @@ import kotlinx.coroutines.launch
 enum class Detent { Closed, Compact, Full }
 
 /**
+ * How a sheet with several pages (the drawer: one per space) sizes itself (GitHub #11):
+ * [PerPage] each page at its own height (the sheet jumps between spaces), [Tallest] the tallest
+ * page's height for every page, [Full] always the full height.
+ */
+enum class PageHeight { PerPage, Tallest, Full }
+
+/**
  * The detent engine every Koan sheet shares (the pins drawer, the menu, floating cards). Its
  * [height] follows the finger 1:1; only the full detent lets a list taller than the screen
  * scroll, and only once the sheet is all the way up (a drag down at the top of the list collapses
@@ -51,13 +58,24 @@ class SheetState(private val scope: CoroutineScope, private val decay: DecayAnim
     var fullCapPx = 1f
     var minStepPx = 0f
 
+    /** See [PageHeight]; the drawer sets DrawerTokens.PAGE_HEIGHT, the other sheets keep [PageHeight.PerPage]. */
+    var pageHeight = PageHeight.PerPage
+
     /** Natural (unscrolled) content height of each space's page, and the page on screen. */
     private var pageHeights = IntArray(0)
     private var page = 0
-    private val contentPx: Float get() = pageHeights.getOrElse(page) { 0 }.toFloat()
-    private val compactPx: Float get() = minOf(contentPx, compactCapPx).coerceAtLeast(1f)
+    private val ownPx: Float get() = pageHeights.getOrElse(page) { 0 }.toFloat()
+    private val contentPx: Float get() = when (pageHeight) {
+        PageHeight.PerPage -> ownPx
+        PageHeight.Tallest -> (pageHeights.maxOrNull() ?: 0).toFloat()
+        PageHeight.Full -> maxOf(fullCapPx, ownPx)
+    }
+    private val compactPx: Float get() =
+        (if (pageHeight == PageHeight.Full) minOf(contentPx, fullCapPx) else minOf(contentPx, compactCapPx)).coerceAtLeast(1f)
     private val fullPx: Float get() = minOf(contentPx, fullCapPx).coerceAtLeast(compactPx)
-    private val maxScroll: Float get() = (contentPx - fullPx).coerceAtLeast(0f)
+
+    /** Only the page on screen scrolls, by what it has beyond the sheet. */
+    private val maxScroll: Float get() = (ownPx - fullPx).coerceAtLeast(0f)
 
     /** 0 closed … 1 at the compact height (scrim, blur, corners); stays 1 above it. */
     val progress: Float get() = (height / compactPx).coerceIn(0f, 1f)

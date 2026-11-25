@@ -270,7 +270,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         spaceIds.getOrNull(target)?.let { currentSpaceUuid = it }
     }
     motion.distancePx = with(density) { BarTokens.OverviewDrag.toPx() }
-    val drawer = remember(density) { SheetState(scope, splineBasedDecay(density)) }
+    val drawer = remember(density) { SheetState(scope, splineBasedDecay(density)).apply { pageHeight = DrawerTokens.PAGE_HEIGHT } }
     LaunchedEffect(overviewOpen) { if (!overviewOpen) drawer.snapClosed() }
 
     // The ⋯ menu, the long-press menu, find, Settings (see KoanOverlays).

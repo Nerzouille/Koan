@@ -114,7 +114,8 @@ fun DrawerContent(
         val measured = IntArray(placeables.size) { placeables[it].height }
         if (!measured.contentEquals(heights)) heights = measured
         val tallest = placeables.maxOfOrNull { it.height } ?: 0
-        val h = minOf(tallest, drawer.fullCapPx.toInt()).coerceAtLeast(0)
+        val full = drawer.fullCapPx.toInt()
+        val h = (if (drawer.pageHeight == dev.nerzouille.koan.ui.sheet.PageHeight.Full) full else minOf(tallest, full)).coerceAtLeast(0)
         if (drawer.layoutPx != h.toFloat()) drawer.layoutPx = h.toFloat()
         layout(constraints.maxWidth, h) {
             placeables.forEachIndexed { i, p ->

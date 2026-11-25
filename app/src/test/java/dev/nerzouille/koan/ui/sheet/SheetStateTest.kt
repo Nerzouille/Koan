@@ -89,4 +89,36 @@ class SheetStateTest {
         assertTrue(s.drag(5f, velocity = 2000f))
         assertEquals(Detent.Closed, s.detent)
     }
+
+    @Test
+    fun `the drawer keeps the tallest space's height on every space (#11, A)`() {
+        val s = SheetState(TestScope(), exponentialDecay()).apply {
+            compactCapPx = 500f
+            fullCapPx = 1500f
+            minStepPx = 48f
+            pageHeight = PageHeight.Tallest
+            refit(intArrayOf(200, 400), 0)
+        }
+        s.drag(-400f)
+        assertEquals(Detent.Compact, s.detent)
+        assertEquals(400f, s.height)
+        // The small space on screen: the sheet doesn't move (no animation launched).
+        s.refit(intArrayOf(200, 400), 1)
+        s.refit(intArrayOf(200, 400), 0)
+        assertEquals(400f, s.height)
+    }
+
+    @Test
+    fun `option B opens every space at the full height`() {
+        val s = SheetState(TestScope(), exponentialDecay()).apply {
+            compactCapPx = 500f
+            fullCapPx = 1500f
+            minStepPx = 48f
+            pageHeight = PageHeight.Full
+            refit(intArrayOf(200, 400), 0)
+        }
+        s.drag(-1500f)
+        assertEquals(Detent.Compact, s.detent)
+        assertEquals(1500f, s.height)
+    }
 }

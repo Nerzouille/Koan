@@ -958,6 +958,11 @@ object BarTokens {
 
 /** Essentials + pinned drawer that grows out of the overview's bar. */
 object DrawerTokens {
+    /**
+     * GitHub #11, the drawer's height across spaces (owner picks, screenshots in reference/):
+     * Tallest (A) = the tallest space's height for all, Full (B) = always the full height.
+     */
+    val PAGE_HEIGHT = dev.nerzouille.koan.ui.sheet.PageHeight.Tallest
     val TopRadius = 28.dp
     val Padding = 14.dp
     val Gap = 10.dp
