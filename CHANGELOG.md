@@ -16,9 +16,11 @@
   the embedded subtitles, a `.srt` or `.vtt` file with the same name next to a downloaded video, or
   ⋯ › Subtitles › Choose a file….
 - **Rotate** in the video player's ⋯ menu when the phone's auto-rotate is off.
+- **Copy link text** in the menu of a long-pressed link.
 
 ### Improved
 
+- The search field opens out of the address pill and closes back into it.
 - The translate icon stays in the address bar once a page is translated, filled; a tap opens
   Translate page (Show original, the languages). While a download runs, its ring takes the
   icon's place.
@@ -30,6 +32,7 @@
 
 ### Fixed
 
+- Typing fast in the search field no longer loses letters.
 - Private mode: after Android closed Koan in the background, it came back on the first space
   instead of the last one.
 - A translated page's state no longer carries over to the next page in the same tab.
