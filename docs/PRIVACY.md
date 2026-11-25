@@ -40,6 +40,10 @@ never downloads an icon for that list, so no site and no icon service learns whi
 saved logins for. Screenshots, screen recordings and the Recents preview are blocked on the
 Passwords pages.
 
+On Android 14 and up, GeckoView can send a website's passkey request and origin to Android's
+credential system for the selected password manager. The password manager handles verification
+and passkey storage.
+
 While a page plays audio or video, its title and icon show in Android's media notification,
 including on the lock screen. Links like `tel:` or `mailto:` are handed to the app you choose,
 only when you tap them.
