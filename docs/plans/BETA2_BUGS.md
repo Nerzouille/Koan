@@ -1,8 +1,8 @@
 # Beta.2 bugs
 
 The bugs for 1.0.0-beta.2, in one list: two from GitHub issues (triaged 2026-11-20) and the ones
-noted in `docs/ROADMAP.md` › For 1.0.0-beta.2 and `docs/HANDOFF.md`. The beta.2 features (depth
-cue, Rotate row, video quality, translate icon and ring slot, passkeys) stay in ROADMAP.
+noted in `docs/ROADMAP.md` › For 1.0.0-beta.2 and `docs/HANDOFF.md`, then the phone-run findings and
+the beta.2 features (items 9 to 17; ROADMAP keeps the owner's wording of each feature).
 
 ## Status (2026-11-25)
 
@@ -11,6 +11,8 @@ A fresh session can work from this file alone. Read `CLAUDE.md` first (rules), t
 the owner's wording of each feature.
 
 - **Branch:** `beta2-bugs`, rebased on `dev` (60a2199, passkeys PR #16 merged), local, not pushed.
+- **The POCO's real Koan** (`dev.nerzouille.koan`) runs a `beta2-bugs` dev build (installed for
+  item 1's kill test), not beta.1. Koan Test (`.staging`) has fake tabs on public pages.
 - **The owner commits by default.** Give the exact `git add` / `git commit` commands.
 - **Marked "needs the owner"** below: don't start those alone; prepare what they need and stop.
 
@@ -18,43 +20,41 @@ the owner's wording of each feature.
 
 | # | Item | State | Commits | Needs the owner |
 |---|---|---|---|---|
-| 1 | Private after a kill | Fixed twice: 86002a7, then 28abd52 (the space pager also starts from the saved normal space's index, `PrivatePlaceStartupTest`). Recheck the kill test on the POCO. | 86002a7, 28abd52 | No (staging kill test) |
-| 2 | Translation state reset per page | Fixed, `TranslationResetTest`. Phone check to finish; see new finding A. | 821c633 | No |
-| 3 | Find 0/0 | Fixed, `FindCountTest`. Phone check to finish; see new finding B. | 32048e6 | No |
+| 1 | Private after a kill | **Done.** Fixed twice: 86002a7, then 28abd52 (the space pager also starts from the saved normal space's index, `PrivatePlaceStartupTest`). Phone OK 2026-11-25 on the real Koan: kill and cold start both reopen the second space. | 86002a7, 28abd52 | No |
+| 2 | Translation state reset per page | **Done.** Fixed, `TranslationResetTest`. Phone OK 2026-11-25 (Koan Test): other-language page in the same tab, Back, same-page anchor, reload. | 821c633 | No |
+| 3 | Find 0/0 | **Done.** Fixed, `FindCountTest`. Phone OK 2026-11-25 (Koan Test): counts, next / previous, 0/0, clear, new tab closes Find. A match only in a collapsed section not reproduced (French Wikipedia shows sections expanded). | 32048e6 | No |
 | 4 | Download ring check | Fixed, `DownloadRingStateTest`. Phone check not done. | db0a692 | **Yes:** downloads on the phone, watching the ring |
 | 5 | Missing download files | Fixed, `CheckedDownloadFilesTest`, `MissingFilesTest`; rows greyed in Downloads. Phone check not done. | c10b599, e0d9d18 | **Yes:** file manager, notification |
 | 6 | Drawer height (#11) | Not started. Two options to show on the POCO. | none | **Yes:** picks the option |
 | 7 | Dock comes back (#9) | Not started. Dead zone to try. | none | **Yes:** feel check on a release build |
 | 8 | Save image (Google Images) | Not reproduced; more checks and a `KoanPageImage` log (extension 1.1). Fix or drop after the phone check. | a9f2841 | **Yes:** Google Images on the phone, fix-or-drop call |
-| 9 | Find: translation card never auto-opens while Find is open | New finding, not started. | none | No |
-| 10 | Find: an empty field clears all highlights | New finding, not started. | none | No |
+| 9 | Translation card never auto-opens while Find is open | New finding (phone run), not started. | none | No |
+| 10 | An empty Find field clears all highlights | New finding (phone run), not started. | none | No |
 | 11 | Player checks (Commons stream or WebM, Commons `<track>`s, Vimeo tracks) | Not run. | none | No (staging, public pages) |
 | 12 | Player tracks (web Captions and Quality; standalone Audio / Subtitles; side files, option A) | Scope approved; coding after item 11. | none | No (results go into PLAYER_TRACKS.md first) |
 | 13 | Translate icon stays active after translating; download ring shares its slot | Not started. | none | No |
-| 14 | Rotate row in the player's ⋯ menu | Not started. | none | Hide with auto-rotate on, or keep: ask |
+| 14 | Rotate row in the player's ⋯ menu | Not started. | none | One question: hide it when auto-rotate is on? |
 | 15 | Passkey failure message | Unblocked (#16 merged). Not started. | none | No |
 | 16 | Depth cue (A, B, C or A + B) | Prototype on `depth-cue-proto`. | none | **Yes:** picks from screenshots |
 | 17 | End of phase: R8 release build, kill and restore | After everything else. | none | No |
 
-**Also needs the owner:** turn Settings › Lock private tabs back on, on the phone, once the kill
-tests are done.
+**Also needs the owner:** Lock private tabs is **off** in the POCO's real Koan (turned off for the
+kill tests, which are done): remind the owner to turn Settings › Lock private tabs back on.
+
+**Needs the owner, in short:** items 4, 5, 8 (their hands on the phone), 6 (#11 drawer height:
+picks an option), 7 (#9 dock feel, release build), 16 (depth choice), Lock private tabs back on.
+Everything else can run alone.
 
 Last full JVM run: 460 green after item 8, then `MissingFilesTest` +3. Rerun the full suite after
 item 1's second fix and at the end of the phase.
 
-### Phone checks (POCO, staging build, all in one go)
+### Phone checks left (POCO, staging build)
+
+Items 1 to 3 passed on 2026-11-25; their steps are in the item sections below.
 
 `./gradlew assembleStaging`, `adb install -r app/build/outputs/apk/staging/app-staging.apk`
 (own data: set up fake tabs on public pages first).
 
-1. **Private after a kill:** on a normal space other than the first, Private on, Home, `adb shell
-   am kill dev.nerzouille.koan.staging`, reopen: normal mode on that space. Then swipe Koan away
-   and reopen: the same space.
-2. **Translation:** translate a page; open a page in another language in the same tab (sheet's
-   "From" is right, icon shows); Back to the translated page; a same-page anchor link (stays
-   translated); reload.
-3. **Find:** a word on a Wikipedia article (also one only in a collapsed section), next and
-   previous, a word with no match (0/0), clear the field, switch tab while finding.
 4. **Ring:** a small and a large download with Koan in front: the ring fills, the check draws,
    it goes, once. Two downloads at once: the check for the first, the ring keeps going.
 5. **Missing file:** download a file, delete it with a file manager, open it from Downloads, the
@@ -201,20 +201,24 @@ only a closer look, no fix.
 
 ## 9. The translation card never auto-opens while Find is open
 
-- **What** (new finding): with Find in page open, a page that would offer translation on its own
-  never shows the card.
-- **Look at:** how the card's auto-open in `ui/browser/TranslateCue.kt` is gated by other overlays
-  (`ui/KoanOverlays.kt`). Decide with the owner only if the right behaviour is unclear (wait until
-  Find closes, or open over it).
-- **Check:** Find open, then open a page in another language; then close Find.
+- **Found** (phone run 2026-11-25): with Find open, a reload brought the translation offer card back
+  on its own, over the Find bar, hiding the counter until the card was closed.
+- **Want:** while Find is open, the card never opens on its own. The translate icon in the pill
+  still offers it; tapping the icon still opens the card.
+- **Look at:** the card's auto-open in `ui/browser/TranslateCue.kt` and the overlays in
+  `ui/KoanOverlays.kt` (gate the auto-open on Find being closed).
+- **Check:** Find open on a page in another language, reload: no card, counter visible, icon in the
+  pill. Close Find, open another page in that language: the card opens as before.
 
 ## 10. An empty Find field clears all highlights
 
-- **What** (new finding): clearing the Find field removes every highlight. Expected behaviour to
-  confirm against Firefox for Android before changing it.
-- **Look at:** what Koan sends to Gecko on an empty query (`engine/PageTools.kt`), next to item 3's
-  `GeckoFinder.find`.
-- **Check:** find a word, clear the field, type again; close Find.
+- **Found** (phone run 2026-11-25): deleting the search text letter by letter left a highlight from
+  an earlier, shorter query ("zz" in "jazz") once the field was empty. The counter went away.
+- **Want:** an empty field clears every highlight on the page (and the counter, as today).
+- **Look at:** what Koan sends to Gecko on an empty query (`engine/PageTools.kt`, next to item 3's
+  `GeckoFinder.find`): probably nothing, so the last highlight stays. Clear the matches instead.
+- **Check:** type a word, delete it letter by letter: no highlight left. Select all and delete;
+  type again; close Find.
 
 ## 11. Player checks
 
