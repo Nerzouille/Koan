@@ -111,11 +111,16 @@ fun WebPlayerLayer(
                 components.pageVideo.caption(tabId, i)
             }),
         )?.let(::add)
+        choiceRow(KoanIcons.Quality, "Quality", qualityChoices(video.files, video.src, video.kind) { f -> components.pageVideo.source(tabId, f.src) })?.let(::add)
         add(pipOnLeaveRow(pipOnLeave) { on -> saveScope.launch { components.settings.setPictureInPicture(on) } })
         // Always there (F6): greyed out, with why, when the video isn't a file Koan can save.
         add(
             when (save) {
-                is VideoSave.File -> MenuRow(KoanIcons.Download, "Download video") { startDownload(save.url) }
+                // Several files of this video: pick which one (one list with ⋯ › Quality).
+                is VideoSave.File -> downloadChoices(video.files) { f -> startDownload(f.src) }
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { MenuRow(KoanIcons.Download, "Download video", choices = it) }
+                    ?: MenuRow(KoanIcons.Download, "Download video") { startDownload(save.url) }
                 // No video ending: asked the server only now, on the tap.
                 is VideoSave.Check -> MenuRow(KoanIcons.Download, "Download video") {
                     saveScope.launch {

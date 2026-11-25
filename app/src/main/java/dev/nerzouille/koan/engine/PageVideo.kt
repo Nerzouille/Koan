@@ -60,7 +60,13 @@ data class WebVideo(
     val tracks: List<WebTrack> = emptyList(),
     /** The one Koan shows (an index in [tracks]), -1: none. */
     val track: Int = -1,
+    /** The video's plain files (renditions, the original): Download video's and Quality's list. */
+    val files: List<WebFile> = emptyList(),
 )
+
+/** One plain file of a page's video: [height] 0 when the page doesn't say, [type] its MIME type or "". */
+@Immutable
+data class WebFile(val src: String, val height: Int, val type: String, val original: Boolean)
 
 /** One subtitle or caption track of a page's video. */
 @Immutable
@@ -155,6 +161,7 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
         // Sent only when the list changed.
         tracks = j.optJSONArray("tracks")?.let(::parseTracks) ?: before?.tracks.orEmpty(),
         track = j.optInt("track", -1),
+        files = j.optJSONArray("files")?.let(::parseFiles) ?: before?.files.orEmpty(),
     )
 
     /**
@@ -243,6 +250,9 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
     fun rate(tabId: String, rate: Double) = send(tabId, JSONObject().put("action", "rate").put("rate", rate))
     fun mute(tabId: String, muted: Boolean) = send(tabId, JSONObject().put("action", "mute").put("muted", muted))
 
+    /** Plays the video's file [src] (one of [WebVideo.files]) from where it is. */
+    fun source(tabId: String, src: String) = send(tabId, JSONObject().put("action", "source").put("src", src))
+
     /** Shows the video's caption track [index] (in [WebVideo.tracks]); -1: none. */
     fun caption(tabId: String, index: Int) = send(tabId, JSONObject().put("action", "caption").put("index", index))
 
@@ -266,4 +276,11 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
 /** The extension's track list: kind, label and language of each subtitle / caption track. */
 internal fun parseTracks(a: org.json.JSONArray): List<WebTrack> = (0 until a.length()).mapNotNull { i ->
     a.optJSONObject(i)?.let { WebTrack(it.optString("kind"), it.optString("label").trim(), it.optString("lang").trim()) }
+}
+
+/** The extension's file list (http addresses only). */
+internal fun parseFiles(a: org.json.JSONArray): List<WebFile> = (0 until a.length()).mapNotNull { i ->
+    val o = a.optJSONObject(i) ?: return@mapNotNull null
+    val src = o.optString("src").takeIf { it.startsWith("https://") || it.startsWith("http://") } ?: return@mapNotNull null
+    WebFile(src, o.optInt("height").coerceAtLeast(0), o.optString("type"), o.optBoolean("original"))
 }

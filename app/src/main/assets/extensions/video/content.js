@@ -217,6 +217,7 @@ function report() {
     // Captions: the list only when it changed (it can grow while the video plays).
     tracks: tracksChanged(v),
     track: chosen,
+    files: filesChanged(v),
   });
 }
 
@@ -278,6 +279,7 @@ function chooseCaption(i) {
 
 function takeCaptions(v) {
   lastTracks = null;
+  lastFiles = null;
   lastCue = null;
   const list = captionTracks(v);
   savedModes = list.map(t => t.mode);
@@ -321,37 +323,95 @@ function linkedFile(v) {
   return "";
 }
 
-function fileSource(v) {
-  const plain = (s) => {
-    const u = s.src || "";
-    const t = (s.type || "").toLowerCase();
-    if (!/^https?:/.test(u)) return false;
-    if (/dash|mpegurl|m3u8/.test(t) || /\.(m3u8|mpd)([?#]|$)/i.test(u)) return false;
-    return !t || t.startsWith("video/");
-  };
-  let list = [...v.querySelectorAll("source")].filter(plain);
+function plainSource(s) {
+  const u = s.src || "";
+  const t = (s.type || "").toLowerCase();
+  if (!/^https?:/.test(u)) return false;
+  if (/dash|mpegurl|m3u8/.test(t) || /\.(m3u8|mpd)([?#]|$)/i.test(u)) return false;
+  return !t || t.startsWith("video/");
+}
+
+function sourceHeight(s) {
+  return parseInt(s.getAttribute("data-height") || s.getAttribute("height") || "0", 10) || 0;
+}
+
+/** The video's plain <source>s, else the page's copies of the same video (one folder). */
+function plainSources(v) {
+  let list = [...v.querySelectorAll("source")].filter(plainSource);
   if (!list.length) {
     // A streaming player that took its <source>s away: the page's other copies of the same video,
     // only when they are all renditions of one video (one folder).
-    const all = [...document.querySelectorAll("video source")].filter(plain);
+    const all = [...document.querySelectorAll("video source")].filter(plainSource);
     const dirs = new Set(all.map((s) => s.src.substring(0, s.src.lastIndexOf("/"))));
     list = dirs.size === 1 ? all : [];
   }
+  return list;
+}
+
+// MediaWiki (Commons, Wikipedia): renditions sit in ".../transcoded/<x>/<xy>/<File>/"; the
+// original file, when the page links it.
+function linkedOriginal(rendition) {
+  const original = rendition.replace(/\/transcoded\/(.+)\/([^/]+)\/[^/]+$/, "/$1/$2");
+  if (original === rendition) return "";
+  const linked = [...document.querySelectorAll("a[href]")].some((a) => a.href.split(/[?#]/)[0] === original);
+  return linked ? original : "";
+}
+
+function fileSource(v) {
   let best = "";
   let bestH = -1;
-  for (const s of list) {
-    const h = parseInt(s.getAttribute("data-height") || s.getAttribute("height") || "0", 10) || 0;
+  for (const s of plainSources(v)) {
+    const h = sourceHeight(s);
     if (h > bestH) { best = s.src; bestH = h; }
   }
   if (!best) return linkedFile(v);
-  // MediaWiki (Commons, Wikipedia): renditions sit in ".../transcoded/<x>/<xy>/<File>/"; the
-  // original file, when the page links it, is the one to save.
-  const original = best.replace(/\/transcoded\/(.+)\/([^/]+)\/[^/]+$/, "/$1/$2");
-  if (original !== best) {
-    const linked = [...document.querySelectorAll("a[href]")].some((a) => a.href.split(/[?#]/)[0] === original);
-    if (linked) return original;
+  // The original file, when the page links it, is the one to save.
+  return linkedOriginal(best) || best;
+}
+
+/**
+ * Every plain file of this video (its renditions and the original): Download video's choice and,
+ * when the video plays a plain file, ⋯ › Quality. One list for both.
+ */
+function videoFiles(v) {
+  const out = [];
+  const seen = new Set();
+  for (const s of plainSources(v)) {
+    if (seen.has(s.src)) continue;
+    seen.add(s.src);
+    out.push({ src: s.src, height: sourceHeight(s), type: (s.type || "").toLowerCase(), original: false });
   }
-  return best;
+  const original = out.length ? linkedOriginal(out[0].src) : "";
+  if (original && !seen.has(original)) out.push({ src: original, height: 0, type: "", original: true });
+  return out;
+}
+
+let lastFiles = null;
+
+/** The file list, when it differs from the last one sent; undefined otherwise (not sent). */
+function filesChanged(v) {
+  const list = videoFiles(v);
+  const key = JSON.stringify(list);
+  if (key === lastFiles) return undefined;
+  lastFiles = key;
+  return list;
+}
+
+/** ⋯ › Quality: plays [src] (one of the video's files) from the same time, speed and play state. */
+function setSource(src) {
+  const v = video;
+  if (!v || !videoFiles(v).some((f) => f.src === src)) return;
+  const t = v.currentTime;
+  const rate = v.playbackRate;
+  const playing = !v.paused && !v.ended;
+  const restore = () => {
+    v.removeEventListener("loadedmetadata", restore);
+    try { v.currentTime = t; } catch (e) {}
+    v.playbackRate = rate;
+    if (playing) v.play().catch(() => {});
+  };
+  v.addEventListener("loadedmetadata", restore);
+  v.src = src;
 }
 
 function titleOf(v) {
@@ -369,6 +429,7 @@ function onCommand(m) {
     case "rate": if (v && m.rate > 0) v.playbackRate = m.rate; break;
     case "mute": if (v) { v.muted = !!m.muted; if (!m.muted && v.volume === 0) v.volume = 1; } break;
     case "caption": if (v) chooseCaption(m.index); break;
+    case "source": if (v && typeof m.src === "string") setSource(m.src); break;
     case "release": release(); break;
   }
   report();
