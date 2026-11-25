@@ -65,7 +65,7 @@ class SearchField {
         when {
             new.text == old.text -> cursorMoved(new)
             // Backspace (or a cut) with a completion showing: only the completion goes.
-            completion.isNotEmpty() && new.selection.collapsed && old.text.startsWith(new.text) && new.text.length == old.text.length - 1 -> {
+            completion.isNotEmpty() && isBackspace(old, new) -> {
                 completion = ""
                 growing = false
                 value = old
@@ -79,6 +79,9 @@ class SearchField {
             }
         }
     }
+
+    private fun isBackspace(old: TextFieldValue, new: TextFieldValue) =
+        new.selection.collapsed && old.text.startsWith(new.text) && new.text.length == old.text.length - 1
 
     private fun cursorMoved(new: TextFieldValue) {
         // The keyboard also sends its composing region with the same text and cursor: not a move.

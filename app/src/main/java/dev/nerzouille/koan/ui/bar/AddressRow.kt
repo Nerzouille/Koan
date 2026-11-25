@@ -217,26 +217,22 @@ fun AddressRow(
     // The search morph: the pill opens into the search field (its background grows from the
     // pill's bounds to the field's, the buttons beside it step aside) and closes back into it.
     // One value, read in layers only; the two rows overlap only while it moves.
-    val edit = remember { Animatable(if (editing) 1f else 0f) }
-    val still = rememberAnimationsOff()
-    LaunchedEffect(editing) {
-        val goal = if (editing) 1f else 0f
-        if (still) edit.snapTo(goal) else edit.animateTo(goal, BarTokens.SearchMorph)
-    }
+    val edit = rememberSearchMorph(editing)
     val fieldShown by remember { derivedStateOf { edit.value > 0f } }
     val pillShown by remember { derivedStateOf { edit.value < 1f } }
     val pillBounds = remember { arrayOf(androidx.compose.ui.geometry.Rect.Zero) }
     val stepPx = with(LocalDensity.current) { BarTokens.SearchMorphStep.toPx() }
     val rowModifier = Modifier.fillMaxWidth().padding(horizontal = BarTokens.RowPadding)
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-        if (find != null && !editing && !fieldShown && !overviewOpen) {
+        val searching = editing || fieldShown
+        if (find != null && !searching && !overviewOpen) {
             Row(rowModifier, verticalAlignment = Alignment.CenterVertically) { FindBar(find, Modifier.weight(1f)) }
             return@Box
         }
-        if (editing || fieldShown) {
+        if (searching) {
             Row(rowModifier, verticalAlignment = Alignment.CenterVertically) {
                 AddressInput(
-                    initial = if (page.url == "about:blank") "" else page.url,
+                    initial = page.url.takeUnless { it == "about:blank" }.orEmpty(),
                     field = search,
                     complete = complete,
                     completedTitle = completedTitle,
@@ -290,15 +286,44 @@ fun AddressRow(
                     private = private,
                     flip = flip,
                 )
-                Box(Modifier.flipTextDip(flip).then(asideEnd)) {
-                    TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu)
-                }
-                Box(asideEnd) {
-                    BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
-                    BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
-                }
+                RowEnd(asideEnd, flip, tabCount, overviewOpen, onTabs, onTabsMenu, onMenu, onSettings, pageOnly, overviewOnly)
             }
         }
+    }
+}
+
+/** The search morph's value: 0 the pill, 1 the search field, springing to [editing]'s end. */
+@Composable
+private fun rememberSearchMorph(editing: Boolean): Animatable<Float, androidx.compose.animation.core.AnimationVector1D> {
+    val edit = remember { Animatable(if (editing) 1f else 0f) }
+    val still = rememberAnimationsOff()
+    LaunchedEffect(editing) {
+        val goal = if (editing) 1f else 0f
+        if (still) edit.snapTo(goal) else edit.animateTo(goal, BarTokens.SearchMorph)
+    }
+    return edit
+}
+
+/** The tab counter and ⋯ (Settings in the overview), stepping aside with [aside] in the search morph. */
+@Composable
+private fun RowEnd(
+    aside: Modifier,
+    flip: PrivateFlip?,
+    tabCount: Int,
+    overviewOpen: Boolean,
+    onTabs: () -> Unit,
+    onTabsMenu: () -> Unit,
+    onMenu: () -> Unit,
+    onSettings: () -> Unit,
+    pageOnly: Modifier,
+    overviewOnly: Modifier,
+) {
+    Box(Modifier.flipTextDip(flip).then(aside)) {
+        TabsButton(count = tabCount, onClick = onTabs, onHold = onTabsMenu.takeUnless { overviewOpen })
+    }
+    Box(aside) {
+        BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
+        BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
     }
 }
 
@@ -733,7 +758,11 @@ private fun AddressInput(
                 visualTransformation = run {
                     val title = completedTitle()?.takeIf { completion.isNotEmpty() && it.isNotBlank() }
                     val highlight = LocalTextSelectionColors.current.backgroundColor
-                    if (completion.isEmpty()) VisualTransformation.None else CompletionAfter(completion, title, highlight, palette.FieldHint)
+                    if (completion.isEmpty()) {
+                        VisualTransformation.None
+                    } else {
+                        CompletionAfter(completion, title, highlight, palette.FieldHint)
+                    }
                 },
                 onTextLayout = { layout = it },
                 decorationBox = { inner ->
