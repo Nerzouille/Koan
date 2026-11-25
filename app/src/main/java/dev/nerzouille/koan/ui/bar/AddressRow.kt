@@ -343,10 +343,10 @@ private fun rememberSearchMorph(editing: Boolean): SearchMorph {
     return morph
 }
 
-/** The tab counter and ⋯ (Settings in the overview), stepping aside with [aside] in the search morph. */
+/** The tab counter and ⋯ (Settings in the overview), stepping aside with [modifier] in the search morph. */
 @Composable
 private fun RowEnd(
-    aside: Modifier,
+    modifier: Modifier,
     flip: PrivateFlip?,
     tabCount: Int,
     overviewOpen: Boolean,
@@ -357,10 +357,10 @@ private fun RowEnd(
     pageOnly: Modifier,
     overviewOnly: Modifier,
 ) {
-    Box(Modifier.flipTextDip(flip).then(aside)) {
+    Box(Modifier.flipTextDip(flip).then(modifier)) {
         TabsButton(count = tabCount, onClick = onTabs, onHold = onTabsMenu.takeUnless { overviewOpen })
     }
-    Box(aside) {
+    Box(modifier) {
         BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
         BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
     }

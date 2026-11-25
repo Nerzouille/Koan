@@ -121,8 +121,10 @@ fun SearchSheet(
 }
 
 /** Every touch stops here (the results fading out can't be tapped). */
-private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.swallowTouches() = awaitPointerEventScope {
-    while (true) awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial).changes.forEach { it.consume() }
+private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.swallowTouches() {
+    awaitPointerEventScope {
+        while (true) awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial).changes.forEach { it.consume() }
+    }
 }
 
 /** What the sheet shows for what is typed: the "@" picker, or the result groups. */

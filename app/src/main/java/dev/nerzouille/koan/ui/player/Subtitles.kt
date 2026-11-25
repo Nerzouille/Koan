@@ -1,5 +1,7 @@
 package dev.nerzouille.koan.ui.player
 
+import androidx.core.net.toUri
+
 /*
  * Subtitle files for the standalone player. Android's MediaPlayer reads SubRip (.srt) only, so a
  * WebVTT file (.vtt) is turned into SubRip first.
@@ -78,7 +80,7 @@ private const val MAX_SUBTITLE_BYTES = 5_000_000
  * Off the main thread.
  */
 internal fun subtitleFile(context: android.content.Context, uri: String, name: String): String? = runCatching {
-    val input = context.contentResolver.openInputStream(android.net.Uri.parse(uri)) ?: return null
+    val input = context.contentResolver.openInputStream(uri.toUri()) ?: return null
     val bytes = input.use { dev.nerzouille.koan.engine.KoanHttp.readCapped(it, MAX_SUBTITLE_BYTES) } ?: return null
     val srt = subtitleAsSrt(name, String(bytes, Charsets.UTF_8)) ?: return null
     val dir = java.io.File(context.cacheDir, "subtitles").apply { mkdirs() }
