@@ -204,6 +204,9 @@ losing data, and the owner has approved and published the release.
 - **Private mode's entrance as a gradient sweep:** switching Private on, its colours sweep in
   from the right; switching it off, they leave towards the other side. Don't touch the current
   transition before then: it was just stabilised (the interruptible flip, beta.1).
+- **Payments, return to the same tab:** a bank or pay app (Revolut, …) sending you back to the
+  checkout opens its return address in the tab that sent you to the app, not a new tab
+  (`docs/plans/PAYMENTS_RESEARCH.md`, the small fix; owner, 2026-11-26).
 
 ### Batch 4 leftovers (after the release)
 
