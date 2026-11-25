@@ -589,3 +589,9 @@ was not touched.
 2. **Depth cue A** only (B dropped), stronger in dark: see item 16. Checked in dark on Koan Test;
    light is unchanged from the A capture.
 3. End checks: full JVM suite **512 green**; detekt passes; lint has no new errors.
+4. **"@" picker on close** (93d29ea, owner's report): closing the field with "@" typed (✕ or
+   Back) cut the "Search with" panel off at once, and reopening flashed it for a frame (the
+   sheet read the last editing's "@" before the field started again). Now the panel fades out
+   with the dim (untouchable meanwhile), and the sheet shows nothing from the last editing until
+   the field starts (`SearchField.current`, `SearchFieldTest`). Checked frame by frame on Koan
+   Test: fades over ~8 frames on close, no frame of it on reopening.
