@@ -260,6 +260,14 @@ Springs are Compose `spring(dampingRatio, stiffness)`; damping 1.0 = no overshoo
 `graphicsLayer` properties animate in hot paths (translation, scale, alpha, clip, corner radius).
 "Remove animations" (system setting) freezes the decorative loops.
 
+**Rule: prefer morphs and smooth transitions everywhere, as long as they stay light** (owner,
+2026-11-26). When one thing becomes another (the dock's pill and the search field, a pill and its
+menu, a row and its card), it grows out of it rather than swapping or cutting: shared bounds, a
+clip from the old shape to the new one, contents crossfading late. "Light" means the same limits as
+above: one animated value read in layer and draw lambdas, no recomposition or relayout per frame,
+no new offscreen buffers in hot paths, and checked on a release build on the phone. A transition
+that can't be made light stays a quick fade.
+
 | Spring | Damping | Stiffness | What moves |
 |---|---|---|---|
 | `ToggleTokens.Spring` | 0.72 | 520 |  |
@@ -273,6 +281,7 @@ Springs are Compose `spring(dampingRatio, stiffness)`; damping 1.0 = no overshoo
 | `Motion.TabSwipe` | 0.9 | 400 | Page view: the swiped page sliding out, the neighbour tab sliding in (or back). |
 | `Motion.ScrubHighlight` | 0.85 | 900 | Page view space scrub: the highlight springing to the space under the finger. |
 | `Motion.FolderChevron` | 0.85 | 600 |  |
+| `BarTokens.SearchMorph` | 0.9 | 420 | The dock's pill opening into the search field (its background clipped from the pill's bounds to the field's, the side buttons stepping aside `SearchMorphStep` 24 dp, the field's contents in over the second half), and back. |
 | `Motion.SheetPush` | 1 | 520 | A page pushed into a sheet sliding in, or popped. |
 | `Motion.Toast` | 1 | 700 | The bottom toast rising in and sinking away. |
 | `Motion.Sheet` | 1 | 380 | Full-screen sheets (sign-in) sliding up and down. |

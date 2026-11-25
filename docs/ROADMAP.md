@@ -179,6 +179,14 @@ losing data, and the owner has approved and published the release.
   gets an abort error and Koan shows nothing. Show a short Koan message instead, e.g. "Your password
   manager doesn't support Koan for passkeys yet".
 
+- **From the owner's notes (2026-11-26), built on `beta2-bugs`:**
+  - Typing in the search field lost letters when typing fast (inline completion replaced the
+    text under the keyboard): the completion is now drawn after the text, not typed in
+    (`SearchField`, `SearchFieldTest`).
+  - **Copy link text** in the link long-press menu.
+  - **The search morph:** the dock's pill opens into the search field above the keyboard, and Back
+    closes it back into the pill (`AddressRow`, `BarTokens.SearchMorph`).
+
 ### After the betas (GitHub issues, triaged 2026-11-20)
 
 - **Links into a chosen space** (#12): a setting to open links from other apps in a given space
@@ -190,6 +198,12 @@ losing data, and the owner has approved and published the release.
 - **Search widget** (#5): a home-screen widget that opens Koan straight into search.
 - **Firefox add-ons** (#4): install other add-ons from addons.mozilla.org, with an add-on manager
   and each add-on's settings. Today uBlock Origin is the only one. A big job.
+
+### After beta.2 (owner, 2026-11-26)
+
+- **Private mode's entrance as a gradient sweep:** switching Private on, its colours sweep in
+  from the right; switching it off, they leave towards the other side. Don't touch the current
+  transition before then: it was just stabilised (the interruptible flip, beta.1).
 
 ### Batch 4 leftovers (after the release)
 
