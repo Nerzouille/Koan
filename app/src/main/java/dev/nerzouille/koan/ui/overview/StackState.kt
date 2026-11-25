@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import dev.nerzouille.koan.ui.theme.Motion
+import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -66,6 +67,15 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
     var liftedId by mutableStateOf<String?>(null)
         internal set
 
+    /**
+     * The slot whose card casts the front shadow (DepthCurve.frontness): the card in focus when
+     * the stack last came to rest. A drag leaves it on the card under the finger; once the stack
+     * settles elsewhere it moves to the new front card.
+     */
+    var frontSlot by mutableFloatStateOf(initialPos)
+        private set
+    private var frontJob: Job? = null
+
     internal val cards = HashMap<String, CardAnim>()
     private var scrollJob: Job? = null
     private var wheelJob: Job? = null
@@ -107,6 +117,18 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
     fun endTouch() {
         dragging = false
         busy = scrollJob?.isActive == true
+        if (!busy) settleFront()
+    }
+
+    /** At rest: the front shadow goes to the card now in focus. */
+    private fun settleFront() {
+        val target = kotlin.math.round(pos)
+        if (target == frontSlot) return
+        frontJob?.cancel()
+        frontJob = scope.launch {
+            val handoff = androidx.compose.animation.core.tween<Float>(CardTokens.FRONT_HANDOFF_MS)
+            androidx.compose.animation.core.animate(frontSlot, target, animationSpec = handoff) { v, _ -> frontSlot = v }
+        }
     }
 
     /**
@@ -117,6 +139,8 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         if (slots == 0) return
         pos += slots
         dragStart += slots
+        frontJob?.cancel()
+        frontSlot += slots
         for (a in cards.values) {
             a.slotJob?.cancel()
             a.slot += slots
@@ -185,6 +209,8 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         pos = index.toFloat()
         dragStart = pos
         lastDirection = 0
+        frontJob?.cancel()
+        frontSlot = pos
     }
 
     /** Exponential glide to [target]: fast start, no overshoot, like the prototype. */
@@ -207,7 +233,10 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         busy = true
         val job = scope.launch(block = block)
         scrollJob = job
-        job.invokeOnCompletion { if (scrollJob === job && !dragging) busy = false }
+        job.invokeOnCompletion { cause ->
+            if (scrollJob === job && !dragging) busy = false
+            if (cause == null && scrollJob === job && !dragging) settleFront()
+        }
     }
 
     internal fun animateSlot(a: CardAnim, target: Float) {

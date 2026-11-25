@@ -31,8 +31,15 @@ object DepthCurve {
     fun scale(d: Float): Float =
         if (d >= 0f) sMin + (1f - sMin) * scaleR.pow(d) else 1f + (StackTokens.PEEK_SCALE - 1f) * drop(d)
 
-    /** Black overlay alpha on the thumbnail (1 − brightness). */
-    fun dim(d: Float): Float = if (d >= 0f) lerp(StackTokens.Dim, d) else StackTokens.PEEK_DIM * drop(d)
+    /** How far a card fades towards the background ([dark]: the dark theme's stronger fade). */
+    fun fade(d: Float, dark: Boolean): Float =
+        if (d >= 0f) lerp(if (dark) StackTokens.FadeDark else StackTokens.FadeLight, d) else StackTokens.PEEK_DIM * drop(d)
+
+    /**
+     * How much of the front shadow a card in slot [slot] casts: all of it in [frontSlot] (the
+     * card in focus when the stack last settled), handed over to the next as that moves.
+     */
+    fun frontness(slot: Float, frontSlot: Float): Float = (1f - kotlin.math.abs(slot - frontSlot)).coerceIn(0f, 1f)
 
     fun blurDp(d: Float): Float = if (d <= 0f) 0f else lerp(StackTokens.BlurDp, d)
 
@@ -41,10 +48,10 @@ object DepthCurve {
         if (d >= 0f) lerp(StackTokens.Alpha, d) else 1f
 
     /**
-     * A card's depth cue for a palette ([gain], capped at [max]): how far its thumbnail and its
-     * header recede into DimColor (cue A, owner 2026-11-26; v0.4.0 dimmed the header half as much).
+     * A card's fade for a palette ([gain], capped at [max]): how far its thumbnail and its header
+     * fade towards DimColor, the background (one ambient light, owner 2026-11-26).
      */
-    fun cardDim(d: Float, gain: Float, max: Float): Float = (dim(d) * gain).coerceAtMost(max)
+    fun cardDim(d: Float, gain: Float, max: Float, dark: Boolean): Float = (fade(d, dark) * gain).coerceAtMost(max)
 
     /** Cards further back than this are invisible: skip drawing and hit-testing them. */
     val MAX_VISIBLE_D = (StackTokens.Alpha.size - 1).toFloat()

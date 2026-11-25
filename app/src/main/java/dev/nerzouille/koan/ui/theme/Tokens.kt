@@ -83,18 +83,13 @@ class KoanPalette(
     /** Every other match and its text. */
     val FindMatch: Color,
     val FindMatchText: Color,
-    // Depth stack. Cue A (owner, 2026-11-26): back cards, header and thumbnail alike, recede into
-    // DimColor: light, a grey a step darker than Base; dark, Base itself (Night: its violet Base).
-    /** Back cards fade towards Base (light: a haze) instead of black (dark: brightness). */
-    val DimToBase: Boolean,
+    // Depth stack: one ambient light (direction 3, owner 2026-11-26). Back cards, header and
+    // thumbnail alike, fade towards DimColor = Base by StackTokens.FadeLight / FadeDark × DimGain.
     /** Multiplies StackTokens.Dim, capped at DimMax (light haze is stronger than a dim). */
     val DimGain: Float,
     val DimMax: Float,
     val CardElevation: Dp,
     val CardShadowColor: Color,
-    /** Short, soft shadow a card casts on the card behind it, just above its top edge. */
-    val ContactShadow: Color,
-    val ContactShadowLength: Dp,
     /** 1dp line all around a stack card, drawn over its depth dim so back cards keep their edge. */
     val CardHairline: Color,
     /** Dark only: 1dp light line along a stack card's top edge, inside (separates dark header strips). */
@@ -153,17 +148,14 @@ class KoanPalette(
             FindCurrentText = Color.White,
             FindMatch = Color(0xFFD0DDF5),
             FindMatchText = Color.Black,
-            DimToBase = true,
-            DimGain = 1.1f,
-            DimMax = 0.62f,
+            DimGain = StackTokens.LIGHT_FADE,
+            DimMax = 1f,
             CardElevation = 12.dp,
             CardShadowColor = Color(0x241C1C30),
-            ContactShadow = Color(0x2E1C1C30),
-            ContactShadowLength = 16.dp,
             CardHairline = Color(0x1A1C1C30),
             CardRim = Color.Transparent,
             SyncDot = Color(0xFFC0841A),
-            DimColor = Color(0xFFB9B9C2),
+            DimColor = Color(0xFFF5F5F7),
             AccentLightness = 0.45f..0.62f,
             InkLightness = 0.38f,
             PillAlpha = 0.14f,
@@ -207,13 +199,10 @@ class KoanPalette(
             FindCurrentText = Color.White,
             FindMatch = Color(0xFF1C396E),
             FindMatchText = Color.White,
-            DimToBase = false,
-            DimGain = 1.4f,
-            DimMax = 0.85f,
+            DimGain = 1f,
+            DimMax = 1f,
             CardElevation = 20.dp,
             CardShadowColor = Color(0x99000000),
-            ContactShadow = Color(0xA6000000),
-            ContactShadowLength = 18.dp,
             CardHairline = Color(0x1FFFFFFF),
             CardRim = Color(0x1AFFFFFF),
             SyncDot = Color(0xFFE8B45A),
@@ -262,17 +251,14 @@ class KoanPalette(
             FindCurrentText = Light.FindCurrentText,
             FindMatch = Light.FindMatch,
             FindMatchText = Light.FindMatchText,
-            DimToBase = true,
             DimGain = Light.DimGain,
             DimMax = Light.DimMax,
             CardElevation = Light.CardElevation,
             CardShadowColor = Light.CardShadowColor,
-            ContactShadow = Light.ContactShadow,
-            ContactShadowLength = Light.ContactShadowLength,
             CardHairline = Color(0x1A17142E),
             CardRim = Color.Transparent,
             SyncDot = Light.SyncDot,
-            DimColor = Color(0xFFB4AED0),
+            DimColor = Color(0xFFDEDAF0),
             AccentLightness = Light.AccentLightness,
             InkLightness = Light.InkLightness,
             PillAlpha = Light.PillAlpha,
@@ -320,13 +306,10 @@ class KoanPalette(
             FindCurrentText = Dark.FindCurrentText,
             FindMatch = Dark.FindMatch,
             FindMatchText = Dark.FindMatchText,
-            DimToBase = false,
             DimGain = Dark.DimGain,
             DimMax = Dark.DimMax,
             CardElevation = Dark.CardElevation,
             CardShadowColor = Dark.CardShadowColor,
-            ContactShadow = Dark.ContactShadow,
-            ContactShadowLength = Dark.ContactShadowLength,
             CardHairline = Color(0x29B9B4FF),
             CardRim = Color(0x1AFFFFFF),
             SyncDot = Dark.SyncDot,
@@ -503,8 +486,15 @@ object StackTokens {
     /** Breathing room between the header and the top of the pile. */
     val PileTopGap = 22.dp
 
-    /** Keyframes at d = 0, 1, 2 …, joined linearly like the prototype. Thumbnail dim = 1 − brightness. */
-    val Dim = floatArrayOf(0f, 0.16f, 0.28f, 0.38f, 0.48f, 0.58f, 0.66f)
+    /**
+     * One ambient light (direction 3, owner 2026-11-26): how far a card at d = 0, 1, 2 … fades
+     * towards the background (KoanPalette.DimColor), joined linearly, held past the last.
+     */
+    val FadeLight = floatArrayOf(0f, 0.10f, 0.18f, 0.26f, 0.32f)
+    val FadeDark = floatArrayOf(0f, 0.20f, 0.35f, 0.48f, 0.58f)
+
+    /** The light fade's strength, to tune: × FadeLight (Light and Dusk's DimGain). */
+    const val LIGHT_FADE = 1f
 
     /**
      * Thumbnail blur radius in dp. Design's CSS blur σ [0, 0, .5, 1, 1.6, 2.2, 2.8] converted to
@@ -512,10 +502,6 @@ object StackTokens {
      */
     val BlurDp = floatArrayOf(0f, 0f, 0f, 0.9f, 1.9f, 2.9f, 4f)
     val Alpha = floatArrayOf(1f, 1f, 1f, 1f, 1f, 0.85f, 0.6f, 0.3f, 0f)
-
-    // Every visible card keeps the same shadow (it layers the pile): KoanPalette.CardElevation.
-
-    /** Header strip is dimmed at most this much, so titles stay legible deep in the pile. */
 
     /** Finger travel that moves the stack by one slot (prototype: 230dp; shorter covers more cards). */
     val SlotDrag = 170.dp
@@ -595,9 +581,6 @@ object CardTokens {
     val TitleLine = 18.sp
     val HostSize = 11.5.sp
     val HostLine = 14.sp
-    /** A back card's key shadow loses this share per depth step, down to [KEY_SHADOW_MIN]. */
-    const val KEY_SHADOW_STEP = 0.1f
-    const val KEY_SHADOW_MIN = 0.6f
     val CloseTouch = 44.dp
     val CloseButton = 30.dp
     val CloseIcon = 14.dp
@@ -610,8 +593,20 @@ object CardTokens {
     val PlaceholderGap = 14.dp
     val PlaceholderDomainSize = 14.sp
 
-    /** The contact shadow never covers more than this share of a card's visible sliver (deep pile). */
-    const val CONTACT_SHADOW_MAX_FRACTION = 0.35f
+    /**
+     * One ambient light's shadows (direction 3, owner 2026-11-26), as CSS box-shadows. The front
+     * card (the one in focus when the stack last settled, or the one being dragged) casts the
+     * front pair; every other card only a contact shadow. The handoff between two cards takes
+     * [FRONT_HANDOFF_MS].
+     */
+    val FrontKeyLight = CardShadowSpec(y = 16.dp, blur = 36.dp, spread = (-8).dp, color = Color(0xFF1C1C30), alpha = 0.18f)
+    val FrontAmbientLight = CardShadowSpec(y = 2.dp, blur = 6.dp, spread = 0.dp, color = Color(0xFF1C1C30), alpha = 0.06f)
+    val BackLight = CardShadowSpec(y = 1.dp, blur = 2.dp, spread = 0.dp, color = Color(0xFF1C1C30), alpha = 0.05f)
+    val FrontKeyDark = FrontKeyLight.copy(color = Color.Black, alpha = 0.70f)
+    /** The ambient pair keeps light's 6 : 18 ratio to the key. */
+    val FrontAmbientDark = FrontAmbientLight.copy(color = Color.Black, alpha = 0.70f * 6f / 18f)
+    val BackDark = BackLight.copy(color = Color.Black, alpha = 0.40f)
+    const val FRONT_HANDOFF_MS = 220
 
     /**
      * Only this top slice of the thumbnail is blurred: more than any blurred pile card ever shows
@@ -1647,3 +1642,15 @@ object PrivateTokens {
     const val EMPTY_FADE_MS = 160
 }
 
+/** A CSS-style box-shadow: offset down [y], [blur], [spread], [color] at [alpha]. */
+@androidx.compose.runtime.Immutable
+data class CardShadowSpec(val y: Dp, val blur: Dp, val spread: Dp, val color: Color, val alpha: Float) {
+    val shadow: androidx.compose.ui.graphics.shadow.Shadow
+        get() = androidx.compose.ui.graphics.shadow.Shadow(
+            radius = blur,
+            color = color,
+            spread = spread,
+            offset = androidx.compose.ui.unit.DpOffset(0.dp, y),
+            alpha = alpha,
+        )
+}
