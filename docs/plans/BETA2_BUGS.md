@@ -25,17 +25,17 @@ the owner's wording of each feature.
 | 3 | Find 0/0 | **Done.** Fixed, `FindCountTest`. Phone OK 2026-11-25 (Koan Test): counts, next / previous, 0/0, clear, new tab closes Find. A match only in a collapsed section not reproduced (French Wikipedia shows sections expanded). | 32048e6 | No |
 | 4 | Download ring check | Fixed, `DownloadRingStateTest`. Phone check not done. | db0a692 | **Yes:** downloads on the phone, watching the ring |
 | 5 | Missing download files | Fixed, `CheckedDownloadFilesTest`, `MissingFilesTest`; rows greyed in Downloads. Phone check not done. | c10b599, e0d9d18 | **Yes:** file manager, notification |
-| 6 | Drawer height (#11) | Not started. Two options to show on the POCO. | none | **Yes:** picks the option |
-| 7 | Dock comes back (#9) | Not started. Dead zone to try. | none | **Yes:** feel check on a release build |
+| 6 | Drawer height (#11) | **Built (2026-11-26), owner picks.** Both options behind `DrawerTokens.PAGE_HEIGHT` (`Tallest` = A, default; `Full` = B), `SheetStateTest`. Captures: `reference/beta2-choices/drawer-height-11.png` (one space only: Koan Test is signed out). | e150cae | **Yes:** A or B |
+| 7 | Dock comes back (#9) | **Built (2026-11-26).** Dead zone `PageTokens.DockDeadZone` = 28 dp (0 = old behaviour), `DockDeadZoneTest`. | ee76f68 | **Yes:** feel check on a release build, tune the number |
 | 8 | Save image (Google Images) | Not reproduced; more checks and a `KoanPageImage` log (extension 1.1). Fix or drop after the phone check. | a9f2841 | **Yes:** Google Images on the phone, fix-or-drop call |
 | 9 | Translation card never auto-opens while Find is open | **Done (night 2026-11-25).** `translateCue(…, findOpen)`, `TranslateCueTest`. Phone check not done. | d5a9a4e | No (check in the list below) |
 | 10 | An empty Find field clears all highlights | **Done (night).** Cause: the find display flags were set on every find, which makes Gecko re-highlight its *last* search asynchronously; now once per session, plus a second clear 350 ms after an empty field. `FindCountTest`. Phone check not done. | d58e642 | No (check in the list below) |
 | 11 | Player checks (Commons stream or WebM, Commons `<track>`s, Vimeo tracks) | **Not run (night):** the POCO's network failed every page load in Koan Test (Gecko `OnLoadError`, the system's own push service timing out too). Probe patch kept in `reference/night-2026-11-25/player-probe.patch` (gitignored). | none | No |
 | 12 | Player tracks (web Captions and Quality; standalone Audio / Subtitles; side files, option A) | **Done (night), untested on a phone.** The Commons `<track>` fallback was not built (waits for item 11). | 78735f2, 7731ee6, d07dbbf | No (checks below) |
 | 13 | Translate icon stays active after translating; download ring shares its slot | **Done (night).** `TranslateCue.Active`, filled disc, tap = ⋯ › Translate page; ring slot was already there, now `pillEndSlot` + `PillEndTest`. | 166f4c5 | No (checks below) |
-| 14 | Rotate row in the player's ⋯ menu | **Done (night).** Owner: always shown. Also fixes the standalone player ignoring Rotate with auto-rotate on (`standaloneOrientation`). | b062a27 | No (checks below) |
-| 15 | Passkey failure message | **Stopped (night):** Koan never sees the failure (see the night report). | none | **Yes:** a choice, and a phone run with a password manager |
-| 16 | Depth cue (A, B, C or A + B) | Prototype on `depth-cue-proto`. | none | **Yes:** picks from screenshots |
+| 14 | Rotate row in the player's ⋯ menu | **Done.** Only with auto-rotate off, like the pill (owner, 2026-11-26). | b062a27, 83a76b2 | No |
+| 15 | Passkey failure message | **Done as option C (owner):** a Known limitation in FEATURES, no code. | 35a2398 | No |
+| 16 | Depth cue (A, B, C or A + B) | **Captured (2026-11-26):** `reference/beta2-choices/depth-cue-light.png` and `-dark.png` (as built, A, B, C, A+B). Prototype on the local branch `capture-proto`. | none | **Yes:** picks from the captures |
 | 17 | End of phase: R8 release build, kill and restore | **Partly done (night):** full suite 493 green; R8 **staging** build (Koan Test) launched, `am kill` in the background, restored on the same tab, no crash. The R8 build of the real app id and the release from `main` wait for the release steps. | none | No |
 
 **Also needs the owner:** Lock private tabs is **off** in the POCO's real Koan (turned off for the
@@ -85,8 +85,8 @@ For each item, follow these steps:
 | 3 | Find in page says 0/0 while it highlights a match | ROADMAP | `engine/PageTools.kt`, `ui/KoanOverlays.kt` |
 | 4 | The download ring's check never shows | ROADMAP | `ui/bar/AddressRow.kt`, `ui/KoanRoot.kt` (`DONE_MS`) |
 | 5 | A moved or deleted download fails silently | ROADMAP | `DownloadsScreen.open` |
-| 6 | The drawer's height jumps between spaces | GitHub #11 | `ui/bar/SpaceDrawer.kt` |
-| 7 | The dock comes back after the smallest scroll up | GitHub #9 | `ui/browser/DockState.kt` |
+| 6 | Drawer height (#11) | **Built (2026-11-26), owner picks.** Both options behind `DrawerTokens.PAGE_HEIGHT` (`Tallest` = A, default; `Full` = B), `SheetStateTest`. Captures: `reference/beta2-choices/drawer-height-11.png` (one space only: Koan Test is signed out). | e150cae | **Yes:** A or B |
+| 7 | Dock comes back (#9) | **Built (2026-11-26).** Dead zone `PageTokens.DockDeadZone` = 28 dp (0 = old behaviour), `DockDeadZoneTest`. | ee76f68 | **Yes:** feel check on a release build, tune the number |
 | 8 | Save image never waits for the full image (Google Images) | ROADMAP, Xiaomi | `engine/PageImages.kt`, `pageimage` extension |
 | 9 | Translation card never auto-opens while Find is open | **Done (night 2026-11-25).** `translateCue(…, findOpen)`, `TranslateCueTest`. Phone check not done. | d5a9a4e | No (check in the list below) |
 | 10 | An empty Find field clears all highlights | **Done (night).** Cause: the find display flags were set on every find, which makes Gecko re-highlight its *last* search asynchronously; now once per session, plus a second clear 350 ms after an empty field. `FindCountTest`. Phone check not done. | d58e642 | No (check in the list below) |
@@ -416,3 +416,147 @@ POCO: Koan Test has the night's R8 staging build (extension 1.7) with 2–3 extr
 public Commons file page (the ⋯ menu has no "close tab"; close them in the overview). The real
 Koan was not installed over or opened. DND was already on and is left on. Pages failed to load
 on its network during the run: check its connection before item 11.
+
+## Day run 2026-11-26 (owner away, remote instructions)
+
+Same branch, `beta2-bugs`. Phone: the POCO, **Koan Test only**, local demo pages served from the
+computer through `adb reverse` (the POCO's VPN was off: no public pages). Commit trailers: none.
+
+### Items
+
+1. **Rotate row only with auto-rotate off** (owner's choice): done, 83a76b2. The standalone
+   player's rotation fix stays. Test: `FullscreenOrientationTest`.
+2. **Passkey failure: option C**: done, 35a2398 (FEATURES › Known limitations; CHANGELOG too).
+3. **Download video list only when files really differ** (resolution or format; copies of the
+   same rendition don't count, the original counts as its own): done, 5524921, `VideoFilesTest`.
+   Otherwise the plain row saves the best file directly, as before.
+4. **Owner's choices, prepared:**
+   - **Drawer height (#11):** both options built, e150cae; `DrawerTokens.PAGE_HEIGHT` picks
+     (default `Tallest`). Captures: `reference/beta2-choices/drawer-height-11.png` (today, A, B).
+     **Limit:** Koan Test is signed out, so it has a single space: the captures show A vs B on
+     one space (A looks like today there; B opens at full height). Comparing two spaces of
+     different sizes needs a signed-in copy: not done (no account touched).
+   - **Depth cue:** `reference/beta2-choices/depth-cue-light.png` and `depth-cue-dark.png`, five
+     side by side (as built, A recessed tint, B shadow + scale, C blur, A + B), on Koan's own
+     Theme setting; single shots `depth-{light,dark}-{0..4}.png`. In dark the differences are
+     small (as the roadmap said); in light A shows best. Prototype: local branch `capture-proto`
+     (never merge), switched by a file in Koan Test's folder (`debug.*` properties are denied to
+     apps at target SDK 37).
+   - **Dock dead zone (#9):** ee76f68, `PageTokens.DockDeadZone` = 28 dp, the one number to tune
+     on a release build (0 = the old behaviour). `DockDeadZoneTest`.
+5. **Self-review of `dev...beta2-bugs`:**
+   - Fixed: the item-10 change (find display flag once per session) could lose "highlight all"
+     on a new page (a new page can get a new Gecko finder, which reads `findbar.highlightAll`):
+     Koan now sets that pref too, e374da7. A doubled KDoc.
+   - **CI would have failed:** detekt had 51 new findings and Android lint 6 errors on the branch
+     (from the earlier commits and the night's): all fixed without touching the baselines,
+     a2fe2c3 (wrapped lines, `NativeTracks` split out of `NativeVideo`, smaller functions, a
+     composition read of a StateFlow, a missing `@OptIn`, two raw byte-order marks in Kotlin
+     strings), 5b64eed. Both pass now.
+   - Bigger, listed only: the video extension rebuilds the file list (`querySelectorAll`) every
+     250 ms while a video is fullscreen (cheap, but could be cached per `<video>`); FEATURES.md
+     doesn't describe the new player rows, the translated icon or the search morph yet (release
+     step 1); the Downloads "Moved or deleted" card reuses the confirm card's Cancel slot for
+     "Remove from list" (works, but a dismiss by drag does nothing, by design).
+6. **CHANGELOG and release notes:** the beta.2 section is drafted in `CHANGELOG.md` (348b6cf,
+   9575451); release notes draft in `reference/release-notes-1.0.0-beta.2.md` (gitignored),
+   crediting zy6p for #16. Not published.
+7. **From the owner's notes:**
+   - **Search typing bug: fixed, 678cfe6.** Reproduced with fast `adb input text`: "localhost"
+     came out "localhst" (and "…/sunset" lost "et") only when inline completion kicked in. Cause:
+     the completion replaced the field's text while keys were still arriving, and the next key
+     landed on the older text. Now the completion is drawn after the text (highlighted, then the
+     page's title), never typed in: Go opens text + completion, Backspace first removes the
+     completion, moving the cursor takes it in. `SearchFieldTest`. After the fix, 6 fast-typing
+     runs kept every letter. Frames while typing (R8 Koan Test): median 9 ms, p99 14 ms, 3 of 52
+     frames missed: the "lag" was the lost letters, not slow frames.
+   - **Copy link text:** 6efbd56, shown only when the link has words, `LinkTextTest`.
+   - **Search morph:** 7c3909c. The pill opens into the search field (its background clipped
+     from the pill's bounds to the field's, the buttons beside it step aside, the field's contents
+     come in over the second half) and closes back into it; one value read in layers only
+     (`BarTokens.SearchMorph`). Recording: `reference/beta2-choices/search-morph.mp4` (Koan Test,
+     a local demo page).
+   - **DESIGN_SYSTEM rule** "prefer morphs, as long as they stay light" and the morph's spring in
+     the motion table; **ROADMAP › After beta.2:** Private's gradient sweep (transition untouched).
+     8e4286b.
+   - **Payments research:** `docs/plans/PAYMENTS_RESEARCH.md` (a80dd27). In short: GeckoView has no
+     Payment Request API (so many shops hide Google Pay, not fixable); Google Pay's fallback is a
+     popup, which Koan opens as a full tab (could become a card; check that closing it returns
+     to the checkout); Revolut / bank apps come back through the return URL as a *new* tab
+     (fixable: reuse the tab that sent the link to the app, small).
+8. **End checks:** full JVM suite **508 green**; detekt and lint pass; R8 Koan Test build
+   (`assembleStaging`) installed, launched, `am kill` in the background, reopened on the same tab,
+   no crash.
+
+### Questions for the owner
+
+1. Drawer (#11): A (tallest space) or B (always full)? Change `DrawerTokens.PAGE_HEIGHT` if B.
+2. Depth cue: as built, A, B, C or A + B (captures above)?
+3. Dock dead zone: is 28 dp right on the release build?
+4. Payments: start with "return to the same tab" after beta.2?
+
+### Test by hand (one checklist, replaces the night's)
+
+Koan Test already has the latest build (R8). Your real Koan has not been touched.
+
+- [ ] **Search typing:** type fast in the search field on a site you've visited (inline
+  completion shows): every letter stays. Backspace removes the grey completion first; Go opens
+  the completed address; tapping in the text takes the completion in.
+- [ ] **Search morph:** tap the pill: it opens into the field above the keyboard; Back: it closes
+  back into the pill. Watch for a flash or a jump (release build, both phones).
+- [ ] **Dock (#9):** on a long page, scroll down, then a tiny scroll up or a tap: the dock stays
+  away; a real scroll up brings it. Tune `PageTokens.DockDeadZone` if needed.
+- [ ] **Drawer (#11):** with your spaces (very different pinned counts), swipe between spaces in
+  the drawer: no height jump (option A). Pick A or B.
+- [ ] **Copy link text:** long-press a link with words: Copy link text copies the words.
+- [ ] **Find + translation (9):** a page in another language, open Find, reload: no card, the
+  counter stays, the icon opens the card.
+- [ ] **Empty Find (10):** type a word, delete it letter by letter: no highlight left; then open
+  another page and search: every match is highlighted (the pref fix).
+- [ ] **Translated icon (13):** translate a page: filled icon; tap: Translate page; Show original.
+  A download on that page: the ring takes the slot, the icon comes back after.
+- [ ] **Web captions / Quality / Download choice (12):** needs public pages (VPN on): a video with
+  subtitle tracks (⋯ › Captions), a page with several renditions (⋯ › Quality, the time kept),
+  Download video's list only when the files differ.
+- [ ] **Standalone (12):** a downloaded MP4 with two audio tracks (⋯ › Audio), a same-name
+  `.srt` / `.vtt` next to a downloaded video, Choose a file….
+- [ ] **Rotate row (14):** auto-rotate off: ⋯ › Rotate in both players; auto-rotate on: no row.
+- [ ] **Item 11 player checks** once the VPN is on (probe patch in
+  `reference/night-2026-11-25/player-probe.patch`).
+- [ ] Still from before: items 4, 5, 8 (downloads, file manager, Google Images), the depth pick,
+  and **Lock private tabs back on** in the real Koan.
+
+### Branch state
+
+```
+9575451 docs(changelog): search typing, Copy link text and the search morph in beta.2
+5b64eed refactor(bar): AddressRow under detekt's limits again after the search morph
+a80dd27 docs(plans): why Google Pay and Revolut Pay checkouts struggle in Koan, and what could be fixed
+8e4286b docs: prefer light morphs (design system), the search morph, Private's sweep after beta.2
+7c3909c feat(search): the dock's pill opens into the search field and closes back into it
+6efbd56 feat(links): Copy link text in the link long-press menu
+678cfe6 fix(search): typing fast no longer loses letters (the completion is drawn, not typed in)
+348b6cf docs(changelog): draft of the 1.0.0-beta.2 section
+a2fe2c3 refactor: beta2-bugs passes detekt and lint again (wrapped lines, NativeTracks, smaller functions)
+e374da7 fix(find): every page highlights all matches, with the display flag set once
+e150cae fix(drawer): one height across spaces, the tallest one by default (#11)
+ee76f68 fix(dock): a hidden dock waits for a real scroll up before it comes back (#9)
+5524921 fix(player): Download video lists files only when they really differ
+35a2398 docs(features): a failed passkey says nothing in Koan, as a known limitation
+83a76b2 fix(player): the Rotate row shows only with auto-rotate off, like the pill
+```
+
+On top of the night's commits (`git log --oneline f85e686..beta2-bugs`). Local branch
+`capture-proto` = beta2-bugs + the depth / drawer prototype, captures only, never merge. Nothing
+pushed or merged.
+
+To review: `git log --oneline f85e686..beta2-bugs`, `git show <hash>`. To merge when ready:
+`git switch dev && git merge --no-ff beta2-bugs && git push origin dev`.
+
+### The phone
+
+POCO: Koan Test has the latest R8 build, its theme back on Dark (it was switched to Light for the
+captures), ten local demo tabs ("Coral Bay"…"Night Owl", made-up pages, now unreachable since the
+demo server is stopped) and the earlier Commons test tabs; one demo tab was closed by a test.
+`adb reverse` removed, the prototype's switch file deleted, DND left as found (on). The real Koan
+was not touched.
