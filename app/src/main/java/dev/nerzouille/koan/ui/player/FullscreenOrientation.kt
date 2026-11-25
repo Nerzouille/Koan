@@ -46,7 +46,12 @@ fun fullscreenOrientation(fullscreen: Boolean, videoPortrait: Boolean, rotationL
 fun standaloneOrientation(rotationLocked: Boolean, videoPortrait: Boolean?, rotated: Boolean, turned: Boolean): Int? = when {
     !rotationLocked && !rotated -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
     videoPortrait == null -> null
-    else -> fullscreenOrientation(fullscreen = true, videoPortrait = videoPortrait != rotated, rotationLocked = rotationLocked, turned = !rotationLocked && turned)
+    else -> fullscreenOrientation(
+        fullscreen = true,
+        videoPortrait = videoPortrait != rotated,
+        rotationLocked = rotationLocked,
+        turned = !rotationLocked && turned,
+    )
 }
 
 /** Whether a sensor reading ([degrees], 0 = upright) is the phone held in portrait (true), landscape (false), or in between (null). */

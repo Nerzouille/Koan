@@ -207,3 +207,6 @@ fun videoOfLink(url: String, label: String = "", pageUrl: String? = null): Stand
 /** A video another app opened with Koan (content:// or file), by its name if it says one. */
 fun videoOfFile(uri: String, name: String?): StandaloneVideo =
     StandaloneVideo(uri, name ?: android.net.Uri.parse(uri).lastPathSegment.orEmpty().ifEmpty { "Video" }, "From another app", PlayerMode.File)
+
+/** A subtitle, caption or audio track as the ⋯ menu names it (PlayerTracks). */
+data class TrackInfo(val label: String, val language: String)

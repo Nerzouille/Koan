@@ -41,13 +41,11 @@ internal fun downloadLabel(f: WebFile): String {
  * fewer than two.
  */
 fun qualityChoices(files: List<WebFile>, src: String, kind: String, pick: (WebFile) -> Unit): List<MenuChoice> {
-    if (kind == "stream" || src.isEmpty()) return emptyList()
-    val current = files.firstOrNull { it.src == src } ?: return emptyList()
+    val current = files.firstOrNull { it.src == src }.takeIf { kind != "stream" && src.isNotEmpty() } ?: return emptyList()
     val family = fileFamily(current)
     val same = files.filter { fileFamily(it) == family }.distinctBy { it.src }
         .sortedWith(compareByDescending<WebFile> { it.original }.thenByDescending { it.height })
-    if (same.size < 2) return emptyList()
-    return same.map { f -> MenuChoice(fileLabel(f), f.src == src) { pick(f) } }
+    return if (same.size < 2) emptyList() else same.map { f -> MenuChoice(fileLabel(f), f.src == src) { pick(f) } }
 }
 
 /**

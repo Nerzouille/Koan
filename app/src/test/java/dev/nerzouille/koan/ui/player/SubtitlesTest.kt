@@ -6,7 +6,7 @@ import org.junit.Test
 
 class SubtitlesTest {
     @Test fun `webvtt becomes subrip`() {
-        val vtt = "﻿WEBVTT - a title\r\nKind: captions\r\n\r\n" +
+        val vtt = "\uFEFFWEBVTT - a title\r\nKind: captions\r\n\r\n" +
             "NOTE a comment\r\nwith two lines\r\n\r\n" +
             "STYLE\n::cue { color: yellow }\n\n" +
             "intro\n00:01.000 --> 00:04.250 align:start position:10%\n<v Narrator>Hello &amp; <i>welcome</i></v>\nSecond line\n\n" +
@@ -26,7 +26,7 @@ class SubtitlesTest {
     @Test fun `a file is read by its kind`() {
         val srt = "1\n00:00:01,000 --> 00:00:02,000\nHi\n"
         assertEquals(srt, subtitleAsSrt("Clip.srt", srt))
-        assertEquals(srt, subtitleAsSrt("download", "﻿" + srt))
+        assertEquals(srt, subtitleAsSrt("download", "\uFEFF" + srt))
         assertEquals("1\n00:00:01,000 --> 00:00:02,000\nHi\n\n", subtitleAsSrt("clip.VTT", "WEBVTT\n\n00:01.000 --> 00:02.000\nHi"))
         assertNull(subtitleAsSrt("notes.txt", "nothing here"))
         assertNull(subtitleAsSrt("empty.vtt", "WEBVTT\n"))

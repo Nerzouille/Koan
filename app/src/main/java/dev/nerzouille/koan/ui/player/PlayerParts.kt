@@ -325,42 +325,49 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
         }
         for (row in rows) {
             Box(Modifier.fillMaxWidth().height(1.dp).background(PlayerTokens.Stroke))
-            val color = when {
-                !row.enabled -> PlayerTokens.TextSecondary
-                row.destructive -> PlayerTokens.Destructive
-                else -> PlayerTokens.Text
-            }
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .height(PlayerTokens.MenuRow)
-                    .then(
-                        when {
-                            !row.enabled -> Modifier.graphicsLayer { alpha = PlayerTokens.DISABLED_ALPHA }
-                            row.choices != null -> Modifier.pressable { openList = row.label }
-                            else -> Modifier.pressable(onClick = row.onClick)
-                        },
-                    )
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                PlayerIcon(row.icon, 18.dp, tint = color)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(row.label, style = playerText(15.sp, FontWeight.Medium, color), maxLines = 1)
-                    row.subtitle?.let { Text(it, style = playerText(12.sp, FontWeight.Normal, PlayerTokens.TextSecondary), maxLines = 1) }
-                }
-                row.on?.let { Text(if (it) "On" else "Off", style = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1) }
-                row.value?.let {
-                    Text(
-                        it, style = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(start = 8.dp).widthIn(max = 120.dp),
-                    )
-                }
-                if (row.choices != null) PlayerIcon(KoanIcons.ChevronRight, 16.dp, tint = PlayerTokens.TextSecondary)
-            }
+            PlayerMenuRow(row) { openList = row.label }
         }
+    }
+}
+
+/** One ⋯ row: icon, label (and why it's greyed out), its state at the end; a choice row opens its list. */
+@Composable
+private fun PlayerMenuRow(row: MenuRow, onOpenList: () -> Unit) {
+    val color = when {
+        !row.enabled -> PlayerTokens.TextSecondary
+        row.destructive -> PlayerTokens.Destructive
+        else -> PlayerTokens.Text
+    }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(PlayerTokens.MenuRow)
+            .then(
+                when {
+                    !row.enabled -> Modifier.graphicsLayer { alpha = PlayerTokens.DISABLED_ALPHA }
+                    row.choices != null -> Modifier.pressable(onClick = onOpenList)
+                    else -> Modifier.pressable(onClick = row.onClick)
+                },
+            )
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PlayerIcon(row.icon, 18.dp, tint = color)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(row.label, style = playerText(15.sp, FontWeight.Medium, color), maxLines = 1)
+            row.subtitle?.let { Text(it, style = playerText(12.sp, FontWeight.Normal, PlayerTokens.TextSecondary), maxLines = 1) }
+        }
+        val end = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary)
+        row.on?.let { Text(if (it) "On" else "Off", style = end, maxLines = 1) }
+        row.value?.let {
+            Text(
+                it, style = end, maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 8.dp).widthIn(max = 120.dp),
+            )
+        }
+        if (row.choices != null) PlayerIcon(KoanIcons.ChevronRight, 16.dp, tint = PlayerTokens.TextSecondary)
     }
 }
 

@@ -167,7 +167,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val privateMode = components.privateMode
     val privateTabs = components.privateTabs
     // The navigation state (ui/root/RootState.kt), read below through its properties.
-    val root = rememberRootState(privateMode.on.value)
+    val startsPrivate = remember { privateMode.on.value }
+    val root = rememberRootState(startsPrivate)
     // Set together with privateMode.on (showPrivate), so code right after a switch sees the new mode.
     val privateOnState = remember { mutableStateOf(privateMode.on.value) }
     val privateOn by privateOnState
@@ -1088,7 +1089,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     translateActive = components.translateCue.active,
                     onTranslate = {
                         // Translated: ⋯ › Translate page (Show original, the languages); else the card.
-                        if (components.translateCue.active) components.translateCue.pageRequests++ else components.translateCue.openRequests++
+                        val cue = components.translateCue
+                        if (cue.active) cue.pageRequests++ else cue.openRequests++
                     },
                     private = flip.labels,
                     flip = flip,

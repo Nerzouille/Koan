@@ -148,7 +148,8 @@ class Components(context: Context) {
     val downloadFiles by lazy {
         CheckedDownloadFiles(
             DefaultDownloadFileUtils(appContext) {
-                if (store.state.selectedTab?.content?.private == true) defaultDownloadFolder else pickedDownloadFolder ?: defaultDownloadFolder
+                val private = store.state.selectedTab?.content?.private == true
+                if (private) defaultDownloadFolder else pickedDownloadFolder ?: defaultDownloadFolder
             },
             onMissing = ::downloadMissing,
         )

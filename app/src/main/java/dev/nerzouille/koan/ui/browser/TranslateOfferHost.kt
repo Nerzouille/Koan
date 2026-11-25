@@ -54,7 +54,10 @@ fun TranslateOfferHost(
     val readable = t?.third == true
     val detected = state?.translationEngineState?.detectedLanguages
     // What the page shows (Gecko's pair first), as the ⋯ › Translate page reads it.
-    val translated = state != null && translatedNow(state.isTranslated, state.translationEngineState?.let { hasPair(it.requestedTranslationPair) })
+    val translated = state != null && translatedNow(
+        state.isTranslated,
+        state.translationEngineState?.let { hasPair(it.requestedTranslationPair) },
+    )
     val from = detected?.documentLangTag?.takeIf { detected.supportedDocumentLang == true }
     val to = remember { Locale.getDefault().language }
     // Every language set on the phone (Settings › Languages), not only the first: never offered.
@@ -88,7 +91,11 @@ fun TranslateOfferHost(
         always = always,
         never = state?.pageSettings?.neverTranslateLanguage == true || state?.pageSettings?.neverTranslateSite == true,
     )
-    val cue = if (tabId == null) TranslateCue.None else translateCue(signals, phoneLanguages, offerOn, searchPage, site in cues.dismissedSites, findOpen)
+    val cue = if (tabId == null) {
+        TranslateCue.None
+    } else {
+        translateCue(signals, phoneLanguages, offerOn, searchPage, site in cues.dismissedSites, findOpen)
+    }
     androidx.compose.runtime.SideEffect {
         cues.icon = cue != TranslateCue.None
         cues.active = cue == TranslateCue.Active
@@ -117,7 +124,8 @@ fun TranslateOfferHost(
         auto = auto + key
         asked = id
         autoFrom = lang
-        if (!translatedNow(now.isTranslated, now.translationEngineState?.let { hasPair(it.requestedTranslationPair) }) && !now.isTranslateProcessing) {
+        val nowTranslated = translatedNow(now.isTranslated, now.translationEngineState?.let { hasPair(it.requestedTranslationPair) })
+        if (!nowTranslated && !now.isTranslateProcessing) {
             store.dispatch(TranslationsAction.TranslateAction(id, lang, to, TranslationOptions(downloadModel = true)))
         }
     }

@@ -79,7 +79,8 @@ internal fun LibraryOverlays(
                 // Like a page's download: on the current tab, which the downloads feature watches.
                 val tab = activeTabId ?: components.store.state.selectedTabId
                 if (tab != null) {
-                    components.store.dispatch(ContentAction.UpdateDownloadAction(tab, dev.nerzouille.koan.engine.downloads.downloadAgainOf(d)))
+                    val again = dev.nerzouille.koan.engine.downloads.downloadAgainOf(d)
+                    components.store.dispatch(ContentAction.UpdateDownloadAction(tab, again))
                     true
                 } else {
                     false

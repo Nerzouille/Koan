@@ -19,7 +19,8 @@ fun nextRingState(before: DownloadRingState, downloads: Collection<DownloadState
         null
     } else {
         val total = running.sumOf { it.contentLength ?: 0L }
-        if (running.any { it.contentLength == null } || total <= 0L) Float.NaN else running.sumOf { it.currentBytesCopied }.toFloat() / total
+        val unknown = running.any { it.contentLength == null } || total <= 0L
+        if (unknown) Float.NaN else running.sumOf { it.currentBytesCopied }.toFloat() / total
     }
     val ids = running.mapTo(HashSet()) { it.id }
     val completed = visible.filter { it.status == DownloadState.Status.COMPLETED }.mapTo(HashSet()) { it.id }

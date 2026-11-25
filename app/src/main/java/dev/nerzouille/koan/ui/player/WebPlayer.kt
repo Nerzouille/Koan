@@ -112,7 +112,8 @@ fun WebPlayerLayer(
                 components.pageVideo.caption(tabId, i)
             }),
         )?.let(::add)
-        choiceRow(KoanIcons.Quality, "Quality", qualityChoices(video.files, video.src, video.kind) { f -> components.pageVideo.source(tabId, f.src) })?.let(::add)
+        val quality = qualityChoices(video.files, video.src, video.kind) { f -> components.pageVideo.source(tabId, f.src) }
+        choiceRow(KoanIcons.Quality, "Quality", quality)?.let(::add)
         rotateRow(rotationLocked) { host.fullscreenRotated = !host.fullscreenRotated }?.let(::add)
         add(pipOnLeaveRow(pipOnLeave) { on -> saveScope.launch { components.settings.setPictureInPicture(on) } })
         // Always there (F6): greyed out, with why, when the video isn't a file Koan can save.

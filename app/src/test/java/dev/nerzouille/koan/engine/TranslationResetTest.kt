@@ -35,7 +35,8 @@ class TranslationResetTest {
 
     @Test
     fun aDetectedLanguageAloneIsReset() {
-        val detectedOnly = TranslationsState(translationEngineState = translated.translationEngineState!!.copy(requestedTranslationPair = null))
+        val engine = translated.translationEngineState!!.copy(requestedTranslationPair = null)
+        val detectedOnly = TranslationsState(translationEngineState = engine)
         assertEquals("t", translationResetFor(state(detectedOnly), ContentAction.UpdateLoadingStateAction("t", true)))
     }
 

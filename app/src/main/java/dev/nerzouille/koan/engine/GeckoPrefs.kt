@@ -39,6 +39,7 @@ object GeckoPrefs {
     }
 
     /** Sets the find prefs for [dark] on the running engine (Gecko repaints with them). */
+    @androidx.annotation.OptIn(markerClass = [org.mozilla.geckoview.ExperimentalGeckoViewApi::class])
     fun applyFind(dark: Boolean) {
         val prefs: List<SetGeckoPreference<*>> = findPrefs(dark).map { (name, value) ->
             SetGeckoPreference.setStringPref(name, value, GeckoPreferenceController.PREF_BRANCH_USER)

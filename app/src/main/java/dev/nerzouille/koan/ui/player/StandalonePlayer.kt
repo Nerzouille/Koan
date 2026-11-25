@@ -87,7 +87,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
             clearSubtitleCache(context)
             actions.subtitleFiles().firstNotNullOfOrNull { (uri, name) -> subtitleFile(context, uri, name)?.let { it to name } }
         }
-        found?.let { (path, name) -> native.addSubtitles(path, name) }
+        found?.let { (path, name) -> native.tracks.addSubtitles(path, name) }
     }
     // ⋯ › Subtitles › Choose a file… (the system picker: no storage permission).
     val pickSubtitles = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
@@ -96,7 +96,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
             val name = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { displayName(context, uri) } ?: "Subtitles"
             val path = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { subtitleFile(context, uri.toString(), name) }
             if (path != null) {
-                native.addSubtitles(path, name)
+                native.tracks.addSubtitles(path, name)
             } else {
                 notice = PlayerNotice("Not a subtitle file", "Koan reads .srt and .vtt files", error = true, serial = ++noticeSerial)
             }
@@ -206,19 +206,23 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
             )
         }
         // Audio and Subtitles: only with a real choice (Subtitles always has Choose a file…).
-        val audio = native.audioTracks
-        val texts = native.textTracks
+        val audio = native.tracks.audio
+        val texts = native.tracks.text
         val trackRows = listOfNotNull(
             choiceRow(
                 KoanIcons.Volume, "Audio",
-                audioChoices(audio.map { it.info }, audio.indexOfFirst { it.index == native.audioSelected }, { i -> native.selectAudio(audio[i].index) }),
+                audioChoices(
+                    audio.map { it.info },
+                    audio.indexOfFirst { it.index == native.tracks.audioSelected },
+                    pick = { i -> native.tracks.selectAudio(audio[i].index) },
+                ),
             ),
             subtitlesRow(
-                texts.map { it.info }, texts.indexOfFirst { it.index == native.textSelected },
-                pick = { i -> native.selectText(texts.getOrNull(i)?.index ?: -1) },
+                texts.map { it.info }, texts.indexOfFirst { it.index == native.tracks.textSelected },
+                pick = { i -> native.tracks.selectText(texts.getOrNull(i)?.index ?: -1) },
                 chooseFile = {
                     native.pause()
-                    runCatching { pickSubtitles.launch(arrayOf("application/x-subrip", "application/x-srt", "text/srt", "text/vtt", "text/plain", "application/octet-stream")) }
+                    runCatching { pickSubtitles.launch(SUBTITLE_TYPES) }
                 },
             ),
         )
@@ -252,7 +256,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
             hidden = inPip || closing || early,
             modifier = Modifier.graphicsLayer { alpha = if (closing) 0f else 1f },
             notice = notice,
-            caption = native.caption.takeIf { native.textSelected >= 0 },
+            caption = native.tracks.caption.takeIf { native.tracks.textSelected >= 0 },
         )
         if (confirmDelete) {
             DeleteCard(
@@ -308,3 +312,8 @@ private fun CardButton(label: String, color: androidx.compose.ui.graphics.Color,
         Text(label, style = playerText(15.sp, FontWeight.SemiBold, color))
     }
 }
+
+/** What ⋯ › Subtitles › Choose a file… lets the picker show (.srt and .vtt have no settled type). */
+private val SUBTITLE_TYPES = arrayOf(
+    "application/x-subrip", "application/x-srt", "text/srt", "text/vtt", "text/plain", "application/octet-stream",
+)

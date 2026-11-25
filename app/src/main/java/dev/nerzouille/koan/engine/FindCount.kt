@@ -10,10 +10,13 @@ data class FindHit(val tabId: String, val query: String, val found: Boolean, val
  * collapsed sections: "0/0" there was wrong while a match was highlighted).
  */
 fun findCount(tabId: String, query: String, hit: FindHit?): String {
-    if (query.isEmpty() || hit == null || hit.tabId != tabId || hit.query != query) return ""
-    if (!hit.found) return "0/0"
-    if (hit.total <= 0 || hit.current <= 0) return ""
-    return "${hit.current.coerceAtMost(hit.total)}/${hit.total}"
+    val answer = hit?.takeIf { query.isNotEmpty() && it.tabId == tabId && it.query == query }
+    return when {
+        answer == null -> ""
+        !answer.found -> "0/0"
+        answer.total <= 0 || answer.current <= 0 -> ""
+        else -> "${answer.current.coerceAtMost(answer.total)}/${answer.total}"
+    }
 }
 
 /**

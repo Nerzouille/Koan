@@ -16,7 +16,10 @@ class WebTracksTest {
 
 class WebFilesTest {
     @Test fun `the extension's file list keeps http files only`() {
-        val a = org.json.JSONArray("""[{"src":"https://example.com/a.webm","height":480,"type":"video/webm","original":false},{"src":"blob:x","height":1},{"src":"http://example.com/o.webm","original":true}]""")
+        val a = org.json.JSONArray(
+            """[{"src":"https://example.com/a.webm","height":480,"type":"video/webm","original":false},""" +
+                """{"src":"blob:x","height":1},{"src":"http://example.com/o.webm","original":true}]""",
+        )
         assertEquals(
             listOf(WebFile("https://example.com/a.webm", 480, "video/webm", false), WebFile("http://example.com/o.webm", 0, "", true)),
             parseFiles(a),

@@ -47,18 +47,22 @@ class FullscreenOrientationTest {
         assertEquals(null, heldPortrait(-1))
     }
 
+    /** standaloneOrientation(rotationLocked, videoPortrait, rotated, turned). */
+    private fun so(locked: Boolean, portrait: Boolean?, rotated: Boolean, turned: Boolean) =
+        standaloneOrientation(locked, portrait, rotated, turned)
+
     @Test fun `standalone, auto-rotate on, follows the phone until Rotate turns it`() {
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR, standaloneOrientation(rotationLocked = false, videoPortrait = null, rotated = false, turned = false))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR, so(false, null, false, false))
         // A landscape video turned: portrait, until the phone is held in portrait; then the sensor.
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, standaloneOrientation(rotationLocked = false, videoPortrait = false, rotated = true, turned = false))
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR, standaloneOrientation(rotationLocked = false, videoPortrait = false, rotated = true, turned = true))
-        assertEquals(null, standaloneOrientation(rotationLocked = false, videoPortrait = null, rotated = true, turned = false))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, so(false, false, true, false))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR, so(false, false, true, true))
+        assertEquals(null, so(false, null, true, false))
     }
 
     @Test fun `standalone, auto-rotate off, the video's shape or the other one`() {
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, standaloneOrientation(rotationLocked = true, videoPortrait = false, rotated = false, turned = false))
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, standaloneOrientation(rotationLocked = true, videoPortrait = false, rotated = true, turned = true))
-        assertEquals(null, standaloneOrientation(rotationLocked = true, videoPortrait = null, rotated = false, turned = false))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, so(true, false, false, false))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, so(true, false, true, true))
+        assertEquals(null, so(true, null, false, false))
     }
 
     @Test fun `the Rotate row shows only with auto-rotate off, like the pill`() {

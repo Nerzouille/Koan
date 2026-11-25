@@ -15,7 +15,10 @@ class PageImages(engine: Engine, store: BrowserStore, scope: CoroutineScope) : P
     override fun answer(reply: JSONObject): String? {
         val url = fullImageUrl(reply)
         // Why the page found no full image (a reason and a count, never an address).
-        if (url == null) android.util.Log.i("KoanPageImage", "no full image: ${reply.optString("reason", "unknown")}, images=${reply.optInt("images", 0)}")
+        if (url == null) {
+            val reason = reply.optString("reason", "unknown")
+            android.util.Log.i("KoanPageImage", "no full image: $reason, images=${reply.optInt("images", 0)}")
+        }
         return url
     }
 

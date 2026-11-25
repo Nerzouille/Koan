@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import dev.nerzouille.koan.ui.icons.KoanIcons
 import java.util.Locale
 
 class PlayerTracksTest {
@@ -34,8 +35,8 @@ class PlayerTracksTest {
     }
 
     @Test fun `no captions row without tracks, a row with one`() {
-        assertNull(choiceRow(dev.nerzouille.koan.ui.icons.KoanIcons.Captions, "Captions", captionChoices(emptyList(), -1, {})))
-        val one = choiceRow(dev.nerzouille.koan.ui.icons.KoanIcons.Captions, "Captions", captionChoices(listOf(TrackInfo("", "de")), -1, {}, en))
+        assertNull(choiceRow(KoanIcons.Captions, "Captions", captionChoices(emptyList(), -1, {})))
+        val one = choiceRow(KoanIcons.Captions, "Captions", captionChoices(listOf(TrackInfo("", "de")), -1, {}, en))
         assertEquals("Off", one?.value)
     }
 
@@ -55,7 +56,7 @@ class PlayerTracksTest {
     @Test fun `a picked choice also closes the menu`() {
         var closed = false
         var picked = -2
-        val row = MenuRow(dev.nerzouille.koan.ui.icons.KoanIcons.Captions, "Captions", choices = captionChoices(tracks, -1, { picked = it }, en))
+        val row = MenuRow(KoanIcons.Captions, "Captions", choices = captionChoices(tracks, -1, { picked = it }, en))
             .after { closed = true }
         row.choices!![2].onPick()
         assertTrue(closed)

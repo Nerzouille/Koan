@@ -365,7 +365,10 @@ private fun PrivateMark() {
 private fun DoneRow(d: DownloadState, first: Boolean, missing: Boolean, checked: Boolean?, onTap: () -> Unit, onLong: () -> Unit) {
     LibraryRowFrame(first, onClick = onTap, onLongClick = onLong, checked = checked) {
         // A file moved or deleted outside Koan: the row greyed, "Moved or deleted" for its size.
-        Row(Modifier.weight(1f).graphicsLayer { alpha = if (missing) DownloadTokens.MissingAlpha else 1f }, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.weight(1f).graphicsLayer { alpha = if (missing) DownloadTokens.MissingAlpha else 1f },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             FileTile(d)
             Spacer(Modifier.width(DownloadTokens.RowGap))
             Column(Modifier.weight(1f)) {
@@ -378,10 +381,6 @@ private fun DoneRow(d: DownloadState, first: Boolean, missing: Boolean, checked:
         }
     }
 }
-
-/** A finished row's second line: its size (or "Moved or deleted") and where it came from. */
-internal fun doneRowDetail(d: DownloadState, missing: Boolean): String =
-    listOfNotNull(if (missing) "Moved or deleted" else (d.contentLength ?: d.currentBytesCopied).let(::sizeText), host(d)).joinToString(" · ")
 
 @Composable
 private fun RoundButton(icon: ImageVector, onClick: () -> Unit) {

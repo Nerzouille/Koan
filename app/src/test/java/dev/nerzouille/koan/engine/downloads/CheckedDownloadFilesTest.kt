@@ -14,7 +14,10 @@ class CheckedDownloadFilesTest {
         val opened = mutableListOf<String?>()
         override val currentDownloadLocation = "/downloads"
         override fun guessFileName(contentDisposition: String?, url: String?, mimeType: String?) = "file"
-        override fun openFile(fileName: String?, directoryPath: String, contentType: String?): Boolean { opened += fileName; return appOpens }
+        override fun openFile(fileName: String?, directoryPath: String, contentType: String?): Boolean {
+            opened += fileName
+            return appOpens
+        }
         override fun createOpenFileIntent(fileName: String?, directoryPath: String, contentType: String?): Intent? = null
         override fun findDownloadFileUri(fileName: String?, directoryPath: String): Uri? = null
         override fun findShareableDownloadFileUri(fileName: String?, directoryPath: String): Uri? = null

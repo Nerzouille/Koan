@@ -77,14 +77,15 @@ class DockState(private val scope: CoroutineScope) {
 
     /** The part of [dy] that moves the dock: a hidden dock first swallows [deadZonePx] of upward scroll. */
     private fun deadZone(dy: Float): Float {
+        var move = dy
         if (dy > 0f) {
             upHeld = (upHeld - dy).coerceAtLeast(0f)
-            return dy
+        } else if (offset >= heightPx) {
+            val take = minOf(deadZonePx - upHeld, -dy).coerceAtLeast(0f)
+            upHeld += take
+            move = dy + take
         }
-        if (offset < heightPx) return dy
-        val take = minOf(deadZonePx - upHeld, -dy).coerceAtLeast(0f)
-        upHeld += take
-        return dy + take
+        return move
     }
 
     fun onTouchDown() {

@@ -33,9 +33,8 @@ class TranslationResetMiddleware : Middleware<BrowserState, BrowserAction> {
  * loading, and that has something to clear. Null otherwise. Read before the action is applied.
  */
 internal fun translationResetFor(state: BrowserState, action: BrowserAction): String? {
-    if (action !is ContentAction.UpdateLoadingStateAction || !action.loading) return null
-    val tab = state.findTab(action.sessionId) ?: return null
-    if (tab.content.loading) return null
+    val load = (action as? ContentAction.UpdateLoadingStateAction)?.takeIf { it.loading }
+    val tab = load?.let { state.findTab(it.sessionId) }?.takeUnless { it.content.loading } ?: return null
     val t = tab.translationsState
     val engine = t.translationEngineState
     val stale = t.isTranslated || t.isTranslateProcessing ||

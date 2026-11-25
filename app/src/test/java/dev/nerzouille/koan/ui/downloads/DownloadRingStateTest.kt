@@ -9,7 +9,10 @@ import org.junit.Test
 
 class DownloadRingStateTest {
     private fun d(id: String, status: Status, length: Long? = 100, copied: Long = 50, private: Boolean = false) =
-        DownloadState("https://example.com/$id.zip", fileName = "$id.zip", contentLength = length, currentBytesCopied = copied, status = status, id = id, private = private, directoryPath = "/downloads")
+        DownloadState(
+            "https://example.com/$id.zip", fileName = "$id.zip", contentLength = length, currentBytesCopied = copied,
+            status = status, id = id, private = private, directoryPath = "/downloads",
+        )
 
     @Test
     fun finishingInTheSameUpdateThatEndsTheProgressTicks() {
@@ -33,9 +36,11 @@ class DownloadRingStateTest {
 
     @Test
     fun oneOfTwoFinishingTicksWhileTheOtherKeepsTheProgress() {
-        val both = nextRingState(DownloadRingState(), listOf(d("a", Status.DOWNLOADING), d("b", Status.DOWNLOADING, length = null)), privateOn = false)
+        val running = listOf(d("a", Status.DOWNLOADING), d("b", Status.DOWNLOADING, length = null))
+        val both = nextRingState(DownloadRingState(), running, privateOn = false)
         assertTrue(both.progress!!.isNaN())
-        val one = nextRingState(both, listOf(d("a", Status.COMPLETED), d("b", Status.DOWNLOADING, length = 200, copied = 20)), privateOn = false)
+        val firstDone = listOf(d("a", Status.COMPLETED), d("b", Status.DOWNLOADING, length = 200, copied = 20))
+        val one = nextRingState(both, firstDone, privateOn = false)
         assertEquals(1, one.doneTick)
         assertEquals(0.1f, one.progress!!, 0.001f)
     }

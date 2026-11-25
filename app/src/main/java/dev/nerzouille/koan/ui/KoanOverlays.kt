@@ -96,12 +96,26 @@ class Overlays(scope: CoroutineScope, density: Density) {
      * [destructive]: the action deletes or loses something (red); otherwise the primary button.
      * [other]: a second action in place of Cancel (its label, what it does); dismissing does nothing.
      */
-    fun ask(title: String, text: String, confirm: String, destructive: Boolean = true, other: Pair<String, () -> Unit>? = null, action: () -> Unit) {
+    fun ask(
+        title: String,
+        text: String,
+        confirm: String,
+        destructive: Boolean = true,
+        other: Pair<String, () -> Unit>? = null,
+        action: () -> Unit,
+    ) {
         ask = Ask(title, text, confirm, destructive, action, other)
         askCard.animateTo(Detent.Compact)
     }
 
-    class Ask(val title: String, val text: String, val confirm: String, val destructive: Boolean, val action: () -> Unit, val other: Pair<String, () -> Unit>? = null)
+    class Ask(
+        val title: String,
+        val text: String,
+        val confirm: String,
+        val destructive: Boolean,
+        val action: () -> Unit,
+        val other: Pair<String, () -> Unit>? = null,
+    )
     val clearDataCard = SheetState(scope, splineBasedDecay(density))
 
     /** Logins: the full "Sign in with" list (7e), and "Save in Koan". */
@@ -308,7 +322,9 @@ fun rememberFindUi(components: Components, overlays: Overlays, activeTabId: Stri
             overlays.findQuery = q
             components.pageTools.find(activeTabId, q)
         },
-        onNext = { forward -> if (overlays.findQuery.isNotEmpty()) components.pageTools.findNext(activeTabId, overlays.findQuery, forward) },
+        onNext = { forward ->
+            if (overlays.findQuery.isNotEmpty()) components.pageTools.findNext(activeTabId, overlays.findQuery, forward)
+        },
         onClose = {
             overlays.finding = false
             overlays.findQuery = ""
