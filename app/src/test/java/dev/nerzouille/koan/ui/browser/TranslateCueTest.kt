@@ -30,6 +30,11 @@ class TranslateCueTest {
         assertEquals(TranslateCue.Icon, cue(article.copy(processing = true)))
     }
 
+    @Test fun `with Find open the card never opens on its own, the icon stays`() {
+        assertEquals(TranslateCue.Icon, translateCue(article, phone, offerOn = true, searchPage = false, siteDismissed = false, findOpen = true))
+        assertEquals(TranslateCue.None, translateCue(article.copy(pageLanguage = "fr"), phone, offerOn = true, searchPage = false, siteDismissed = false, findOpen = true))
+    }
+
     @Test fun `nothing for a phone language, an unknown one, a translated page or the switch off`() {
         assertEquals(TranslateCue.None, cue(article.copy(pageLanguage = "fr-CA")))
         assertEquals(TranslateCue.None, cue(article.copy(pageLanguage = null)))

@@ -36,7 +36,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  * "Always translate" gets no offer: its pages are translated on their own.
  */
 @Composable
-fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean, onToast: (Toast) -> Unit, modifier: Modifier = Modifier) {
+fun TranslateOfferHost(
+    components: Components,
+    tabId: String?,
+    allowed: Boolean,
+    findOpen: Boolean,
+    onToast: (Toast) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val store = components.store
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
@@ -81,7 +88,7 @@ fun TranslateOfferHost(components: Components, tabId: String?, allowed: Boolean,
         always = always,
         never = state?.pageSettings?.neverTranslateLanguage == true || state?.pageSettings?.neverTranslateSite == true,
     )
-    val cue = if (tabId == null) TranslateCue.None else translateCue(signals, phoneLanguages, offerOn, searchPage, site in cues.dismissedSites)
+    val cue = if (tabId == null) TranslateCue.None else translateCue(signals, phoneLanguages, offerOn, searchPage, site in cues.dismissedSites, findOpen)
     androidx.compose.runtime.SideEffect { cues.icon = cue != TranslateCue.None }
     // A tap on the icon: the card on this page, even where it wouldn't open by itself.
     var manual by remember { mutableStateOf<String?>(null) }

@@ -1116,6 +1116,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         TranslateOfferHost(
             components, activeTabId,
             allowed = !overviewVisible && !editing && !covered && !fullScreen,
+            findOpen = overlays.finding,
             onToast = toasts::show,
         )
         // ---- Koan's own video player (Downloads, "Play video", files from other apps) ----

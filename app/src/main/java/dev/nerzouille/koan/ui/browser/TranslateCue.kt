@@ -41,12 +41,20 @@ data class TranslateSignals(
 /**
  * The cue for a page: [phoneLanguages] the phone's languages, [offerOn] the Settings switch,
  * [searchPage] a search engine's results, [siteDismissed] the card closed on this site since
- * Koan started.
+ * Koan started, [findOpen] Find in page is open (the card would cover its counter: only the icon,
+ * which still opens the card on a tap).
  */
-fun translateCue(s: TranslateSignals, phoneLanguages: List<String>, offerOn: Boolean, searchPage: Boolean, siteDismissed: Boolean): TranslateCue {
+fun translateCue(
+    s: TranslateSignals,
+    phoneLanguages: List<String>,
+    offerOn: Boolean,
+    searchPage: Boolean,
+    siteDismissed: Boolean,
+    findOpen: Boolean = false,
+): TranslateCue {
     val lang = s.pageLanguage ?: return TranslateCue.None
     if (!offerFor(lang, phoneLanguages, offerOn) || s.translated || s.always || s.never) return TranslateCue.None
-    val worthACard = s.confident && s.readable && !searchPage && !siteDismissed && !s.processing
+    val worthACard = s.confident && s.readable && !searchPage && !siteDismissed && !s.processing && !findOpen
     return if (worthACard) TranslateCue.Card else TranslateCue.Icon
 }
 
