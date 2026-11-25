@@ -241,6 +241,12 @@ fun choiceRow(icon: ImageVector, label: String, choices: List<MenuChoice>, min: 
     if (choices.size < min) null else MenuRow(icon, label, value = choices.firstOrNull { it.selected }?.label, choices = choices)
 
 /**
+ * ⋯ › Rotate: full screen turns to the other shape (portrait ↔ landscape) at any time, the same
+ * switch as the rotate pill; shown with auto-rotate on too (owner, 2026-11-25).
+ */
+fun rotateRow(onRotate: () -> Unit) = MenuRow(dev.nerzouille.koan.ui.icons.KoanIcons.Rotate, "Rotate", onClick = onRotate)
+
+/**
  * The ⋯ row for Settings › Picture-in-picture (the same setting): leaving Koan in fullscreen opens
  * PiP. Its state at the end ("On" / "Off", like "Normal" on Playback speed), its icon crossed out when off.
  */

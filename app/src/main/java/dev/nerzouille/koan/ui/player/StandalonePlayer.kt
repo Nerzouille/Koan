@@ -112,12 +112,10 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
     val shape = if (st.width > 0 && st.height > 0) st.height > st.width else null
     // The rotate pill (auto-rotate off) turns it the other way.
     var rotated by remember { mutableStateOf(false) }
-    LaunchedEffect(rotationLocked, shape, rotated) {
-        activity?.requestedOrientation = when {
-            !rotationLocked -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
-            shape == null -> return@LaunchedEffect
-            else -> fullscreenOrientation(fullscreen = true, videoPortrait = shape != rotated, rotationLocked = true, turned = false)
-        }
+    // Auto-rotate on and turned by ⋯ › Rotate: the other shape until the phone is held that way.
+    val turned = rememberTurned(!rotationLocked && rotated && shape != null, portrait = shape != rotated)
+    LaunchedEffect(rotationLocked, shape, rotated, turned) {
+        activity?.requestedOrientation = standaloneOrientation(rotationLocked, shape, rotated, turned) ?: return@LaunchedEffect
     }
     DisposableEffect(Unit) {
         val before = activity?.requestedOrientation
@@ -224,7 +222,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 },
             ),
         )
-        val rows = trackRows + remember(video.mode, video.download, actions, native, pipOnLeave) { listOf(pipOnLeaveRow(pipOnLeave, actions.setPipOnLeave)) + when (video.mode) {
+        val rows = trackRows + remember(video.mode, video.download, actions, native, pipOnLeave) { listOf(rotateRow { rotated = !rotated }, pipOnLeaveRow(pipOnLeave, actions.setPipOnLeave)) + when (video.mode) {
             PlayerMode.File -> listOf(
                 MenuRow(KoanIcons.Share, "Share") { actions.share() },
                 MenuRow(KoanIcons.Open, "Open with another app") { native.pause(); actions.openWith() },

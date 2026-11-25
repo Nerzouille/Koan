@@ -37,6 +37,18 @@ fun fullscreenOrientation(fullscreen: Boolean, videoPortrait: Boolean, rotationL
     else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 }
 
+/**
+ * The standalone player's orientation: the phone's sensor with auto-rotate on, unless ⋯ › Rotate
+ * (or the rotate pill) turned it ([rotated]): then the other shape than the video's, until the
+ * phone is held that way ([turned]), as a web fullscreen does. Null: the video's shape isn't known
+ * yet ([videoPortrait]), leave it.
+ */
+fun standaloneOrientation(rotationLocked: Boolean, videoPortrait: Boolean?, rotated: Boolean, turned: Boolean): Int? = when {
+    !rotationLocked && !rotated -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+    videoPortrait == null -> null
+    else -> fullscreenOrientation(fullscreen = true, videoPortrait = videoPortrait != rotated, rotationLocked = rotationLocked, turned = !rotationLocked && turned)
+}
+
 /** Whether a sensor reading ([degrees], 0 = upright) is the phone held in portrait (true), landscape (false), or in between (null). */
 fun heldPortrait(degrees: Int): Boolean? = when {
     degrees == OrientationEventListener.ORIENTATION_UNKNOWN -> null

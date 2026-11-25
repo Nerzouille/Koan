@@ -46,4 +46,26 @@ class FullscreenOrientationTest {
         assertEquals(null, heldPortrait(45))
         assertEquals(null, heldPortrait(-1))
     }
+
+    @Test fun `standalone, auto-rotate on, follows the phone until Rotate turns it`() {
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR, standaloneOrientation(rotationLocked = false, videoPortrait = null, rotated = false, turned = false))
+        // A landscape video turned: portrait, until the phone is held in portrait; then the sensor.
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, standaloneOrientation(rotationLocked = false, videoPortrait = false, rotated = true, turned = false))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR, standaloneOrientation(rotationLocked = false, videoPortrait = false, rotated = true, turned = true))
+        assertEquals(null, standaloneOrientation(rotationLocked = false, videoPortrait = null, rotated = true, turned = false))
+    }
+
+    @Test fun `standalone, auto-rotate off, the video's shape or the other one`() {
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, standaloneOrientation(rotationLocked = true, videoPortrait = false, rotated = false, turned = false))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, standaloneOrientation(rotationLocked = true, videoPortrait = false, rotated = true, turned = true))
+        assertEquals(null, standaloneOrientation(rotationLocked = true, videoPortrait = null, rotated = false, turned = false))
+    }
+
+    @Test fun `the Rotate row is a plain action`() {
+        var n = 0
+        val row = rotateRow { n++ }
+        assertEquals("Rotate", row.label)
+        row.onClick()
+        assertEquals(1, n)
+    }
 }

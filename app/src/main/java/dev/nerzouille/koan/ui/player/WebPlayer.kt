@@ -112,6 +112,7 @@ fun WebPlayerLayer(
             }),
         )?.let(::add)
         choiceRow(KoanIcons.Quality, "Quality", qualityChoices(video.files, video.src, video.kind) { f -> components.pageVideo.source(tabId, f.src) })?.let(::add)
+        add(rotateRow { host.fullscreenRotated = !host.fullscreenRotated })
         add(pipOnLeaveRow(pipOnLeave) { on -> saveScope.launch { components.settings.setPictureInPicture(on) } })
         // Always there (F6): greyed out, with why, when the video isn't a file Koan can save.
         add(
