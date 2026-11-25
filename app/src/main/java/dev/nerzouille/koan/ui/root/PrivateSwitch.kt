@@ -48,7 +48,7 @@ internal class PrivateSwitch(
         tabs().cancelBlank()
         overlays.dismissAll()
         drawer.snapClosed()
-        if (on) root.normalSpaceUuid = root.currentSpaceUuid else root.currentSpaceUuid = root.normalSpaceUuid
+        if (on) root.enterPrivatePlace() else root.currentSpaceUuid = root.normalSpaceUuid
         privateOnState.value = on
         privateMode.on.value = on
         // The engine shows this mode's current tab (under the overview, or on the page).

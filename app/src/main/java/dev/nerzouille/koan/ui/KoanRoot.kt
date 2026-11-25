@@ -167,7 +167,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     val privateMode = components.privateMode
     val privateTabs = components.privateTabs
     // The navigation state (ui/root/RootState.kt), read below through its properties.
-    val root = rememberRootState()
+    val root = rememberRootState(privateMode.on.value)
     // Set together with privateMode.on (showPrivate), so code right after a switch sees the new mode.
     val privateOnState = remember { mutableStateOf(privateMode.on.value) }
     val privateOn by privateOnState
@@ -240,13 +240,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
     pager.pageWidthPx = LocalWindowInfo.current.containerSize.width + with(density) { PagerTokens.PageGap.toPx() }
     // Cold start (e.g. after swiping Koan away): reopen on the space saved on disk (TabManager
     // reopens the tab). After a configuration change or a background kill, the saved instance state
-    // already has it.
+    // already has it (and rememberRootState has left Private's place, before the pager was made).
     var placeRestored by root::placeRestored
     LaunchedEffect(Unit) {
-        if (placeRestored) {
-            root.leavePrivatePlace(privateOnState.value)
-            return@LaunchedEffect
-        }
+        if (placeRestored) return@LaunchedEffect
         components.lastPlace.read().spaceUuid?.let { currentSpaceUuid = it }
         placeRestored = true
     }

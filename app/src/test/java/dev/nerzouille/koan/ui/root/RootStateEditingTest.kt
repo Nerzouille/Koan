@@ -23,6 +23,7 @@ class RootStateEditingTest {
         heroPick = mutableStateOf(null),
         closedFrom = mutableStateOf(null),
         normalSpaceUuid = mutableStateOf(null),
+        normalSpace = mutableIntStateOf(0),
         firstRunHandled = mutableStateOf(false),
     )
 

@@ -35,6 +35,7 @@ class RootState internal constructor(
     heroPick: MutableState<String?>,
     closedFrom: MutableState<String?>,
     normalSpaceUuid: MutableState<String?>,
+    normalSpace: MutableIntState,
     firstRunHandled: MutableState<Boolean>,
 ) {
     var signingIn by signingIn
@@ -60,21 +61,36 @@ class RootState internal constructor(
     var heroPick by heroPick
     var closedFrom by closedFrom
     var normalSpaceUuid by normalSpaceUuid
+    /** The last normal space's index, saved with its id: the space pager starts from the index. */
+    var normalSpace by normalSpace
     var firstRunHandled by firstRunHandled
+
+    /** Private switched on: remember the normal space it was entered from, by id and index. */
+    fun enterPrivatePlace() {
+        normalSpaceUuid = currentSpaceUuid
+        normalSpace = currentSpace
+    }
 
     /**
      * Restored after a kill while Private showed: a new process opens normal mode (`PrivateMode`),
-     * so go back to the last normal space. Left on Private's id, the pager found no such space,
-     * fell back to the first one and saved it as the last place.
+     * so go back to the last normal space, id and index. Runs before the space pager is created
+     * ([rememberRootState]): the pager starts from [currentSpace], and its first settled index
+     * names the current space. Left on Private's index (0), that was the first space.
      */
     fun leavePrivatePlace(privateOn: Boolean) {
-        if (!privateOn && currentSpaceUuid == PrivateTabs.SPACE.uuid) currentSpaceUuid = normalSpaceUuid
+        if (privateOn || currentSpaceUuid != PrivateTabs.SPACE.uuid) return
+        currentSpaceUuid = normalSpaceUuid
+        currentSpace = normalSpace
     }
 }
 
-/** The root's [RootState]: saved values through `rememberSaveable`, the others for the composition. */
+/**
+ * The root's [RootState]: saved values through `rememberSaveable`, the others for the composition.
+ * [privateOn] is the mode this composition starts in: restored on Private's place in normal mode
+ * (after a kill), it goes back to the last normal space before anything reads the place.
+ */
 @Composable
-fun rememberRootState(): RootState {
+fun rememberRootState(privateOn: Boolean): RootState {
     val signingIn = rememberSaveable { mutableStateOf(false) }
     val currentTabs = rememberSaveable { HashMap<String, String>() }
     val currentSpace = rememberSaveable { mutableIntStateOf(0) }
@@ -89,10 +105,11 @@ fun rememberRootState(): RootState {
     val heroPick = remember { mutableStateOf<String?>(null) }
     val closedFrom = rememberSaveable { mutableStateOf<String?>(null) }
     val normalSpaceUuid = rememberSaveable { mutableStateOf<String?>(null) }
+    val normalSpace = rememberSaveable { mutableIntStateOf(0) }
     val firstRunHandled = rememberSaveable { mutableStateOf(false) }
     return remember {
         RootState(
-            signingIn, currentTabs, currentSpace, currentSpaceUuid, overviewOpen, editing, landing, startPage, overviewSettled, placeRestored, focusZenTop, heroPick, closedFrom, normalSpaceUuid, firstRunHandled,
-        )
+            signingIn, currentTabs, currentSpace, currentSpaceUuid, overviewOpen, editing, landing, startPage, overviewSettled, placeRestored, focusZenTop, heroPick, closedFrom, normalSpaceUuid, normalSpace, firstRunHandled,
+        ).also { it.leavePrivatePlace(privateOn) }
     }
 }

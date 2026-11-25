@@ -23,6 +23,7 @@ class RootStatePrivateRestoreTest {
         heroPick = mutableStateOf(null),
         closedFrom = mutableStateOf(null),
         normalSpaceUuid = mutableStateOf(normal),
+        normalSpace = mutableIntStateOf(1),
         firstRunHandled = mutableStateOf(false),
     )
 
@@ -30,12 +31,14 @@ class RootStatePrivateRestoreTest {
         val root = state(current = PrivateTabs.SPACE.uuid, normal = "space-b")
         root.leavePrivatePlace(privateOn = false)
         assertEquals("space-b", root.currentSpaceUuid)
+        assertEquals(1, root.currentSpace)
     }
 
     @Test fun `still in Private (configuration change) stays on Private`() {
         val root = state(current = PrivateTabs.SPACE.uuid, normal = "space-b")
         root.leavePrivatePlace(privateOn = true)
         assertEquals(PrivateTabs.SPACE.uuid, root.currentSpaceUuid)
+        assertEquals(0, root.currentSpace)
     }
 
     @Test fun `a normal space is left as it is`() {
