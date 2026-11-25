@@ -169,6 +169,20 @@ Android version, Koan version from Settings › About Koan, what happened) or
 [feature request](https://github.com/Nerzouille/Koan/issues/new?template=feature_request.yml).
 Please leave private things out of issues: account emails, real tabs, passwords.
 
+## Contributors
+
+<div align="center">
+<table>
+  <tr>
+    <td align="center" valign="top" width="180">
+      <a href="https://github.com/zy6p"><img src="https://github.com/zy6p.png?size=100" width="80" alt="zy6p"><br><b>zy6p</b></a><br>
+      <sub>Website passkeys through Android's Credential Manager (<a href="https://github.com/Nerzouille/Koan/pull/16">#16</a>)</sub>
+    </td>
+  </tr>
+</table>
+<p>Want to help? <a href="https://github.com/Nerzouille/Koan/issues">Issues and PRs are welcome</a>.</p>
+</div>
+
 ## Credits
 
 - [Z-Sync](https://github.com/Kjell6/Z-Sync) by Kjell Behrends (MIT): the sync, crypto, Mozilla
@@ -182,8 +196,6 @@ Please leave private things out of issues: account emails, real tabs, passwords.
   [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)): in the What's new video player card
   and the video player screenshot above, played from Wikimedia Commons.
 - [GeckoView and Mozilla Android Components](https://github.com/mozilla-firefox/firefox) (MPL 2.0).
-- **Contributors:** [zy6p](https://github.com/zy6p): website passkeys through Android's
-  Credential Manager ([#16](https://github.com/Nerzouille/Koan/pull/16)).
 
 Firefox and Mozilla are trademarks of the Mozilla Foundation. Zen Browser is an independent project.
 
