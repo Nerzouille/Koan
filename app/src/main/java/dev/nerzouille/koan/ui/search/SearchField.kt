@@ -38,6 +38,13 @@ class SearchField {
     /** What Go opens: the text and the completion shown after it. */
     val text: String get() = value.text + completion
 
+    /**
+     * Between [start] and [end]: the text is this editing's. After [end] it is the last one's,
+     * still shown while the sheet fades out, never when the field opens again.
+     */
+    var current by mutableStateOf(false)
+        private set
+
     /** Typing added to the end (not a deletion): only then is it completed. */
     private var growing = false
 
@@ -48,6 +55,12 @@ class SearchField {
         growing = false
         edited = false
         completion = ""
+        current = true
+    }
+
+    /** The field is gone (its closing morph done): what it held belongs to the last editing. */
+    fun end() {
+        current = false
     }
 
     /** The picker put text in ("@wiki "): the cursor goes after it. */

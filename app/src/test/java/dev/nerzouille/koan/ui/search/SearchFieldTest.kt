@@ -81,4 +81,17 @@ class SearchFieldTest {
         assertEquals(TextRange(0, 20), f.value.selection)
         assertEquals("", f.completion)
     }
+
+    @Test fun `an "@" typed last time is not this editing's until the field starts again`() {
+        val f = fresh()
+        f.type("@")
+        assertEquals(true, f.current)
+        f.end()
+        // Kept for the sheet's fade-out, but not current: the picker can't pop in on reopening.
+        assertEquals("@", f.typed)
+        assertEquals(false, f.current)
+        f.start("https://example.com/")
+        assertEquals(true, f.current)
+        assertEquals("https://example.com/", f.typed)
+    }
 }

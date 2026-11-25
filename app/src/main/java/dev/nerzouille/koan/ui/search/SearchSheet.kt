@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -106,8 +107,22 @@ fun SearchSheet(
             .drawBehind { drawRect(palette.SheetScrim, alpha = fade.progress) }
             .then(if (open) Modifier.pointerInput(Unit) { detectTapGestures { actions.cancel() } } else Modifier),
     ) {
-        if (open) Results(field, search, engine, shortcuts, bottom, currentSpace, actions, private)
+        // Closing: what was showing (the "@" picker too) fades out with the dim, untouchable.
+        // Opening: nothing from the last editing, until the field has started on this one.
+        if (if (open) field.current else fade.composed) {
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .graphicsLayer { alpha = if (open) 1f else fade.progress }
+                    .then(if (open) Modifier else Modifier.pointerInput(Unit) { swallowTouches() }),
+            ) { Results(field, search, engine, shortcuts, bottom, currentSpace, actions, private) }
+        }
     }
+}
+
+/** Every touch stops here (the results fading out can't be tapped). */
+private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.swallowTouches() = awaitPointerEventScope {
+    while (true) awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial).changes.forEach { it.consume() }
 }
 
 /** What the sheet shows for what is typed: the "@" picker, or the result groups. */

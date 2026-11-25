@@ -689,6 +689,7 @@ private fun AddressInput(
 ) {
     // Editing starts on the page's address, all selected (set before the first frame).
     remember { field.start(initial); true }
+    androidx.compose.runtime.DisposableEffect(field) { onDispose { field.end() } }
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     LaunchedEffect(active) { if (!active) focusManager.clearFocus() }
     val own = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
