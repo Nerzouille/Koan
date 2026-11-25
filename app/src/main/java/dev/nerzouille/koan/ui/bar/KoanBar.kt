@@ -62,6 +62,14 @@ import kotlinx.coroutines.launch
 
 private const val OFFSCREEN_PX = 100_000
 
+/**
+ * The drawer's full height (px, above the bar's rows): the whole dock stays under
+ * DrawerTokens.FULL_MAX_FRACTION of the window (#11, owner 2026-11-26), and below the status bar
+ * ([topPx]). [dockPx]: the rows and what is under them. A taller space scrolls inside.
+ */
+internal fun drawerFullCap(windowPx: Float, topPx: Float, dockPx: Float): Float =
+    minOf(windowPx - topPx, windowPx * DrawerTokens.FULL_MAX_FRACTION) - dockPx
+
 /** Space the bar takes at the bottom (above the navigation bar), so screens can end above it. */
 fun barZone(overview: Boolean): Dp =
     if (overview) {
@@ -106,7 +114,7 @@ fun KoanBar(
     val navigationBars = WindowInsets.navigationBars
 
     // The drawer's caps from the window: compact keeps the whole dock under ~55% of the screen,
-    // full stops just below the status bar.
+    // full under ~75% (#11), and never above the status bar.
     val density = LocalDensity.current
     val windowPx = LocalWindowInfo.current.containerSize.height.toFloat()
     with(density) {
@@ -114,7 +122,7 @@ fun KoanBar(
         val below = WindowInsets.navigationBars.getBottom(density) + BarTokens.BottomMargin.toPx()
         val top = WindowInsets.topSafe.getTop(density) + SheetTokens.FullTopGap.toPx()
         drawer.compactCapPx = windowPx * SheetTokens.COMPACT_MAX_FRACTION - rows - below
-        drawer.fullCapPx = windowPx - top - rows - below
+        drawer.fullCapPx = drawerFullCap(windowPx, top, rows + below)
         drawer.minStepPx = SheetTokens.MinDetentStep.toPx()
         bar.scrub.minStepPx = BarTokens.ScrubStepMin.toPx()
         bar.scrub.maxStepPx = BarTokens.ScrubStepMax.toPx()

@@ -21,9 +21,9 @@ enum class Detent { Closed, Compact, Full }
 /**
  * How a sheet with several pages (the drawer: one per space) sizes itself (GitHub #11):
  * [PerPage] each page at its own height (the sheet jumps between spaces), [Tallest] the tallest
- * page's height for every page, [Full] always the full height.
+ * page's height for every page.
  */
-enum class PageHeight { PerPage, Tallest, Full }
+enum class PageHeight { PerPage, Tallest }
 
 /**
  * The detent engine every Koan sheet shares (the pins drawer, the menu, floating cards). Its
@@ -68,10 +68,8 @@ class SheetState(private val scope: CoroutineScope, private val decay: DecayAnim
     private val contentPx: Float get() = when (pageHeight) {
         PageHeight.PerPage -> ownPx
         PageHeight.Tallest -> (pageHeights.maxOrNull() ?: 0).toFloat()
-        PageHeight.Full -> maxOf(fullCapPx, ownPx)
     }
-    private val compactPx: Float get() =
-        (if (pageHeight == PageHeight.Full) minOf(contentPx, fullCapPx) else minOf(contentPx, compactCapPx)).coerceAtLeast(1f)
+    private val compactPx: Float get() = minOf(contentPx, compactCapPx).coerceAtLeast(1f)
     private val fullPx: Float get() = minOf(contentPx, fullCapPx).coerceAtLeast(compactPx)
 
     /** Only the page on screen scrolls, by what it has beyond the sheet. */

@@ -25,7 +25,8 @@
   Translate page (Show original, the languages). While a download runs, its ring takes the
   icon's place.
 - With Find in page open, the translation card no longer opens by itself over the counter.
-- The space drawer keeps one height when you swipe between spaces (#11).
+- The space drawer keeps one height when you swipe between spaces, the tallest space's, and the
+  whole dock stays under three quarters of the screen (#11).
 - The dock no longer comes back after the smallest scroll up: it waits for a real one (#9).
 - Downloads: a file moved or deleted outside Koan is greyed out ("Moved or deleted") with
   Download again and Remove from list, and opening it from anywhere says "File moved or missing".

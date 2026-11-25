@@ -109,16 +109,15 @@ class SheetStateTest {
     }
 
     @Test
-    fun `option B opens every space at the full height`() {
+    fun `a space taller than the cap scrolls inside the capped drawer (#11)`() {
         val s = SheetState(TestScope(), exponentialDecay()).apply {
             compactCapPx = 500f
-            fullCapPx = 1500f
+            fullCapPx = 900f
             minStepPx = 48f
-            pageHeight = PageHeight.Full
-            refit(intArrayOf(200, 400), 0)
+            pageHeight = PageHeight.Tallest
+            refit(intArrayOf(200, 1400), 1)
         }
-        s.drag(-1500f)
-        assertEquals(Detent.Compact, s.detent)
-        assertEquals(1500f, s.height)
+        s.drag(-2000f)
+        assertEquals(900f, s.height)
     }
 }
