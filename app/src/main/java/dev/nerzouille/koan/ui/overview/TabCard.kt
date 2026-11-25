@@ -293,7 +293,7 @@ internal fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
             Modifier
                 .matchParentSize()
                 .graphicsLayer {
-                    val dim = DepthCurve.cardHeaderDim(depth(), palette.DimGain, palette.DimMax)
+                    val dim = DepthCurve.cardDim(depth(), palette.DimGain, palette.DimMax)
                     alpha = if (dim > 0.01f) dim else 0f
                     compositingStrategy = CompositingStrategy.ModulateAlpha
                 }

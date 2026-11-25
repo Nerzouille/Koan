@@ -40,18 +40,11 @@ object DepthCurve {
     fun alpha(d: Float): Float =
         if (d >= 0f) lerp(StackTokens.Alpha, d) else 1f
 
-    /** Header strip overlay alpha: half the thumbnail dim, capped, so titles stay legible. */
-    fun headerDim(d: Float): Float = (dim(d) * 0.5f).coerceAtMost(StackTokens.HEADER_DIM_MAX)
-
     /**
-     * The thumbnail's depth dim for a palette ([gain], capped at [max]): what the card draws over
-     * its content in DimColor. As in v0.4.0 (owner, 2026-11-12: restored after the caps were
-     * lowered with Private mode).
+     * A card's depth cue for a palette ([gain], capped at [max]): how far its thumbnail and its
+     * header recede into DimColor (cue A, owner 2026-11-26; v0.4.0 dimmed the header half as much).
      */
     fun cardDim(d: Float, gain: Float, max: Float): Float = (dim(d) * gain).coerceAtMost(max)
-
-    /** The header strip's depth dim for a palette. */
-    fun cardHeaderDim(d: Float, gain: Float, max: Float): Float = (headerDim(d) * gain).coerceAtMost(max)
 
     /** Cards further back than this are invisible: skip drawing and hit-testing them. */
     val MAX_VISIBLE_D = (StackTokens.Alpha.size - 1).toFloat()

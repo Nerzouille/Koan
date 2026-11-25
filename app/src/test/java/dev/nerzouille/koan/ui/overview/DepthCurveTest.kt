@@ -52,7 +52,6 @@ class DepthCurveTest {
             assertTrue(DepthCurve.alpha(d) in 0f..1f)
             assertTrue(DepthCurve.dim(d) in 0f..1f)
             assertTrue(DepthCurve.blurDp(d) >= 0f)
-            assertTrue(DepthCurve.headerDim(d) <= StackTokens.HEADER_DIM_MAX)
             d += 0.01f
         }
     }

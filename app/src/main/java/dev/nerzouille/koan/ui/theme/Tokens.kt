@@ -83,7 +83,8 @@ class KoanPalette(
     /** Every other match and its text. */
     val FindMatch: Color,
     val FindMatchText: Color,
-    // Depth stack.
+    // Depth stack. Cue A (owner, 2026-11-26): back cards, header and thumbnail alike, recede into
+    // DimColor: light, a grey a step darker than Base; dark, Base itself (Night: its violet Base).
     /** Back cards fade towards Base (light: a haze) instead of black (dark: brightness). */
     val DimToBase: Boolean,
     /** Multiplies StackTokens.Dim, capped at DimMax (light haze is stronger than a dim). */
@@ -153,8 +154,8 @@ class KoanPalette(
             FindMatch = Color(0xFFD0DDF5),
             FindMatchText = Color.Black,
             DimToBase = true,
-            DimGain = 1.25f,
-            DimMax = 0.85f,
+            DimGain = 1.1f,
+            DimMax = 0.62f,
             CardElevation = 12.dp,
             CardShadowColor = Color(0x241C1C30),
             ContactShadow = Color(0x2E1C1C30),
@@ -162,7 +163,7 @@ class KoanPalette(
             CardHairline = Color(0x1A1C1C30),
             CardRim = Color.Transparent,
             SyncDot = Color(0xFFC0841A),
-            DimColor = Color(0xFFF5F5F7),
+            DimColor = Color(0xFFB9B9C2),
             AccentLightness = 0.45f..0.62f,
             InkLightness = 0.38f,
             PillAlpha = 0.14f,
@@ -207,8 +208,8 @@ class KoanPalette(
             FindMatch = Color(0xFF1C396E),
             FindMatchText = Color.White,
             DimToBase = false,
-            DimGain = 1f,
-            DimMax = 1f,
+            DimGain = 1.4f,
+            DimMax = 0.85f,
             CardElevation = 20.dp,
             CardShadowColor = Color(0x99000000),
             ContactShadow = Color(0xA6000000),
@@ -216,7 +217,7 @@ class KoanPalette(
             CardHairline = Color(0x1FFFFFFF),
             CardRim = Color(0x1AFFFFFF),
             SyncDot = Color(0xFFE8B45A),
-            DimColor = Color.Black,
+            DimColor = Color(0xFF121214),
             AccentLightness = 0.62f..0.74f,
             InkLightness = 0.80f,
             PillAlpha = 0.18f,
@@ -262,8 +263,8 @@ class KoanPalette(
             FindMatch = Light.FindMatch,
             FindMatchText = Light.FindMatchText,
             DimToBase = true,
-            DimGain = 1.25f,
-            DimMax = 0.85f,
+            DimGain = Light.DimGain,
+            DimMax = Light.DimMax,
             CardElevation = Light.CardElevation,
             CardShadowColor = Light.CardShadowColor,
             ContactShadow = Light.ContactShadow,
@@ -271,7 +272,7 @@ class KoanPalette(
             CardHairline = Color(0x1A17142E),
             CardRim = Color.Transparent,
             SyncDot = Light.SyncDot,
-            DimColor = Color(0xFFDEDAF0),
+            DimColor = Color(0xFFB4AED0),
             AccentLightness = Light.AccentLightness,
             InkLightness = Light.InkLightness,
             PillAlpha = Light.PillAlpha,
@@ -320,8 +321,8 @@ class KoanPalette(
             FindMatch = Dark.FindMatch,
             FindMatchText = Dark.FindMatchText,
             DimToBase = false,
-            DimGain = 1f,
-            DimMax = 1f,
+            DimGain = Dark.DimGain,
+            DimMax = Dark.DimMax,
             CardElevation = Dark.CardElevation,
             CardShadowColor = Dark.CardShadowColor,
             ContactShadow = Dark.ContactShadow,
@@ -329,7 +330,7 @@ class KoanPalette(
             CardHairline = Color(0x29B9B4FF),
             CardRim = Color(0x1AFFFFFF),
             SyncDot = Dark.SyncDot,
-            DimColor = Color(0xFF050412),
+            DimColor = Color(0xFF110F24),
             AccentLightness = Dark.AccentLightness,
             InkLightness = Dark.InkLightness,
             PillAlpha = Dark.PillAlpha,
@@ -515,7 +516,6 @@ object StackTokens {
     // Every visible card keeps the same shadow (it layers the pile): KoanPalette.CardElevation.
 
     /** Header strip is dimmed at most this much, so titles stay legible deep in the pile. */
-    const val HEADER_DIM_MAX = 0.2f
 
     /** Finger travel that moves the stack by one slot (prototype: 230dp; shorter covers more cards). */
     val SlotDrag = 170.dp

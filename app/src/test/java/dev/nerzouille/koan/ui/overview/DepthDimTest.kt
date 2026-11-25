@@ -1,39 +1,38 @@
 package dev.nerzouille.koan.ui.overview
 
+import androidx.compose.ui.graphics.Color
 import dev.nerzouille.koan.ui.theme.KoanPalette
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The depth → dim mapping of the stack's back cards, pinned to v0.4.0's values (owner, 2026-11-12). */
+/** Depth cue A (owner, 2026-11-26): back cards recede into a colour, header and thumbnail alike. */
 class DepthDimTest {
     private fun dims(p: KoanPalette) = (0..6).map { DepthCurve.cardDim(it.toFloat(), p.DimGain, p.DimMax) }
 
-    @Test fun `light haze, as in 0_4_0`() {
-        val want = listOf(0f, 0.20f, 0.35f, 0.475f, 0.60f, 0.725f, 0.825f)
+    @Test fun `light recedes into a grey darker than Base`() {
+        val want = listOf(0f, 0.176f, 0.308f, 0.418f, 0.528f, 0.62f, 0.62f)
         dims(KoanPalette.Light).zip(want).forEach { (got, w) -> assertEquals(w, got, 0.001f) }
+        assertEquals(Color(0xFFB9B9C2), KoanPalette.Light.DimColor)
     }
 
-    @Test fun `dark dim, as in 0_4_0`() {
-        val want = listOf(0f, 0.16f, 0.28f, 0.38f, 0.48f, 0.58f, 0.66f)
+    @Test fun `dark recedes into its Base, stronger than light`() {
+        val want = listOf(0f, 0.224f, 0.392f, 0.532f, 0.672f, 0.812f, 0.85f)
         dims(KoanPalette.Dark).zip(want).forEach { (got, w) -> assertEquals(w, got, 0.001f) }
+        assertEquals(Color(0xFF121214), KoanPalette.Dark.DimColor)
+        assertEquals(KoanPalette.Night.Base, KoanPalette.Night.DimColor)
     }
 
-    @Test fun `Private dims like the normal stack of its theme`() {
+    @Test fun `Private recedes like the normal stack of its theme`() {
         assertEquals(dims(KoanPalette.Light), dims(KoanPalette.Dusk))
         assertEquals(dims(KoanPalette.Dark), dims(KoanPalette.Night))
     }
 
-    @Test fun `every card further back is dimmer, in every palette`() {
+    @Test fun `every card further back recedes more, up to the cap`() {
         for (p in listOf(KoanPalette.Light, KoanPalette.Dark, KoanPalette.Dusk, KoanPalette.Night)) {
             val d = (0..60).map { DepthCurve.cardDim(it / 10f, p.DimGain, p.DimMax) }
-            d.zipWithNext().forEach { (a, b) -> assertTrue("not darker further back: $a → $b", b > a) }
+            d.zipWithNext().forEach { (a, b) -> assertTrue("receded less further back: $a → $b", b >= a) }
+            assertTrue(d[10] < d[30])
         }
-    }
-
-    @Test fun `headers dim half as much, capped so titles stay legible`() {
-        assertEquals(0.10f, DepthCurve.cardHeaderDim(1f, 1.25f, 0.85f), 0.001f)
-        assertEquals(0.25f, DepthCurve.cardHeaderDim(6f, 1.25f, 0.85f), 0.001f)
-        assertEquals(0.20f, DepthCurve.cardHeaderDim(6f, 1f, 1f), 0.001f)
     }
 }
