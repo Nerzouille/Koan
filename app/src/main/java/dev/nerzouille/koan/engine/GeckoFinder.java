@@ -1,6 +1,9 @@
 package dev.nerzouille.koan.engine;
 
 import androidx.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
 import mozilla.components.browser.engine.gecko.GeckoEngineSession;
 import mozilla.components.concept.engine.EngineSession;
 import org.mozilla.geckoview.GeckoSession;
@@ -15,6 +18,14 @@ import org.mozilla.geckoview.GeckoSession;
 final class GeckoFinder {
     private GeckoFinder() {}
 
+    /*
+     * Sessions whose finder already highlights every match. Setting the display flags makes Gecko
+     * highlight its *last* search again, at once and asynchronously (GeckoViewContent's
+     * _displayMatches): set on every find, an older query's highlight could land after an empty
+     * field's clear and stay on the page. Once per session is enough: the flag lives in the finder.
+     */
+    private static final Map<GeckoSession, Boolean> HIGHLIGHT_ALL = Collections.synchronizedMap(new WeakHashMap<>());
+
     interface Result {
         void onResult(String searchString, boolean found, int current, int total);
     }
@@ -26,7 +37,9 @@ final class GeckoFinder {
     static boolean find(EngineSession session, @Nullable String text, boolean backwards, Result result) {
         if (!(session instanceof GeckoEngineSession)) return false;
         GeckoSession gecko = ((GeckoEngineSession) session).getGeckoSession$browser_engine_gecko();
-        gecko.getFinder().setDisplayFlags(GeckoSession.FINDER_DISPLAY_HIGHLIGHT_ALL);
+        if (HIGHLIGHT_ALL.put(gecko, Boolean.TRUE) == null) {
+            gecko.getFinder().setDisplayFlags(GeckoSession.FINDER_DISPLAY_HIGHLIGHT_ALL);
+        }
         int flags = backwards ? GeckoSession.FINDER_FIND_BACKWARDS : 0;
         gecko.getFinder().find(text, flags).accept(r -> {
             if (r != null) result.onResult(r.searchString, r.found, r.current, r.total);

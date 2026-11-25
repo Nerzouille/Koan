@@ -1,6 +1,8 @@
 package dev.nerzouille.koan.engine
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.store.BrowserStore
@@ -45,13 +47,21 @@ class PageTools(context: Context, engine: Engine, private val store: BrowserStor
     /** Gecko's latest answer to find in page (the find bar's counter: [findCount]). */
     val findHit = kotlinx.coroutines.flow.MutableStateFlow<FindHit?>(null)
 
+    private val queries = FindQueries()
+    private val main = Handler(Looper.getMainLooper())
+
     /** Highlights every match of [text] in the tab (empty = clear). The answer lands in [findHit]. */
     fun find(tabId: String, text: String) {
         val session = store.state.findTab(tabId)?.engineState?.engineSession ?: return
         findHit.value = null
-        if (text.isEmpty()) {
+        val ticket = queries.typed(tabId, text)
+        if (ticket != null) {
             session.clearFindMatches()
             store.dispatch(ContentAction.ClearFindResultsAction(tabId))
+            // A highlight still on its way from the last letters typed: clear once more.
+            main.postDelayed({
+                if (queries.stillEmpty(ticket)) store.state.findTab(tabId)?.engineState?.engineSession?.clearFindMatches()
+            }, RECLEAR_MS)
         } else if (!GeckoFinder.find(session, text, false, answer(tabId, text))) {
             session.findAll(text)
         }
@@ -69,6 +79,10 @@ class PageTools(context: Context, engine: Engine, private val store: BrowserStor
     }
 
     fun stopFind(tabId: String) = find(tabId, "")
+
+    private companion object {
+        const val RECLEAR_MS = 350L
+    }
 
     // ---- long press --------------------------------------------------------------------------
 

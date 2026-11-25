@@ -1,6 +1,8 @@
 package dev.nerzouille.koan.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FindCountTest {
@@ -30,5 +32,16 @@ class FindCountTest {
     fun emptyFieldOrNoAnswerYet() {
         assertEquals("", findCount("t", "", hit()))
         assertEquals("", findCount("t", "word", null))
+    }
+
+    @Test fun `an empty field clears again only if nothing was typed since`() {
+        val q = FindQueries()
+        assertEquals(null, q.typed("a", "jazz"))
+        val ticket = q.typed("a", "")!!
+        assertTrue(q.stillEmpty(ticket))
+        q.typed("b", "other tab")
+        assertTrue(q.stillEmpty(ticket))
+        q.typed("a", "j")
+        assertFalse(q.stillEmpty(ticket))
     }
 }

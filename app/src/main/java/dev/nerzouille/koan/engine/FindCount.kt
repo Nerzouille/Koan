@@ -15,3 +15,26 @@ fun findCount(tabId: String, query: String, hit: FindHit?): String {
     if (hit.total <= 0 || hit.current <= 0) return ""
     return "${hit.current.coerceAtMost(hit.total)}/${hit.total}"
 }
+
+/**
+ * The latest find query per tab, for the empty field's second clear: Gecko highlights every match
+ * asynchronously, so a highlight for a query typed just before the field was emptied can land after
+ * the first clear. [PageTools] clears again a moment later, only if the field is still empty then
+ * (the same [Ticket]: nothing typed since).
+ */
+class FindQueries {
+    data class Ticket(val tabId: String, val serial: Long)
+
+    private val latest = HashMap<String, Long>()
+    private var serial = 0L
+
+    /** Records [text] as [tabId]'s query; an empty one returns the ticket for the second clear. */
+    @Synchronized fun typed(tabId: String, text: String): Ticket? {
+        serial++
+        latest[tabId] = serial
+        return if (text.isEmpty()) Ticket(tabId, serial) else null
+    }
+
+    /** Nothing typed in that tab since [ticket]: the field is still empty, clear again. */
+    @Synchronized fun stillEmpty(ticket: Ticket): Boolean = latest[ticket.tabId] == ticket.serial
+}
