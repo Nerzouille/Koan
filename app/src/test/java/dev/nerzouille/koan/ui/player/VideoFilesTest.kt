@@ -35,6 +35,18 @@ class VideoFilesTest {
         assertTrue(downloadChoices(listOf(p240)) {}.isEmpty())
     }
 
+    @Test fun `no list when the files don't really differ`() {
+        // The same 480p WebM at two addresses (a mirror): one file, saved directly.
+        val a = WebFile("https://a.example.com/v.480p.webm", 480, "video/webm", false)
+        val b = WebFile("https://b.example.com/v.480p.webm", 480, "video/webm", false)
+        assertTrue(downloadChoices(listOf(a, b)) {}.isEmpty())
+        // Same height, another format: a real choice.
+        val mp4 = WebFile("https://a.example.com/v.480p.mp4", 480, "video/mp4", false)
+        assertEquals(listOf("480p · WebM", "480p · MP4"), downloadChoices(listOf(a, b, mp4)) {}.map { it.label })
+        // Another resolution: a real choice.
+        assertEquals(2, downloadChoices(listOf(a, p1080)) {}.size)
+    }
+
     @Test fun `a file without a height is named by its file name`() {
         assertEquals("My clip.mp4", fileLabel(WebFile("https://example.com/v/My%20clip.mp4?x=1", 0, "", false)))
         assertEquals("mp4", fileFamily(WebFile("https://example.com/a.m4v", 0, "", false)))

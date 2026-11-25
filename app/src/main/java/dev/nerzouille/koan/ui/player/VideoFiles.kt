@@ -50,9 +50,16 @@ fun qualityChoices(files: List<WebFile>, src: String, kind: String, pick: (WebFi
     return same.map { f -> MenuChoice(fileLabel(f), f.src == src) { pick(f) } }
 }
 
-/** Download video's choice: every file, original first then largest; empty (a plain row) with fewer than two. */
+/**
+ * Download video's choice: one row per *different* file (another resolution or format; the
+ * original counts as its own), original first then largest. Copies of the same rendition at other
+ * addresses don't make a choice. Empty (a plain row that saves the best file) when they all
+ * come to one (owner, 2026-11-26).
+ */
 fun downloadChoices(files: List<WebFile>, pick: (WebFile) -> Unit): List<MenuChoice> {
-    val all = files.distinctBy { it.src }.sortedWith(compareByDescending<WebFile> { it.original }.thenByDescending { it.height })
-    if (all.size < 2) return emptyList()
-    return all.map { f -> MenuChoice(downloadLabel(f), selected = false) { pick(f) } }
+    val distinct = files.distinctBy { it.src }
+        .sortedWith(compareByDescending<WebFile> { it.original }.thenByDescending { it.height })
+        .distinctBy { f -> if (f.original) "original" else "${f.height}|${fileFamily(f)}" }
+    if (distinct.size < 2) return emptyList()
+    return distinct.map { f -> MenuChoice(downloadLabel(f), selected = false) { pick(f) } }
 }
