@@ -12,11 +12,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
@@ -103,6 +101,9 @@ fun KoanBar(
     val drawer = bar.drawer
     val palette = KoanTheme.colors
     val line = rememberLoadLine(loading, loadProgress)
+    // The dock rises with the keyboard as a layer, in step with its slide (no relayout per frame).
+    val keyboard = rememberKeyboardSlide()
+    val navigationBars = WindowInsets.navigationBars
 
     // The drawer's caps from the window: compact keeps the whole dock under ~55% of the screen,
     // full stops just below the status bar.
@@ -130,7 +131,7 @@ fun KoanBar(
         modifier
             .fillMaxWidth()
             .graphicsLayer {
-                translationY = if (overviewOpen) 0f else dockHide()
+                translationY = (if (overviewOpen) 0f else dockHide()) - keyboard.rise(navigationBars.getBottom(density))
                 // Its shadow would show above the keyboard.
                 alpha = if (!overviewOpen && dockAway()) 0f else 1f
             },
@@ -169,7 +170,7 @@ fun KoanBar(
                         drawPath(dockPath(path, top, r), if (mix in 0f..1f) lerp(normalDock, privateDock, mix) else palette.Dock)
                     }
                 }
-                .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(bottom = BarTokens.BottomMargin),
         ) {
             if (overviewOpen) {

@@ -44,6 +44,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.Stable
+import androidx.compose.ui.layout.onPlaced
+import kotlinx.coroutines.flow.first
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,8 +73,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -214,13 +215,14 @@ fun AddressRow(
 ) {
     val pageOnly = Modifier.graphicsLayer { alpha = 1f - overview() }
     val overviewOnly = Modifier.graphicsLayer { alpha = overview() }
-    // The search morph: the pill opens into the search field (its background grows from the
-    // pill's bounds to the field's, the buttons beside it step aside) and closes back into it.
-    // One value, read in layers only; the two rows overlap only while it moves.
+    // The search morph: one shape, the pill, grows into the search field as the keyboard comes up
+    // and shrinks back into the pill as it goes down. Its background is drawn once, by the field,
+    // from the pill's bounds to its own; the host fades into the address, the buttons beside it
+    // step aside. One value, read in layers only.
     val edit = rememberSearchMorph(editing)
-    val fieldShown by remember { derivedStateOf { edit.value > 0f } }
-    val pillShown by remember { derivedStateOf { edit.value < 1f } }
-    val pillBounds = remember { arrayOf(androidx.compose.ui.geometry.Rect.Zero) }
+    val fieldShown by remember { derivedStateOf { edit.value() > 0f } }
+    val pillShown by remember { derivedStateOf { edit.value() < 1f } }
+    val pill = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
     val stepPx = with(LocalDensity.current) { BarTokens.SearchMorphStep.toPx() }
     val rowModifier = Modifier.fillMaxWidth().padding(horizontal = BarTokens.RowPadding)
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
@@ -240,19 +242,19 @@ fun AddressRow(
                     onCancel = { onEditingChange(false) },
                     modifier = Modifier.weight(1f),
                     active = editing,
-                    morph = { edit.value },
-                    from = { pillBounds[0] },
+                    morph = edit::value,
+                    from = { pill[0]?.takeIf { it.isAttached } },
                 )
             }
         }
         if (!editing || pillShown) {
             val aside = Modifier.graphicsLayer {
-                alpha = 1f - edit.value
-                translationX = -stepPx * edit.value
+                alpha = 1f - edit.value()
+                translationX = -stepPx * edit.value()
             }
             val asideEnd = Modifier.graphicsLayer {
-                alpha = 1f - edit.value
-                translationX = stepPx * edit.value
+                alpha = 1f - edit.value()
+                translationX = stepPx * edit.value()
             }
             Row(
                 rowModifier,
@@ -281,8 +283,10 @@ fun AddressRow(
                     onPress = pillPressed,
                     modifier = Modifier
                         .weight(1f)
-                        .onGloballyPositioned { pillBounds[0] = it.boundsInRoot() }
-                        .graphicsLayer { alpha = 1f - edit.value },
+                        .onPlaced { pill[0] = it }
+                        .graphicsLayer { alpha = 1f - edit.value() },
+                    // While the field is there it draws the one background, from these bounds.
+                    bare = searching,
                     private = private,
                     flip = flip,
                 )
@@ -292,16 +296,50 @@ fun AddressRow(
     }
 }
 
-/** The search morph's value: 0 the pill, 1 the search field, springing to [editing]'s end. */
-@Composable
-private fun rememberSearchMorph(editing: Boolean): Animatable<Float, androidx.compose.animation.core.AnimationVector1D> {
-    val edit = remember { Animatable(if (editing) 1f else 0f) }
-    val still = rememberAnimationsOff()
-    LaunchedEffect(editing) {
-        val goal = if (editing) 1f else 0f
-        if (still) edit.snapTo(goal) else edit.animateTo(goal, BarTokens.SearchMorph)
+/**
+ * The search morph's value, 0 the pill … 1 the search field: the keyboard's own slide while the
+ * address field has it (up as it opens, down as it closes), so the pill moves on the slide's first
+ * frame and lands with the keyboard. Without a keyboard (a hardware one), a spring instead.
+ */
+@Stable
+private class SearchMorph(private val keyboard: KeyboardSlide) {
+    /** The address field has the keyboard, or it is still sliding away from it. */
+    var armed by mutableStateOf(false)
+    var spring by mutableStateOf(false)
+    val fallback = Animatable(0f)
+
+    fun value(): Float = when {
+        spring -> fallback.value
+        armed -> keyboard.fraction()
+        else -> 0f
     }
-    return edit
+}
+
+@Composable
+private fun rememberSearchMorph(editing: Boolean): SearchMorph {
+    val keyboard = rememberKeyboardSlide()
+    val morph = remember(keyboard) { SearchMorph(keyboard).apply { armed = editing } }
+    LaunchedEffect(morph, editing) {
+        if (editing) {
+            morph.armed = true
+            val came = kotlinx.coroutines.withTimeoutOrNull(BarTokens.SEARCH_KEYBOARD_WAIT_MS) {
+                snapshotFlow { keyboard.nowPx() > 0 }.first { it }
+            }
+            if (came == null) {
+                morph.fallback.snapTo(0f)
+                morph.spring = true
+                morph.fallback.animateTo(1f, BarTokens.SearchMorph)
+            }
+        } else {
+            if (morph.spring) {
+                morph.fallback.animateTo(0f, BarTokens.SearchMorph)
+                morph.spring = false
+            }
+            snapshotFlow { keyboard.nowPx() }.first { it == 0 }
+            morph.armed = false
+        }
+    }
+    return morph
 }
 
 /** The tab counter and ⋯ (Settings in the overview), stepping aside with [aside] in the search morph. */
@@ -351,6 +389,8 @@ private fun AddressField(
     /** A finger lands on the pill (before the bar's drags see it). */
     onPress: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The search field is there and draws the background: the pill draws none (one shape, not two). */
+    bare: Boolean = false,
     private: Boolean = false,
     flip: PrivateFlip? = null,
 ) {
@@ -369,7 +409,7 @@ private fun AddressField(
         modifier
             .height(BarTokens.FieldHeight)
             .clip(CircleShape)
-            .background(KoanTheme.colors.BarField)
+            .background(if (bare) Color.Transparent else KoanTheme.colors.BarField)
             .pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -644,14 +684,23 @@ private fun AddressInput(
     active: Boolean = true,
     /** The search morph, 0 (the pill) to 1 (the field); read in layers only. */
     morph: () -> Float = { 1f },
-    /** The pill's bounds in the root, where the field's background grows from. */
-    from: () -> androidx.compose.ui.geometry.Rect = { androidx.compose.ui.geometry.Rect.Zero },
+    /** The pill, where the field's shape grows from (null: not placed, the field's own bounds). */
+    from: () -> androidx.compose.ui.layout.LayoutCoordinates? = { null },
 ) {
     // Editing starts on the page's address, all selected (set before the first frame).
     remember { field.start(initial); true }
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     LaunchedEffect(active) { if (!active) focusManager.clearFocus() }
-    val fieldBounds = remember { arrayOf(androidx.compose.ui.geometry.Rect.Zero) }
+    val own = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
+    // The pill's bounds in the field's own coordinates; the last known kept for its way back.
+    val pillRect = remember { arrayOf<androidx.compose.ui.geometry.Rect?>(null) }
+    fun pillIn(): androidx.compose.ui.geometry.Rect? {
+        val me = own[0]?.takeIf { it.isAttached }
+        val p = from()
+        if (me != null && p != null) pillRect[0] = me.localBoundingBoxOf(p, clipBounds = false)
+        return pillRect[0]
+    }
+    val settled by remember { derivedStateOf { morph() >= 1f } }
     val value = field.value
     val completion = field.completion
     val focusRequester = remember { FocusRequester() }
@@ -684,24 +733,40 @@ private fun AddressInput(
             Modifier
                 .weight(1f)
                 .height(BarTokens.FieldHeight)
-                .onGloballyPositioned { fieldBounds[0] = it.boundsInRoot() }
-                .graphicsLayer {
-                    // Grows from the pill: a rounded clip from its bounds to the field's.
+                .onPlaced { own[0] = it }
+                // The one shape: the pill's rounded bounds at 0, the field's at 1, its ring fading
+                // in on the way (drawn, nothing laid out again).
+                .drawBehind {
+                    val r = morphRect(pillIn(), size, morph())
+                    val radius = androidx.compose.ui.geometry.CornerRadius(r.height / 2f)
+                    drawRoundRect(palette.BarField, r.topLeft, r.size, radius)
+                    val ring = SearchFieldTokens.Ring.toPx()
                     val t = morph()
-                    val pill = from()
-                    val own = fieldBounds[0]
-                    clip = t < 1f && pill != androidx.compose.ui.geometry.Rect.Zero && own != androidx.compose.ui.geometry.Rect.Zero
-                    if (clip) shape = morphShape(pill.translate(-own.topLeft), t)
+                    if (t < 1f && focused) {
+                        drawRoundRect(
+                            palette.FocusRing,
+                            r.topLeft + Offset(ring / 2f, ring / 2f),
+                            Size(r.width - ring, r.height - ring),
+                            androidx.compose.ui.geometry.CornerRadius((r.height - ring) / 2f),
+                            alpha = t,
+                            style = Stroke(ring),
+                        )
+                    }
                 }
-                .then(if (focused) Modifier.searchRing(palette.FocusRing, SearchFieldTokens.Ring, flow = { flow.value }, turn = { turn.floatValue }) else Modifier)
-                .clip(CircleShape)
-                .background(palette.BarField)
+                .then(if (focused && settled) Modifier.searchRing(palette.FocusRing, SearchFieldTokens.Ring, flow = { flow.value }, turn = { turn.floatValue }) else Modifier)
+                .graphicsLayer {
+                    clip = true
+                    shape = morphShape(pillIn(), morph())
+                }
                 .padding(start = BarTokens.FieldPadding - SearchFieldTokens.GlyphGap / 2, end = BarTokens.FieldPadding),
             contentAlignment = Alignment.CenterStart,
         ) {
-            // The field's contents come in over the second half of the morph (the pill's text is
-            // still fading out under them before that).
-            val contents = Modifier.graphicsLayer { alpha = ((morph() - 0.5f) * 2f).coerceIn(0f, 1f) }
+            // The address comes in as the host fades out, riding the shape's left edge.
+            val contents = Modifier.graphicsLayer {
+                val t = morph()
+                alpha = t
+                translationX = (1f - t) * (pillIn()?.left ?: 0f)
+            }
             Icon(KoanIcons.Search, null, tint = palette.FieldHint, modifier = contents.size(SearchFieldTokens.Glyph))
             val textStart = contents.padding(start = SearchFieldTokens.Glyph + SearchFieldTokens.GlyphGap)
             if (value.text.isEmpty()) {
@@ -807,14 +872,20 @@ private fun AddressInput(
     BackHandler(enabled = active, onBack = onCancel)
 }
 
-/** The field's outline at [t]: the pill's rounded bounds ([pill], in the field's coordinates) at 0, the field at 1. */
-private fun morphShape(pill: androidx.compose.ui.geometry.Rect, t: Float) = object : androidx.compose.ui.graphics.Shape {
+/** The field's shape at [t]: the pill's bounds ([pill], in the field's coordinates; null: none) at 0, the field at 1. */
+internal fun morphRect(pill: androidx.compose.ui.geometry.Rect?, size: Size, t: Float): androidx.compose.ui.geometry.Rect {
+    val full = androidx.compose.ui.geometry.Rect(Offset.Zero, size)
+    return if (pill == null) full else androidx.compose.ui.geometry.lerp(pill, full, t.coerceIn(0f, 1f))
+}
+
+/** [morphRect] as a rounded outline, to clip the field's contents. */
+private fun morphShape(pill: androidx.compose.ui.geometry.Rect?, t: Float) = object : androidx.compose.ui.graphics.Shape {
     override fun createOutline(
         size: Size,
         layoutDirection: androidx.compose.ui.unit.LayoutDirection,
         density: androidx.compose.ui.unit.Density,
     ): androidx.compose.ui.graphics.Outline {
-        val r = androidx.compose.ui.geometry.lerp(pill, androidx.compose.ui.geometry.Rect(Offset.Zero, size), t)
+        val r = morphRect(pill, size, t)
         return androidx.compose.ui.graphics.Outline.Rounded(
             androidx.compose.ui.geometry.RoundRect(r, androidx.compose.ui.geometry.CornerRadius(r.height / 2f)),
         )

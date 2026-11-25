@@ -870,7 +870,11 @@ object BarTokens {
         androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 500f)
     const val TRANSLATE_OUT_MS = 140
 
-    /** The search morph: the dock's pill opening into the search field, and back (AddressRow). */
+    /**
+     * The search morph follows the keyboard's slide (AddressRow); without a keyboard within
+     * [SEARCH_KEYBOARD_WAIT_MS] (a hardware keyboard), this spring opens and closes it instead.
+     */
+    const val SEARCH_KEYBOARD_WAIT_MS = 600L
     val SearchMorph: androidx.compose.animation.core.SpringSpec<Float> =
         androidx.compose.animation.core.spring(dampingRatio = 0.9f, stiffness = 420f)
 
