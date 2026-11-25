@@ -182,6 +182,8 @@ Please leave private things out of issues: account emails, real tabs, passwords.
   [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)): in the What's new video player card
   and the video player screenshot above, played from Wikimedia Commons.
 - [GeckoView and Mozilla Android Components](https://github.com/mozilla-firefox/firefox) (MPL 2.0).
+- **Contributors:** [zy6p](https://github.com/zy6p): website passkeys through Android's
+  Credential Manager ([#16](https://github.com/Nerzouille/Koan/pull/16)).
 
 Firefox and Mozilla are trademarks of the Mozilla Foundation. Zen Browser is an independent project.
 

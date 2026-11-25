@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0-beta.2 — unreleased (pre-release)
+
+### New
+
+- **Passkeys:** a website's button to create or use a passkey now opens Android's credential
+  flow (Android 14 and up). Your password manager may still refuse Koan until it adds Koan to its
+  list of trusted browsers. Thanks zy6p, #16.
+
 ## 1.0.0-beta.1 — 2026-11-13 (pre-release)
 
 ### New
