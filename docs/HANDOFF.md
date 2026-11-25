@@ -41,7 +41,7 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
   limitations of beta.1). Then Spaces write-back (behind `writeBackEnabled`, off).
 
 - **Release prep for v1.0.0-beta.1 (2026-11-12):** branch **`release-prep`** (from `dev`, pushed),
-  plan and night report in `docs/plans/NIGHT_PLAN.md`. Batch 5 tests (411 JVM tests, Robolectric
+  plan and night report in `docs/plans/NIGHT_PLAN_2026-11-12.md`. Batch 5 tests (411 JVM tests, Robolectric
   added), CI workflow (not run yet: open a draft PR to `dev`), semver update check, What's new
   "1.0", the baseline profile (generated 2026-11-12, small gain: see the plan's "Morning
   session"), README and release docs. Fixed in the morning: stuck start page after What's new,
