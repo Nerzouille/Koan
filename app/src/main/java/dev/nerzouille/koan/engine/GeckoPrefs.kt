@@ -40,9 +40,9 @@ object GeckoPrefs {
 
     /** Sets the find prefs for [dark] on the running engine (Gecko repaints with them). */
     fun applyFind(dark: Boolean) {
-        val prefs = findPrefs(dark).map { (name, value) ->
+        val prefs: List<SetGeckoPreference<*>> = findPrefs(dark).map { (name, value) ->
             SetGeckoPreference.setStringPref(name, value, GeckoPreferenceController.PREF_BRANCH_USER)
-        }
+        } + SetGeckoPreference.setBoolPref(HIGHLIGHT_ALL, true, GeckoPreferenceController.PREF_BRANCH_USER)
         GeckoPreferenceController.setGeckoPrefs(prefs).accept(
             { result -> result?.filterValues { !it }?.keys?.takeIf { it.isNotEmpty() }?.let { Log.w(TAG, "Not set: $it") } },
             { e -> Log.w(TAG, "Find colours not set", e) },
@@ -53,6 +53,13 @@ object GeckoPrefs {
     fun removeOldConfig(context: Context) {
         File(context.filesDir, "geckoview-config.yaml").delete()
     }
+
+    /**
+     * Every page's finder starts highlighting all matches: GeckoFinder sets the display flag only
+     * once per session (setting it on each find re-highlighted the previous search), and a new
+     * page can get a new finder, which reads this pref.
+     */
+    internal const val HIGHLIGHT_ALL = "findbar.highlightAll"
 
     /** "#RRGGBB": the find colours are opaque. */
     private fun hex(c: Color) = "#%06X".format(c.toArgb() and 0xFFFFFF)

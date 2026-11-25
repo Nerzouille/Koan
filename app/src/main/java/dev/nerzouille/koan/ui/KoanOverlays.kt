@@ -92,8 +92,10 @@ class Overlays(scope: CoroutineScope, density: Density) {
     val askCard = SheetState(scope, splineBasedDecay(density))
     var ask by mutableStateOf<Ask?>(null)
 
-    /** [destructive]: the action deletes or loses something (red); otherwise the primary button. */
-    /** [other]: a second action in place of Cancel (its label, what it does); dismissing does nothing. */
+    /**
+     * [destructive]: the action deletes or loses something (red); otherwise the primary button.
+     * [other]: a second action in place of Cancel (its label, what it does); dismissing does nothing.
+     */
     fun ask(title: String, text: String, confirm: String, destructive: Boolean = true, other: Pair<String, () -> Unit>? = null, action: () -> Unit) {
         ask = Ask(title, text, confirm, destructive, action, other)
         askCard.animateTo(Detent.Compact)

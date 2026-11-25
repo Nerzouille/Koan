@@ -22,7 +22,8 @@ final class GeckoFinder {
      * Sessions whose finder already highlights every match. Setting the display flags makes Gecko
      * highlight its *last* search again, at once and asynchronously (GeckoViewContent's
      * _displayMatches): set on every find, an older query's highlight could land after an empty
-     * field's clear and stay on the page. Once per session is enough: the flag lives in the finder.
+     * field's clear and stay on the page. Once per session is enough: the flag lives in the finder,
+     * and a page's new finder reads the findbar.highlightAll pref (GeckoPrefs).
      */
     private static final Map<GeckoSession, Boolean> HIGHLIGHT_ALL = Collections.synchronizedMap(new WeakHashMap<>());
 
