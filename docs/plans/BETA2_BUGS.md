@@ -299,7 +299,7 @@ during the run (see item 11), so no feature could be checked on a page.
 - **11. Player checks: not run.** The probe build (throwaway log patch, never committed) was
   installed on Koan Test, but every page failed to load (Gecko `OnLoadError` after ~30 s, even
   Koan Test's existing fake tabs; `ping` worked but at ~440 ms and the system's push service
-  kept timing out). Koan Test now has the night's R8 build, without the probe. To run it later:
+  kept timing out). Likely the phone's own network setup, not Koan. Koan Test now has the night's R8 build, without the probe. To run it later:
   `git apply reference/night-2026-11-25/player-probe.patch`, staging build, `adb logcat -s
   KoanProbe`, play a public Commons video with subtitles and a public Vimeo video, then
   `git restore` the two files. Never commit the patch.
@@ -414,5 +414,5 @@ or now for what's done): `git switch dev && git merge --no-ff beta2-bugs`, then
 
 POCO: Koan Test has the night's R8 staging build (extension 1.7) with 2–3 extra test tabs on a
 public Commons file page (the ⋯ menu has no "close tab"; close them in the overview). The real
-Koan was not installed over or opened. DND was already on and is left on. Its Wi-Fi was failing
-(airplane mode + Wi-Fi): worth a look.
+Koan was not installed over or opened. DND was already on and is left on. Pages failed to load
+on its network during the run: check its connection before item 11.
