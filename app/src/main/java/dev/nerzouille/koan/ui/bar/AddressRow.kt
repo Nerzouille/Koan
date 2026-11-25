@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -923,14 +924,17 @@ private data class CompletionAfter(
  * is that Back, so [onClose] follows.
  */
 @Composable
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 private fun CloseWithKeyboard(focused: () -> Boolean, onClose: () -> Unit) {
-    val ime = WindowInsets.ime
+    // Where the keyboard is heading, not where it is: the field closes as the keyboard starts
+    // going down (its results go at once), not once it is gone.
+    val target = WindowInsets.imeAnimationTarget
     val density = LocalDensity.current
     val close by rememberUpdatedState(onClose)
     val isFocused by rememberUpdatedState(focused)
-    LaunchedEffect(ime, density) {
+    LaunchedEffect(target, density) {
         var shown = false
-        snapshotFlow { ime.getBottom(density) > 0 }.collect { visible ->
+        snapshotFlow { target.getBottom(density) > 0 }.collect { visible ->
             if (shown && !visible && isFocused()) close()
             shown = visible
         }
