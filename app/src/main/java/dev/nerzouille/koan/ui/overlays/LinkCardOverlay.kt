@@ -149,6 +149,11 @@ internal fun LinkCardOverlay(
                                 openBackground = { url -> actionCard.animateTo(Detent.Closed); onOpenNew(url, false, true) },
                                 copy = { url -> clipboard.setText(AnnotatedString(url)); copiedToast("Link")?.let(onToast); actionCard.animateTo(Detent.Closed) },
                                 share = { url -> actionCard.animateTo(Detent.Closed); share(url, "") },
+                                copyText = { text ->
+                                    clipboard.setText(AnnotatedString(text))
+                                    copiedToast("Link text")?.let(onToast)
+                                    actionCard.animateTo(Detent.Closed)
+                                },
                                 playVideo = { url, label ->
                                     actionCard.animateTo(Detent.Closed)
                                     components.player.open(dev.nerzouille.koan.ui.player.videoOfLink(url, label, page.url))

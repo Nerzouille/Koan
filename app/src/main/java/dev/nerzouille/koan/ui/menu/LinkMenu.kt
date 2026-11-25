@@ -49,6 +49,9 @@ import mozilla.components.concept.engine.HitResult
 /** What a long press landed on: a link, an image, or an image that is also a link. */
 @Immutable
 data class LinkTarget(val link: String?, val image: String?, val label: String, val video: String? = null) {
+    /** The link's own words ("Read the docs"), for ⋯ Copy link text; null when it has none. */
+    val linkText: String? get() = label.trim().takeIf { link != null && it.isNotEmpty() }
+
     companion object {
         /** Null for what Koan has no menu for (text, phone numbers, media…). */
         fun of(hit: HitResult): LinkTarget? = when (hit) {
@@ -82,6 +85,8 @@ class LinkActions(
     val openBackground: (String) -> Unit,
     val copy: (String) -> Unit,
     val share: (String) -> Unit,
+    /** The link's text, not its address. */
+    val copyText: (String) -> Unit = {},
     val saveImage: (String) -> Unit,
     /** Koan's own player over the page (a video file, or a link to one). */
     val playVideo: (url: String, title: String) -> Unit = { _, _ -> },
@@ -125,6 +130,10 @@ fun LinkMenu(target: LinkTarget, interactive: Boolean, actions: LinkActions, ima
                 SheetRow(KoanIcons.Essentials, "Open in background", interactive, onClick = { actions.openBackground(link) })
                 SheetDivider()
                 SheetRow(KoanIcons.Link, "Copy link", interactive, onClick = { actions.copy(link) })
+                target.linkText?.let { text ->
+                    SheetDivider()
+                    SheetRow(KoanIcons.Reader, "Copy link text", interactive, onClick = { actions.copyText(text) })
+                }
                 SheetDivider()
                 SheetRow(KoanIcons.Share, "Share link", interactive, onClick = { actions.share(link) })
             }
