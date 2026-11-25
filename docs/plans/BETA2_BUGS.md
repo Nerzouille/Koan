@@ -4,38 +4,43 @@ The bugs for 1.0.0-beta.2, in one list: two from GitHub issues (triaged 2026-11-
 noted in `docs/ROADMAP.md` › For 1.0.0-beta.2 and `docs/HANDOFF.md`. The beta.2 features (depth
 cue, Rotate row, video quality, translate icon and ring slot, passkeys) stay in ROADMAP.
 
-## Status (2026-11-20, later)
+## Status (2026-11-25)
 
-- **Branch:** `beta2-bugs`, from `dev` (6975314), local, not pushed.
-- **Done and committed, phone checks still to do** (no phone was connected), one commit each:
-  1. Private after a kill (6ffea26, `RootStatePrivateRestoreTest`).
-  2. Translation state reset on each page load (c84d836): `engine/TranslationReset.kt`, a
-     middleware that clears the tab's translation state when a load starts (not on a same-page
-     link). `TranslationResetTest`.
-  3. Find in page (3c75827). Cause, from GeckoView's `GeckoViewContent.sys.mjs`: Gecko answers
-     `found = true` with a count of 0 when its match counter skips text the find reached (likely
-     Wikipedia's collapsed sections); Android Components passes only the count. Find now reads
-     GeckoView's own result (`GeckoFinder.find`), keyed by query and tab; a found but uncounted
-     match shows no counter. `FindCountTest`.
-  4. Download ring check (92c95c1). Cause: the store marks the download completed before the
-     "stopped" broadcast; the running ring left, came back already done and was drawn at its
-     faded-out end (`Animatable(1f)`). The finish is now read from the store update itself
-     (`ui/downloads/DownloadRingState.kt`); the animation starts at 0. `DownloadRingStateTest`.
-  5. Missing download files (2419d4e): `engine/downloads/CheckedDownloadFiles.kt` wraps
-     `DownloadFileUtils.openFile`, used by Downloads, the toast's Open and the notification:
-     "File moved or missing" (Koan's toast on screen, the system's from the notification with
-     Koan in the background). `CheckedDownloadFilesTest`. Then (c47a2a2, owner's choice): when
-     Downloads opens, finished files are checked once; a missing one is greyed with "Moved or
-     deleted"; a tap offers Download again (same address and mode, replaces the row) or Remove
-     from list (Undo). `MissingFilesTest`.
-  8. Save image (e1c40b7): not reproduced. The page script now checks every image covering the
-     pressed point (it missed images with `pointer-events: none`), and when it gives up, logs why
-     (`adb logcat -s KoanPageImage`: `no-press`, `no-image`, `preview-only`, `not-loaded`, never an
-     address). Fix or drop after the phone check. Extension 1.1.
-- 460 JVM tests green.
-- **Later: items 6 and 7.** 6 needs the owner to choose between two options, shown on the POCO;
-  7 needs the owner's feel check on a release build.
-- The owner commits by default. Give the exact `git add` / `git commit` commands.
+A fresh session can work from this file alone. Read `CLAUDE.md` first (rules), then this file;
+`docs/plans/PLAYER_TRACKS.md` holds the player research; `docs/ROADMAP.md` › For 1.0.0-beta.2 has
+the owner's wording of each feature.
+
+- **Branch:** `beta2-bugs`, rebased on `dev` (60a2199, passkeys PR #16 merged), local, not pushed.
+- **The owner commits by default.** Give the exact `git add` / `git commit` commands.
+- **Marked "needs the owner"** below: don't start those alone; prepare what they need and stop.
+
+### Every item
+
+| # | Item | State | Commits | Needs the owner |
+|---|---|---|---|---|
+| 1 | Private after a kill | Fixed twice: 86002a7, then 28abd52 (the space pager also starts from the saved normal space's index, `PrivatePlaceStartupTest`). Recheck the kill test on the POCO. | 86002a7, 28abd52 | No (staging kill test) |
+| 2 | Translation state reset per page | Fixed, `TranslationResetTest`. Phone check to finish; see new finding A. | 821c633 | No |
+| 3 | Find 0/0 | Fixed, `FindCountTest`. Phone check to finish; see new finding B. | 32048e6 | No |
+| 4 | Download ring check | Fixed, `DownloadRingStateTest`. Phone check not done. | db0a692 | **Yes:** downloads on the phone, watching the ring |
+| 5 | Missing download files | Fixed, `CheckedDownloadFilesTest`, `MissingFilesTest`; rows greyed in Downloads. Phone check not done. | c10b599, e0d9d18 | **Yes:** file manager, notification |
+| 6 | Drawer height (#11) | Not started. Two options to show on the POCO. | none | **Yes:** picks the option |
+| 7 | Dock comes back (#9) | Not started. Dead zone to try. | none | **Yes:** feel check on a release build |
+| 8 | Save image (Google Images) | Not reproduced; more checks and a `KoanPageImage` log (extension 1.1). Fix or drop after the phone check. | a9f2841 | **Yes:** Google Images on the phone, fix-or-drop call |
+| 9 | Find: translation card never auto-opens while Find is open | New finding, not started. | none | No |
+| 10 | Find: an empty field clears all highlights | New finding, not started. | none | No |
+| 11 | Player checks (Commons stream or WebM, Commons `<track>`s, Vimeo tracks) | Not run. | none | No (staging, public pages) |
+| 12 | Player tracks (web Captions and Quality; standalone Audio / Subtitles; side files, option A) | Scope approved; coding after item 11. | none | No (results go into PLAYER_TRACKS.md first) |
+| 13 | Translate icon stays active after translating; download ring shares its slot | Not started. | none | No |
+| 14 | Rotate row in the player's ⋯ menu | Not started. | none | Hide with auto-rotate on, or keep: ask |
+| 15 | Passkey failure message | Unblocked (#16 merged). Not started. | none | No |
+| 16 | Depth cue (A, B, C or A + B) | Prototype on `depth-cue-proto`. | none | **Yes:** picks from screenshots |
+| 17 | End of phase: R8 release build, kill and restore | After everything else. | none | No |
+
+**Also needs the owner:** turn Settings › Lock private tabs back on, on the phone, once the kill
+tests are done.
+
+Last full JVM run: 460 green after item 8, then `MissingFilesTest` +3. Rerun the full suite after
+item 1's second fix and at the end of the phase.
 
 ### Phone checks (POCO, staging build, all in one go)
 
@@ -59,11 +64,11 @@ cue, Rotate row, video quality, translate icon and ring slot, passkeys) stay in 
    file deleted while Downloads is open is only marked on the next opening.
 8. **Save image:** Google Images, long-press the large preview at once, Save image; watch
    `adb logcat -s KoanPageImage` for the reason when it fails.
-10. **Player research checks** (`docs/plans/PLAYER_TRACKS.md`), staging, public pages only: a
+11. **Player research checks** (`docs/plans/PLAYER_TRACKS.md`), staging, public pages only: a
    Commons video in fullscreen, the extension's view of `currentSrc` (stream `blob:` or a WebM)
    and whether `<track>`s are still on the `<video>`; a public Vimeo video, its `<video>`'s
    `textTracks`. Results into PLAYER_TRACKS.md, then wait for the owner's OK before coding.
-9. **End of phase:** R8 release build launched on the POCO, process death and restore.
+17. **End of phase:** R8 release build launched on the POCO, process death and restore.
 
 Branch: `beta2-bugs`, from `dev`. Order: the items below, one commit each.
 For each item, follow these steps:
@@ -83,9 +88,11 @@ For each item, follow these steps:
 | 6 | The drawer's height jumps between spaces | GitHub #11 | `ui/bar/SpaceDrawer.kt` |
 | 7 | The dock comes back after the smallest scroll up | GitHub #9 | `ui/browser/DockState.kt` |
 | 8 | Save image never waits for the full image (Google Images) | ROADMAP, Xiaomi | `engine/PageImages.kt`, `pageimage` extension |
+| 9 | Translation card never auto-opens while Find is open | Phone run (owner) | `ui/browser/TranslateCue.kt`, `ui/KoanOverlays.kt` |
+| 10 | An empty Find field clears all highlights | Phone run (owner) | `engine/PageTools.kt`, `ui/KoanOverlays.kt` |
 
 Items 6 and 7 need the owner's feel check (6: a choice between two options). Item 8 is the
-least sure: it can end with the wait dropped.
+least sure: it can end with the wait dropped. Items 9 to 17 are below item 8.
 
 ## 1. Private mode comes back on the first space after a kill
 
@@ -191,3 +198,81 @@ only a closer look, no fix.
   reports.
 - **Fix or drop:** if the wait can't be made reliable, drop it, save what's there, and remove the
   CHANGELOG claim in the beta.2 notes.
+
+## 9. The translation card never auto-opens while Find is open
+
+- **What** (new finding): with Find in page open, a page that would offer translation on its own
+  never shows the card.
+- **Look at:** how the card's auto-open in `ui/browser/TranslateCue.kt` is gated by other overlays
+  (`ui/KoanOverlays.kt`). Decide with the owner only if the right behaviour is unclear (wait until
+  Find closes, or open over it).
+- **Check:** Find open, then open a page in another language; then close Find.
+
+## 10. An empty Find field clears all highlights
+
+- **What** (new finding): clearing the Find field removes every highlight. Expected behaviour to
+  confirm against Firefox for Android before changing it.
+- **Look at:** what Koan sends to Gecko on an empty query (`engine/PageTools.kt`), next to item 3's
+  `GeckoFinder.find`.
+- **Check:** find a word, clear the field, type again; close Find.
+
+## 11. Player checks
+
+Staging build, public pages only, with a throwaway staging-only log patch in the video extension
+(no URLs, never committed):
+
+- Commons in fullscreen: is `currentSrc` the DASH stream (`blob:`) or a WebM?
+- Does Commons' player leave the `<track>`s on the `<video>`?
+- A public Vimeo video: does its `<video>` carry `textTracks`?
+
+Write the results into `docs/plans/PLAYER_TRACKS.md` ("Checks before building").
+
+## 12. Player tracks
+
+Approved scope (owner, 2026-11-20 and 2026-11-25), details in PLAYER_TRACKS.md › Approved scope.
+Every row shows only when there's a real choice.
+
+- **Web:** ⋯ › Captions (`video.textTracks`, mode `hidden`, Koan draws the cue above the bottom
+  pill) and ⋯ › Quality (the page's plain files, one candidate list shared with Download video's
+  quality choice). No audio tracks on the web.
+- **Standalone player:** ⋯ › Audio and ⋯ › Subtitles for embedded tracks (`MediaPlayer`
+  `getTrackInfo` / `selectTrack`, timed text). A `.srt` / `.vtt` next to the video, same name
+  (`.vtt` converted to SubRip, unit tested).
+- **Side files: option A**, ⋯ › Subtitles › "Choose a file…" with the system picker
+  (`ACTION_OPEN_DOCUMENT`), for the files Koan can't read on its own. No all-files access.
+- Commons' path (stream or WebM, tracks kept or rebuilt) depends on item 11.
+
+## 13. Translate icon stays active; the download ring shares its slot
+
+From ROADMAP (owner, 2026-11-13):
+
+- Once the page is translated, the icon stays in the address pill in an active state (filled
+  icon, no brand gradient); a tap opens the card with **Show original** and the language choice.
+  Today `translateCue` returns `None` once `translated` is true (`ui/browser/TranslateCue.kt`).
+- While a download runs, its ring takes the translate icon's place; the icon comes back when the
+  ring is gone (`ui/bar/AddressRow.kt`).
+- **Check:** translate, tap the icon, Show original; a download on a translatable page, then the
+  icon back after the ring's check.
+
+## 14. Rotate row in the player's ⋯ menu
+
+A "Rotate" row that turns full screen to the other shape (portrait ↔ landscape) at any time, same
+switch as the rotate pill (`PlayerHost.fullscreenRotated`), in the web and the standalone player.
+Ask the owner whether to hide it when auto-rotate is on.
+
+## 15. A message when a passkey request fails
+
+#16 is merged, so this is unblocked. Today the page gets an abort error and Koan shows nothing.
+Show a short Koan message, e.g. "Your password manager doesn't support Koan for passkeys yet"
+(string in `values/strings.xml`). Start from #16's credential activity result handling
+(b447e59). Check on the POCO with Google Password Manager, which rejects Koan today.
+
+## 16. Depth cue
+
+ROADMAP › For 1.0.0-beta.2: options A (recessed tint), B (shadow and scale), C (blur), prototype
+on `depth-cue-proto`. Redo the dark screenshots with Koan's own Settings › Theme. The owner picks;
+then build it and measure with `tools/perf`.
+
+## 17. End of phase
+
+Full JVM suite, then an R8 release build launched on the POCO, with process death and restore.
