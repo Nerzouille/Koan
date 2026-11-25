@@ -3,18 +3,24 @@ package dev.nerzouille.koan.ui.search
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 
 /**
  * The address field's text while editing, shared by the field (typing) and the search sheet
- * (results, the "@" picker). Inline completion: what was typed stays, the rest of the top hit's
- * address follows it selected, so the next letter or Backspace simply replaces it.
+ * (results, the "@" picker). Inline completion: the rest of the top hit's address shows after what
+ * was typed, highlighted, but it is drawn, not in the field's text ([completion]). Replacing the
+ * text while keys were still arriving lost letters when typing fast ("localhost" became
+ * "localhst"): the next key landed on the field's older text. So the text is always exactly what
+ * was typed; Go takes [text] (typed + completion), Backspace first takes the completion away, and
+ * moving the cursor takes it in.
  */
 @Stable
 class SearchField {
-    var value by mutableStateOf(TextFieldValue(""))
+    /** What the field holds: what was typed, and the cursor. Set again even when equal (a refused Backspace). */
+    var value by mutableStateOf(TextFieldValue(""), neverEqualPolicy())
         private set
 
     /** What the owner typed, without the completion: what results are searched for. */
@@ -25,6 +31,13 @@ class SearchField {
     var edited by mutableStateOf(false)
         private set
 
+    /** The rest of the top hit's address after what was typed, drawn after it; "" for none. */
+    var completion by mutableStateOf("")
+        private set
+
+    /** What Go opens: the text and the completion shown after it. */
+    val text: String get() = value.text + completion
+
     /** Typing added to the end (not a deletion): only then is it completed. */
     private var growing = false
 
@@ -34,6 +47,7 @@ class SearchField {
         typed = text
         growing = false
         edited = false
+        completion = ""
     }
 
     /** The picker put text in ("@wiki "): the cursor goes after it. */
@@ -42,32 +56,57 @@ class SearchField {
         typed = text
         growing = false
         edited = true
+        completion = ""
     }
 
     /** The field changed; [complete] gives the full address for what was typed, if any. */
     fun onChange(new: TextFieldValue, complete: (String) -> String?) {
-        if (new.text == value.text) {
-            // Only the cursor moved: whatever is shown is now what was typed.
-            value = new
-            if (new.selection.collapsed) typed = new.text
+        val old = value
+        when {
+            new.text == old.text -> cursorMoved(new)
+            // Backspace (or a cut) with a completion showing: only the completion goes.
+            completion.isNotEmpty() && new.selection.collapsed && old.text.startsWith(new.text) && new.text.length == old.text.length - 1 -> {
+                completion = ""
+                growing = false
+                value = old
+            }
+            else -> {
+                edited = true
+                growing = new.text.length > typed.length && new.selection.collapsed && new.selection.end == new.text.length
+                typed = new.text
+                value = new
+                completion = suggestion(new.text, complete)
+            }
+        }
+    }
+
+    private fun cursorMoved(new: TextFieldValue) {
+        // The keyboard also sends its composing region with the same text and cursor: not a move.
+        if (completion.isNotEmpty() && new.selection.collapsed && new.selection != value.selection) {
+            accept()
             return
         }
-        edited = true
-        growing = new.text.length > typed.length && new.selection.collapsed && new.selection.end == new.text.length
-        typed = new.text
-        value = completed(new, complete) ?: new
+        value = new
+        if (new.selection.collapsed) typed = new.text
     }
 
     /** New results arrived for what was typed: complete it now if typing is still going on. */
     fun refresh(complete: (String) -> String?) {
         if (value.text != typed || !value.selection.collapsed) return
-        completed(value, complete)?.let { value = it }
+        completion = suggestion(value.text, complete)
     }
 
-    private fun completed(new: TextFieldValue, complete: (String) -> String?): TextFieldValue? {
-        if (!growing) return null
-        val full = complete(new.text) ?: return null
-        if (full.length <= new.text.length) return null
-        return TextFieldValue(full, selection = TextRange(new.text.length, full.length))
+    /** The completion becomes text, the cursor at its end (tapping or moving the cursor). */
+    fun accept() {
+        val full = text
+        value = TextFieldValue(full, selection = TextRange(full.length))
+        typed = full
+        completion = ""
+        growing = false
+    }
+
+    private fun suggestion(text: String, complete: (String) -> String?): String {
+        val full = complete(text)?.takeIf { growing && it.length > text.length && it.startsWith(text, ignoreCase = true) }
+        return full?.substring(text.length).orEmpty()
     }
 }

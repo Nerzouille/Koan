@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -581,7 +582,7 @@ private fun AddressInput(
     // Editing starts on the page's address, all selected (set before the first frame).
     remember { field.start(initial); true }
     val value = field.value
-    val completing = !value.selection.collapsed && value.selection.end == value.text.length && value.selection.start > 0
+    val completion = field.completion
     val focusRequester = remember { FocusRequester() }
     var hadFocus by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
@@ -668,11 +669,13 @@ private fun AddressInput(
                     imeAction = ImeAction.Go,
                     autoCorrectEnabled = false,
                 ),
-                keyboardActions = KeyboardActions(onGo = { onSubmit(value.text) }),
-                // The completed page's title follows the address, quietly ("github.com — GitHub").
+                keyboardActions = KeyboardActions(onGo = { onSubmit(field.text) }),
+                // The completion is drawn after the text, highlighted like a selection, then the
+                // completed page's title, quietly ("github.com — GitHub").
                 visualTransformation = run {
-                    val title = completedTitle()
-                    if (completing && !title.isNullOrBlank()) TitleAfter(title, palette.FieldHint) else VisualTransformation.None
+                    val title = completedTitle()?.takeIf { completion.isNotEmpty() && it.isNotBlank() }
+                    val highlight = LocalTextSelectionColors.current.backgroundColor
+                    if (completion.isEmpty()) VisualTransformation.None else CompletionAfter(completion, title, highlight, palette.FieldHint)
                 },
                 onTextLayout = { layout = it },
                 decorationBox = { inner ->
@@ -713,11 +716,18 @@ private fun AddressInput(
 }
 
 /** Shows " — [title]" after the text (not part of it: the cursor and selection never go there). */
-private class TitleAfter(private val title: String, private val color: Color) : VisualTransformation {
+/** The inline completion after the typed text (highlighted), then the page's [title] if any. */
+private data class CompletionAfter(
+    private val completion: String,
+    private val title: String?,
+    private val highlight: Color,
+    private val color: Color,
+) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val shown = buildAnnotatedString {
             append(text)
-            withStyle(SpanStyle(color = color)) { append(" — $title") }
+            withStyle(SpanStyle(background = highlight)) { append(completion) }
+            if (title != null) withStyle(SpanStyle(color = color)) { append(" — $title") }
         }
         val length = text.length
         return TransformedText(
@@ -728,9 +738,6 @@ private class TitleAfter(private val title: String, private val color: Color) : 
             },
         )
     }
-
-    override fun equals(other: Any?) = other is TitleAfter && other.title == title && other.color == color
-    override fun hashCode() = title.hashCode() * 31 + color.hashCode()
 }
 
 /**
