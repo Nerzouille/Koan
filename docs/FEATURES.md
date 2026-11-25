@@ -581,7 +581,8 @@ Playback keeps going with Koan in the background or the screen off.
 - Android's own autofill service (for example Google Password Manager) is kept out of pages, so a
   login isn't offered to be saved twice.
 - **Passkeys:** website buttons to create or use a passkey can open Android's credential flow.
-  The selected password manager may require Koan to be on its trusted-browser list.
+  The selected password manager may require Koan to be on its trusted-browser list. See
+  [Known limitations](#13-known-limitations).
 - **Settings › Passwords:** screenshots, screen recordings and the recent-apps preview are blocked
   on these pages.
   - One row per site, with a search field and the site's icon when Koan already has it (never
@@ -716,6 +717,11 @@ offered the next beta and the final release; on a final release, only final rele
 - **APK size (~223 MB):** almost all of it is GeckoView, the same engine as Firefox. Its native
   libraries are stored uncompressed so Android can load them straight from the APK instead of
   keeping a second, unpacked copy.
+- **Passkeys that fail say nothing:** when your password manager refuses Koan (Google Password
+  Manager does today: Koan isn't on its trusted-browser list), the site only sees its passkey
+  request fail or get cancelled, and Koan shows no message. The engine sends the error straight
+  to the page; Koan never sees it, and it can't tell it apart from you cancelling. Use another
+  sign-in method on that site, or a password manager that lets Koan in.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
   the page itself) may reload when you pull down at the top of the list.
 - **Not there yet:** web notifications, a bookmarks screen, other add-ons than uBlock Origin,
