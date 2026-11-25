@@ -1085,7 +1085,11 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                     downloadDone = ringDone && downloadProgress == null,
                     onDownloads = { overlays.downloadsOpen = true },
                     translate = components.translateCue.icon && !fullScreen,
-                    onTranslate = { components.translateCue.openRequests++ },
+                    translateActive = components.translateCue.active,
+                    onTranslate = {
+                        // Translated: ⋯ › Translate page (Show original, the languages); else the card.
+                        if (components.translateCue.active) components.translateCue.pageRequests++ else components.translateCue.openRequests++
+                    },
                     private = flip.labels,
                     flip = flip,
                 )

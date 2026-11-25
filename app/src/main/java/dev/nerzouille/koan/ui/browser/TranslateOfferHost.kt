@@ -89,7 +89,10 @@ fun TranslateOfferHost(
         never = state?.pageSettings?.neverTranslateLanguage == true || state?.pageSettings?.neverTranslateSite == true,
     )
     val cue = if (tabId == null) TranslateCue.None else translateCue(signals, phoneLanguages, offerOn, searchPage, site in cues.dismissedSites, findOpen)
-    androidx.compose.runtime.SideEffect { cues.icon = cue != TranslateCue.None }
+    androidx.compose.runtime.SideEffect {
+        cues.icon = cue != TranslateCue.None
+        cues.active = cue == TranslateCue.Active
+    }
     // A tap on the icon: the card on this page, even where it wouldn't open by itself.
     var manual by remember { mutableStateOf<String?>(null) }
     val seenRequests = remember { androidx.compose.runtime.mutableIntStateOf(cues.openRequests) }
@@ -100,7 +103,7 @@ fun TranslateOfferHost(
         dismissed = dismissed - key
     }
     val offer = allowed && tabId != null && from != null && key !in dismissed &&
-        (cue == TranslateCue.Card || (manual == key && cue != TranslateCue.None))
+        (cue == TranslateCue.Card || (manual == key && (cue == TranslateCue.Icon || cue == TranslateCue.Card)))
 
     // "Always translate" this language: the page is translated on its own (unless Gecko already
     // started it), and the toast says so, with the way back.

@@ -16,8 +16,11 @@ import java.net.URI
  * since Koan started. "Offer to translate pages" off: neither.
  */
 
-/** What a page gets: nothing, the icon in the address pill, or the icon and the card. */
-enum class TranslateCue { None, Icon, Card }
+/**
+ * What a page gets: nothing, the icon in the address pill, the icon and the card, or (translated)
+ * the icon in its active state, whose tap opens ⋯ › Translate page (Show original, the languages).
+ */
+enum class TranslateCue { None, Icon, Card, Active }
 
 /** What Gecko and Koan know about the page, for [translateCue]. */
 data class TranslateSignals(
@@ -52,8 +55,10 @@ fun translateCue(
     siteDismissed: Boolean,
     findOpen: Boolean = false,
 ): TranslateCue {
+    // Translated (by a tap or on its own): the way back stays in the pill.
+    if (s.translated) return TranslateCue.Active
     val lang = s.pageLanguage ?: return TranslateCue.None
-    if (!offerFor(lang, phoneLanguages, offerOn) || s.translated || s.always || s.never) return TranslateCue.None
+    if (!offerFor(lang, phoneLanguages, offerOn) || s.always || s.never) return TranslateCue.None
     val worthACard = s.confident && s.readable && !searchPage && !siteDismissed && !s.processing && !findOpen
     return if (worthACard) TranslateCue.Card else TranslateCue.Icon
 }
@@ -102,8 +107,14 @@ class TranslateCueState {
     /** The current page has a cue: the pill shows the icon. */
     var icon by mutableStateOf(false)
 
+    /** The page is translated: the icon in its active state. */
+    var active by mutableStateOf(false)
+
     /** Each tap on the icon: the card opens on the current page. */
     var openRequests by mutableIntStateOf(0)
+
+    /** Each tap on the active icon: ⋯ › Translate page opens. */
+    var pageRequests by mutableIntStateOf(0)
 
     /** Sites (hosts) where the card was dismissed: no card opens by itself there again. */
     val dismissedSites = HashSet<String>()

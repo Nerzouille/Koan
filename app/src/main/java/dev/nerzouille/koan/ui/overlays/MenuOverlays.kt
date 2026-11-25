@@ -119,6 +119,26 @@ internal fun MenuOverlays(
         value = if (showingSite && page.url.isNotEmpty()) components.sitePermissions.decisions(page.url) else null
     }
     fun close() = menu.animateTo(Detent.Closed)
+
+    // ⋯ › Translate page, from the menu's row or from the translated page's icon in the pill.
+    fun openTranslatePage() {
+        activeTabId?.let { id ->
+            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_PAGE_SETTINGS))
+            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_SUPPORTED_LANGUAGES))
+            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_LANGUAGE_MODELS))
+            translateUi?.pageLanguage?.let { from -> translateActions.pairChanged(from, phoneLanguage) }
+        }
+        overlays.menuNav.push(MenuPage.Translate)
+    }
+    val cues = components.translateCue
+    val seenPageRequests = remember { androidx.compose.runtime.mutableIntStateOf(cues.pageRequests) }
+    LaunchedEffect(cues.pageRequests) {
+        if (cues.pageRequests == seenPageRequests.intValue) return@LaunchedEffect
+        seenPageRequests.intValue = cues.pageRequests
+        if (!menu.open) overlays.menuNav.reset()
+        if (overlays.menuNav.pages.lastOrNull() != MenuPage.Translate) openTranslatePage()
+        menu.animateTo(Detent.Compact)
+    }
     // ---- the ⋯ menu ----
     // Private tabs: is tracking protection on for this site (no exception)?
     var protections by remember(activeTabId, page.url) { mutableStateOf<Boolean?>(null) }
@@ -224,15 +244,7 @@ internal fun MenuOverlays(
                             if (!components.externalLinks.openIn(app, page.url)) onToast(Toast("Couldn't open ${app.label}"))
                         }
                     },
-                    translate = {
-                        activeTabId?.let { id ->
-                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_PAGE_SETTINGS))
-                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_SUPPORTED_LANGUAGES))
-                            dispatchTranslate(TranslationsAction.OperationRequestedAction(id, TranslationOperation.FETCH_LANGUAGE_MODELS))
-                            translateUi?.pageLanguage?.let { from -> translateActions.pairChanged(from, phoneLanguage) }
-                        }
-                        overlays.menuNav.push(MenuPage.Translate)
-                    },
+                    translate = ::openTranslatePage,
                     addSearchEngine = {
                         val draft = newEngine
                         close()

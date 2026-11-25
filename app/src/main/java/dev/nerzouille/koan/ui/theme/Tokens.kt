@@ -864,6 +864,8 @@ object SignInTokens {
 object BarTokens {
     /** The translate icon in the address pill (TranslateCue): its glyph, in (a soft pop) and out. */
     val TranslateIcon = 18.dp
+    /** The translated page's icon sits in this filled disc. */
+    val TranslateActiveDisc = 28.dp
     val TranslateIn: androidx.compose.animation.core.SpringSpec<Float> =
         androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 500f)
     const val TRANSLATE_OUT_MS = 140

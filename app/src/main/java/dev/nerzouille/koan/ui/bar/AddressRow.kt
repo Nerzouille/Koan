@@ -196,6 +196,8 @@ fun AddressRow(
     onDownloads: () -> Unit = {},
     /** The page is in a language that isn't on the phone: the translate icon (tap = the card). */
     translate: Boolean = false,
+    /** The page is translated: the icon is filled (tap = ⋯ › Translate page). */
+    translateActive: Boolean = false,
     onTranslate: () -> Unit = {},
     /** The text being edited, shared with the search sheet. */
     search: SearchField = remember { SearchField() },
@@ -245,6 +247,7 @@ fun AddressRow(
                 downloadDone = !overviewOpen && downloadDone,
                 onDownloads = onDownloads,
                 translate = !overviewOpen && translate,
+                translateActive = translateActive,
                 onTranslate = onTranslate,
                 onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
                 onPress = pillPressed,
@@ -279,6 +282,7 @@ private fun AddressField(
     downloadDone: Boolean,
     onDownloads: () -> Unit,
     translate: Boolean,
+    translateActive: Boolean,
     onTranslate: () -> Unit,
     onClick: () -> Unit,
     /** A finger lands on the pill (before the bar's drags see it). */
@@ -295,8 +299,9 @@ private fun AddressField(
     val spaceMode = animateFloatAsState(if (space != null) 1f else 0f, tween(Motion.SPACE_MODE_FADE_MS), label = "spaceMode")
     // Two hit areas side by side, never overlapping: the text (tap = edit) and, at the end, the
     // download ring while something downloads (tap = Downloads), else the translate icon.
-    val ring = download != null || downloadDone
-    val translateIcon = translate && !ring
+    val slot = pillEndSlot(download, downloadDone, translate)
+    val ring = slot == PillEnd.Ring
+    val translateIcon = slot == PillEnd.Translate
     Box(
         modifier
             .height(BarTokens.FieldHeight)
@@ -318,17 +323,28 @@ private fun AddressField(
             contentAlignment = Alignment.Center,
         ) { FieldLabels(host, overview, swipe, previous, next, lastSpace, { spaceMode.value }, private, flip) }
         if (ring) DownloadRing(download, downloadDone, onDownloads, Modifier.align(Alignment.CenterEnd))
-        TranslateIcon(translateIcon, onTranslate, Modifier.align(Alignment.CenterEnd))
+        TranslateIcon(translateIcon, translateActive, onTranslate, Modifier.align(Alignment.CenterEnd))
     }
+}
+
+/** What sits at the end of the address pill: one slot, the download ring first. */
+internal enum class PillEnd { None, Ring, Translate }
+
+/** A running or just-finished download takes the translate icon's place; the icon comes back after. */
+internal fun pillEndSlot(download: Float?, downloadDone: Boolean, translate: Boolean): PillEnd = when {
+    download != null || downloadDone -> PillEnd.Ring
+    translate -> PillEnd.Translate
+    else -> PillEnd.None
 }
 
 /**
  * The translate icon at the end of the pill: it pops in (a small spring scale and a fade, layer
  * only) when the page is in a language that isn't on the phone, and out again; a tap opens the
- * translation card.
+ * translation card. [active]: the page is translated, the icon sits in a filled disc (no brand
+ * gradient) and a tap opens ⋯ › Translate page.
  */
 @Composable
-private fun TranslateIcon(shown: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun TranslateIcon(shown: Boolean, active: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val view = LocalView.current
     val instant = rememberAnimationsOff()
     val t = remember { Animatable(if (shown) 1f else 0f) }
@@ -343,13 +359,26 @@ private fun TranslateIcon(shown: Boolean, onClick: () -> Unit, modifier: Modifie
             .size(BarTokens.IconTouch)
             .clip(CircleShape)
             .then(if (shown) Modifier.cleanTap { KoanHaptics.tick(view); onClick() } else Modifier)
-            .semantics { contentDescription = "Translate page" },
+            .semantics { contentDescription = if (active) "Translated page" else "Translate page" },
         contentAlignment = Alignment.Center,
     ) {
+        val palette = KoanTheme.colors
+        val activeT by animateFloatAsState(if (active) 1f else 0f, label = "translateActive")
+        Box(
+            Modifier
+                .size(BarTokens.TranslateActiveDisc)
+                .graphicsLayer {
+                    val v = t.value
+                    alpha = (v * activeT).coerceIn(0f, 1f)
+                    scaleX = 0.6f + 0.4f * v
+                    scaleY = 0.6f + 0.4f * v
+                }
+                .background(palette.Primary, CircleShape),
+        )
         androidx.compose.material3.Icon(
             KoanIcons.Translate,
             contentDescription = null,
-            tint = KoanTheme.colors.TextSecondary,
+            tint = if (active) palette.OnPrimary else palette.TextSecondary,
             modifier = Modifier
                 .size(BarTokens.TranslateIcon)
                 .graphicsLayer {
