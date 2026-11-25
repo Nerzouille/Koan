@@ -35,14 +35,14 @@ the owner's wording of each feature.
 | 13 | Translate icon stays active after translating; download ring shares its slot | **Done (night).** `TranslateCue.Active`, filled disc, tap = ⋯ › Translate page; ring slot was already there, now `pillEndSlot` + `PillEndTest`. | 166f4c5 | No (checks below) |
 | 14 | Rotate row in the player's ⋯ menu | **Done.** Only with auto-rotate off, like the pill (owner, 2026-11-26). | b062a27, 83a76b2 | No |
 | 15 | Passkey failure message | **Done as option C (owner):** a Known limitation in FEATURES, no code. | 35a2398 | No |
-| 16 | Depth cue (A, B, C or A + B) | **Done: A (owner, 2026-11-26), stronger in dark towards #121214.** Back cards, header and thumbnail alike, recede into `DimColor`: light `#B9B9C2` (×1.1, max 0.62), dark `#121214` = Base (×1.4, max 0.85); Private the same on its own bases. `DepthDimTest`. Capture: `reference/beta2-choices/depth-A-dark-final.png`. | see Day run 2 | No (light check by hand) |
+| 16 | Depth cue (A, B, C or A + B) | **Done: direction 3, one ambient light (owner, 2026-11-26),** replacing A. Back cards fade towards the background (light 0 · .10 · .18 · .26 · .32 × `StackTokens.LIGHT_FADE`; dark 0 · .20 · .35 · .48 · .58), the front card casts the long shadow and hands it over when the stack settles, the others a contact shadow; geometry unchanged. `DepthDimTest`. Captures: `reference/beta2-choices/depth3-{light,dark}.png` (+ `-zoom`). | see Day run 2 | No (feel check on the release build) |
 | 17 | End of phase: R8 release build, kill and restore | **Partly done (night):** full suite 493 green; R8 **staging** build (Koan Test) launched, `am kill` in the background, restored on the same tab, no crash. The R8 build of the real app id and the release from `main` wait for the release steps. | none | No |
 
 **Also needs the owner:** Lock private tabs is **off** in the POCO's real Koan (turned off for the
 kill tests, which are done): remind the owner to turn Settings › Lock private tabs back on.
 
 **Needs the owner, in short:** items 4, 5, 8 (their hands on the phone), 6 (#11 drawer height:
-picks an option), 7 (#9 dock feel, release build), Lock private tabs back on.
+7 (#9 dock feel, release build), Lock private tabs back on.
 Everything else can run alone.
 
 Last full JVM run: 460 green after item 8, then `MissingFilesTest` +3. Rerun the full suite after
@@ -490,10 +490,10 @@ computer through `adb reverse` (the POCO's VPN was off: no public pages). Commit
 
 ### Questions for the owner
 
-1. Drawer (#11): A (tallest space) or B (always full)? Change `DrawerTokens.PAGE_HEIGHT` if B.
+1. Drawer (#11): answered, A capped at 75% (Day run 2).
 2. Depth cue: answered, A (Day run 2).
 3. Dock dead zone: is 28 dp right on the release build?
-4. Payments: start with "return to the same tab" after beta.2?
+4. Payments: answered, "return to the same tab" is on the ROADMAP after beta.2.
 
 ### Test by hand (one checklist, replaces the night's)
 
@@ -595,3 +595,20 @@ was not touched.
    with the dim (untouchable meanwhile), and the sheet shows nothing from the last editing until
    the field starts (`SearchField.current`, `SearchFieldTest`). Checked frame by frame on Koan
    Test: fades over ~8 frames on close, no frame of it on reopening.
+5. **Back closes the field at once** (fc703b4): a back swipe hid the keyboard first and the field
+   (with the "@" panel) closed only once it was gone; now it closes as the keyboard starts down.
+6. **Drawer #11: A, capped** (c9f64b1): every space at the tallest space's height, the whole dock
+   under 75% of the screen (`DrawerTokens.FULL_MAX_FRACTION`), a taller space scrolls inside.
+   Option B removed. `SheetStateTest`, `DrawerCapTest`.
+7. **Payments** "return to the same tab" on the ROADMAP after beta.2 (b543523).
+8. **Depth: direction 3, one ambient light** (replaces A; see item 16). Shadows are Compose
+   `dropShadow`s with the design's CSS values in a layer under each card (`CardShadows`, the old
+   `ContactShadow` gone); each shadow is fixed and shared, only layer alphas move (no
+   recomposition per frame). The front shadow follows `StackState.frontSlot`: kept by the card
+   under the finger, handed over in 220 ms once the stack settles. Captured on the owner's real
+   Koan (POCO, dev build, Koan's own Theme setting), current build next to direction 3:
+   `reference/beta2-choices/depth3-light.png`, `depth3-dark.png` and their `-zoom` crops. The
+   front card's page re-themed itself between the shots (it follows Koan's theme), so its preview
+   differs; the cards behind are the same tabs. The hero card (page ↔ overview) keeps its
+   elevation shadow: watch the landing for a shadow change.
+   The `capture-proto` branch (prototypes A, B, C) is deleted.
