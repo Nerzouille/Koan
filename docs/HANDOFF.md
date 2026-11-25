@@ -1,27 +1,24 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-25**.
+State of Koan for a session that starts with no context. Last updated **2026-11-26**.
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
 
-- **Current work (2026-11-25): branch `beta2-bugs`** (rebased on `dev` 60a2199, local, **not
-  pushed**). Start with `docs/plans/BETA2_BUGS.md`: its status table and, at the end, the
-  **Night report 2026-11-25** (results, questions, the one hand-test checklist, merge commands).
-  - Done and committed: items 1–5 and 8 (earlier), 9, 10, 12 (web Captions, web Quality + the
-    Download video file choice, standalone Audio / Subtitles with `.srt` / `.vtt` and Choose a
-    file…), 13 (translated icon), 14 (Rotate row). Full suite 493 green. Items 9–14 are
-    untested on a phone.
-  - Not run: item 11 (player checks; the POCO's network failed that night). The probe patch is in
-    `reference/night-2026-11-25/` (gitignored, never commit). The Commons `<track>` fallback waits
-    for it.
-  - Stopped: item 15 (passkey message): Koan gets no callback when a passkey fails; options A/B/C
-    in the report.
-  - **Waiting for the owner:** the night checklist; items 4, 5, 8 (hands on the phone), 6 (#11
-    drawer height), 7 (#9 dock feel, release build), 16 (depth), 15's option; Lock private tabs
-    back on in the real Koan (POCO).
-  - Item 17: R8 staging build, kill and restore OK on the POCO (2026-11-25); the release build
-    from `main` comes with the release steps.
+- **Current work (2026-11-26): branch `beta2-bugs`** (from `dev` 60a2199, local, **not
+  pushed**). Start with `docs/plans/BETA2_BUGS.md`: the status table, then **Night report
+  2026-11-25** and **Day run 2026-11-26** (the latest hand-test checklist, the owner's open
+  choices, merge commands).
+  - Built: items 1–5, 8–10, 12–14 (player captions / quality / audio / subtitles, translated
+    icon, Rotate row only with auto-rotate off), 6 (#11 drawer, both options behind
+    `DrawerTokens.PAGE_HEIGHT`), 7 (#9 dock dead zone, `PageTokens.DockDeadZone`), 15 as a known
+    limitation, the search typing fix, Copy link text, the search morph. CHANGELOG beta.2 drafted;
+    release notes draft in `reference/`. 508 JVM tests, detekt and lint green.
+  - **Waiting for the owner:** picks for #11 (A/B) and the depth cue (captures in
+    `reference/beta2-choices/`), the dock number, the hand-test checklist, item 11 (player checks,
+    needs the POCO's VPN for public pages), items 4/5/8; Lock private tabs back on (real Koan, POCO).
+  - Research: `docs/plans/PAYMENTS_RESEARCH.md` (Google Pay / Revolut Pay), nothing built.
+  - Local branch `capture-proto`: captures only, never merge.
 
 - **Tooling: merged into `dev` 2026-11-16 (PR #15).** See CLAUDE.md
   "Claude Code tooling":
