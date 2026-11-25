@@ -74,6 +74,10 @@ object PlayerTokens {
     val TrackThicknessPressed = 12.dp
     val BubbleSize = DpSize(68.dp, 36.dp)
     val BubbleGap = 12.dp
+
+    /** Captions: above the bottom edge when the controls are away, on a dark scrim. */
+    val CaptionGap = 24.dp
+    val CaptionScrim = Color(0xB3000000)
     val MenuWidth = 264.dp
     val MenuRadius = 18.dp
     val MenuRow = 44.dp

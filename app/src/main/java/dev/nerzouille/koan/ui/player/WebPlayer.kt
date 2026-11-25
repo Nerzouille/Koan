@@ -96,7 +96,21 @@ fun WebPlayerLayer(
         }
     }
     val pipOnLeave by components.settings.pictureInPicture.collectAsStateWithLifecycle(true)
+    // Captions: the page's tracks; the language picked last comes back on the next video.
+    val tracks = remember(video.tracks) { video.tracks.map { TrackInfo(it.label, it.language) } }
+    LaunchedEffect(tracks, video.track) {
+        val i = rememberedTrack(tracks, video.track, host.captionLanguage)
+        if (i >= 0) components.pageVideo.caption(tabId, i)
+    }
+    val captions by components.pageVideo.captions.collectAsStateWithLifecycle()
     val rows = buildList {
+        choiceRow(
+            KoanIcons.Captions, "Captions",
+            captionChoices(tracks, video.track, pick = { i ->
+                host.captionLanguage = tracks.getOrNull(i)?.language.orEmpty()
+                components.pageVideo.caption(tabId, i)
+            }),
+        )?.let(::add)
         add(pipOnLeaveRow(pipOnLeave) { on -> saveScope.launch { components.settings.setPictureInPicture(on) } })
         // Always there (F6): greyed out, with why, when the video isn't a file Koan can save.
         add(
@@ -144,6 +158,7 @@ fun WebPlayerLayer(
         hidden = inPip,
         notice = notice,
         onRotate = { host.fullscreenRotated = !host.fullscreenRotated },
+        caption = captions[tabId]?.takeIf { video.track >= 0 },
     )
 }
 

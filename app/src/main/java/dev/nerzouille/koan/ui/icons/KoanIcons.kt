@@ -250,6 +250,30 @@ object KoanIcons {
             moveTo(13f, 14f); lineTo(20f, 14f); lineTo(20f, 19f); lineTo(13f, 19f); close()
         }
     }
+    /** Captions and subtitles: a screen with two lines of text. */
+    val Captions: ImageVector by lazy {
+        stroked("captions") {
+            moveTo(5f, 5f); lineTo(19f, 5f)
+            arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 21f, y1 = 7f)
+            lineTo(21f, 17f)
+            arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 19f, y1 = 19f)
+            lineTo(5f, 19f)
+            arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 3f, y1 = 17f)
+            lineTo(3f, 7f)
+            arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, x1 = 5f, y1 = 5f)
+            close()
+            moveTo(7f, 11f); lineTo(10f, 11f); moveTo(13f, 11f); lineTo(17f, 11f)
+            moveTo(7f, 15f); lineTo(13f, 15f); moveTo(16f, 15f); lineTo(17f, 15f)
+        }
+    }
+    /** Video quality: three sliders. */
+    val Quality: ImageVector by lazy {
+        stroked("quality") {
+            moveTo(4f, 6f); lineTo(20f, 6f); moveTo(15f, 4f); lineTo(15f, 8f)
+            moveTo(4f, 12f); lineTo(20f, 12f); moveTo(8f, 10f); lineTo(8f, 14f)
+            moveTo(4f, 18f); lineTo(20f, 18f); moveTo(13f, 16f); lineTo(13f, 20f)
+        }
+    }
     /** Turn the screen: a phone between two arrows going round. */
     val Rotate: ImageVector by lazy {
         stroked("rotate") {

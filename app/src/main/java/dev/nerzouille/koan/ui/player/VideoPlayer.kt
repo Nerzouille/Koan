@@ -133,6 +133,8 @@ fun VideoPlayer(
     notice: PlayerNotice? = null,
     /** Turns the player to the other orientation (the rotate pill, auto-rotate off); null: no pill. */
     onRotate: (() -> Unit)? = null,
+    /** The chosen captions' current text (⋯ › Captions / Subtitles); null or empty: nothing. */
+    caption: String? = null,
 ) {
     val context = LocalContext.current
     val view = LocalView.current
@@ -761,6 +763,18 @@ fun VideoPlayer(
             }
         }
 
+        // ---- captions: low in the frame, lifted above the bottom pill while the controls show ----
+        if (!caption.isNullOrBlank() && !hidden) {
+            val pillH = if (landscape) PlayerTokens.BottomPillHeightLandscape else PlayerTokens.BottomPillHeightPortrait
+            CaptionText(
+                caption,
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = side, end = side, bottom = bottomInset + PlayerTokens.CaptionGap)
+                    .graphicsLayer { translationY = -(pillH + PlayerTokens.BubbleGap).toPx() * (if (locked) 0f else mist.value) },
+            )
+        }
+
         // ---- a notice (Download video): above the bottom pill, never taking a touch ----
         var noticeOn by remember { mutableStateOf(false) }
         var lastNotice by remember { mutableStateOf<PlayerNotice?>(null) }
@@ -1243,4 +1257,18 @@ private fun NoticePanel(notice: PlayerNotice, modifier: Modifier) {
             Text(it, style = playerText(13.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
+}
+
+/** One caption cue: white on a dark scrim, centred, as many lines as the cue has. */
+@Composable
+private fun CaptionText(text: String, modifier: Modifier) {
+    Text(
+        text,
+        style = playerText(17.sp, FontWeight.Medium),
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        modifier = modifier
+            .widthIn(max = 640.dp)
+            .background(PlayerTokens.CaptionScrim, RoundedCornerShape(6.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    )
 }

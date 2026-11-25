@@ -56,7 +56,15 @@ data class WebVideo(
     val live: Boolean = false,
     /** A plain file the page lists for this video (its largest <source>), when [src] is a stream. */
     val file: String = "",
+    /** The video's subtitle and caption tracks (video.textTracks), in the page's order. */
+    val tracks: List<WebTrack> = emptyList(),
+    /** The one Koan shows (an index in [tracks]), -1: none. */
+    val track: Int = -1,
 )
+
+/** One subtitle or caption track of a page's video. */
+@Immutable
+data class WebTrack(val kind: String, val label: String, val language: String)
 
 /**
  * A small built-in extension on every page (assets/extensions/video):
@@ -85,6 +93,11 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
     /** Every tab's driven (fullscreen) video. */
     val videos: StateFlow<Map<String, WebVideo>> = _videos
 
+    private val _captions = MutableStateFlow<Map<String, String>>(emptyMap())
+
+    /** Every tab's current caption text (the chosen track's active cues), "" or absent: none. */
+    val captions: StateFlow<Map<String, String>> = _captions
+
     private val handler = object : MessageHandler {
         override fun onPortConnected(port: Port) = Unit
 
@@ -92,6 +105,7 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
             val id = ports.entries.firstOrNull { it.value === port }?.key ?: return
             ports.remove(id)
             _videos.value = _videos.value - id
+            _captions.value = _captions.value - id
         }
 
         override fun onPortMessage(message: Any, port: Port) {
@@ -100,12 +114,14 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
             when (json.optString("type")) {
                 "state" -> {
                     ports[id] = port
-                    _videos.value = _videos.value + (id to parse(id, json))
+                    _videos.value = _videos.value + (id to parse(id, json, _videos.value[id]))
                 }
                 "gone" -> if (ports[id] === port) {
                     ports.remove(id)
                     _videos.value = _videos.value - id
+                    _captions.value = _captions.value - id
                 }
+                "cue" -> _captions.value = _captions.value + (id to json.optString("text"))
                 "media" -> onMedia(id, json)
             }
         }
@@ -116,7 +132,7 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
         return store.state.tabs.firstOrNull { it.engineState.engineSession === session }?.id
     }
 
-    private fun parse(id: String, j: JSONObject) = WebVideo(
+    private fun parse(id: String, j: JSONObject, before: WebVideo?) = WebVideo(
         tabId = id,
         fullscreen = j.optBoolean("fullscreen"),
         paused = j.optBoolean("paused", true),
@@ -136,6 +152,9 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
         kind = j.optString("kind"),
         live = j.optBoolean("live"),
         file = j.optString("file"),
+        // Sent only when the list changed.
+        tracks = j.optJSONArray("tracks")?.let(::parseTracks) ?: before?.tracks.orEmpty(),
+        track = j.optInt("track", -1),
     )
 
     /**
@@ -208,6 +227,7 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
                 }
                 // Closed tabs: their video is gone.
                 if (_videos.value.keys.any { it !in ids }) _videos.value = _videos.value.filterKeys { it in ids }
+                if (_captions.value.keys.any { it !in ids }) _captions.value = _captions.value.filterKeys { it in ids }
                 ports.keys.retainAll(ids)
                 posterFor.keys.retainAll(ids)
             }
@@ -223,10 +243,14 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
     fun rate(tabId: String, rate: Double) = send(tabId, JSONObject().put("action", "rate").put("rate", rate))
     fun mute(tabId: String, muted: Boolean) = send(tabId, JSONObject().put("action", "mute").put("muted", muted))
 
+    /** Shows the video's caption track [index] (in [WebVideo.tracks]); -1: none. */
+    fun caption(tabId: String, index: Int) = send(tabId, JSONObject().put("action", "caption").put("index", index))
+
     /** The page's own player back (the site's controls, or Koan let go of it). */
     fun release(tabId: String) {
         send(tabId, JSONObject().put("action", "release"))
         _videos.value = _videos.value - tabId
+        _captions.value = _captions.value - tabId
     }
 
     private companion object {
@@ -237,4 +261,9 @@ class PageVideo(private val engine: Engine, private val store: BrowserStore, pri
         const val MAX_POSTER_BYTES = 4_000_000
         const val POSTER_PX = 512
     }
+}
+
+/** The extension's track list: kind, label and language of each subtitle / caption track. */
+internal fun parseTracks(a: org.json.JSONArray): List<WebTrack> = (0 until a.length()).mapNotNull { i ->
+    a.optJSONObject(i)?.let { WebTrack(it.optString("kind"), it.optString("label").trim(), it.optString("lang").trim()) }
 }

@@ -85,6 +85,12 @@ class PlayerHost {
     /** Auto-rotate off: the rotate pill turned the web fullscreen to the other orientation (until it ends). */
     var fullscreenRotated by mutableStateOf(false)
 
+    /**
+     * The captions language last picked in the ⋯ menu, for the next videos until Koan restarts:
+     * null never picked, "" Off.
+     */
+    var captionLanguage by mutableStateOf<String?>(null)
+
     /** The standalone player's video size and play state, for picture-in-picture. */
     var standaloneShape by mutableStateOf<Pair<Int, Int>?>(null)
     var standalonePlaying by mutableStateOf(false)

@@ -9,7 +9,11 @@
  *   the site's player but the video is hidden (its buttons, its end screen), the video's native
  *   controls are off, and the page can no longer leave fullscreen on its own (some players do at
  *   the end of the video): only Koan leaves it. The video's state goes to Koan a few times a
- *   second, and Koan's buttons come back as commands (play, pause, seek, speed, mute).
+ *   second, and Koan's buttons come back as commands (play, pause, seek, speed, mute, captions,
+ *   quality).
+ * - Captions: the video's subtitle / caption tracks (video.textTracks). The chosen one is set to
+ *   "hidden" (Gecko loads its cues but draws nothing) and its current text goes to Koan, which
+ *   draws it above its own controls. The page's own track modes come back on release.
  *
  * Bump the manifest version whenever this file changes, or Gecko keeps the old one.
  */
@@ -143,6 +147,7 @@ function take(el) {
   video.removeAttribute("controls");
   blockExits(true);
   for (const e of EVENTS) video.addEventListener(e, report, true);
+  takeCaptions(video);
   clearInterval(timer);
   timer = setInterval(report, 250);
   report();
@@ -152,6 +157,7 @@ function take(el) {
 function release() {
   clearInterval(timer);
   timer = 0;
+  releaseCaptions();
   blockExits(false);
   if (host) host.classList.remove(HIDE_CLASS);
   if (video) {
@@ -208,7 +214,91 @@ function report() {
     live: d === Infinity,
     // A streamed video's page often lists plain files too (<source>): the largest one, to download.
     file: fileSource(v),
+    // Captions: the list only when it changed (it can grow while the video plays).
+    tracks: tracksChanged(v),
+    track: chosen,
   });
+}
+
+// ---- captions ----
+
+let chosen = -1; // index in captionTracks(video), -1: off
+let chosenTrack = null;
+let savedModes = null; // the page's own modes, put back on release
+let lastTracks = null;
+let lastCue = null;
+
+function captionTracks(v) {
+  try {
+    return Array.from(v.textTracks || []).filter(t => t.kind === "subtitles" || t.kind === "captions");
+  } catch (e) { return []; }
+}
+
+/** The track list, when it differs from the last one sent; undefined otherwise (not sent). */
+function tracksChanged(v) {
+  const list = captionTracks(v).map(t => ({ kind: t.kind, label: t.label || "", lang: t.language || "" }));
+  const key = JSON.stringify(list);
+  if (key === lastTracks) return undefined;
+  lastTracks = key;
+  return list;
+}
+
+function cueText(t) {
+  const out = [];
+  const cues = t && t.activeCues;
+  if (!cues) return "";
+  for (let i = 0; i < cues.length; i++) {
+    const c = cues[i];
+    let text = "";
+    try { text = c.getCueAsHTML ? c.getCueAsHTML().textContent : c.text; } catch (e) { text = c.text || ""; }
+    if (text) out.push(text.trim());
+  }
+  return out.join("\n");
+}
+
+function sendCue() {
+  const text = chosenTrack ? cueText(chosenTrack) : "";
+  if (text === lastCue) return;
+  lastCue = text;
+  send({ type: "cue", text });
+}
+
+/** Shows track [i] of the caption list through Koan (-1: none); the others stop loading. */
+function chooseCaption(i) {
+  const list = captionTracks(video);
+  if (chosenTrack) chosenTrack.removeEventListener("cuechange", sendCue);
+  chosenTrack = i >= 0 && i < list.length ? list[i] : null;
+  chosen = chosenTrack ? i : -1;
+  list.forEach((t, j) => {
+    try { t.mode = j === chosen ? "hidden" : "disabled"; } catch (e) {}
+  });
+  if (chosenTrack) chosenTrack.addEventListener("cuechange", sendCue);
+  sendCue();
+}
+
+function takeCaptions(v) {
+  lastTracks = null;
+  lastCue = null;
+  const list = captionTracks(v);
+  savedModes = list.map(t => t.mode);
+  // The track the page had on stays on, drawn by Koan.
+  const on = list.findIndex(t => t.mode === "showing");
+  chosen = -1;
+  chosenTrack = null;
+  if (on >= 0) chooseCaption(on);
+}
+
+function releaseCaptions() {
+  if (chosenTrack) chosenTrack.removeEventListener("cuechange", sendCue);
+  if (video && savedModes) {
+    const list = captionTracks(video);
+    if (list.length === savedModes.length) list.forEach((t, j) => { try { t.mode = savedModes[j]; } catch (e) {} });
+  }
+  savedModes = null;
+  chosenTrack = null;
+  chosen = -1;
+  lastTracks = null;
+  lastCue = null;
 }
 
 // A video file the page links (a "Download" or "Original file" link) whose name the video itself
@@ -278,6 +368,7 @@ function onCommand(m) {
     case "seek": if (v && isFinite(m.time)) v.currentTime = Math.max(0, m.time); break;
     case "rate": if (v && m.rate > 0) v.playbackRate = m.rate; break;
     case "mute": if (v) { v.muted = !!m.muted; if (!m.muted && v.volume === 0) v.volume = 1; } break;
+    case "caption": if (v) chooseCaption(m.index); break;
     case "release": release(); break;
   }
   report();

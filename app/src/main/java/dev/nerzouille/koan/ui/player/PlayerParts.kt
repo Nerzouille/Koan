@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -204,6 +207,9 @@ internal fun clock(seconds: Double): String {
     return if (h > 0) "%d:%02d:%02d".format(h, m, sec) else "%d:%02d".format(m, sec)
 }
 
+/** One option in a row's choice list (⋯ › Captions › English). */
+class MenuChoice(val label: String, val selected: Boolean, val onPick: () -> Unit)
+
 /** The ⋯ menu's rows (beside the speed row). */
 class MenuRow(
     val icon: ImageVector,
@@ -214,11 +220,25 @@ class MenuRow(
     val subtitle: String? = null,
     /** A switch row: "On" / "Off" at the end (null = an action). */
     val on: Boolean? = null,
-    val onClick: () -> Unit,
+    /** The current choice at the end ("English", "720p"), for a row with [choices]. */
+    val value: String? = null,
+    /** A tap opens this list in the menu (a back row on top) instead of [onClick]. */
+    val choices: List<MenuChoice>? = null,
+    val onClick: () -> Unit = {},
 ) {
-    /** The same row (state, greyed out, reason) doing [also] first, then its own action. */
-    fun after(also: () -> Unit) = MenuRow(icon, label, destructive, enabled, subtitle, on) { also(); onClick() }
+    /** The same row (state, greyed out, reason, choices) doing [also] first, then its own action or choice. */
+    fun after(also: () -> Unit) = MenuRow(
+        icon, label, destructive, enabled, subtitle, on, value,
+        choices?.map { c -> MenuChoice(c.label, c.selected) { also(); c.onPick() } },
+    ) { also(); onClick() }
 }
+
+/**
+ * A row with a choice list, shown only when there is a real choice: at least [min] options
+ * (two, or Off plus one track). Null otherwise.
+ */
+fun choiceRow(icon: ImageVector, label: String, choices: List<MenuChoice>, min: Int = 2): MenuRow? =
+    if (choices.size < min) null else MenuRow(icon, label, value = choices.firstOrNull { it.selected }?.label, choices = choices)
 
 /**
  * The ⋯ row for Settings › Picture-in-picture (the same setting): leaving Koan in fullscreen opens
@@ -234,6 +254,9 @@ fun pipOnLeaveRow(on: Boolean, onChange: (Boolean) -> Unit) =
  */
 @Composable
 internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuRow>, modifier: Modifier = Modifier, morph: () -> Float = { 1f }) {
+    // A row's choice list open in place of the rows (by the row's label: rows are rebuilt often).
+    var openList by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val list = openList?.let { l -> rows.firstOrNull { it.label == l && it.choices != null } }
     Column(
         modifier
             .width(PlayerTokens.MenuWidth)
@@ -259,6 +282,10 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
             .graphicsLayer { alpha = ((morph() - 0.35f) / 0.65f).coerceIn(0f, 1f) }
             .padding(vertical = 4.dp),
     ) {
+        if (list != null) {
+            ChoiceList(list) { openList = null }
+            return@Column
+        }
         Row(Modifier.fillMaxWidth().height(PlayerTokens.MenuRow).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             PlayerIcon(KoanIcons.Speed, 18.dp)
             Spacer(Modifier.width(12.dp))
@@ -299,7 +326,13 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
                 Modifier
                     .fillMaxWidth()
                     .height(PlayerTokens.MenuRow)
-                    .then(if (row.enabled) Modifier.pressable(onClick = row.onClick) else Modifier.graphicsLayer { alpha = PlayerTokens.DISABLED_ALPHA })
+                    .then(
+                        when {
+                            !row.enabled -> Modifier.graphicsLayer { alpha = PlayerTokens.DISABLED_ALPHA }
+                            row.choices != null -> Modifier.pressable { openList = row.label }
+                            else -> Modifier.pressable(onClick = row.onClick)
+                        },
+                    )
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -310,6 +343,44 @@ internal fun PlayerMenu(rate: Double, onRate: (Double) -> Unit, rows: List<MenuR
                     row.subtitle?.let { Text(it, style = playerText(12.sp, FontWeight.Normal, PlayerTokens.TextSecondary), maxLines = 1) }
                 }
                 row.on?.let { Text(if (it) "On" else "Off", style = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1) }
+                row.value?.let {
+                    Text(
+                        it, style = playerText(15.sp, FontWeight.Medium, PlayerTokens.TextSecondary), maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 8.dp).widthIn(max = 120.dp),
+                    )
+                }
+                if (row.choices != null) PlayerIcon(KoanIcons.ChevronRight, 16.dp, tint = PlayerTokens.TextSecondary)
+            }
+        }
+    }
+}
+
+/** A row's choices in the ⋯ menu: a back row with its name, then each option, the current one checked. */
+@Composable
+private fun ChoiceList(row: MenuRow, onBack: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().height(PlayerTokens.MenuRow).pressable(onClick = onBack).padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PlayerIcon(KoanIcons.Back, 18.dp)
+        Spacer(Modifier.width(12.dp))
+        Text(row.label, style = playerText(15.sp, FontWeight.SemiBold), maxLines = 1)
+    }
+    // A long list (Commons has dozens of languages) scrolls inside the menu.
+    Column(Modifier.heightIn(max = PlayerTokens.MenuRow * 6).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+        for (c in row.choices.orEmpty()) {
+            Box(Modifier.fillMaxWidth().height(1.dp).background(PlayerTokens.Stroke))
+            Row(
+                Modifier.fillMaxWidth().height(PlayerTokens.MenuRow).pressable(onClick = c.onPick).padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.width(18.dp)) { if (c.selected) PlayerIcon(KoanIcons.Check, 18.dp) }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    c.label, style = playerText(15.sp, if (c.selected) FontWeight.SemiBold else FontWeight.Medium), maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
             }
         }
     }
