@@ -143,6 +143,13 @@ go here, then wait for the owner's OK.
    controls covers it). *(Superseded: the owner put the standalone player in beta.2, see above.)*
 
 **Checks before building (POCO, staging build), results to fill in:**
-- Does Commons play the DASH `.mpd` or a WebM in GeckoView (`currentSrc`)? *Result: pending.*
-- Does its player leave the `<track>`s on the `<video>`? *Result: pending.*
-- Do Vimeo videos carry `<track>`s? *Result: pending.*
+- Does Commons play the DASH `.mpd` or a WebM in GeckoView (`currentSrc`)? *Result: pending
+  (night 2026-11-25: not run, the phone's network failed). The Quality row is guarded at run time
+  (shown only for a plain file), so either answer is safe.*
+- Does its player leave the `<track>`s on the `<video>`? *Result: pending (not run). If not, the
+  fallback (rebuild them from the page's markup) is still to build.*
+- Do Vimeo videos carry `<track>`s? *Result: pending (not run).*
+
+Built on 2026-11-25 (night, `beta2-bugs`): web Captions, web Quality + the Download video file
+choice, standalone Audio / Subtitles with side files and Choose a file…. See BETA2_BUGS.md ›
+Night report 2026-11-25.

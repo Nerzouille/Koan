@@ -28,15 +28,15 @@ the owner's wording of each feature.
 | 6 | Drawer height (#11) | Not started. Two options to show on the POCO. | none | **Yes:** picks the option |
 | 7 | Dock comes back (#9) | Not started. Dead zone to try. | none | **Yes:** feel check on a release build |
 | 8 | Save image (Google Images) | Not reproduced; more checks and a `KoanPageImage` log (extension 1.1). Fix or drop after the phone check. | a9f2841 | **Yes:** Google Images on the phone, fix-or-drop call |
-| 9 | Translation card never auto-opens while Find is open | New finding (phone run), not started. | none | No |
-| 10 | An empty Find field clears all highlights | New finding (phone run), not started. | none | No |
-| 11 | Player checks (Commons stream or WebM, Commons `<track>`s, Vimeo tracks) | Not run. | none | No (staging, public pages) |
-| 12 | Player tracks (web Captions and Quality; standalone Audio / Subtitles; side files, option A) | Scope approved; coding after item 11. | none | No (results go into PLAYER_TRACKS.md first) |
-| 13 | Translate icon stays active after translating; download ring shares its slot | Not started. | none | No |
-| 14 | Rotate row in the player's ⋯ menu | Not started. | none | One question: hide it when auto-rotate is on? |
-| 15 | Passkey failure message | Unblocked (#16 merged). Not started. | none | No |
+| 9 | Translation card never auto-opens while Find is open | **Done (night 2026-11-25).** `translateCue(…, findOpen)`, `TranslateCueTest`. Phone check not done. | d5a9a4e | No (check in the list below) |
+| 10 | An empty Find field clears all highlights | **Done (night).** Cause: the find display flags were set on every find, which makes Gecko re-highlight its *last* search asynchronously; now once per session, plus a second clear 350 ms after an empty field. `FindCountTest`. Phone check not done. | d58e642 | No (check in the list below) |
+| 11 | Player checks (Commons stream or WebM, Commons `<track>`s, Vimeo tracks) | **Not run (night):** the POCO's network failed every page load in Koan Test (Gecko `OnLoadError`, the system's own push service timing out too). Probe patch kept in `reference/night-2026-11-25/player-probe.patch` (gitignored). | none | No |
+| 12 | Player tracks (web Captions and Quality; standalone Audio / Subtitles; side files, option A) | **Done (night), untested on a phone.** The Commons `<track>` fallback was not built (waits for item 11). | 78735f2, 7731ee6, d07dbbf | No (checks below) |
+| 13 | Translate icon stays active after translating; download ring shares its slot | **Done (night).** `TranslateCue.Active`, filled disc, tap = ⋯ › Translate page; ring slot was already there, now `pillEndSlot` + `PillEndTest`. | 166f4c5 | No (checks below) |
+| 14 | Rotate row in the player's ⋯ menu | **Done (night).** Owner: always shown. Also fixes the standalone player ignoring Rotate with auto-rotate on (`standaloneOrientation`). | b062a27 | No (checks below) |
+| 15 | Passkey failure message | **Stopped (night):** Koan never sees the failure (see the night report). | none | **Yes:** a choice, and a phone run with a password manager |
 | 16 | Depth cue (A, B, C or A + B) | Prototype on `depth-cue-proto`. | none | **Yes:** picks from screenshots |
-| 17 | End of phase: R8 release build, kill and restore | After everything else. | none | No |
+| 17 | End of phase: R8 release build, kill and restore | **Partly done (night):** full suite 493 green; R8 **staging** build (Koan Test) launched, `am kill` in the background, restored on the same tab, no crash. The R8 build of the real app id and the release from `main` wait for the release steps. | none | No |
 
 **Also needs the owner:** Lock private tabs is **off** in the POCO's real Koan (turned off for the
 kill tests, which are done): remind the owner to turn Settings › Lock private tabs back on.
@@ -88,8 +88,8 @@ For each item, follow these steps:
 | 6 | The drawer's height jumps between spaces | GitHub #11 | `ui/bar/SpaceDrawer.kt` |
 | 7 | The dock comes back after the smallest scroll up | GitHub #9 | `ui/browser/DockState.kt` |
 | 8 | Save image never waits for the full image (Google Images) | ROADMAP, Xiaomi | `engine/PageImages.kt`, `pageimage` extension |
-| 9 | Translation card never auto-opens while Find is open | Phone run (owner) | `ui/browser/TranslateCue.kt`, `ui/KoanOverlays.kt` |
-| 10 | An empty Find field clears all highlights | Phone run (owner) | `engine/PageTools.kt`, `ui/KoanOverlays.kt` |
+| 9 | Translation card never auto-opens while Find is open | **Done (night 2026-11-25).** `translateCue(…, findOpen)`, `TranslateCueTest`. Phone check not done. | d5a9a4e | No (check in the list below) |
+| 10 | An empty Find field clears all highlights | **Done (night).** Cause: the find display flags were set on every find, which makes Gecko re-highlight its *last* search asynchronously; now once per session, plus a second clear 350 ms after an empty field. `FindCountTest`. Phone check not done. | d58e642 | No (check in the list below) |
 
 Items 6 and 7 need the owner's feel check (6: a choice between two options). Item 8 is the
 least sure: it can end with the wait dropped. Items 9 to 17 are below item 8.
@@ -280,3 +280,139 @@ then build it and measure with `tools/perf`.
 ## 17. End of phase
 
 Full JVM suite, then an R8 release build launched on the POCO, with process death and restore.
+
+## Night report 2026-11-25
+
+Unattended run on `beta2-bugs` (plan: `docs/plans/NIGHT_PLAN.md`). Phone: the POCO, **Koan Test
+(`.staging`) only**; the real Koan was not touched. The POCO's network failed every page load
+during the run (see item 11), so no feature could be checked on a page.
+
+### Items
+
+- **9. No auto card while Find is open: done, d5a9a4e.** Tested: `TranslateCueTest` (Find open →
+  icon, never the card; a phone language → nothing). Untested: on the phone.
+- **10. Empty Find field: done, d58e642.** Cause found in GeckoView 160's own finder code
+  (`GeckoViewContent._displayMatches`): `setDisplayFlags` on every find made Gecko highlight its
+  *previous* search again, asynchronously, so a highlight could land after the empty field's
+  clear. Now the flags are set once per session (`GeckoFinder`), and an empty field clears again
+  350 ms later if nothing was typed since (`FindQueries`, `FindCountTest`). Untested: on the phone.
+- **11. Player checks: not run.** The probe build (throwaway log patch, never committed) was
+  installed on Koan Test, but every page failed to load (Gecko `OnLoadError` after ~30 s, even
+  Koan Test's existing fake tabs; `ping` worked but at ~440 ms and the system's push service
+  kept timing out). Koan Test now has the night's R8 build, without the probe. To run it later:
+  `git apply reference/night-2026-11-25/player-probe.patch`, staging build, `adb logcat -s
+  KoanProbe`, play a public Commons video with subtitles and a public Vimeo video, then
+  `git restore` the two files. Never commit the patch.
+- **12. Player tracks: done in code, 78735f2, 7731ee6, d07dbbf; untested on a phone.**
+  - ⋯ menu rows can open a choice list (back row, checked option, scrolls past six).
+  - **Web Captions** (78735f2): the extension lists `video.textTracks` (subtitles / captions),
+    sets the chosen one to `hidden`, sends its cue text; Koan draws it above the bottom pill
+    (lifted with the controls, layer only). The track the page had on stays on; the language
+    picked last comes back on the next video until Koan restarts; Off is remembered too. The
+    page's own modes come back when Koan lets go. Extension 1.6.
+  - **Web Quality + Download video choice** (7731ee6): one file list from the page (the video's
+    plain `<source>`s, else the page's renditions in one folder, plus MediaWiki's original when
+    linked). Quality shows only when the video plays a plain file that is in that list, with the
+    files of the same family (WebM / MP4); switching keeps the time, speed and play state.
+    Download video becomes a choice ("1080p · WebM", "Original · WebM") when there are two or
+    more files. Extension 1.7. No new network call (no HEAD request for sizes).
+  - **Standalone Audio / Subtitles** (d07dbbf): `MediaPlayer` audio and timed-text tracks
+    (three-letter languages named), a same-name `.srt` / `.vtt` next to a downloaded video
+    (looked up through the download's own folder; shown at once), and ⋯ › Subtitles › Choose a
+    file… (system picker, no permission; the file is copied as SubRip into the cache, cleared at
+    the next video). `.vtt` → SubRip converter unit tested.
+  - **Skipped (depends on item 11):** rebuilding Commons' `<track>`s from its markup if its
+    player removes them. Captions on Commons may not show until that's known.
+  - Only in-band *timed text* (3GPP / SubRip) is listed in the standalone player, not
+    `MEDIA_TRACK_TYPE_SUBTITLE` tracks (WebVTT / CEA in MKV / MP4): the platform only draws
+    those through its hidden subtitle controller, and Koan can't get their text.
+- **13. Translate icon stays active: done, 166f4c5.** Translated page → filled disc (Primary,
+  no brand gradient); a tap opens the ⋯ menu straight on Translate page (Show original, the
+  languages). The ring already took the icon's slot; now a tested `pillEndSlot`. Tests:
+  `TranslateCueTest`, `PillEndTest`. Untested: on the phone.
+- **14. Rotate row: done, b062a27.** Web and standalone, always shown (owner's answer). Found and
+  fixed on the way: the standalone player ignored the rotate switch with auto-rotate on (it
+  asked for SENSOR); now the other shape until the phone is held that way, as the web player
+  does. Tests: `FullscreenOrientationTest`. Untested: on the phone.
+- **15. Passkey failure message: stopped, no commit.** From GeckoView 160's classes: on Android
+  14+ a passkey goes through Android's Credential Manager when it can (`WebAuthnCredentialManager`,
+  errors mapped to `ABORT_ERR` for a user cancel, `NOT_SUPPORTED_ERR`, `UNKNOWN_ERR`), else through
+  Play Services' *privileged* FIDO2 client (`WebAuthnTokenManager`, the route #16 wired through
+  `startIntentSenderForResult`). In both, the error goes straight back to the page: Koan gets no
+  callback, and a user cancel and a refusal can look the same. Telling them apart needs a phone
+  run with a password manager (the owner's account: not allowed alone). Options:
+  - **A.** A small content script that watches `navigator.credentials.create/get` rejections
+    (the error name only) and shows the toast on `UnknownError` / `NotSupportedError`. Touches
+    every site's passkeys: needs a careful check.
+  - **B.** In `WebAuthnController`, read the FIDO2 error in the result intent (Play Services
+    route only).
+  - **C.** No toast; a line in FEATURES / the CHANGELOG's Known limitations.
+- **17. End of phase: partly done.** Full JVM suite: **493 tests, 0 failures**. R8 staging build
+  (`assembleStaging`, Koan Test) installed on the POCO, launched, sent to the background,
+  `am kill`, reopened: same tab back, no crash in logcat. Not done: an R8 build of the real app
+  id (that's the release step from `main`).
+
+### Questions for the owner
+
+1. Item 15: option A, B or C?
+2. Item 11: run the checks yourself (probe patch above), or let the next session do it once the
+   POCO's network works?
+3. The Download video choice shows a list as soon as a page offers two files: fine, or only
+   when the sizes differ a lot?
+
+### Test by hand (one checklist)
+
+Build: `./gradlew assembleStaging`, `adb install -r app/build/outputs/apk/staging/app-staging.apk`
+(Koan Test; it already has the night's build). Public pages only.
+
+- [ ] **Find + translation (9):** a page in another language, open Find, reload: no card, the
+  counter stays visible, the translate icon is in the pill and its tap opens the card. Close Find,
+  open another page in that language: the card opens as before.
+- [ ] **Empty Find (10):** type "jazz" on a page that has it, delete letter by letter: no
+  highlight left when the field is empty. Select all + delete, type again, close Find.
+- [ ] **Translated icon (13):** translate a page: the icon stays, in a filled disc; tap it: the
+  ⋯ menu opens on Translate page; Show original: the icon goes back to normal. Start a download
+  on a translatable page: the ring takes the slot, the icon comes back after the check.
+- [ ] **Web captions (12):** a fullscreen video with subtitle tracks (a plain `<video>` with
+  `<track>`s, a public Commons file with subtitles, an hls.js test page): ⋯ › Captions lists Off
+  + the languages; pick one: text above the bottom pill, lower when the controls hide; Off;
+  leave fullscreen: the page's own captions as before; next video: the same language comes on.
+- [ ] **Web quality (12):** a page whose video has several plain `<source>`s (Commons: does it
+  play a WebM or the DASH stream?): ⋯ › Quality only when a choice exists; switching keeps the
+  time and play / pause. ⋯ › Download video lists the files and saves the one picked.
+- [ ] **Standalone (12):** a downloaded MP4 with two audio tracks: ⋯ › Audio switches the sound.
+  Download a `.srt` (or `.vtt`) with the same name as a downloaded video: it shows at once,
+  ⋯ › Subtitles lists it; Off; Choose a file… with a `.vtt` from the file manager.
+- [ ] **Rotate row (14):** web and standalone, auto-rotate on and off: ⋯ › Rotate turns to the
+  other shape; with auto-rotate on, turning the phone that way then follows the phone again.
+- [ ] **Commons captions:** if they don't show on Commons, item 11 says why (its player may
+  remove the `<track>`s): tell the next session.
+- [ ] Still from before: items 4, 5, 8 (downloads, file manager, Google Images), 6 and 7 (feel),
+  16 (depth), and **Lock private tabs back on** in the real Koan.
+
+### Branch state
+
+```
+b062a27 feat(player): a Rotate row in the ⋯ menu, auto-rotate on or off
+166f4c5 feat(translate): the translate icon stays, filled, on a translated page
+d07dbbf feat(player): Audio and Subtitles in Koan's own player, with .srt / .vtt files
+7731ee6 feat(player): Quality on a page's video, and a file choice for Download video
+78735f2 feat(player): captions on a page's video, from the ⋯ menu
+d58e642 fix(find): an empty Find field leaves no older highlight on the page
+d5a9a4e fix(translate): no translation card on its own while Find in page is open
+2af8410 docs(plans): night plan for the beta.2 items that don't need the owner's hands
+```
+
+Plus this report's commit. Nothing pushed, nothing merged.
+
+To review: `git log --oneline f85e686..beta2-bugs`, `git diff f85e686..beta2-bugs -- app/`, one
+commit at a time with `git show <hash>`. To merge once the checks pass (after the owner's items,
+or now for what's done): `git switch dev && git merge --no-ff beta2-bugs`, then
+`git push origin dev`.
+
+### The phone
+
+POCO: Koan Test has the night's R8 staging build (extension 1.7) with 2–3 extra test tabs on a
+public Commons file page (the ⋯ menu has no "close tab"; close them in the overview). The real
+Koan was not installed over or opened. DND was already on and is left on. Its Wi-Fi was failing
+(airplane mode + Wi-Fi): worth a look.

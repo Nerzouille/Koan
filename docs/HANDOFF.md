@@ -1,27 +1,27 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-20**.
+State of Koan for a session that starts with no context. Last updated **2026-11-25**.
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
 
-- **Current work (2026-11-20): branch `beta2-bugs`** (from `dev` 6975314, local, **not pushed**).
-  Start with `docs/plans/BETA2_BUGS.md` (status, causes, the one-run phone checklist) and
-  `docs/plans/PLAYER_TRACKS.md` (player captions / quality / audio research and approved scope).
-  - Bugs 1–5 and 8 fixed and committed (with JVM tests: full suite 460 green after item 8, then `MissingFilesTest` +3 green; rerun the full suite at the end of the phase); item 5 also greys missing
-    files in Downloads (Download again / Remove from list). **None checked on a phone yet.**
-  - **Next, when the POCO is plugged in:** one staging run of every check in BETA2_BUGS
-    "Phone checks", item 1's kill test first, plus the three player checks (Commons stream vs
-    WebM, Commons `<track>`s kept, Vimeo tracks) with a throwaway staging-only log patch in the
-    video extension (no URLs, never committed); then one checklist for the owner, results into
-    PLAYER_TRACKS.md, and the end-of-phase R8 release build (kill + restore). Checks marked
-    "needs the owner" (downloads, file manager, notification, Google Images) need them holding
-    the phone.
-  - **Waiting for the owner:** OK before coding the player tracks (approved scope: web captions
-    and Quality, standalone audio / subtitles + side files; no web audio); the side-file storage
-    choice A/B/C (PLAYER_TRACKS.md); item 8 fix or drop after the logcat reasons
-    (`KoanPageImage`); item 6 drawer height (two options on the POCO); item 7 dock feel check on
-    a release build.
+- **Current work (2026-11-25): branch `beta2-bugs`** (rebased on `dev` 60a2199, local, **not
+  pushed**). Start with `docs/plans/BETA2_BUGS.md`: its status table and, at the end, the
+  **Night report 2026-11-25** (results, questions, the one hand-test checklist, merge commands).
+  - Done and committed: items 1–5 and 8 (earlier), 9, 10, 12 (web Captions, web Quality + the
+    Download video file choice, standalone Audio / Subtitles with `.srt` / `.vtt` and Choose a
+    file…), 13 (translated icon), 14 (Rotate row). Full suite 493 green. Items 9–14 are
+    untested on a phone.
+  - Not run: item 11 (player checks; the POCO's network failed that night). The probe patch is in
+    `reference/night-2026-11-25/` (gitignored, never commit). The Commons `<track>` fallback waits
+    for it.
+  - Stopped: item 15 (passkey message): Koan gets no callback when a passkey fails; options A/B/C
+    in the report.
+  - **Waiting for the owner:** the night checklist; items 4, 5, 8 (hands on the phone), 6 (#11
+    drawer height), 7 (#9 dock feel, release build), 16 (depth), 15's option; Lock private tabs
+    back on in the real Koan (POCO).
+  - Item 17: R8 staging build, kill and restore OK on the POCO (2026-11-25); the release build
+    from `main` comes with the release steps.
 
 - **Tooling: merged into `dev` 2026-11-16 (PR #15).** See CLAUDE.md
   "Claude Code tooling":

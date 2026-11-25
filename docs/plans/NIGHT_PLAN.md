@@ -23,8 +23,8 @@ in the owner's order, one commit per item, with JVM tests where the logic allows
 
 ## Open questions, decided by default (owner away)
 
-- **Item 14, hide Rotate when auto-rotate is on?** Default: always show it. It's a manual switch
-  that works either way (it's the same switch as the rotate pill). Easy to change in the morning.
+- **Item 14, hide Rotate when auto-rotate is on?** Owner (2026-11-25, when the POCO was plugged in): **always show it**. It's a manual switch
+  that works either way (the same switch as the rotate pill).
 - **Item 12, side files:** option A (approved in BETA2_BUGS: "side files, option A").
 - **Phone not connected at the start of the night.** Phone steps (item 11's checks, the R8 kill and
   restore) run only if the POCO shows up in `adb devices`; otherwise they're listed as not done.
@@ -53,4 +53,8 @@ in the owner's order, one commit per item, with JVM tests where the logic allows
 
 ## Night report
 
-See `docs/plans/BETA2_BUGS.md` › Night report 2026-11-25 (the owner asked for it there).
+The full report (status per item, tests, what's untested, questions, the hand-test checklist,
+branch state, merge commands, the phone) is in `docs/plans/BETA2_BUGS.md` › Night report
+2026-11-25, where the owner asked for it. In short: 9, 10, 12, 13, 14 done (7 commits, 493 JVM
+tests green); 11 not run (the phone's network failed); 15 stopped (Koan never sees a passkey
+failure: options A/B/C for the owner); 17 partly done (R8 staging build, kill and restore OK).
