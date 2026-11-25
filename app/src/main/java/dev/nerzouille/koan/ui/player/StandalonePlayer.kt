@@ -56,6 +56,8 @@ class StandaloneActions(
     val pip: () -> Unit,
     /** Settings › Picture-in-picture, from the ⋯ menu. */
     val setPipOnLeave: (Boolean) -> Unit = {},
+    /** Subtitle files next to the video (content address, file name). Reads the disk: off the main thread. */
+    val subtitleFiles: () -> List<Pair<String, String>> = { emptyList() },
 )
 
 /**
@@ -77,6 +79,29 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
     }
     val noMotion = remember { animationsOff(context) }
     val st = native.state
+    var notice by remember { mutableStateOf<PlayerNotice?>(null) }
+    var noticeSerial by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    // Subtitles: a file with the video's name next to it, shown at once.
+    LaunchedEffect(native) {
+        val found = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            clearSubtitleCache(context)
+            actions.subtitleFiles().firstNotNullOfOrNull { (uri, name) -> subtitleFile(context, uri, name)?.let { it to name } }
+        }
+        found?.let { (path, name) -> native.addSubtitles(path, name) }
+    }
+    // ⋯ › Subtitles › Choose a file… (the system picker: no storage permission).
+    val pickSubtitles = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val name = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { displayName(context, uri) } ?: "Subtitles"
+            val path = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { subtitleFile(context, uri.toString(), name) }
+            if (path != null) {
+                native.addSubtitles(path, name)
+            } else {
+                notice = PlayerNotice("Not a subtitle file", "Koan reads .srt and .vtt files", error = true, serial = ++noticeSerial)
+            }
+        }
+    }
     LaunchedEffect(st.playing, st.width, st.height) {
         onPlaying(st.playing, if (st.width > 0 && st.height > 0) st.width to st.height else null)
     }
@@ -182,7 +207,24 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 modifier = Modifier.align(Alignment.Center),
             )
         }
-        val rows = remember(video.mode, video.download, actions, native, pipOnLeave) { listOf(pipOnLeaveRow(pipOnLeave, actions.setPipOnLeave)) + when (video.mode) {
+        // Audio and Subtitles: only with a real choice (Subtitles always has Choose a file…).
+        val audio = native.audioTracks
+        val texts = native.textTracks
+        val trackRows = listOfNotNull(
+            choiceRow(
+                KoanIcons.Volume, "Audio",
+                audioChoices(audio.map { it.info }, audio.indexOfFirst { it.index == native.audioSelected }, { i -> native.selectAudio(audio[i].index) }),
+            ),
+            subtitlesRow(
+                texts.map { it.info }, texts.indexOfFirst { it.index == native.textSelected },
+                pick = { i -> native.selectText(texts.getOrNull(i)?.index ?: -1) },
+                chooseFile = {
+                    native.pause()
+                    runCatching { pickSubtitles.launch(arrayOf("application/x-subrip", "application/x-srt", "text/srt", "text/vtt", "text/plain", "application/octet-stream")) }
+                },
+            ),
+        )
+        val rows = trackRows + remember(video.mode, video.download, actions, native, pipOnLeave) { listOf(pipOnLeaveRow(pipOnLeave, actions.setPipOnLeave)) + when (video.mode) {
             PlayerMode.File -> listOf(
                 MenuRow(KoanIcons.Share, "Share") { actions.share() },
                 MenuRow(KoanIcons.Open, "Open with another app") { native.pause(); actions.openWith() },
@@ -211,6 +253,8 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
             },
             hidden = inPip || closing || early,
             modifier = Modifier.graphicsLayer { alpha = if (closing) 0f else 1f },
+            notice = notice,
+            caption = native.caption.takeIf { native.textSelected >= 0 },
         )
         if (confirmDelete) {
             DeleteCard(

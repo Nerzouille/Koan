@@ -21,7 +21,9 @@ fun trackLabel(t: TrackInfo, index: Int, locale: Locale = Locale.getDefault()): 
 internal fun languageLabel(code: String, locale: Locale = Locale.getDefault()): String? {
     val c = code.trim()
     if (c.isEmpty() || c.equals("und", ignoreCase = true)) return null
-    val name = Locale.forLanguageTag(c).getDisplayName(locale)
+    // MediaPlayer gives three-letter codes ("eng"): their two-letter code when there is one.
+    val two = if (c.length == 3) TWO_LETTER[c.lowercase()] ?: c else c
+    val name = Locale.forLanguageTag(two).getDisplayName(locale)
     if (name.isBlank() || name.equals(c, ignoreCase = true)) return null
     return name.replaceFirstChar { it.titlecase(locale) }
 }
@@ -35,6 +37,15 @@ fun captionChoices(tracks: List<TrackInfo>, selected: Int, pick: (Int) -> Unit, 
     return listOf(MenuChoice("Off", selected !in tracks.indices) { pick(-1) }) +
         tracks.mapIndexed { i, t -> MenuChoice(trackLabel(t, i, locale), i == selected) { pick(i) } }
 }
+
+/** Subtitles (standalone): Off, each track, then "Choose a file…"; always a row. */
+fun subtitlesRow(tracks: List<TrackInfo>, selected: Int, pick: (Int) -> Unit, chooseFile: () -> Unit, locale: Locale = Locale.getDefault()): MenuRow {
+    val choices = (if (tracks.isEmpty()) listOf(MenuChoice("Off", true) { pick(-1) }) else captionChoices(tracks, selected, pick, locale)) +
+        MenuChoice(CHOOSE_FILE, false, chooseFile)
+    return MenuRow(dev.nerzouille.koan.ui.icons.KoanIcons.Captions, "Subtitles", value = choices.firstOrNull { it.selected }?.label, choices = choices)
+}
+
+const val CHOOSE_FILE = "Choose a file…"
 
 /** Audio: each track, [selected] checked; empty with fewer than two (no row). */
 fun audioChoices(tracks: List<TrackInfo>, selected: Int, pick: (Int) -> Unit, locale: Locale = Locale.getDefault()): List<MenuChoice> {
@@ -50,4 +61,10 @@ fun rememberedTrack(tracks: List<TrackInfo>, current: Int, remembered: String?):
     if (current >= 0 || remembered.isNullOrEmpty()) return -1
     val want = remembered.substringBefore('-').lowercase()
     return tracks.indexOfFirst { it.language.substringBefore('-').lowercase() == want }
+}
+
+private val TWO_LETTER: Map<String, String> by lazy {
+    Locale.getISOLanguages().mapNotNull { two -> runCatching { Locale.forLanguageTag(two).isO3Language to two }.getOrNull() }.toMap() +
+        // Bibliographic codes that differ from the terminology ones Java knows.
+        mapOf("fre" to "fr", "ger" to "de", "chi" to "zh", "dut" to "nl", "gre" to "el", "per" to "fa", "cze" to "cs", "rum" to "ro", "slo" to "sk", "arm" to "hy", "baq" to "eu", "bur" to "my", "geo" to "ka", "ice" to "is", "mac" to "mk", "mao" to "mi", "may" to "ms", "tib" to "bo", "wel" to "cy", "alb" to "sq")
 }

@@ -39,6 +39,13 @@ class Downloads(
     fun uri(download: DownloadState): String? =
         files.findShareableDownloadFileUri(download.fileName, download.directoryPath)?.toString()
 
+    /**
+     * The content:// address of another file [name] in the folder of [download] (its subtitles),
+     * when Koan can read it; null otherwise. Reads the disk: off the main thread.
+     */
+    fun sibling(download: DownloadState, name: String): String? =
+        runCatching { files.findShareableDownloadFileUri(name, download.directoryPath)?.toString() }.getOrNull()
+
     fun share(download: DownloadState): Boolean {
         val uri = files.findShareableDownloadFileUri(download.fileName, download.directoryPath) ?: return false
         val send = Intent(Intent.ACTION_SEND)

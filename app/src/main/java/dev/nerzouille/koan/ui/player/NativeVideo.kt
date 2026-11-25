@@ -12,13 +12,15 @@ import android.os.SystemClock
 import android.view.Surface
 import android.view.TextureView
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 /**
  * Koan's own video (the standalone player): the platform MediaPlayer on a TextureView (so it
  * moves and clips with the UI). mp4 / webm / mkv, from a content:// file or an http(s) address.
- * Main thread only.
+ * Its audio and timed-text tracks (embedded, or a SubRip file added with [addSubtitles]) for the
+ * ⋯ menu's Audio and Subtitles. Main thread only.
  */
 class NativeVideo(private val context: Context, private val uri: String) : PlayerControls {
     var state by mutableStateOf(PlayerState(paused = false, waiting = true, at = SystemClock.uptimeMillis()))
@@ -35,7 +37,25 @@ class NativeVideo(private val context: Context, private val uri: String) : Playe
             applyTransform()
         }
 
+    /** The file's audio tracks and its timed-text tracks (embedded, then added files). */
+    var audioTracks by mutableStateOf(emptyList<NativeTrack>())
+        private set
+    var textTracks by mutableStateOf(emptyList<NativeTrack>())
+        private set
+
+    /** The playing audio track and the shown text track (MediaPlayer's indexes), -1: none. */
+    var audioSelected by mutableIntStateOf(-1)
+        private set
+    var textSelected by mutableIntStateOf(-1)
+        private set
+
+    /** The shown text track's current line(s); null: nothing on screen. */
+    var caption by mutableStateOf<String?>(null)
+        private set
+
     private val player = MediaPlayer()
+    private val addedLabels = HashMap<Int, String>() // track index → the added file's name
+    private val pendingSubtitles = ArrayList<Pair<String, String>>() // path, label (before prepared)
     private var prepared = false
     private var wantPlay = true
     private var view: TextureView? = null
@@ -55,6 +75,8 @@ class NativeVideo(private val context: Context, private val uri: String) : Playe
         player.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build())
         player.setOnPreparedListener {
             prepared = true
+            readTracks()
+            pendingSubtitles.toList().also { pendingSubtitles.clear() }.forEach { (path, label) -> addSubtitles(path, label) }
             applyTransform()
             if (wantPlay) runCatching { it.start() }
             update()
@@ -79,6 +101,7 @@ class NativeVideo(private val context: Context, private val uri: String) : Playe
             true
         }
         player.setOnSeekCompleteListener { update() }
+        player.setOnTimedTextListener { _, text -> caption = text?.text?.trim()?.takeIf { it.isNotEmpty() } }
         runCatching {
             player.setDataSource(context, Uri.parse(uri))
             player.prepareAsync()
@@ -200,6 +223,54 @@ class NativeVideo(private val context: Context, private val uri: String) : Playe
         update()
     }
 
+    private fun readTracks() {
+        val info = runCatching { player.trackInfo }.getOrNull() ?: return
+        fun of(type: Int) = info.withIndex().filter { it.value.trackType == type }.map { (i, t) ->
+            NativeTrack(i, TrackInfo(addedLabels[i].orEmpty(), t.language.orEmpty()))
+        }
+        audioTracks = of(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO)
+        textTracks = of(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT)
+        audioSelected = runCatching { player.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO) }.getOrDefault(-1)
+        textSelected = runCatching { player.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT) }.getOrDefault(-1)
+    }
+
+    /** Plays the audio track [index] (one of [audioTracks]). */
+    fun selectAudio(index: Int) {
+        if (!prepared || audioTracks.none { it.index == index }) return
+        runCatching { player.selectTrack(index) }
+        readTracks()
+    }
+
+    /** Shows the text track [index] (one of [textTracks]); -1: none. */
+    fun selectText(index: Int) {
+        if (!prepared) return
+        if (index < 0) {
+            if (textSelected >= 0) runCatching { player.deselectTrack(textSelected) }
+        } else if (textTracks.any { it.index == index }) {
+            runCatching { player.selectTrack(index) }
+        }
+        caption = null
+        readTracks()
+        // Some players keep the index after a deselect: Off is Off.
+        if (index < 0) textSelected = -1
+    }
+
+    /** Adds a SubRip file ([path], on this phone) as a text track named [label], and shows it. */
+    fun addSubtitles(path: String, label: String) {
+        if (!prepared) {
+            pendingSubtitles += path to label
+            return
+        }
+        val before = runCatching { player.trackInfo.size }.getOrDefault(-1)
+        if (before < 0) return
+        val added = runCatching { player.addTimedTextSource(path, MediaPlayer.MEDIA_MIMETYPE_TEXT_SUBRIP) }.isSuccess
+        if (!added) return
+        val after = runCatching { player.trackInfo.size }.getOrDefault(before)
+        if (after > before) addedLabels[after - 1] = label
+        readTracks()
+        if (after > before) selectText(after - 1)
+    }
+
     fun release() {
         main.removeCallbacks(tick)
         runCatching { player.stop() }
@@ -209,3 +280,6 @@ class NativeVideo(private val context: Context, private val uri: String) : Playe
         view = null
     }
 }
+
+/** One of the file's tracks: [index] in MediaPlayer's track list. */
+data class NativeTrack(val index: Int, val info: TrackInfo)

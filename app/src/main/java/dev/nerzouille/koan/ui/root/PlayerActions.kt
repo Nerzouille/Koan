@@ -69,6 +69,16 @@ internal fun standaloneActions(
             context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
         },
         pip = { components.pip.value?.enterNow() },
+        // A downloaded video's subtitles: the same name, .srt or .vtt, in its folder.
+        subtitleFiles = {
+            val d = download
+            if (d == null) {
+                emptyList()
+            } else {
+                dev.nerzouille.koan.ui.player.sideSubtitleNames(d.fileName.orEmpty())
+                    .mapNotNull { name -> components.downloads.sibling(d, name)?.let { it to name } }
+            }
+        },
         setPipOnLeave = { on -> components.appScope.launch { components.settings.setPictureInPicture(on) } },
     )
 }
