@@ -88,13 +88,13 @@ Rules (docs/UI_SPEC.md "Themes", "Visual restraint"):
 | `CardHairline` | `#1C1C301A` | `#FFFFFF1F` | 1dp line all around a stack card, drawn over its depth dim so back cards keep their edge. |
 | `CardRim` | — (transparent) | `#FFFFFF1A` | Dark only: 1dp light line inside a stack card's top edge. |
 | `SyncDot` | `#C0841AFF` | `#E8B45AFF` | The overview header's "sync failed" dot. |
-| `DimColor` | `#F5F5F7FF` | `#000000FF` | What back cards fade towards (light: Base, a haze; dark: black). |
+| `DimColor` | `#B9B9C2FF` | `#121214FF` | What back cards recede into (depth cue A, owner 2026-11-26): light, a grey a step darker than Base; dark, Base itself. |
 | `PrivateAccent`, `PrivatePill`, `PrivateInk` | — | — | Set only in the private palettes (see below). |
 
 Private mode has two more palettes, `KoanPalette.Dusk` (light theme) and `KoanPalette.Night` (dark
 theme), with the same fields; their main values are in **3.B › Private mode**. For example
 `PrivateAccent` `#4B3FD6` / `#9C8CFF`, `PrivatePill` `#4B3FD629` / `#9C8CFF33`, `PrivateInk`
-`#2E2399` / `#CFC6FF`, `DimColor` `#DEDAF0` / `#050412`.
+`#2E2399` / `#CFC6FF`, `DimColor` `#B4AED0` / `#110F24` (Night's Base).
 
 #### Contrast
 
@@ -281,7 +281,7 @@ that can't be made light stays a quick fade.
 | `Motion.TabSwipe` | 0.9 | 400 | Page view: the swiped page sliding out, the neighbour tab sliding in (or back). |
 | `Motion.ScrubHighlight` | 0.85 | 900 | Page view space scrub: the highlight springing to the space under the finger. |
 | `Motion.FolderChevron` | 0.85 | 600 |  |
-| `BarTokens.SearchMorph` | 0.9 | 420 | The dock's pill opening into the search field (its background clipped from the pill's bounds to the field's, the side buttons stepping aside `SearchMorphStep` 24 dp, the field's contents in over the second half), and back. |
+| `BarTokens.SearchMorph` | 0.9 | 420 | Fallback only: the search morph follows the keyboard's own slide (`KeyboardSlide`, WindowInsetsAnimation); this spring runs when no keyboard comes within `SEARCH_KEYBOARD_WAIT_MS` 600 ms (a hardware keyboard). The morph: one shape, drawn once by the field, from the pill's bounds to the field's while the dock rises with the keyboard (a layer translation, `keyboardRise`); its ring fades in, the host cross-fades into the address, the side buttons step aside `SearchMorphStep` 24 dp. Back is the reverse, following the keyboard down. |
 | `Motion.SheetPush` | 1 | 520 | A page pushed into a sheet sliding in, or popped. |
 | `Motion.Toast` | 1 | 700 | The bottom toast rising in and sinking away. |
 | `Motion.Sheet` | 1 | 380 | Full-screen sheets (sign-in) sliding up and down. |
@@ -862,9 +862,9 @@ Palette tokens used in this file (resolved once):
 | Skeleton | black @ 0.06 | white @ 0.07 |
 | IconBacking | Unspecified (never used) | #E9E9EE |
 | Attention | #8A5C00 | #E8B45A |
-| DimToBase | true (back cards haze towards Base) | false (they darken towards black) |
-| DimGain | 1.25 | 1.0 |
-| DimMax | 0.60 | 0.80 |
+| DimToBase | true | false (unused since depth cue A) |
+| DimGain | 1.1 | 1.4 |
+| DimMax | 0.62 | 0.85 |
 | CardElevation | 12dp | 20dp |
 | CardShadowColor | #1C1C30 @ 0.14 | black @ 0.60 |
 | ContactShadow | #1C1C30 @ 0.18 | black @ 0.65 |
@@ -908,14 +908,14 @@ Parameters: r = `R` = 0.45, r_s = `SCALE_R` = 0.52, sMin = `S_MIN` = 0.58, `PEEK
 | dim (overlay alpha on thumbnail) | keyframes `Dim`, linear between integer d | 0.12·(−d) | 0.12 | DepthCurve.kt |
 | blur radius (dp) | keyframes `BlurDp` (0 at d ≤ 0) | 0 | 0 | DepthCurve.kt |
 | card alpha | keyframes `Alpha` | 1 | 1 | DepthCurve.kt |
-| header dim | min(dim × 0.5, 0.2) | same | same | DepthCurve.kt, `StackTokens.HEADER_DIM_MAX` |
+| header dim | the card's dim (header and thumbnail recede alike, cue A) | same | same | TabCard.kt |
 | ✕ alpha | clamp(1 − 2·abs(d), 0, 1) | same | same | TabCard.kt |
 
 Keyframes at d = 0, 1, 2, … joined linearly and held at the last value (`DepthCurve.kt`):
-- `Dim` = [0, 0.16, 0.28, 0.38, 0.48, 0.58, 0.66]. Effective dim = min(dim × DimGain, DimMax) → Light ×1.25 capped 0.60, Dark ×1.0 capped 0.80 (`TabCard.kt`). Overlay colour: Light = `Base` (haze), Dark = black (`DepthStack.kt`).
+- `Dim` = [0, 0.16, 0.28, 0.38, 0.48, 0.58, 0.66]. Effective dim = min(dim × DimGain, DimMax) → Light ×1.1 capped 0.62, Dark ×1.4 capped 0.85 (`TabCard.kt`). Overlay colour `DimColor`: Light `#B9B9C2`, Dark `#121214` = Base, so the pile melts into the background (depth cue A, owner 2026-11-26; `DepthStack.kt`).
 - `BlurDp` = [0, 0, 0, 0.9, 1.9, 2.9, 4.0] dp; quantised to 0.5dp steps (`DepthStack.kt`). Only a top slice of 512px of the thumbnail is blurred (`CardTokens.BLUR_SLICE_PX`, `TabCard.kt`). Without live blur (Android 11) or before baked copies exist, an extra dim of `NO_BLUR_DIM` 0.22 × (blurDp/4dp) is added instead (`TabCard.kt`).
 - `Alpha` = [1, 1, 1, 1, 1, 0.85, 0.6, 0.3, 0] → cards fade from d = 5 and are invisible at d = 8 (`MAX_VISIBLE_D` = 8, DepthCurve.kt). In front, cards are invisible below d = −2 (`MIN_VISIBLE_D`, DepthCurve.kt). Invisible cards get alpha 0 and are not hit-tested.
-- Header dim: the result is then also × DimGain capped DimMax (`TabCard.kt`), so the header strip is dimmed at most 0.20 in Dark and 0.25 in Light.
+- Header dim: the same value as the thumbnail's (`TabCard.kt`): the whole card recedes.
 
 Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.639, d=4 0.611; rise d=1 0.55, d=2 0.798, d=3 0.909, d=4 0.959.
 
@@ -1109,7 +1109,7 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 **Purpose:** a cheap stand-in for a neighbour space's page before it is composed for real, so a swipe never pops a page in.
 
-**Anatomy** (`OV/GhostSpace.kt`): the real `SpaceHeader`, then one canvas drawing the stack at rest with the same frame: for each integer depth from min(focus, 8) down to −1 (−1 only if a card exists in front): card rect in `Card` × the depth alpha, scaled per `DepthCurve.scale`, corner 28dp × scale; the focused card's screenshot only if already in memory; header band `CardStrip` (44dp × scale); dim overlay (`Base` in Light, black in Dark, depth dim × DimGain capped DimMax); 1dp `CardBorder` outline. No favicons, titles, blur or contact shadows. Hidden while the page ↔ overview hero is flying (`GhostSpace.kt`). Same parallax as the real page.
+**Anatomy** (`OV/GhostSpace.kt`): the real `SpaceHeader`, then one canvas drawing the stack at rest with the same frame: for each integer depth from min(focus, 8) down to −1 (−1 only if a card exists in front): card rect in `Card` × the depth alpha, scaled per `DepthCurve.scale`, corner 28dp × scale; the focused card's screenshot only if already in memory; header band `CardStrip` (44dp × scale); dim overlay (`DimColor`, depth dim × DimGain capped DimMax); 1dp `CardBorder` outline. No favicons, titles, blur or contact shadows. Hidden while the page ↔ overview hero is flying (`GhostSpace.kt`). Same parallax as the real page.
 
 **States:** shown, then faded out under the real page (160ms).
 
@@ -1258,7 +1258,7 @@ cover, atmosphere, the flip driver), `privacy/` (private tabs, vault, engine set
 full table is in the spec §5.1. Main values: Base `#DEDAF0` / `#110F24`, Card `#FFFFFF` /
 `#1E1C38`, Dock `#F6F4FD` / `#18162F`, text `#17142E` / white, `PrivateAccent` `#4B3FD6` /
 `#9C8CFF`, `PrivatePill` accent at 16% / 20%, `PrivateInk` `#2E2399` / `#CFC6FF`. Stack dim to
-`DimColor` (`#DEDAF0` haze, gain 1.25, max 0.85 / `#050412`, gain 1.0, max 1.0: the normal stack's v0.4.0 values, owner 2026-11-12). Settings, History,
+`DimColor` (`#B4AED0`, gain 1.1, max 0.62 / `#110F24`, gain 1.4, max 0.85: the normal stack's depth cue A values, owner 2026-11-26). Settings, History,
 Downloads and the ⋯ sheet keep the normal palette (`KoanNormalTheme`).
 
 **Toggle** (`PrivateTokens`): 56×48 touch, 56×32 track (radius 16), 26dp white knob at x 3 → 27dp,

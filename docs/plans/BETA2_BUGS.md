@@ -35,14 +35,14 @@ the owner's wording of each feature.
 | 13 | Translate icon stays active after translating; download ring shares its slot | **Done (night).** `TranslateCue.Active`, filled disc, tap = ⋯ › Translate page; ring slot was already there, now `pillEndSlot` + `PillEndTest`. | 166f4c5 | No (checks below) |
 | 14 | Rotate row in the player's ⋯ menu | **Done.** Only with auto-rotate off, like the pill (owner, 2026-11-26). | b062a27, 83a76b2 | No |
 | 15 | Passkey failure message | **Done as option C (owner):** a Known limitation in FEATURES, no code. | 35a2398 | No |
-| 16 | Depth cue (A, B, C or A + B) | **Captured (2026-11-26):** `reference/beta2-choices/depth-cue-light.png` and `-dark.png` (as built, A, B, C, A+B). Prototype on the local branch `capture-proto`. | none | **Yes:** picks from the captures |
+| 16 | Depth cue (A, B, C or A + B) | **Done: A (owner, 2026-11-26), stronger in dark towards #121214.** Back cards, header and thumbnail alike, recede into `DimColor`: light `#B9B9C2` (×1.1, max 0.62), dark `#121214` = Base (×1.4, max 0.85); Private the same on its own bases. `DepthDimTest`. Capture: `reference/beta2-choices/depth-A-dark-final.png`. | see Day run 2 | No (light check by hand) |
 | 17 | End of phase: R8 release build, kill and restore | **Partly done (night):** full suite 493 green; R8 **staging** build (Koan Test) launched, `am kill` in the background, restored on the same tab, no crash. The R8 build of the real app id and the release from `main` wait for the release steps. | none | No |
 
 **Also needs the owner:** Lock private tabs is **off** in the POCO's real Koan (turned off for the
 kill tests, which are done): remind the owner to turn Settings › Lock private tabs back on.
 
 **Needs the owner, in short:** items 4, 5, 8 (their hands on the phone), 6 (#11 drawer height:
-picks an option), 7 (#9 dock feel, release build), 16 (depth choice), Lock private tabs back on.
+picks an option), 7 (#9 dock feel, release build), Lock private tabs back on.
 Everything else can run alone.
 
 Last full JVM run: 460 green after item 8, then `MissingFilesTest` +3. Rerun the full suite after
@@ -491,7 +491,7 @@ computer through `adb reverse` (the POCO's VPN was off: no public pages). Commit
 ### Questions for the owner
 
 1. Drawer (#11): A (tallest space) or B (always full)? Change `DrawerTokens.PAGE_HEIGHT` if B.
-2. Depth cue: as built, A, B, C or A + B (captures above)?
+2. Depth cue: answered, A (Day run 2).
 3. Dock dead zone: is 28 dp right on the release build?
 4. Payments: start with "return to the same tab" after beta.2?
 
@@ -502,8 +502,9 @@ Koan Test already has the latest build (R8). Your real Koan has not been touched
 - [ ] **Search typing:** type fast in the search field on a site you've visited (inline
   completion shows): every letter stays. Backspace removes the grey completion first; Go opens
   the completed address; tapping in the text takes the completion in.
-- [ ] **Search morph:** tap the pill: it opens into the field above the keyboard; Back: it closes
-  back into the pill. Watch for a flash or a jump (release build, both phones).
+- [ ] **Search morph (rebuilt, Day run 2):** tap the pill: it rises with the keyboard and grows
+  into the field in the same motion; Back: the reverse, down with the keyboard. Watch for a flash
+  or a step back (release build, both phones; on the Xiaomi, HyperOS's keyboard slide).
 - [ ] **Dock (#9):** on a long page, scroll down, then a tiny scroll up or a tap: the dock stays
   away; a real scroll up brings it. Tune `PageTokens.DockDeadZone` if needed.
 - [ ] **Drawer (#11):** with your spaces (very different pinned counts), swipe between spaces in
@@ -560,3 +561,31 @@ captures), ten local demo tabs ("Coral Bay"…"Night Owl", made-up pages, now un
 demo server is stopped) and the earlier Commons test tabs; one demo tab was closed by a test.
 `adb reverse` removed, the prototype's switch file deleted, DND left as found (on). The real Koan
 was not touched.
+
+## Day run 2 (2026-11-26, owner's feedback on the morph and the depth pick)
+
+1. **Search morph, rebuilt.** The first version was a relay: a spring of its own ran before the
+   keyboard came, so the field widened, its ring showed, it shrank back to the pill, the address
+   appeared and only then did it rise. Now:
+   - **One shape.** The field draws the only background, from the pill's bounds to its own; the
+     pill draws none while the field is there. The ring fades in with the shape (the "@" ring
+     takes over only once it has landed).
+   - **Driven by the keyboard.** `KeyboardSlide` reads the keyboard's own slide (the system's
+     WindowInsetsAnimation, through Compose's insets) in layers: the morph's value is how far up
+     the keyboard is. The dock rises with it as a layer translation (`keyboardRise`): it leaves on
+     the slide's first frame and lands with the keyboard (no relayout per frame any more). No
+     keyboard within 600 ms (a hardware one): the old spring.
+   - **Cross-fade.** The host fades out while the address fades in, over the whole motion, riding
+     the shape's left edge; back and tabs / ⋯ fade and step aside at the same time, ✕ comes in.
+   - Back is the reverse, following the keyboard down.
+   - `KeyboardSlideTest` (the dock never below the keyboard's top, leaves on the first frame; the
+     shape only grows on the way up).
+   - **Checked frame by frame** on Koan Test (R8, POCO, 120 Hz screenrecord): opening, the
+     keyboard slides in ~6 frames there and each frame is a blend (shape between the pill and the
+     field, both texts at partial alpha, buttons half faded); closing, ~24 frames, the same in
+     reverse; no frame steps back to a smaller or larger size. Files:
+     `reference/beta2-choices/search-morph.mp4` (full rate), `search-morph-slow4x.mp4`,
+     `search-morph-open-frames.png`.
+2. **Depth cue A** only (B dropped), stronger in dark: see item 16. Checked in dark on Koan Test;
+   light is unchanged from the A capture.
+3. End checks: full JVM suite **512 green**; detekt passes; lint has no new errors.
