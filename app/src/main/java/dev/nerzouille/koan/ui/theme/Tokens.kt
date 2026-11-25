@@ -870,6 +870,13 @@ object BarTokens {
         androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 500f)
     const val TRANSLATE_OUT_MS = 140
 
+    /** The search morph: the dock's pill opening into the search field, and back (AddressRow). */
+    val SearchMorph: androidx.compose.animation.core.SpringSpec<Float> =
+        androidx.compose.animation.core.spring(dampingRatio = 0.9f, stiffness = 420f)
+
+    /** How far the buttons beside the pill step aside while it opens (and the ✕ comes in). */
+    val SearchMorphStep = 24.dp
+
     val BottomMargin = 6.dp
     val AddressRowHeight = 68.dp
     val SwitcherRowHeight = 60.dp

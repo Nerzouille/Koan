@@ -70,6 +70,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -212,54 +214,89 @@ fun AddressRow(
 ) {
     val pageOnly = Modifier.graphicsLayer { alpha = 1f - overview() }
     val overviewOnly = Modifier.graphicsLayer { alpha = overview() }
-    Row(
-        modifier
-            .fillMaxWidth()
-            .padding(horizontal = BarTokens.RowPadding),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(BarTokens.RowGap),
-    ) {
-        if (find != null && !editing && !overviewOpen) {
-            FindBar(find, Modifier.weight(1f))
-        } else if (editing) {
-            AddressInput(
-                initial = if (page.url == "about:blank") "" else page.url,
-                field = search,
-                complete = complete,
-                completedTitle = completedTitle,
-                onSubmit = onSubmit,
-                onCancel = { onEditingChange(false) },
-                modifier = Modifier.weight(1f),
-            )
-        } else {
-            Box {
-                BarIcon(KoanIcons.Back, enabled = page.canGoBack, interactive = !overviewOpen, onClick = onBack, modifier = pageOnly, onHold = onBackMenu)
-                BarIcon(KoanIcons.History, interactive = overviewOpen, onClick = onHistory, modifier = overviewOnly, onHold = onRecentlyClosed)
+    // The search morph: the pill opens into the search field (its background grows from the
+    // pill's bounds to the field's, the buttons beside it step aside) and closes back into it.
+    // One value, read in layers only; the two rows overlap only while it moves.
+    val edit = remember { Animatable(if (editing) 1f else 0f) }
+    val still = rememberAnimationsOff()
+    LaunchedEffect(editing) {
+        val goal = if (editing) 1f else 0f
+        if (still) edit.snapTo(goal) else edit.animateTo(goal, BarTokens.SearchMorph)
+    }
+    val fieldShown by remember { derivedStateOf { edit.value > 0f } }
+    val pillShown by remember { derivedStateOf { edit.value < 1f } }
+    val pillBounds = remember { arrayOf(androidx.compose.ui.geometry.Rect.Zero) }
+    val stepPx = with(LocalDensity.current) { BarTokens.SearchMorphStep.toPx() }
+    val rowModifier = Modifier.fillMaxWidth().padding(horizontal = BarTokens.RowPadding)
+    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+        if (find != null && !editing && !fieldShown && !overviewOpen) {
+            Row(rowModifier, verticalAlignment = Alignment.CenterVertically) { FindBar(find, Modifier.weight(1f)) }
+            return@Box
+        }
+        if (editing || fieldShown) {
+            Row(rowModifier, verticalAlignment = Alignment.CenterVertically) {
+                AddressInput(
+                    initial = if (page.url == "about:blank") "" else page.url,
+                    field = search,
+                    complete = complete,
+                    completedTitle = completedTitle,
+                    onSubmit = onSubmit,
+                    onCancel = { onEditingChange(false) },
+                    modifier = Modifier.weight(1f),
+                    active = editing,
+                    morph = { edit.value },
+                    from = { pillBounds[0] },
+                )
             }
-            AddressField(
-                page = page,
-                overview = overview,
-                swipe = swipe,
-                previous = previous,
-                next = next,
-                shownUrl = shownUrl,
-                space = space,
-                download = if (overviewOpen) null else download,
-                downloadDone = !overviewOpen && downloadDone,
-                onDownloads = onDownloads,
-                translate = !overviewOpen && translate,
-                translateActive = translateActive,
-                onTranslate = onTranslate,
-                onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
-                onPress = pillPressed,
-                modifier = Modifier.weight(1f),
-                private = private,
-                flip = flip,
-            )
-            Box(Modifier.flipTextDip(flip)) { TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu) }
-            Box {
-                BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
-                BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
+        }
+        if (!editing || pillShown) {
+            val aside = Modifier.graphicsLayer {
+                alpha = 1f - edit.value
+                translationX = -stepPx * edit.value
+            }
+            val asideEnd = Modifier.graphicsLayer {
+                alpha = 1f - edit.value
+                translationX = stepPx * edit.value
+            }
+            Row(
+                rowModifier,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(BarTokens.RowGap),
+            ) {
+                Box(aside) {
+                    BarIcon(KoanIcons.Back, enabled = page.canGoBack, interactive = !overviewOpen, onClick = onBack, modifier = pageOnly, onHold = onBackMenu)
+                    BarIcon(KoanIcons.History, interactive = overviewOpen, onClick = onHistory, modifier = overviewOnly, onHold = onRecentlyClosed)
+                }
+                AddressField(
+                    page = page,
+                    overview = overview,
+                    swipe = swipe,
+                    previous = previous,
+                    next = next,
+                    shownUrl = shownUrl,
+                    space = space,
+                    download = if (overviewOpen) null else download,
+                    downloadDone = !overviewOpen && downloadDone,
+                    onDownloads = onDownloads,
+                    translate = !overviewOpen && translate,
+                    translateActive = translateActive,
+                    onTranslate = onTranslate,
+                    onClick = { if (overviewOpen) onSearchFromOverview() else onEditingChange(true) },
+                    onPress = pillPressed,
+                    modifier = Modifier
+                        .weight(1f)
+                        .onGloballyPositioned { pillBounds[0] = it.boundsInRoot() }
+                        .graphicsLayer { alpha = 1f - edit.value },
+                    private = private,
+                    flip = flip,
+                )
+                Box(Modifier.flipTextDip(flip).then(asideEnd)) {
+                    TabsButton(count = tabCount, onClick = onTabs, onHold = if (overviewOpen) null else onTabsMenu)
+                }
+                Box(asideEnd) {
+                    BarIcon(KoanIcons.More, interactive = !overviewOpen, onClick = onMenu, modifier = pageOnly, onHold = onSettings)
+                    BarIcon(KoanIcons.Settings, interactive = overviewOpen, onClick = onSettings, modifier = overviewOnly)
+                }
             }
         }
     }
@@ -578,9 +615,18 @@ private fun AddressInput(
     onSubmit: (String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    /** False while it closes back into the pill: it lets the focus (and the keyboard) go at once. */
+    active: Boolean = true,
+    /** The search morph, 0 (the pill) to 1 (the field); read in layers only. */
+    morph: () -> Float = { 1f },
+    /** The pill's bounds in the root, where the field's background grows from. */
+    from: () -> androidx.compose.ui.geometry.Rect = { androidx.compose.ui.geometry.Rect.Zero },
 ) {
     // Editing starts on the page's address, all selected (set before the first frame).
     remember { field.start(initial); true }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    LaunchedEffect(active) { if (!active) focusManager.clearFocus() }
+    val fieldBounds = remember { arrayOf(androidx.compose.ui.geometry.Rect.Zero) }
     val value = field.value
     val completion = field.completion
     val focusRequester = remember { FocusRequester() }
@@ -613,14 +659,26 @@ private fun AddressInput(
             Modifier
                 .weight(1f)
                 .height(BarTokens.FieldHeight)
+                .onGloballyPositioned { fieldBounds[0] = it.boundsInRoot() }
+                .graphicsLayer {
+                    // Grows from the pill: a rounded clip from its bounds to the field's.
+                    val t = morph()
+                    val pill = from()
+                    val own = fieldBounds[0]
+                    clip = t < 1f && pill != androidx.compose.ui.geometry.Rect.Zero && own != androidx.compose.ui.geometry.Rect.Zero
+                    if (clip) shape = morphShape(pill.translate(-own.topLeft), t)
+                }
                 .then(if (focused) Modifier.searchRing(palette.FocusRing, SearchFieldTokens.Ring, flow = { flow.value }, turn = { turn.floatValue }) else Modifier)
                 .clip(CircleShape)
                 .background(palette.BarField)
                 .padding(start = BarTokens.FieldPadding - SearchFieldTokens.GlyphGap / 2, end = BarTokens.FieldPadding),
             contentAlignment = Alignment.CenterStart,
         ) {
-            Icon(KoanIcons.Search, null, tint = palette.FieldHint, modifier = Modifier.size(SearchFieldTokens.Glyph))
-            val textStart = Modifier.padding(start = SearchFieldTokens.Glyph + SearchFieldTokens.GlyphGap)
+            // The field's contents come in over the second half of the morph (the pill's text is
+            // still fading out under them before that).
+            val contents = Modifier.graphicsLayer { alpha = ((morph() - 0.5f) * 2f).coerceIn(0f, 1f) }
+            Icon(KoanIcons.Search, null, tint = palette.FieldHint, modifier = contents.size(SearchFieldTokens.Glyph))
+            val textStart = contents.padding(start = SearchFieldTokens.Glyph + SearchFieldTokens.GlyphGap)
             if (value.text.isEmpty()) {
                 Text(SEARCH_HINT, color = palette.FieldHint, fontSize = BarTokens.FieldTextSize, modifier = textStart)
             }
@@ -710,12 +768,30 @@ private fun AddressInput(
                     },
             )
         }
-        BarIcon(KoanIcons.Close, onClick = onCancel)
+        Box(
+            Modifier.graphicsLayer {
+                alpha = morph()
+                translationX = (1f - morph()) * BarTokens.SearchMorphStep.toPx()
+            },
+        ) { BarIcon(KoanIcons.Close, onClick = onCancel) }
     }
-    BackHandler(onBack = onCancel)
+    BackHandler(enabled = active, onBack = onCancel)
 }
 
-/** Shows " — [title]" after the text (not part of it: the cursor and selection never go there). */
+/** The field's outline at [t]: the pill's rounded bounds ([pill], in the field's coordinates) at 0, the field at 1. */
+private fun morphShape(pill: androidx.compose.ui.geometry.Rect, t: Float) = object : androidx.compose.ui.graphics.Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+        density: androidx.compose.ui.unit.Density,
+    ): androidx.compose.ui.graphics.Outline {
+        val r = androidx.compose.ui.geometry.lerp(pill, androidx.compose.ui.geometry.Rect(Offset.Zero, size), t)
+        return androidx.compose.ui.graphics.Outline.Rounded(
+            androidx.compose.ui.geometry.RoundRect(r, androidx.compose.ui.geometry.CornerRadius(r.height / 2f)),
+        )
+    }
+}
+
 /** The inline completion after the typed text (highlighted), then the page's [title] if any. */
 private data class CompletionAfter(
     private val completion: String,
