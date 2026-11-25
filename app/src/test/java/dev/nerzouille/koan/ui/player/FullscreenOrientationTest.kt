@@ -61,9 +61,10 @@ class FullscreenOrientationTest {
         assertEquals(null, standaloneOrientation(rotationLocked = true, videoPortrait = null, rotated = false, turned = false))
     }
 
-    @Test fun `the Rotate row is a plain action`() {
+    @Test fun `the Rotate row shows only with auto-rotate off, like the pill`() {
         var n = 0
-        val row = rotateRow { n++ }
+        assertEquals(null, rotateRow(rotationLocked = false) { n++ })
+        val row = rotateRow(rotationLocked = true) { n++ }!!
         assertEquals("Rotate", row.label)
         row.onClick()
         assertEquals(1, n)

@@ -222,7 +222,7 @@ fun StandalonePlayer(video: StandaloneVideo, actions: StandaloneActions, inPip: 
                 },
             ),
         )
-        val rows = trackRows + remember(video.mode, video.download, actions, native, pipOnLeave) { listOf(rotateRow { rotated = !rotated }, pipOnLeaveRow(pipOnLeave, actions.setPipOnLeave)) + when (video.mode) {
+        val rows = trackRows + remember(video.mode, video.download, actions, native, pipOnLeave, rotationLocked) { listOfNotNull(rotateRow(rotationLocked) { rotated = !rotated }, pipOnLeaveRow(pipOnLeave, actions.setPipOnLeave)) + when (video.mode) {
             PlayerMode.File -> listOf(
                 MenuRow(KoanIcons.Share, "Share") { actions.share() },
                 MenuRow(KoanIcons.Open, "Open with another app") { native.pause(); actions.openWith() },

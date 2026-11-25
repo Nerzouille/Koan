@@ -242,9 +242,11 @@ fun choiceRow(icon: ImageVector, label: String, choices: List<MenuChoice>, min: 
 
 /**
  * ⋯ › Rotate: full screen turns to the other shape (portrait ↔ landscape) at any time, the same
- * switch as the rotate pill; shown with auto-rotate on too (owner, 2026-11-25).
+ * switch as the rotate pill, and like the pill only with the phone's auto-rotate off
+ * ([rotationLocked]; owner, 2026-11-25): with it on, turning the phone does it. Null: no row.
  */
-fun rotateRow(onRotate: () -> Unit) = MenuRow(dev.nerzouille.koan.ui.icons.KoanIcons.Rotate, "Rotate", onClick = onRotate)
+fun rotateRow(rotationLocked: Boolean, onRotate: () -> Unit): MenuRow? =
+    if (!rotationLocked) null else MenuRow(dev.nerzouille.koan.ui.icons.KoanIcons.Rotate, "Rotate", onClick = onRotate)
 
 /**
  * The ⋯ row for Settings › Picture-in-picture (the same setting): leaving Koan in fullscreen opens

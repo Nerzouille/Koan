@@ -23,7 +23,7 @@ in the owner's order, one commit per item, with JVM tests where the logic allows
 
 ## Open questions, decided by default (owner away)
 
-- **Item 14, hide Rotate when auto-rotate is on?** Owner (2026-11-25, when the POCO was plugged in): **always show it**. It's a manual switch
+- **Item 14, hide Rotate when auto-rotate is on?** Owner (2026-11-25, when the POCO was plugged in): always show it; **changed the next day: only with auto-rotate off, like the pill**. It's a manual switch
   that works either way (the same switch as the rotate pill).
 - **Item 12, side files:** option A (approved in BETA2_BUGS: "side files, option A").
 - **Phone not connected at the start of the night.** Phone steps (item 11's checks, the R8 kill and
