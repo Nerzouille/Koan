@@ -28,6 +28,15 @@ class DockState(private val scope: CoroutineScope) {
     /** The dock's visible height in the page view; the engine reserves this much for it. */
     var heightPx = 0f
 
+    /**
+     * GitHub #9: a hidden dock waits for this much upward scroll before it starts to follow
+     * (PageTokens.DockDeadZone), so a tiny scroll up doesn't bring it back.
+     */
+    var deadZonePx = 0f
+
+    /** Upward scroll the dead zone has swallowed since the finger went down. */
+    private var upHeld = 0f
+
     /** Overview open, address being edited…: the dock stays put. Readable in composition. */
     private var lockedState by mutableStateOf(false)
     var locked: Boolean
@@ -63,12 +72,25 @@ class DockState(private val scope: CoroutineScope) {
         if (!pageCanScroll() && offset == 0f) return
         job?.cancel()
         sinceDown += dy
-        offset = (offset + dy).coerceIn(0f, heightPx)
+        offset = (offset + deadZone(dy)).coerceIn(0f, heightPx)
+    }
+
+    /** The part of [dy] that moves the dock: a hidden dock first swallows [deadZonePx] of upward scroll. */
+    private fun deadZone(dy: Float): Float {
+        if (dy > 0f) {
+            upHeld = (upHeld - dy).coerceAtLeast(0f)
+            return dy
+        }
+        if (offset < heightPx) return dy
+        val take = minOf(deadZonePx - upHeld, -dy).coerceAtLeast(0f)
+        upHeld += take
+        return dy + take
     }
 
     fun onTouchDown() {
         touching = true
         sinceDown = 0f
+        upHeld = 0f
     }
 
     /** Finger up: finish in the direction the page was going, or the nearest end after a nudge. */

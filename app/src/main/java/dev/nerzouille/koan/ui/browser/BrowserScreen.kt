@@ -157,6 +157,7 @@ fun BrowserScreen(
     val dockZonePx = with(density) { barZone(overview = false).roundToPx() }
     // The dock slides off the screen entirely, the strip under the page included.
     dock.heightPx = if (fullScreen) 0f else (dockZonePx + navPx).toFloat()
+    dock.deadZonePx = with(density) { PageTokens.DockDeadZone.toPx() }
     // A field in the page has the keyboard (not the address field, find, the overview): the dock
     // steps aside and the page runs exactly down to the keyboard, no room kept for the dock.
     // Decided as the keyboard comes up: the address field closing with the keyboard still sliding

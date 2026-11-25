@@ -1436,6 +1436,12 @@ object PageTokens {
 
     /** The dock always shows when the page is scrolled less than this from the top. */
     val DockNearTop = 48.dp
+
+    /**
+     * GitHub #9: upward scroll a hidden dock swallows before it starts to follow the page. The
+     * one number to tune on the phone (release build): 0 = the old behaviour, follows at once.
+     */
+    val DockDeadZone = 28.dp
 }
 
 object Motion {
