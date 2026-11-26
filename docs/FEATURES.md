@@ -41,7 +41,8 @@ The bottom bar is called **the dock** in this guide. In a page it holds: back, t
   What's new in 1.0** shows it again.
 - Without an account, Koan is a plain browser with one space called **Phone** (📱). The overview
   opens on a **Connect your Zen Spaces** card; you can ignore it and just browse.
-- Tap the address pill, type an address or a search, and go.
+- Tap the address pill, type an address or a search, and go. The pill grows into the search field
+  as the keyboard comes up, and shrinks back into it as the keyboard goes.
 
 ### Signing in with a Mozilla account
 
@@ -143,7 +144,8 @@ the last run shows under each switch.
 - Open the overview, then swipe up on the dock (or tap the small handle at its top).
 - The drawer has two heights: **compact** (about half the screen) and **full** (when there's more
   to show). Swipe up for full, down for compact, down again to close. A tap above it or Back closes
-  it too.
+  it too. Every space opens at the same height, the tallest space's, and the whole dock stays under
+  three quarters of the screen; a longer space scrolls inside (#11).
 - Top: the essentials grid (4 per row, all of them). Below: pinned tabs and Zen folders. Tap a
   folder to fold or unfold it (remembered on the phone only). Tap a tab to open it.
 - At the bottom: the sync status row (tap it to sync now, or to connect / sign in again).
@@ -156,7 +158,9 @@ the last run shows under each switch.
 
 - Open it: swipe up on the dock in a page, or tap the tab count.
 - **The depth stack:** your tabs as cards, newest at the bottom (closest to your thumb), older ones
-  shrinking into a pile above. The overview opens centred on your current tab.
+  shrinking into a pile above. Lit from above, each card casts a soft shadow on the one behind it
+  and around the pile, with a thin edge and a header a little lighter at the top. The overview
+  opens centred on your current tab.
 - **Scroll:** drag up and down in the card area; flings coast.
 - **Open a tab:** tap the card in front. Tap a card in the pile or the one peeking below to bring it
   to the front.

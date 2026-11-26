@@ -1,24 +1,29 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-26**.
+State of Koan for a session that starts with no context. Last updated **2026-11-26** (end of day).
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
 
-- **Current work (2026-11-26): branch `beta2-bugs`** (from `dev` 60a2199, local, **not
-  pushed**). Start with `docs/plans/BETA2_BUGS.md`: the status table, then **Night report
-  2026-11-25** and **Day run 2026-11-26** (the latest hand-test checklist, the owner's open
-  choices, merge commands).
-  - Built: items 1–5, 8–10, 12–14 (player captions / quality / audio / subtitles, translated
-    icon, Rotate row only with auto-rotate off), 6 (#11 drawer, both options behind
-    `DrawerTokens.PAGE_HEIGHT`), 7 (#9 dock dead zone, `PageTokens.DockDeadZone`), 15 as a known
-    limitation, the search typing fix, Copy link text, the search morph. CHANGELOG beta.2 drafted;
-    release notes draft in `reference/`. 508 JVM tests, detekt and lint green.
-  - **Waiting for the owner:** picks for #11 (A/B) and the depth cue (captures in
-    `reference/beta2-choices/`), the dock number, the hand-test checklist, item 11 (player checks,
-    needs the POCO's VPN for public pages), items 4/5/8; Lock private tabs back on (real Koan, POCO).
+- **Current work (2026-11-26, end of day): branch `beta2-bugs`**, pushed to `origin/beta2-bugs`,
+  not merged into `dev`. Start with `docs/plans/BETA2_BUGS.md` › **Status (2026-11-26, end of
+  day)**: what's done and validated, the grey-page incident, what's left.
+  - **Done and validated on the phone:** depth cue Cast (0.45, thickness 1.00, surface light
+    0.67), pull to refresh Arc (irregular spin, blobs synced to it, double-pull fix), the start
+    page (New page, Open link you copied, no Recent, typing and status bar fixes), search morph,
+    drawer #11 A, Find, translation, Private after a kill, downloads.
+  - **Next task: error pages** (BETA2_BUGS item 18, the owner's decisions there).
+  - **Left before beta.2:** item 11 player checks (VPN on), item 12 player tracks on the phone,
+    the dock dead-zone feel (item 7), Arc recordings + R8 frame measurements, the latest build on
+    the POCO and Lock private tabs back on there. Then merge into `dev` and the release checklist.
+  - **If a page goes all grey again** (2026-11-26 incident, cause unknown): ask the owner for the
+    time, whether Koan had just been updated or reopened, the tab in front; read `KoanPull` and
+    Gecko errors in logcat before restarting Koan.
+  - Dev, debug and staging builds have Settings › Debug (Stack style, Pull to refresh) and log
+    pulls as `KoanPull`; `adb shell am start -n <app id>/dev.nerzouille.koan.MainActivity --es
+    debug_pull Arc` (or `Current`) switches the pull style.
   - Research: `docs/plans/PAYMENTS_RESEARCH.md` (Google Pay / Revolut Pay), nothing built.
-  - Local branch `capture-proto`: captures only, never merge.
+  - Local branch `depth-cue-proto`: an old prototype, can be deleted (owner).
 
 - **Tooling: merged into `dev` 2026-11-16 (PR #15).** See CLAUDE.md
   "Claude Code tooling":
@@ -248,7 +253,7 @@ each group (launch + kill + restore checked).
 |---|---|---|---|
 | `release-prep` | dev | v1.0.0-beta.1 prep: batch 5 tests, CI, baseline profile module, update check, README, release docs, the 2026-11-12 fixes. | Pushed up to 8b29879 (draft PR #3); later commits local only; not merged |
 | `depth-cue-proto` | release-prep | Depth-cue prototype A/B/C (31e6f5d), switched by `debug.koan.depthcue`. | Local only, **not for release** |
-| `beta2-bugs` | dev (6975314) | beta.2 bugs 1–5, 8 + player tracks research (docs/plans/BETA2_BUGS.md). | Local only, phone checks pending |
+| `beta2-bugs` | dev (60a2199) | beta.2: bugs, player tracks, Cast stack, Arc pull to refresh, start page, search morph (docs/plans/BETA2_BUGS.md). | Pushed, not merged; error pages next |
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3, batch 4 and the fixes list merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |

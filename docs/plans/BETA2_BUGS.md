@@ -4,6 +4,42 @@ The bugs for 1.0.0-beta.2, in one list: two from GitHub issues (triaged 2026-11-
 noted in `docs/ROADMAP.md` › For 1.0.0-beta.2 and `docs/HANDOFF.md`, then the phone-run findings and
 the beta.2 features (items 9 to 17; ROADMAP keeps the owner's wording of each feature).
 
+## Status (2026-11-26, end of day): start here
+
+- **Branch:** `beta2-bugs`, pushed to `origin/beta2-bugs` (not merged into `dev`). The day's work
+  is in the "Day run 2" section and items 16, 18–20 below.
+- **Done and validated by the owner on the phone (2026-11-26):**
+  - **Depth cue: Cast** at 0.45 + thickness 1.00 + surface light 0.67, every build, light and
+    dark (`ui/overview/StackLab.kt`, `StackLabShadows.kt`; Settings › Debug › Stack style keeps
+    Before to compare, dev, debug and staging builds only). Item 16.
+  - **Pull to refresh: Arc** (item 20): the page follows the finger, a mesh of pink, violet and
+    blue blobs and the K under it; on release the K spins and slows down, small irregular pushes
+    while the page still loads, the blobs drift with the same signal; the page slides back over
+    the K. The double-pull fix (a pull takes the page again while it reloads, 6dbdd6b).
+  - **Start page** (item 19): New page from the tab counter's menu, "Open link you copied", no
+    Recent list, typing works after the keyboard was put away, content stops at the status bar.
+  - Search morph, drawer #11 (A, capped at 75%), Find, translation, Private after a kill,
+    downloads (owner's hand test, 2026-11-26).
+- **The grey-page incident (2026-11-26, 23:29, Xiaomi):** after the app restart that followed a dev
+  install, Koan's page engine stopped loading anything: every tab grey, even a new one; pulls ran
+  but the log said "reload: no load seen". The engine's processes were alive, nothing crashed,
+  the network was fine, and Koan Test (same build) drew pages. A force stop + relaunch fixed it;
+  not reproduced afterwards (10 pulls each on a short page, a long page and github.com, a pull 2 s
+  after a cold start, all fine). Cause unknown. **If it happens again**, before reopening Koan,
+  the owner tells: the time, whether Koan had just been updated or reopened, and which tab was in
+  front; then read `adb logcat | grep KoanPull` (dev and staging builds log every pull and reload)
+  and look for Gecko errors around that time.
+- **Left before beta.2:**
+  1. **Error pages: the next task** (item 18, the owner's decisions are in its section).
+  2. Item 11: player checks with the VPN on (Commons stream / WebM, Commons `<track>`s, Vimeo).
+  3. Item 12: player tracks on the phone (Captions, Quality, Audio / Subtitles, side files).
+  4. Item 7: dock dead-zone feel (`PageTokens.DockDeadZone` 28 dp) on a release build.
+  5. Arc recordings (a slow and a fast page, light and dark) and frame measurements on the R8
+     build (Koan Test has the debug switchers).
+  6. The POCO: install the latest build there (its real Koan runs an older dev build with the
+     removed motion code), and turn Settings › Lock private tabs back on there.
+  7. Then merge into `dev` and the release checklist (CLAUDE.md).
+
 ## Status (2026-11-25)
 
 A fresh session can work from this file alone. Read `CLAUDE.md` first (rules), then this file;
@@ -25,7 +61,7 @@ the owner's wording of each feature.
 | 3 | Find 0/0 | **Done.** Fixed, `FindCountTest`. Phone OK 2026-11-25 (Koan Test): counts, next / previous, 0/0, clear, new tab closes Find. A match only in a collapsed section not reproduced (French Wikipedia shows sections expanded). | 32048e6 | No |
 | 4 | Download ring check | Fixed, `DownloadRingStateTest`. Phone check not done. | db0a692 | **Yes:** downloads on the phone, watching the ring |
 | 5 | Missing download files | Fixed, `CheckedDownloadFilesTest`, `MissingFilesTest`; rows greyed in Downloads. Phone check not done. | c10b599, e0d9d18 | **Yes:** file manager, notification |
-| 6 | Drawer height (#11) | **Built (2026-11-26), owner picks.** Both options behind `DrawerTokens.PAGE_HEIGHT` (`Tallest` = A, default; `Full` = B), `SheetStateTest`. Captures: `reference/beta2-choices/drawer-height-11.png` (one space only: Koan Test is signed out). | e150cae | **Yes:** A or B |
+| 6 | Drawer height (#11) | **Done: option A (owner, 2026-11-26),** every space at the tallest space's height, the dock under 75% of the screen; option B removed. Validated on the phone. | e150cae, c9f64b1 | No |
 | 7 | Dock comes back (#9) | **Built (2026-11-26).** Dead zone `PageTokens.DockDeadZone` = 28 dp (0 = old behaviour), `DockDeadZoneTest`. | ee76f68 | **Yes:** feel check on a release build, tune the number |
 | 8 | Save image (Google Images) | Not reproduced; more checks and a `KoanPageImage` log (extension 1.1). Fix or drop after the phone check. | a9f2841 | **Yes:** Google Images on the phone, fix-or-drop call |
 | 9 | Translation card never auto-opens while Find is open | **Done (night 2026-11-25).** `translateCue(…, findOpen)`, `TranslateCueTest`. Phone check not done. | d5a9a4e | No (check in the list below) |
@@ -35,7 +71,10 @@ the owner's wording of each feature.
 | 13 | Translate icon stays active after translating; download ring shares its slot | **Done (night).** `TranslateCue.Active`, filled disc, tap = ⋯ › Translate page; ring slot was already there, now `pillEndSlot` + `PillEndTest`. | 166f4c5 | No (checks below) |
 | 14 | Rotate row in the player's ⋯ menu | **Done.** Only with auto-rotate off, like the pill (owner, 2026-11-26). | b062a27, 83a76b2 | No |
 | 15 | Passkey failure message | **Done as option C (owner):** a Known limitation in FEATURES, no code. | 35a2398 | No |
-| 16 | Depth cue (A, B, C or A + B) | **Done: Cast shadows (owner, 2026-11-26),** after direction 3 and four styles tried live from a dev-only switcher. Light from above: a soft shadow around each card and a contact shadow onto the card behind (× 0.45), a 1.5dp thickness band, a faint header gradient; cards keep beta.1's dim. Settings › Debug › Stack style switches to Before (dev builds only). Day run 2, item 9. |
+| 16 | Depth cue (A, B, C or A + B) | **Done: Cast shadows (owner, 2026-11-26),** after direction 3 and four styles tried live from a dev-only switcher. Light from above: a soft shadow around each card and a contact shadow onto the card behind (× 0.45), the thickness band (1.00) and the surface light on the headers (0.67), fixed in every build; cards keep beta.1's dim. Settings › Debug › Stack style switches to Before (dev, debug, staging builds). Validated on the phone. | 15621c6, f1926a8 | No |
+| 18 | Error pages | **Next task** (owner, 2026-11-26): decisions in its section below. | none | No |
+| 19 | Start page: New page, Open link you copied | **Done, validated (owner, 2026-11-26).** Tab counter › New page opens the start page; "Open link you copied" (description first, reads only a recent link); no Recent list; typing after the keyboard was put away (`searchMorphValue`, `KeyboardSlideTest`); content stops at the status bar. | f0d812a, 7a69f4b | No |
+| 20 | Pull to refresh: Arc | **Done, validated (owner, 2026-11-26).** The page follows the finger (1 : 1, then a rubber band), Arc's blobs and the K under it, one loading signal for the K's spin and the blobs' drift (`PullSpin`), phases as a tested state machine (`PullMachine`), pulls logged as `KoanPull` in dev builds. Current stays as a Debug fallback. Recordings and R8 frame measurements not done yet. | 27ce39a, 5a8c449, 6dbdd6b | No |
 | 17 | End of phase: R8 release build, kill and restore | **Partly done (night):** full suite 493 green; R8 **staging** build (Koan Test) launched, `am kill` in the background, restored on the same tab, no crash. The R8 build of the real app id and the release from `main` wait for the release steps. | none | No |
 
 **Also needs the owner:** Lock private tabs is **off** in the POCO's real Koan (turned off for the
@@ -85,7 +124,7 @@ For each item, follow these steps:
 | 3 | Find in page says 0/0 while it highlights a match | ROADMAP | `engine/PageTools.kt`, `ui/KoanOverlays.kt` |
 | 4 | The download ring's check never shows | ROADMAP | `ui/bar/AddressRow.kt`, `ui/KoanRoot.kt` (`DONE_MS`) |
 | 5 | A moved or deleted download fails silently | ROADMAP | `DownloadsScreen.open` |
-| 6 | Drawer height (#11) | **Built (2026-11-26), owner picks.** Both options behind `DrawerTokens.PAGE_HEIGHT` (`Tallest` = A, default; `Full` = B), `SheetStateTest`. Captures: `reference/beta2-choices/drawer-height-11.png` (one space only: Koan Test is signed out). | e150cae | **Yes:** A or B |
+| 6 | Drawer height (#11) | **Done: option A (owner, 2026-11-26),** every space at the tallest space's height, the dock under 75% of the screen; option B removed. Validated on the phone. | e150cae, c9f64b1 | No |
 | 7 | Dock comes back (#9) | **Built (2026-11-26).** Dead zone `PageTokens.DockDeadZone` = 28 dp (0 = old behaviour), `DockDeadZoneTest`. | ee76f68 | **Yes:** feel check on a release build, tune the number |
 | 8 | Save image never waits for the full image (Google Images) | ROADMAP, Xiaomi | `engine/PageImages.kt`, `pageimage` extension |
 | 9 | Translation card never auto-opens while Find is open | **Done (night 2026-11-25).** `translateCue(…, findOpen)`, `TranslateCueTest`. Phone check not done. | d5a9a4e | No (check in the list below) |
@@ -276,6 +315,24 @@ Show a short Koan message, e.g. "Your password manager doesn't support Koan for 
 ROADMAP › For 1.0.0-beta.2: options A (recessed tint), B (shadow and scale), C (blur), prototype
 on `depth-cue-proto`. Redo the dark screenshots with Koan's own Settings › Theme. The owner picks;
 then build it and measure with `tools/perf`.
+
+## 18. Error pages (next task)
+
+What Koan shows when a page can't load. The owner's decisions (2026-11-26):
+
+- **No 404 handling:** a site's own "not found" page is the site's page, shown as it is.
+- **A page already loaded is never replaced** by an error page (a failed background request, a
+  connection dropping after the load, a failed reload): the page stays.
+- **Network switching (Wi-Fi ↔ mobile, VPN reconnecting):** a grace period of about 4 s before an
+  error shows, so a short switch never flashes an error page.
+- **Auto-reload when the network comes back:** a page that failed because the network was gone
+  reloads by itself once it returns.
+- **Security errors (bad certificate, HSTS):** no easy "continue anyway" button; leaving stays the
+  obvious choice.
+
+To start: read how Koan shows errors today (`docs/DESIGN_SYSTEM.md` › 3.B error pages, the
+`onLoadError` path in the engine), list the error kinds Gecko reports, then propose the screens
+and the network watcher before building.
 
 ## 17. End of phase
 
