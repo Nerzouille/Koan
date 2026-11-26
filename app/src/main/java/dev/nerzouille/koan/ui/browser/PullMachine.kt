@@ -6,7 +6,8 @@ import kotlin.math.abs
 /**
  * Pull to refresh's phases: [Idle] (nothing shows), [Pulling] (a finger holds it), [Refreshing]
  * (let go past the trigger, the page reloads), [Settling] (on its way back to 0, after a short
- * pull, a cancel or the load's end). A new pull can start from [Idle] and from [Settling].
+ * pull, a cancel or the load's end). A new pull can start in any phase but [Pulling]: even while
+ * the page reloads (a fast double pull), from where it rests.
  */
 enum class PullPhase { Idle, Pulling, Refreshing, Settling }
 
@@ -34,7 +35,7 @@ object PullRules {
         PullEvent.Settled -> if (phase == PullPhase.Settling) PullPhase.Idle else phase
     }
 
-    fun canGrab(phase: PullPhase): Boolean = phase == PullPhase.Idle || phase == PullPhase.Settling
+    fun canGrab(phase: PullPhase): Boolean = phase != PullPhase.Pulling
 
     /**
      * A touch that started with the page at its top ([atTop], read when the finger went down) and

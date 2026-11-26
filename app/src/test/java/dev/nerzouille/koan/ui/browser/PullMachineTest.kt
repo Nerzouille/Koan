@@ -52,9 +52,12 @@ class PullMachineTest {
         assertEquals(Pulling, run(Grab, Settled))
     }
 
-    @Test fun `no second pull while the page reloads, every other event is ignored there`() {
+    @Test fun `a fast double pull takes the page again while it still reloads`() {
         val refreshing = run(Grab, ReleasePast)
-        assertEquals(Refreshing, run(Grab, ReleaseShort, Cancel, Settled, from = refreshing))
+        assertEquals(Pulling, run(Grab, from = refreshing))
+        assertEquals(Refreshing, run(Grab, ReleasePast, from = refreshing))
+        // Other events don't end a reload.
+        assertEquals(Refreshing, run(ReleaseShort, Cancel, Settled, from = refreshing))
     }
 
     private fun start(
@@ -72,7 +75,8 @@ class PullMachineTest {
         assertTrue(start(0f, -14f) is PullStart.Reject)
         assertTrue(start(20f, 14f) is PullStart.Reject)
         assertTrue(start(0f, 14f, atTop = false) is PullStart.Reject)
-        assertTrue(start(0f, 14f, phase = Refreshing) is PullStart.Reject)
+        assertEquals(PullStart.Start, start(0f, 14f, phase = Refreshing))
+        assertTrue(start(0f, 14f, phase = Pulling) is PullStart.Reject)
         assertEquals(PullStart.Start, start(0f, 14f, phase = Settling))
     }
 
