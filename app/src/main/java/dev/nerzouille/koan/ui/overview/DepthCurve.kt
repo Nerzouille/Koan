@@ -63,7 +63,7 @@ object DepthCurve {
     const val MIN_VISIBLE_D = -2f
 
     /** Linear interpolation through keyframes at d = 0, 1, 2 …, held at the last one. */
-    private fun lerp(keys: FloatArray, d: Float): Float {
+    internal fun lerp(keys: FloatArray, d: Float): Float {
         if (d >= keys.size - 1) return keys.last()
         val i = d.toInt()
         val t = d - i

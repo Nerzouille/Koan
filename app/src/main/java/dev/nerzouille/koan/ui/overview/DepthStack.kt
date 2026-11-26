@@ -212,7 +212,9 @@ fun DepthStack(
 
     val palette = KoanTheme.colors
     // Light: back cards fade into the background (a haze); dark: they darken.
-    val dimColor = palette.DimColor
+    val dimColor = StackLab.dimColor(palette)
+    // Dev builds: the look picked in Settings › Debug › Stack style (null = the shipping look).
+    val lab = StackLab.active
 
     val hero = LocalCardHero.current
     val coordinates = remember { arrayOfNulls<LayoutCoordinates>(1) }
@@ -393,16 +395,25 @@ fun DepthStack(
                         .zIndex(if (state.liftedId == id) 1f else 0f)
                         .size(cardWidthDp, cardHeightDp)
                     // Its shadows, from a layer just under it (one ambient light).
-                    CardShadows(
-                        front = { if (near.value) geo.front(a) else 0f },
-                        modifier = layout.graphicsLayer {
-                            geo.applyTo(this, a)
-                            geo.enter(this, a, hero.entrance()) { hero.screenBottomIn(coordinates[0], windowCentre) }
-                            alpha *= if (hero.hides(id)) 0f else currentPageFade()
-                            clip = false
-                            shadowElevation = 0f
-                        },
-                    )
+                    val shadowLayer = layout.graphicsLayer {
+                        geo.applyTo(this, a)
+                        geo.enter(this, a, hero.entrance()) { hero.screenBottomIn(coordinates[0], windowCentre) }
+                        alpha *= if (hero.hides(id)) 0f else currentPageFade()
+                        clip = false
+                        shadowElevation = 0f
+                    }
+                    if (lab == null) {
+                        CardShadows(front = { if (near.value) geo.front(a) else 0f }, modifier = shadowLayer)
+                    } else {
+                        val behind = ids.getOrNull(index - 1)?.let { state.anim(it, index - 1) }
+                        val (length, fraction) = labContactLength(lab, palette.isDark)
+                        LabShadows(
+                            style = lab,
+                            depth = { if (near.value) geo.depthOf(a) else OFFSCREEN_DEPTH },
+                            contact = { if (near.value && behind != null) geo.contactLength(a, behind, length.value, fraction) else 0f },
+                            modifier = shadowLayer,
+                        )
+                    }
                     TabCard(
                         card = card,
                         depth = { if (near.value) geo.depthOf(a) else OFFSCREEN_DEPTH },
@@ -451,15 +462,15 @@ private fun BoxScope.FlyingCard(
 ) = key("flying:${f.card.id}") {
     val layout = Modifier.align(Alignment.TopCenter).size(width, height)
     // A closed card keeps its shadows on its way out.
-    CardShadows(
-        front = { geo.front(f.anim) },
-        modifier = layout.graphicsLayer {
-            geo.applyTo(this, f.anim)
-            alpha *= pageFade()
-            clip = false
-            shadowElevation = 0f
-        },
-    )
+    val shadowLayer = layout.graphicsLayer {
+        geo.applyTo(this, f.anim)
+        alpha *= pageFade()
+        clip = false
+        shadowElevation = 0f
+    }
+    val lab = StackLab.active
+    if (lab == null) CardShadows(front = { geo.front(f.anim) }, modifier = shadowLayer)
+    else LabShadows(lab, depth = { geo.depthOf(f.anim) }, contact = { 0f }, modifier = shadowLayer)
     TabCard(
         card = f.card,
         depth = { geo.depthOf(f.anim) },
@@ -552,6 +563,19 @@ private class StackGeometry(
 
     private fun visible(d: Float) = d <= DepthCurve.MAX_VISIBLE_D && d >= DepthCurve.MIN_VISIBLE_D
 
+    /**
+     * Dev looks (StackLab): how far [a]'s contact shadow rises above its top edge onto [behind],
+     * in [a]'s own px: [lengthDp], shorter where the pile leaves only a sliver of [behind]
+     * ([fraction] of it at most). 0 = none.
+     */
+    fun contactLength(a: CardAnim, behind: CardAnim, lengthDp: Float, fraction: Float): Float {
+        val d = depthOf(a)
+        val db = depthOf(behind)
+        if (!visible(d) || !visible(db) || behind.gone) return 0f
+        val sliver = (topOf(d) - topOf(db)) / DepthCurve.scale(d)
+        return min(lengthDp * density, sliver * fraction).coerceAtLeast(0f)
+    }
+
     fun applyTo(layer: GraphicsLayerScope, a: CardAnim) = with(layer) {
         val d = depthOf(a)
         if (!visible(d) || (a.gone && a.fly == 0f && a.swipeX == 0f)) {
@@ -596,6 +620,7 @@ private class StackGeometry(
         shadowElevation = a.lift * StackTokens.LiftShadow.value * density
         ambientShadowColor = palette.CardShadowColor
         spotShadowColor = palette.CardShadowColor
+        StackLab.adjust(this, d, a.lift, s, cardHeight, density, palette)
     }
 
     /**

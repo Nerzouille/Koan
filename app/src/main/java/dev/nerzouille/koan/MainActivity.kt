@@ -62,6 +62,7 @@ class MainActivity : FragmentActivity() {
         }
 
         DeviceProfile.initialize(this)
+        dev.nerzouille.koan.ui.overview.StackLab.load(this)
         val app = application as KoanApp
         val components = app.components
         app.componentsReady = true
