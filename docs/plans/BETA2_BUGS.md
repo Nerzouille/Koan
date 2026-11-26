@@ -358,6 +358,15 @@ offline pull on a loaded page keeps it with the toast.
   intact in one step; Try again and a pull while offline come back to the offline page in its
   place; a new tab → 4.8 s; kill and restore → the offline page again, then auto-reload; no
   stand-in or offline visit in History.
+- Stand-in hardening (owner, 2026-11-27): a per-tab random token, so a site's link to a stand-in
+  address is shown as itself, never as another site; the mapping only after the engine's
+  "connection refused", any other outcome abandons it (page stays, offline toast). Checked on the
+  Xiaomi in the real Koan (dev build, VPN on, airplane mode): normal and Private tabs both get the
+  offline page (~4.7 s; HTTPS-only and the local-network protection leave the loopback stand-in
+  alone), auto-reload and Back to the first page; a site's fake stand-in link shows "This site
+  refused the connection" at 127.0.0.1 in both. A response on port 4 can't be staged (Android
+  lets only root listen below 1024): covered by unit tests. `tools/check-stand-in.sh` passes, and
+  fails on a blocked port (checked with port 1).
 - Blocked port: Gecko replaces the previous history entry, so the page offers Close tab, not
   Go back. Known limitation.
 - Not tested for real: the grace on a fast failure (with the VPN, a network switch made loads

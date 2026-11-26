@@ -373,6 +373,9 @@ Both versions move together (`gradle/libs.versions.toml`). After a bump, check b
 - `libmegazord.so` is excluded from the APK; Gecko's crash-helper libraries must stay.
 - AC modules used without being declared (they arrive through the declared ones): `support-base`,
   `concept-base`. (`ErrorType` moved from `browser-errorpages` to `concept-engine` in AC 160.)
+- Run `tools/check-stand-in.sh` on the phone (a dev build): the offline stand-in
+  (`http://127.0.0.1:4/…`, ErrorPages) must still fail with `ERROR_CONNECTION_REFUSED`. If not,
+  Koan abandons it at run time (the offline page shows late behind a VPN again): pick another one.
 - Install and launch a full R8 release build on the phone.
 
 ## Dependencies (ask before adding others)

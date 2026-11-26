@@ -1250,13 +1250,27 @@ denied.
   the grace (4s since the network changed and 4s since the load began) with nothing new painted
   is stopped (`ErrorRules.stopHungLoad`; never for localhost). A VPN that stays up with nothing
   under it would make the engine wait ~35s. Koan then loads a stand-in address on the phone,
-  `http://127.0.0.1:4/koan-offline?u=<failed>` (nothing listens on port 4, which Gecko doesn't
-  block), which fails at once, and `onErrorRequest` serves the offline page with `s=1` for the
-  failed address. GeckoView ignores an app-initiated load of the `resource://` page itself, so the
-  stand-in is needed. The tab model, the address row, private tabs and history map the stand-in
-  back to the failed address (`ErrorPageUrl.shown`). Try again (`location.replace`), pull and the
+  `http://127.0.0.1:4/koan-offline?t=<token>&u=<failed>` (nothing listens on port 4: below 1024,
+  only root could; Gecko doesn't block the port), which fails at once, and `onErrorRequest` serves
+  the offline page with `s=1` for the failed address. GeckoView ignores an app-initiated load of
+  the `resource://` page itself, so the stand-in is needed. The tab model, the address row,
+  private tabs and history map the stand-in back to the failed address
+  (`ErrorPageUrl.shown(tabId, url)`). Try again (`location.replace`, no referrer), pull and the
   auto-reload load the failed address in the stand-in's place, so Back skips it. A reload of a
   loaded page that hangs is only stopped (the page stays, toast).
+- Stand-in safety (`StandIns`, tested):
+  - **Spoof-proof:** a stand-in address counts only when Koan started it in that tab, with a
+    fresh 128-bit random token; each stop gets a new one, and it ends once the tab moves on. A
+    site's link to a stand-in address (no token, a guessed one, another tab's) is shown as itself:
+    "This site refused the connection", 127.0.0.1.
+  - **Fail-safe:** the failed address replaces the stand-in's only after the engine failed it with
+    `ERROR_CONNECTION_REFUSED`. Any other error, or a response (the stand-in's page commits before
+    an error), abandons it: the load stops, the tab goes back to the page before (or a blank page
+    in a new tab), the toast says offline, and the stand-in is never shown under the failed address.
+  - Normal tabs' stand-ins survive a restart (SharedPreferences `error_stand_ins`); private tabs'
+    stay in memory only.
+  - `tools/check-stand-in.sh` checks on a phone that the engine still fails the stand-in with
+    connection refused (run it after every GeckoView bump).
 - Auto-reload: when a real network comes back, the selected tab's network-kind error page reloads
   (after 0.5s); a tab showing the offline page reloads when it comes up. Two automatic reloads per
   failure at most.

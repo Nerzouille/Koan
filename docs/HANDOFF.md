@@ -14,7 +14,9 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
     drawer #11 A, Find, translation, Private after a kill, downloads.
   - **Error pages: done and committed 2026-11-27** (BETA2_BUGS item 18: as built, findings,
     what's untested). Spec in DESIGN_SYSTEM › Error pages; preview any kind in dev, debug and
-    staging builds with a failed address + `koan_error_preview=<kind>`.
+    staging builds with a failed address + `koan_error_preview=<kind>`. After a GeckoView bump,
+    run `tools/check-stand-in.sh` (offline stand-in still refused).
+  - **Phone tests now go to the real Koan (dev build), not Koan Test** (owner, 2026-11-27).
   - **Left before beta.2:** item 11 player checks (VPN on), item 12 player tracks on the phone,
     the dock dead-zone feel (item 7), Arc recordings + R8 frame measurements, the latest build on
     the POCO and Lock private tabs back on there. Then merge into `dev` and the release checklist.
