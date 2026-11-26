@@ -189,15 +189,14 @@ When you come back to Koan after not using it for a while (1 hour by default; Se
 page**: 30 min, 1 h, 4 h or Never), it opens on a start page instead of your last tab. You can also
 open it yourself: long-press the tab counter › **New page**. It shows:
 
-- **Recent:** the 4 latest pages you visited, and the last download if it's less than an hour old
-  (tap it to open the file). Not in Private;
 - the current space's **essentials** (tap one to open it);
 - a **Continue** card with the tab you left (its icon, title and site): tap it to go back to it.
   It isn't there if that tab was closed meanwhile (in Zen, for example);
 - **Open link you copied**, with the link's site, when you copied a link in the last 3 minutes
   (see below);
 - the dock's search field, ready to type, keyboard up. A tap or a drag anywhere on the page puts
-  the keyboard away (tap the field to bring it back); with the keyboard away, a swipe down leaves.
+  the keyboard away; the field stays open, a tap on it brings the keyboard back. With the keyboard
+  away, a swipe down leaves. The page never goes under the status bar.
 
 **Open link you copied** also comes first in the search results when you open the search field,
 until you type. Koan only offers a link copied in the last 3 minutes that Android already

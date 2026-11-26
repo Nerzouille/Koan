@@ -194,9 +194,12 @@ fun BrowserScreen(
     val pull = remember { PullRefresh(scope) }
     pull.still = dev.nerzouille.koan.ui.kit.rememberAnimationsOff()
     val pullStyle = PullLab.style
+    val windowHeight = androidx.compose.ui.platform.LocalWindowInfo.current.containerSize.height
     with(density) {
-        pull.triggerPx = PullTokens.Trigger.toPx()
-        pull.maxPx = PullTokens.Max.toPx()
+        pull.slides = pullStyle.slides
+        pull.triggerPx = (if (pullStyle.slides) PullTokens.SlideTrigger else PullTokens.Trigger).toPx()
+        pull.restPx = (if (pullStyle.slides) PullTokens.SlideRest else PullTokens.Trigger).toPx()
+        pull.maxPx = if (pullStyle.slides) windowHeight * PullTokens.SLIDE_MAX_FRACTION else PullTokens.Max.toPx()
     }
     val currentId by components.store.observeSlice(Unit) { it.selectedTabId }
     LaunchedEffect(currentId) { pull.done() }

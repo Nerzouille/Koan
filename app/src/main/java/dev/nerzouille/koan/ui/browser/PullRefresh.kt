@@ -43,6 +43,12 @@ class PullRefresh(private val scope: CoroutineScope) {
     var triggerPx = 0f
     var maxPx = 0f
 
+    /** Where it rests while the page reloads (the trigger, for the circle). */
+    var restPx = 0f
+
+    /** The page itself slides (the prototypes): a smooth way back, no bounce. */
+    var slides = false
+
     /** The finger went past the trigger (for one tick). */
     internal var armed = false
 
@@ -59,7 +65,7 @@ class PullRefresh(private val scope: CoroutineScope) {
         armed = false
         if (go) {
             refreshing = true
-            scope.launch { settle(triggerPx) }
+            scope.launch { settle(restPx) }
         } else {
             scope.launch { settle(0f) }
         }
@@ -75,16 +81,27 @@ class PullRefresh(private val scope: CoroutineScope) {
     }
 
     private suspend fun settle(to: Float) {
-        if (still) pull.snapTo(to) else pull.animateTo(to, Motion.DockSettle)
+        when {
+            still -> pull.snapTo(to)
+            slides -> pull.animateTo(to, PullTokens.SlideBack)
+            else -> pull.animateTo(to, Motion.DockSettle)
+        }
     }
 }
 
 /**
- * The prototypes' rubber band: [dy] px of finger travel → page travel, 1 : [PullTokens.RUBBER] at
- * first, tightening so it never passes [maxPx].
+ * The prototypes' pull: [dy] px of finger travel → page travel, 1 : 1 up to [PullTokens.SLIDE_KNEE]
+ * of [maxPx], then a rubber band that never passes [maxPx] (same speed at the knee, no jolt).
  */
-fun rubberBand(dy: Float, maxPx: Float): Float =
-    if (dy <= 0f || maxPx <= 0f) 0f else maxPx * (1f - kotlin.math.exp(-dy * PullTokens.RUBBER / maxPx))
+fun rubberBand(dy: Float, maxPx: Float): Float {
+    val knee = maxPx * PullTokens.SLIDE_KNEE
+    val room = maxPx - knee
+    return when {
+        dy <= 0f || maxPx <= 0f -> 0f
+        dy <= knee -> dy
+        else -> knee + room * (1f - kotlin.math.exp(-(dy - knee) / room))
+    }
+}
 
 /**
  * Watches (never consumes) the fingers on the page: a pull down that starts while the page is at

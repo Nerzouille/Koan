@@ -1,15 +1,15 @@
 package dev.nerzouille.koan.ui.browser
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -24,74 +24,134 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.PathParser
 import dev.nerzouille.koan.ui.kit.rememberAnimationsOff
 import dev.nerzouille.koan.ui.theme.BrandTokens
+import dev.nerzouille.koan.ui.theme.KoanPalette
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.PullTokens
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * What the page uncovers as it slides down (the prototypes, [PullStyle.slides]): a band as tall as
- * the pull, drawn under the page, with the K in its middle. The K grows with the pull up to the
- * trigger and turns while the page reloads (still, with "remove animations"). Everything is read
- * at draw time: a pull redraws this band only, it never recomposes.
+ * the pull, drawn under the page. The K comes out from under the page's top edge as it moves down,
+ * growing and fading in; let go past the trigger, it spins like a flicked wheel and slows down,
+ * breathes gently while the page still loads, and settles upright when it's done (all still with
+ * "remove animations"). Read at draw time only: a pull redraws this band, it never recomposes.
  */
 @Composable
 fun PullBackdrop(state: PullRefresh, style: PullStyle, modifier: Modifier = Modifier) {
     val palette = KoanTheme.colors
     val still = rememberAnimationsOff()
-    val turn = if (still) null else rememberInfiniteTransition(label = "pullK").animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(PullTokens.K_TURN_MS, easing = LinearEasing), RepeatMode.Restart),
-        label = "turn",
-    )
+    val angle = remember { Animatable(0f) }
+    val breath = remember { Animatable(1f) }
+    LaunchedEffect(state.refreshing, still) {
+        when {
+            still -> {
+                angle.snapTo(0f)
+                breath.snapTo(1f)
+            }
+            state.refreshing -> {
+                angle.snapTo(angle.value % FULL_TURN)
+                angle.animateDecay(PullTokens.K_FLICK_DEG_PER_S, exponentialDecay(PullTokens.K_FRICTION))
+                // Still loading once it has slowed down: a gentle, eased breath.
+                while (true) {
+                    breath.animateTo(PullTokens.K_BREATH, tween(PullTokens.K_BREATH_MS, easing = FastOutSlowInEasing))
+                    breath.animateTo(1f, tween(PullTokens.K_BREATH_MS, easing = FastOutSlowInEasing))
+                }
+            }
+            else -> {
+                // Loaded: a small settle, upright again.
+                launch { breath.animateTo(1f, spring()) }
+                val upright = (angle.value / FULL_TURN).roundToInt() * FULL_TURN
+                angle.animateTo(upright, spring(dampingRatio = PullTokens.K_SETTLE_DAMPING, stiffness = PullTokens.K_SETTLE_STIFFNESS))
+            }
+        }
+    }
     Box(
         modifier
-            .fillMaxWidth()
-            .height(PullTokens.Max)
+            .fillMaxSize()
             .drawWithCache {
                 val k = koanK()
-                val gradient = Brush.horizontalGradient(BrandTokens.Colors)
-                val ink: Brush = when (style) {
-                    PullStyle.Arc -> Brush.linearGradient(listOf(Color.White, Color.White))
-                    PullStyle.Logo -> Brush.linearGradient(BrandTokens.Colors, Offset(0f, 0f), Offset(K_VIEWPORT, K_VIEWPORT))
-                    else -> Brush.linearGradient(listOf(palette.TextPrimary, palette.TextPrimary))
-                }
+                val inkColor = if (style == PullStyle.Arc) Color.White else palette.TextPrimary
+                val ink: Brush = Brush.linearGradient(listOf(inkColor, inkColor))
                 onDrawBehind {
                     val p = state.pull.value
                     if (p <= 0.5f) return@onDrawBehind
                     val f = (p / state.triggerPx).coerceIn(0f, 1f)
                     clipRect(bottom = p) {
-                        when (style) {
-                            PullStyle.Arc -> drawRect(gradient)
-                            PullStyle.Haze -> {
-                                drawRect(palette.Base)
-                                haze(p, PullTokens.HAZE_MIN + (PullTokens.HAZE_MAX - PullTokens.HAZE_MIN) * f)
-                            }
-                            else -> drawRect(palette.Base)
-                        }
-                        val side = PullTokens.KSize.toPx() * (PullTokens.K_MIN_SCALE + (1f - PullTokens.K_MIN_SCALE) * f)
-                        val angle = if (state.refreshing) turn?.value ?: 0f else 0f
-                        drawK(k, ink, Offset(size.width / 2f, p / 2f), side, angle)
+                        if (style == PullStyle.Arc) mesh(p, f, palette) else glow(p, f, palette)
+                        // Out from under the page's edge: all of it once reloading.
+                        val e = if (state.refreshing) 1f else easeOut(f)
+                        val grow = PullTokens.K_MIN_SCALE + (1f - PullTokens.K_MIN_SCALE) * e
+                        val side = PullTokens.KSize.toPx() * grow * breath.value
+                        val y = p + side / 2f - (side + PullTokens.KGap.toPx()) * e
+                        drawK(k, ink, Offset(size.width / 2f, y), side, angle.value, alpha = e)
                     }
                 }
             },
     )
 }
 
-/** Koan's haze (Settings, About): three soft brand spots across the band, at [alpha]. */
-private fun DrawScope.haze(height: Float, alpha: Float) {
-    val r = maxOf(height, size.width * 0.35f)
-    HAZE_SPOTS.forEach { (color, at) ->
-        val center = Offset(size.width * at.x, height * at.y)
-        drawCircle(Brush.radialGradient(listOf(color.copy(alpha = alpha), Color.Transparent), center, r), r, center)
+private const val FULL_TURN = 360f
+
+private fun easeOut(t: Float): Float = 1f - (1f - t) * (1f - t)
+
+/** Where a blob sits: x a share of the width, y a share of the band, [r] a share of the radius. */
+private class Spot(val color: Color, val x: Float, val y: Float, val r: Float = 1f)
+
+private val MeshSpots = listOf(
+    Spot(BrandTokens.Pink, 0.12f, 0.2f),
+    Spot(BrandTokens.Blue, 0.92f, 0.55f),
+    Spot(BrandTokens.Violet, 0.5f, 1.05f, 0.8f),
+)
+private val GlowSpots = listOf(
+    Spot(BrandTokens.Pink, 0.28f, 0.35f),
+    Spot(BrandTokens.Blue, 0.74f, 0.3f),
+    Spot(BrandTokens.Violet, 0.5f, 0.55f, 0.7f),
+)
+
+/**
+ * Arc: soft pink, violet and blue blobs over a violet ground, like a mesh gradient; they drift a
+ * little with the pull ([f]): pink and blue towards the middle, violet up. Opaque.
+ */
+private fun DrawScope.mesh(p: Float, f: Float, palette: KoanPalette) {
+    val dark = palette.isDark
+    drawRect(if (dark) PullTokens.ArcGroundDark else PullTokens.ArcGroundLight)
+    val w = size.width
+    val r = w * PullTokens.ARC_BLOB_RADIUS
+    val drift = PullTokens.ARC_DRIFT * f
+    val a = if (dark) PullTokens.ARC_BLOB_ALPHA_DARK else 1f
+    MeshSpots.forEachIndexed { i, s ->
+        val x = s.x + if (s.x < HALF) drift else if (s.x > HALF) -drift else 0f
+        val y = if (i == MeshSpots.lastIndex) s.y - drift * 2f else s.y
+        blob(s.color, Offset(w * x, p * y), r * s.r, a)
     }
 }
 
+/**
+ * Haze: Koan's neutral base; soft pink and blue glows rise from the page's edge (the band's
+ * bottom), brighter as you pull ([f]).
+ */
+private fun DrawScope.glow(p: Float, f: Float, palette: KoanPalette) {
+    drawRect(palette.Base)
+    val w = size.width
+    val r = w * PullTokens.HAZE_RADIUS
+    val rise = p * PullTokens.HAZE_RISE * f
+    val a = PullTokens.HAZE_MIN + (PullTokens.HAZE_MAX - PullTokens.HAZE_MIN) * f
+    GlowSpots.forEach { s -> blob(s.color, Offset(w * s.x, p + r * s.y - rise), r * s.r, a * s.r) }
+}
+
+private const val HALF = 0.5f
+
+private fun DrawScope.blob(color: Color, center: Offset, radius: Float, alpha: Float) {
+    drawCircle(Brush.radialGradient(listOf(color.copy(alpha = alpha), color.copy(alpha = 0f)), center, radius), radius, center)
+}
+
 /** The K ([path], in its 108-unit icon viewport) centred on [center], [side] px across, turned [angle]°. */
-private fun DrawScope.drawK(path: Path, ink: Brush, center: Offset, side: Float, angle: Float) {
+private fun DrawScope.drawK(path: Path, ink: Brush, center: Offset, side: Float, angle: Float, alpha: Float) {
     val s = side / K_SPAN
     translate(center.x - K_CENTER.x * s, center.y - K_CENTER.y * s) {
         scale(s, s, pivot = Offset.Zero) {
-            rotate(angle, pivot = K_CENTER) { drawPath(path, ink) }
+            rotate(angle, pivot = K_CENTER) { drawPath(path, ink, alpha = alpha.coerceIn(0f, 1f)) }
         }
     }
 }
@@ -99,16 +159,7 @@ private fun DrawScope.drawK(path: Path, ink: Brush, center: Offset, side: Float,
 /** The K of Koan's icon (res/drawable/ic_launcher_monochrome.xml, branding/koan-k-monochrome.svg). */
 internal fun koanK(): Path = PathParser().parsePathString(K_PATH).toPath()
 
-private const val K_VIEWPORT = 108f
-
-/** The haze's three spots, as in Settings' wash: colour, then where (fractions of the band). */
-private val HAZE_SPOTS = listOf(
-    BrandTokens.Pink to Offset(0.1f, 0.3f),
-    BrandTokens.Violet to Offset(0.55f, 0.1f),
-    BrandTokens.Blue to Offset(0.95f, 0.5f),
-)
-
-/** The K's own box in the viewport: about 24 → 83 across, 29 → 83 down. */
+/** The K's own box in the 108-unit viewport: about 24 → 83 across, 29 → 83 down. */
 private val K_CENTER = Offset(54f, 55f)
 private const val K_SPAN = 60f
 

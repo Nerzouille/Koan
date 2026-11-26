@@ -3,6 +3,7 @@ package dev.nerzouille.koan.ui.search
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class SearchFieldTest {
@@ -93,5 +94,13 @@ class SearchFieldTest {
         f.start("https://example.com/")
         assertEquals(true, f.current)
         assertEquals("https://example.com/", f.typed)
+    }
+
+    @Test fun `a new editing starts with the keyboard wanted`() {
+        val f = SearchField()
+        f.start("")
+        f.keyboardAway = true
+        f.start("")
+        assertFalse(f.keyboardAway)
     }
 }

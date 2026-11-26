@@ -220,7 +220,7 @@ fun AddressRow(
     // and shrinks back into the pill as it goes down. Its background is drawn once, by the field,
     // from the pill's bounds to its own; the host fades into the address, the buttons beside it
     // step aside. One value, read in layers only.
-    val edit = rememberSearchMorph(editing)
+    val edit = rememberSearchMorph(editing) { search.keyboardAway }
     val fieldShown by remember { derivedStateOf { edit.value() > 0f } }
     val pillShown by remember { derivedStateOf { edit.value() < 1f } }
     val pill = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
@@ -303,23 +303,32 @@ fun AddressRow(
  * frame and lands with the keyboard. Without a keyboard (a hardware one), a spring instead.
  */
 @Stable
-private class SearchMorph(private val keyboard: KeyboardSlide) {
+private class SearchMorph(private val keyboard: KeyboardSlide, private val held: () -> Boolean) {
     /** The address field has the keyboard, or it is still sliding away from it. */
     var armed by mutableStateOf(false)
     var spring by mutableStateOf(false)
     val fallback = Animatable(0f)
 
-    fun value(): Float = when {
-        spring -> fallback.value
-        armed -> keyboard.fraction()
-        else -> 0f
-    }
+    fun value(): Float = searchMorphValue(spring, fallback.value, armed, held(), keyboard.fraction())
+}
+
+/**
+ * The search morph, 0 (the pill) … 1 (the field): the fallback spring without a keyboard, else the
+ * keyboard's slide while the field is open ([armed]). [held]: the keyboard was put away on purpose
+ * (the start page) and the field stays open, whole and tappable, until the keyboard is all the way
+ * back; following the keyboard there shrank it into the pill, which a tap couldn't open again.
+ */
+internal fun searchMorphValue(spring: Boolean, fallback: Float, armed: Boolean, held: Boolean, keyboard: Float): Float = when {
+    spring -> fallback
+    armed && held -> 1f
+    armed -> keyboard
+    else -> 0f
 }
 
 @Composable
-private fun rememberSearchMorph(editing: Boolean): SearchMorph {
+private fun rememberSearchMorph(editing: Boolean, held: () -> Boolean): SearchMorph {
     val keyboard = rememberKeyboardSlide()
-    val morph = remember(keyboard) { SearchMorph(keyboard).apply { armed = editing } }
+    val morph = remember(keyboard) { SearchMorph(keyboard, held).apply { armed = editing } }
     LaunchedEffect(morph, editing) {
         if (editing) {
             morph.armed = true
@@ -710,7 +719,10 @@ private fun AddressInput(
     var focused by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
     // Back closes the search field, not just the keyboard.
-    CloseWithKeyboard(focused = { focused }, onClose = onCancel, away = { field.keyboardAway }, onShown = { field.keyboardAway = false })
+    CloseWithKeyboard(focused = { focused }, onClose = onCancel, away = { field.keyboardAway })
+    // The keyboard back all the way (a tap on the field): it follows the keyboard again.
+    val keyboardSlide = rememberKeyboardSlide()
+    LaunchedEffect(field) { snapshotFlow { keyboardSlide.fraction() >= 1f }.collect { up -> if (up) field.keyboardAway = false } }
     // "@" = pick an engine or a scope: the brand gradient flows in around the ring.
     val at = value.text.trimStart().startsWith("@")
     val flow = remember { Animatable(0f) }
@@ -930,7 +942,6 @@ private fun CloseWithKeyboard(
     onClose: () -> Unit,
     /** The keyboard went away on purpose: the field stays (the start page). */
     away: () -> Boolean = { false },
-    onShown: () -> Unit = {},
 ) {
     // Where the keyboard is heading, not where it is: the field closes as the keyboard starts
     // going down (its results go at once), not once it is gone.
@@ -939,13 +950,11 @@ private fun CloseWithKeyboard(
     val close by rememberUpdatedState(onClose)
     val isFocused by rememberUpdatedState(focused)
     val isAway by rememberUpdatedState(away)
-    val shownAgain by rememberUpdatedState(onShown)
     LaunchedEffect(target, density) {
         var shown = false
         snapshotFlow { target.getBottom(density) > 0 }.collect { visible ->
             val wentDown = shown && !visible
             if (wentDown && isFocused() && !isAway()) close()
-            if (visible && !shown) shownAgain()
             shown = visible
         }
     }

@@ -123,8 +123,7 @@ import dev.nerzouille.koan.ui.signin.FxAWeb
 import dev.nerzouille.koan.ui.signin.SignInScreen
 import dev.nerzouille.koan.ui.start.ContinueTab
 import dev.nerzouille.koan.ui.start.StartPage
-import dev.nerzouille.koan.ui.start.rememberCopiedLink
-import dev.nerzouille.koan.ui.start.rememberStartQuick
+import dev.nerzouille.koan.ui.search.rememberCopiedLink
 import dev.nerzouille.koan.ui.theme.DownloadTokens
 import dev.nerzouille.koan.ui.theme.BarTokens
 import dev.nerzouille.koan.ui.theme.DrawerTokens
@@ -972,10 +971,6 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
         val searchBottom = barZone(overview = false)
         // "Open link you copied": checked each time the field opens, gone once something is typed.
         val copied = rememberCopiedLink(editing, currentPage.url.takeIf { !startPage })?.takeIf { !searchField.edited }
-        val startQuick = rememberStartQuick(
-            components, open = startPage, private = privateOn, skip = activeTab?.url, copied = copied,
-            onOpenUrl = { url -> editing = false; loadHere(url) },
-        )
         val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
         StartPage(
             open = startPage,
@@ -988,7 +983,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 spaces.getOrNull(currentSpace)?.findTab(id)?.let { openTab(currentSpace, it) }
             },
             onDismiss = { editing = false },
-            quick = startQuick,
+            copied = copied,
+            onOpenUrl = { url -> editing = false; loadHere(url) },
             keyboardAway = searchField.keyboardAway,
             onKeyboardAway = {
                 searchField.keyboardAway = true

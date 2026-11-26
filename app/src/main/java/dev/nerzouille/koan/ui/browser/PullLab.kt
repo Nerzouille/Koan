@@ -12,14 +12,11 @@ enum class PullStyle(val short: String) {
     /** The small circle under the top edge: an arc while pulling, the brand spinner while reloading. */
     Current("Current"),
 
-    /** The page slides down over Koan's brand gradient, a white K in it. */
+    /** The page slides down over soft pink, violet and blue blobs, a white K in them. */
     Arc("Arc"),
 
-    /** The page slides down over Koan's base with the soft brand haze, growing and brightening with the pull. */
+    /** The page slides down over Koan's base; pink and blue glows rise from its edge, brighter as you pull. */
     Haze("Haze"),
-
-    /** The page slides down over Koan's plain base; only the K is in the brand gradient. */
-    Logo("Logo"),
     ;
 
     /** The page itself moves (the prototypes), rather than a circle over it. */
@@ -27,7 +24,7 @@ enum class PullStyle(val short: String) {
 }
 
 /**
- * The pull-to-refresh look: [PullStyle.Current] in every build; dev and debug builds (never a
+ * The pull-to-refresh look: [PullStyle.Current] in every build; dev, debug and staging builds (never a
  * release build) can switch in Settings › Debug › Pull to refresh, kept in the app's preferences.
  */
 object PullLab {

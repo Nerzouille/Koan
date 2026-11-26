@@ -45,4 +45,15 @@ class KeyboardSlideTest {
     @Test fun `without the pill, the field's own bounds`() {
         assertEquals(Rect(0f, 0f, 900f, 100f), morphRect(null, Size(900f, 100f), 0.3f))
     }
+
+    @Test fun `the start page puts the keyboard away, the field stays whole so a tap brings it back`() {
+        // Following the keyboard down shrank the open field into the pill: a tap on it did nothing
+        // and typing went nowhere (start page bug, 2026-11-26).
+        assertEquals(1f, searchMorphValue(spring = false, fallback = 0f, armed = true, held = true, keyboard = 0f))
+        assertEquals(1f, searchMorphValue(spring = false, fallback = 0f, armed = true, held = true, keyboard = 0.3f))
+        // Otherwise it follows the keyboard, both ways.
+        assertEquals(0.3f, searchMorphValue(spring = false, fallback = 0f, armed = true, held = false, keyboard = 0.3f))
+        assertEquals(0f, searchMorphValue(spring = false, fallback = 0f, armed = false, held = true, keyboard = 0f))
+        assertEquals(0.5f, searchMorphValue(spring = true, fallback = 0.5f, armed = true, held = true, keyboard = 0f))
+    }
 }

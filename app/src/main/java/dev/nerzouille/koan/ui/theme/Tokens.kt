@@ -1307,13 +1307,6 @@ object StartPageTokens {
     val ContinueSubtitleSize = 13.sp
     val LabelSize = 13.sp
     const val FADE_OUT_MS = 180
-
-    /** Quick rows under "Continue": the latest pages visited, and the last download if recent. */
-    const val RECENT_PAGES = 4
-    const val RECENT_DOWNLOAD_MAX_AGE_MS = 60 * 60 * 1000L
-    val SectionTop = 18.dp
-    val QuickRowHeight = 48.dp
-    val QuickRowFavicon = 20.dp
 }
 
 object SearchTokens {
@@ -1355,16 +1348,42 @@ object PullTokens {
     val Trigger = 72.dp
     val Max = 120.dp
 
-    // The prototypes (PullLab): the page itself slides down, rubber-banded towards Max.
-    /** Finger travel → page travel at the start of the pull; it then tightens towards Max. */
-    const val RUBBER = 0.7f
-    /** The K at the trigger, and how small it starts. */
-    val KSize = 34.dp
-    const val K_MIN_SCALE = 0.35f
-    const val K_TURN_MS = 900
-    /** Haze: the brand spots' alpha at the start of the pull and at the trigger. */
-    const val HAZE_MIN = 0.10f
-    const val HAZE_MAX = 0.38f
+    // The prototypes (PullLab): the page itself slides down with the finger.
+    /** How far the page can come down: this share of the window's height. */
+    const val SLIDE_MAX_FRACTION = 0.38f
+    /** 1 : 1 with the finger up to this share of the max, then a rubber band towards the max. */
+    const val SLIDE_KNEE = 0.7f
+    /** Pulled this far, a release reloads; the page then rests this far down while it loads. */
+    val SlideTrigger = 120.dp
+    val SlideRest = 72.dp
+    /** The page's way back up once loaded (no bounce). */
+    val SlideBack: androidx.compose.animation.core.SpringSpec<Float> =
+        androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = 260f)
+
+    /** The K: its size at the trigger, how small it starts, its gap above the page's edge. */
+    val KSize = 32.dp
+    const val K_MIN_SCALE = 0.6f
+    val KGap = 14.dp
+    /** Let go: a flick of this speed that slows down like a wheel; then a breath while it loads. */
+    const val K_FLICK_DEG_PER_S = 2000f
+    const val K_FRICTION = 1f
+    const val K_BREATH = 1.1f
+    const val K_BREATH_MS = 650
+    const val K_SETTLE_DAMPING = 0.45f
+    const val K_SETTLE_STIFFNESS = 300f
+
+    /** Arc: the ground under the blobs, the blobs' size and drift with the pull. */
+    val ArcGroundLight = Color(0xFFD9C2FF)
+    val ArcGroundDark = Color(0xFF2A1C4A)
+    const val ARC_BLOB_RADIUS = 0.7f
+    const val ARC_DRIFT = 0.08f
+    const val ARC_BLOB_ALPHA_DARK = 0.75f
+
+    /** Haze: the glows' size, how far they rise and their alpha from the start of the pull to the trigger. */
+    const val HAZE_RADIUS = 0.55f
+    const val HAZE_RISE = 0.35f
+    const val HAZE_MIN = 0.12f
+    const val HAZE_MAX = 0.55f
 
     /** The indicator moves this much of the finger's travel. */
     const val RESISTANCE = 0.5f
