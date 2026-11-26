@@ -24,6 +24,8 @@
 ### Improved
 
 - The search field opens out of the address pill and closes back into it.
+- **Pull to refresh:** the page itself follows your finger and uncovers Koan's colours with a
+  spinning K; a second pull right after a reload always works.
 - The tab stack looks more like real cards on a table: each card casts a soft shadow on the one
   behind it and around the pile, with a thin edge and a header lit from above.
 - The translate icon stays in the address bar once a page is translated, filled; a tap opens

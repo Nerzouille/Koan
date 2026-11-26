@@ -230,7 +230,7 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
     Only the pill does this;
   - **back:** a small list of the pages before this one in the tab (icon and title, most recent
     first); tap one to go straight back to it;
-  - **the tab count:** a small menu with **New tab**, **Close tab** (the next tab shows, with a
+  - **the tab count:** a small menu with **New page** (the start page), **Close tab** (the next tab shows, with a
     **Tab closed · Undo** toast; a pinned tab or an essential goes back to its row) and **Reopen
     closed tab** (the last tab closed in this space, in its place and with its history; greyed out
     when there is none);
@@ -243,10 +243,11 @@ Page  ⇄  Overview  ⇄  Drawer (compact)  ⇄  Drawer (full)
   solid strip where Android's navigation bar is.
 - **Typing in a page:** when you tap a field in the page, the dock steps aside and the page ends at
   the keyboard, so the field shows right above it. The dock comes back when the keyboard goes.
-- **Pull to refresh:** at the top of a page, pull down: a small circle follows your finger; let go
-  past the tick to reload, and it turns with Koan's gradient until the page has loaded. Pages that
-  handle the touch themselves (maps, drawing apps, sites with their own pull) keep their own
-  gesture.
+- **Pull to refresh:** at the top of a page, pull down: the page follows your finger and uncovers
+  Koan's colours with the K coming out from under it; let go past the tick to reload. The K spins,
+  slows down, and gets small nudges while the page still loads; once loaded, the page slides back
+  over it. A pull can start again at once, even right after a reload. Pages that handle the touch
+  themselves (maps, drawing apps, sites with their own pull) keep their own gesture.
 - **Toasts** (the small bar at the bottom: "Tab closed · Undo", "Opened in background · Switch",
   a finished download): swipe one sideways or down to dismiss it early, without its action. A toast
   steps aside when a sheet, a card or a full page (History, Settings, Downloads) opens.
