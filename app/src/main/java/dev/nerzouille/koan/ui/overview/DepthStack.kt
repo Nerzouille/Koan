@@ -212,8 +212,8 @@ fun DepthStack(
 
     val palette = KoanTheme.colors
     // Light: back cards fade into the background (a haze); dark: they darken.
-    val dimColor = StackLab.dimColor(palette)
-    // Dev builds: the look picked in Settings › Debug › Stack style (null = the shipping look).
+    val dimColor = LabCards.dimColor(palette)
+    // The stack's look (Cast; dev builds can pick Before in Settings › Debug › Stack style).
     val lab = StackLab.active
 
     val hero = LocalCardHero.current
@@ -358,7 +358,10 @@ fun DepthStack(
                                     state.release()
                                     swipeCard(state, state.anim(focusedId, 0), down.id, slop.x, geo.cardWidth) { dir -> flyOff(focusedId, dir) }
                                 } else {
-                                    trackUntilUp(down.id, tracker) { state.dragBy(it.positionChange().y) }
+                                    trackUntilUp(down.id, tracker) {
+                                        state.dragBy(it.positionChange().y)
+                                        if (StackLab.feel(Feel.Motion) > 0f) state.followFinger(tracker.calculateVelocity().y)
+                                    }
                                     state.release(tracker.calculateVelocity().y)
                                 }
                             }
@@ -394,7 +397,7 @@ fun DepthStack(
                         .align(Alignment.TopCenter)
                         .zIndex(if (state.liftedId == id) 1f else 0f)
                         .size(cardWidthDp, cardHeightDp)
-                    // Its shadows, from a layer just under it (one ambient light).
+                    // Its shadows, from a layer just under it.
                     val shadowLayer = layout.graphicsLayer {
                         geo.applyTo(this, a)
                         geo.enter(this, a, hero.entrance()) { hero.screenBottomIn(coordinates[0], windowCentre) }
@@ -402,18 +405,13 @@ fun DepthStack(
                         clip = false
                         shadowElevation = 0f
                     }
-                    if (lab == null) {
-                        CardShadows(front = { if (near.value) geo.front(a) else 0f }, modifier = shadowLayer)
-                    } else {
-                        val behind = ids.getOrNull(index - 1)?.let { state.anim(it, index - 1) }
-                        val (length, fraction) = labContactLength(lab, palette.isDark)
-                        LabShadows(
-                            style = lab,
-                            depth = { if (near.value) geo.depthOf(a) else OFFSCREEN_DEPTH },
-                            contact = { if (near.value && behind != null) geo.contactLength(a, behind, length.value, fraction) else 0f },
-                            modifier = shadowLayer,
-                        )
-                    }
+                    val behind = ids.getOrNull(index - 1)?.let { state.anim(it, index - 1) }
+                    val (length, fraction) = labContactLength(lab, palette.isDark)
+                    LabShadows(
+                        style = lab,
+                        contact = { if (near.value && behind != null) geo.contactLength(a, behind, length.value, fraction) else 0f },
+                        modifier = shadowLayer,
+                    )
                     TabCard(
                         card = card,
                         depth = { if (near.value) geo.depthOf(a) else OFFSCREEN_DEPTH },
@@ -468,9 +466,7 @@ private fun BoxScope.FlyingCard(
         clip = false
         shadowElevation = 0f
     }
-    val lab = StackLab.active
-    if (lab == null) CardShadows(front = { geo.front(f.anim) }, modifier = shadowLayer)
-    else LabShadows(lab, depth = { geo.depthOf(f.anim) }, contact = { 0f }, modifier = shadowLayer)
+    LabShadows(StackLab.active, contact = { 0f }, modifier = shadowLayer)
     TabCard(
         card = f.card,
         depth = { geo.depthOf(f.anim) },
@@ -564,7 +560,7 @@ private class StackGeometry(
     private fun visible(d: Float) = d <= DepthCurve.MAX_VISIBLE_D && d >= DepthCurve.MIN_VISIBLE_D
 
     /**
-     * Dev looks (StackLab): how far [a]'s contact shadow rises above its top edge onto [behind],
+     * How far [a]'s contact shadow rises above its top edge onto [behind],
      * in [a]'s own px: [lengthDp], shorter where the pile leaves only a sliver of [behind]
      * ([fraction] of it at most). 0 = none.
      */
@@ -620,7 +616,31 @@ private class StackGeometry(
         shadowElevation = a.lift * StackTokens.LiftShadow.value * density
         ambientShadowColor = palette.CardShadowColor
         spotShadowColor = palette.CardShadowColor
-        StackLab.adjust(this, d, a.lift, s, cardHeight, density, palette)
+        StackLab.adjust(this, d, a.lift, density, palette)
+        motion(this, d)
+    }
+
+    /**
+     * Feel.Motion, while the finger drags the stack only: the cards behind lag a little (they
+     * move slower than the front), the dragged card tilts with the finger's speed. Both ease
+     * back with StackState.dragVelocity once it lets go; at rest everything is flat.
+     */
+    private fun motion(layer: GraphicsLayerScope, d: Float) = with(layer) {
+        val k = StackLab.feel(Feel.Motion)
+        val v = state.dragVelocity
+        if (k <= 0f || v == 0f) return@with
+        if (d > 0f) {
+            val lag = (v / state.slotPx * LabTokens.PARALLAX_SECONDS * k)
+                .coerceIn(-LabTokens.PARALLAX_MAX_SLOTS, LabTokens.PARALLAX_MAX_SLOTS) * min(d, 1f)
+            translationY += topOf(d + lag) - topOf(d)
+        }
+        val near = 1f - abs(d)
+        if (near > 0f) {
+            val speed = (v / density / LabTokens.MOTION_FULL_SPEED).coerceIn(-1f, 1f)
+            val tilt = (LabTokens.MOTION_TILT * k).coerceAtMost(LabTokens.MOTION_TILT_MAX)
+            rotationX = LabTokens.MOTION_TILT_SIGN * speed * tilt * near
+            cameraDistance = LabTokens.MOTION_CAMERA * density
+        }
     }
 
     /**

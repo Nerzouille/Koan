@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -25,6 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.nerzouille.koan.ui.kit.KoanToggle
+import dev.nerzouille.koan.ui.overview.Feel
 import dev.nerzouille.koan.ui.overview.LabTokens
 import dev.nerzouille.koan.ui.overview.StackLab
 import dev.nerzouille.koan.ui.overview.StackStyle
@@ -47,29 +51,38 @@ fun StackStylePage(interactive: Boolean, onBack: () -> Unit) {
     }
 }
 
-/** The look, its strength and (Tilt) its angle. */
+/** The look and its strength, then each 3D touch on top of Cast: a switch and a strength. */
 @Composable
 fun StackLabControls(interactive: Boolean) {
     Column {
         Spacer(Modifier.height(8.dp))
         Segmented(StackStyle.entries.map { it to it.short }, StackLab.style, interactive, StackLab::select)
         LabSlider(
-            label = if (StackLab.style == StackStyle.Tilt) "Perspective" else "Strength",
+            label = "Strength",
             value = StackLab.strength,
             range = LabTokens.MIN_STRENGTH..LabTokens.MAX_STRENGTH,
             text = "×%.2f".format(StackLab.strength),
             enabled = interactive,
             onChange = StackLab::changeStrength,
         )
-        if (StackLab.style == StackStyle.Tilt) {
-            LabSlider(
-                label = "Angle per card",
-                value = StackLab.angle,
-                range = 0f..LabTokens.TILT_ANGLE_MAX,
-                text = "%.1f°".format(StackLab.angle),
-                enabled = interactive,
-                onChange = StackLab::changeAngle,
-            )
+        if (StackLab.style == StackStyle.Cast) {
+            Feel.entries.forEach { f ->
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) {
+                        LabSlider(
+                            label = f.label,
+                            value = StackLab.feelStrength(f),
+                            range = 0f..LabTokens.MAX_STRENGTH,
+                            text = "×%.2f".format(StackLab.feelStrength(f)),
+                            enabled = interactive && StackLab.feelOn(f),
+                            onChange = { StackLab.tune(f, strength = it) },
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    val toggle: ((Boolean) -> Unit)? = if (interactive) { on -> StackLab.tune(f, on = on) } else null
+                    KoanToggle(checked = StackLab.feelOn(f), onCheckedChange = toggle)
+                }
+            }
         }
     }
 }

@@ -8,8 +8,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -26,22 +28,22 @@ import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 
 /**
- * A stack card's shadows in a dev look ([StackLab]): a layer just under the card, same size and
- * transform ([modifier]), not clipped. [depth] is the card's depth, [contact] how far its contact
- * shadow rises onto the card behind (px, 0 = none); both read in draw and layers only.
+ * A stack card's shadows in its look ([StackLab]): a layer just under the card, same size and
+ * transform ([modifier]), not clipped. [contact] is how far its contact shadow rises onto the card
+ * behind (px, 0 = none), read in draw only.
  */
 @Composable
-fun LabShadows(style: StackStyle, depth: () -> Float, contact: () -> Float, modifier: Modifier) {
+fun LabShadows(style: StackStyle, contact: () -> Float, modifier: Modifier) {
     val palette = KoanTheme.colors
     val dark = palette.isDark
     val shape = remember { RoundedCornerShape(CardTokens.Radius) }
     Box(modifier) {
         when (style) {
-            StackStyle.Before, StackStyle.Tilt -> ContactRise(
+            StackStyle.Before -> ContactRise(
                 color = if (dark) LabTokens.ContactDark else LabTokens.ContactLight,
                 length = if (dark) LabTokens.ContactLengthDark else LabTokens.ContactLengthLight,
                 rise = contact,
-                strength = { if (style == StackStyle.Before) StackLab.strength else 1f },
+                strength = { StackLab.strength },
             )
             StackStyle.Cast -> {
                 val around = remember(dark) {
@@ -68,27 +70,7 @@ fun LabShadows(style: StackStyle, depth: () -> Float, contact: () -> Float, modi
                     rise = contact,
                     strength = { StackLab.strength },
                 )
-            }
-            StackStyle.Haze -> {
-                val fog = remember(dark) {
-                    Shadow(
-                        radius = LabTokens.HazeBlur,
-                        color = if (dark) palette.Base else LabTokens.HazeLight,
-                        spread = LabTokens.HazeSpread,
-                        offset = DpOffset(0.dp, LabTokens.HazeY),
-                    )
-                }
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            // The fog around this card lies over the one behind it: as dense as that card is deep.
-                            val behind = depth() + 1f
-                            alpha = (DepthCurve.lerp(LabTokens.Haze, behind.coerceAtLeast(0f)) * StackLab.strength).coerceIn(0f, 1f)
-                            compositingStrategy = CompositingStrategy.ModulateAlpha
-                        }
-                        .dropShadow(shape, fog),
-                )
+                Thickness(if (dark) LabTokens.ThicknessDark else LabTokens.ThicknessLight)
             }
         }
     }
@@ -132,11 +114,32 @@ private fun ContactRise(color: Color, length: Dp, rise: () -> Float, strength: (
     )
 }
 
+/**
+ * The card's thickness (Feel.Thickness): its shape, [LabTokens.Thickness] higher, under the card,
+ * so only a thin darker band shows just above its top edge, in the strip of the card behind.
+ */
+@Composable
+private fun Thickness(color: Color) {
+    Box(
+        Modifier.fillMaxSize().drawBehind {
+            val k = StackLab.feel(Feel.Thickness)
+            if (k <= 0f) return@drawBehind
+            val r = CardTokens.Radius.toPx()
+            drawRoundRect(
+                color.copy(alpha = 1f),
+                topLeft = Offset(0f, -LabTokens.Thickness.toPx()),
+                size = size,
+                cornerRadius = CornerRadius(r, r),
+                alpha = (color.alpha * k).coerceIn(0f, 1f),
+            )
+        },
+    )
+}
+
 private val RISE_STOPS = listOf(0f, 0.25f, 0.5f, 0.75f, 1f)
 
 /** How far a dev look's contact shadow rises (Cast: longer, over more of the sliver). */
 internal fun labContactLength(style: StackStyle, dark: Boolean): Pair<Dp, Float> = when (style) {
     StackStyle.Cast -> LabTokens.CastContactLength to LabTokens.CAST_CONTACT_MAX_FRACTION
-    StackStyle.Haze -> 0.dp to 0f
-    else -> (if (dark) LabTokens.ContactLengthDark else LabTokens.ContactLengthLight) to LabTokens.CONTACT_MAX_FRACTION
+    StackStyle.Before -> (if (dark) LabTokens.ContactLengthDark else LabTokens.ContactLengthLight) to LabTokens.CONTACT_MAX_FRACTION
 }

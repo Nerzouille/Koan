@@ -103,8 +103,8 @@ fun TabCard(
 ) {
     val palette = KoanTheme.colors
     val private = dev.nerzouille.koan.ui.theme.LocalPrivateBrowsing.current
-    // Dev looks (StackLab) keep beta.1's cards.
-    val dimOf = { d: Float -> StackLab.cardDim(d, palette) ?: DepthCurve.cardDim(d, palette.DimGain, palette.DimMax, palette.isDark) }
+    // The stack's looks keep beta.1's cards (StackLab).
+    val dimOf = { d: Float -> LabCards.cardDim(d, palette) }
     if (card.skeleton) return SkeletonCard(depth, dimColor, dimOf, modifier)
     val look = faviconLook(card.url)
     Box(modifier.background(palette.Card).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
@@ -223,6 +223,9 @@ private fun CardEdge() {
 }
 
 private val CardShape = RoundedCornerShape(CardTokens.Radius)
+private val SurfaceLight =
+    androidx.compose.ui.graphics.Brush.verticalGradient(listOf(LabTokens.SurfaceTopLight, LabTokens.SurfaceBottomLight))
+private val SurfaceDark = androidx.compose.ui.graphics.Brush.verticalGradient(listOf(LabTokens.SurfaceTopDark, LabTokens.SurfaceBottomDark))
 
 @Composable
 internal fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
@@ -289,13 +292,22 @@ internal fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
                 }
             }
         }
+        // Feel.Surface: the header lit from above, under its depth dim.
+        Box(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    alpha = (StackLab.feel(Feel.Surface) / LabTokens.SURFACE_FULL).coerceIn(0f, 1f)
+                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                }
+                .background(if (palette.isDark) SurfaceDark else SurfaceLight),
+        )
         // The depth dim over the header: a layer's alpha, nothing re-recorded per scroll frame.
         Box(
             Modifier
                 .matchParentSize()
                 .graphicsLayer {
-                    val d = depth()
-                    val dim = StackLab.headerDim(d, palette) ?: DepthCurve.cardDim(d, palette.DimGain, palette.DimMax, palette.isDark)
+                    val dim = LabCards.headerDim(depth(), palette)
                     alpha = if (dim > 0.01f) dim else 0f
                     compositingStrategy = CompositingStrategy.ModulateAlpha
                 }

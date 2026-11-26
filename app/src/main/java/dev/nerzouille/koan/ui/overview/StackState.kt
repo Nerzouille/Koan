@@ -76,6 +76,14 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         private set
     private var frontJob: Job? = null
 
+    /**
+     * The finger's vertical speed while it drags the stack (px/s, down positive), for
+     * Feel.Motion; it eases back to 0 once the finger lets go. Read in layers only.
+     */
+    var dragVelocity by mutableFloatStateOf(0f)
+        private set
+    private var velocityJob: Job? = null
+
     internal val cards = HashMap<String, CardAnim>()
     private var scrollJob: Job? = null
     private var wheelJob: Job? = null
@@ -113,8 +121,24 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         return caught
     }
 
+    /** The finger drags at [vyPx] px/s (Feel.Motion). */
+    fun followFinger(vyPx: Float) {
+        velocityJob?.cancel()
+        dragVelocity = vyPx
+    }
+
+    /** Let go: the motion feel eases back to flat. */
+    private fun settleVelocity() {
+        if (dragVelocity == 0f || velocityJob?.isActive == true) return
+        velocityJob = scope.launch {
+            val ease = androidx.compose.animation.core.spring<Float>(dampingRatio = 1f, stiffness = 300f)
+            androidx.compose.animation.core.animate(dragVelocity, 0f, animationSpec = ease) { v, _ -> dragVelocity = v }
+        }
+    }
+
     /** The gesture that started with [startDrag] is over, whatever it turned out to be. */
     fun endTouch() {
+        settleVelocity()
         dragging = false
         busy = scrollJob?.isActive == true
         if (!busy) settleFront()
@@ -160,6 +184,7 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
      * Fast: momentum scroll through as many cards as the velocity carries, landing on a card.
      */
     fun release(vyPx: Float = 0f) {
+        settleVelocity()
         dragging = false
         val v = -vyPx / slotPx
         val moved = if (abs(v) >= StackTokens.FLING_MIN_VELOCITY) v else pos - dragStart
