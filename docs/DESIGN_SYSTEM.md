@@ -227,6 +227,8 @@ drawer, sheets, first run), 16dp (start page), 20dp (settings, sign-in pages), 2
 |---|---|---|
 | Stack card shadow, Cast (every card, light from above) | 0/10/30/+2 `#1C1C30` at 30% × 0.45 | black at 80% × 0.45 |
 | Cast's contact shadow (a card on the card behind it, just above its top edge) | `#1C1C30` at 30% × 0.45, 30dp long, at most 70% of the visible sliver | black at 85% × 0.45, same |
+| Cast's thickness (a band just above each card's top edge) | 1.5dp, `#1C1C30` at 18% | black at 70% |
+| Cast's surface light (header gradient, top → bottom) | white 8% → `#1C1C30` 4% | white 4% → black 10.7% |
 | Dock's upward shadow (`DockShadow`, 28dp tall, no hairline) | `#3C281E` at 7% | black at 35% |
 | Drawer sheet shadow over the cards without blur (Android 11, 56dp) | `#1C1C28` at 16% | black at 45% |
 | Long-press lifted card | +16dp shadow, scale +3% | same |
@@ -914,9 +916,14 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 **Corner radius vs depth:** the card's shape is a constant `RoundedCornerShape(28dp)` (`CardTokens.Radius`, `DepthStack.kt`) applied before the layer scale, so on screen the corner is 28dp × scale(d) (e.g. ≈ 22.3dp at d = 1, 29.4dp at the peek). Not animated separately.
 
-**Shadow: Cast** (owner, 2026-11-26), light from above, so the pile reads as objects on a surface. Each card's shadow layer (`LabShadows`, under the card, with its transform) draws two shadows: a soft shadow all around the card (Compose `dropShadow`, 0/10/30/+2, `#1C1C30` at 30% in light, black at 80% in dark), which lands on the card behind and on the background beside and below the pile; and a contact shadow rising from the card's top edge onto the card behind (30dp, at most 70% of the visible sliver, `#1C1C30` at 30% / black at 85%, fading as t²). Both × the strength, `LabTokens.CAST_STRENGTH` 0.45 in every build. Only layer alphas and the contact gradient change; nothing recomposes. A lifted card (long press) adds an elevation of 16dp × lift (`LiftShadow`, `CardShadowColor`).
+**Shadow: Cast** (owner, 2026-11-26), light from above, so the pile reads as objects on a surface; the same in every build, light and dark. Each card's shadow layer (`LabShadows`, under the card, with its transform) draws:
+- a soft shadow all around the card (Compose `dropShadow`, 0/10/30/+2: `#1C1C30` at 30% in light, black at 80% in dark), which lands on the card behind and on the background beside and below the pile;
+- a contact shadow rising from the card's top edge onto the card behind (30dp, at most 70% of the visible sliver, `#1C1C30` at 30% / black at 85%, fading as t²);
+- the card's thickness: its own shape raised 1.5dp, so a thin darker band shows just above its top edge, in the strip of the card behind (`#1C1C30` at 18% / black at 70%).
 
-**Debug switcher** (dev and debug builds only, never in a release build): Settings › Debug › Stack style (`StackStylePage.kt`, state in `StackLab`) switches between Cast and Before (beta.1's stack: its key shadow, softening 10% per depth step down to 60%, and its 16dp / 18dp contact shadow) and sets the look's strength. Two optional 3D touches on top of Cast, off by default, each with a switch and a strength: *Thickness*, a 1.5dp darker band just above each card's top edge (the card's own shape, raised, under it); *Surface light*, a faint vertical gradient on the headers, lighter at the top, darker at the bottom. "Panel on the overview" shows the same controls over the stack. The choice is kept in the app's preferences.
+Both shadows are × `LabTokens.CAST_STRENGTH` 0.45. The header gets Cast's surface light: a vertical gradient under its depth dim, lighter at the top, a little darker at the bottom (light: white 8% → `#1C1C30` 4%; dark: white 4% → black 10.7%, with the existing top-edge rim kept). The thickness was tuned at strength 1.00 and the surface light at 0.67 in a dev build, then fixed as these values. All of it is fixed drawing in the card's layers: nothing animates or recomposes per frame. A lifted card (long press) adds an elevation of 16dp × lift (`LiftShadow`, `CardShadowColor`).
+
+**Debug switcher** (dev and debug builds only, never in a release build): Settings › Debug › Stack style (`StackStylePage.kt`, state in `StackLab`, kept in the app's preferences) switches between Cast and Before, beta.1's stack to compare: its key shadow (`CardElevation`, softening 10% per depth step down to 60%) and its 16dp / 18dp contact shadow, no thickness, no surface light.
 
 **Swipe tilt / fade** (applied to the same layer, `DepthStack.kt`): tilt = swipeX(dp) × 0.03°/dp (`StackTokens.SWIPE_TILT_PER_DP`), pivot at the card's bottom centre; alpha × max(1 − abs(swipeX)/420dp, 0.3) (`StackTokens.SwipeFadeDistance`, `StackTokens.SWIPE_MIN_ALPHA`).
 
@@ -1037,9 +1044,9 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 ### LabShadows
 
-**Purpose:** a stack card's shadows in its look: Cast's all-around shadow and contact shadow (or Before's contact shadow).
+**Purpose:** a stack card's shadows in its look: Cast's all-around shadow, contact shadow and thickness (or Before's contact shadow).
 
-**Anatomy** (`OV/StackLabShadows.kt`): a separate, unclipped layer drawn just under the card, with the card's size and transform (`DepthStack.kt`): the all-around shadow (`dropShadow` with the card's shape, strength as layer alpha), the contact shadow (a cached vertical gradient whose ends fade before the rounded corners, scaled to the visible sliver), and, when on, the thickness band. Fades with the card (same alpha incl. swipe fade). Closed cards flying off keep theirs.
+**Anatomy** (`OV/StackLabShadows.kt`): a separate, unclipped layer drawn just under the card, with the card's size and transform (`DepthStack.kt`): the all-around shadow (`dropShadow` with the card's shape), the contact shadow (a cached vertical gradient whose ends fade before the rounded corners, scaled to the visible sliver), and, in Cast, the thickness band. Fades with the card (same alpha incl. swipe fade). Closed cards flying off keep theirs.
 
 **Light vs dark:** see 1.5 Elevation and shadows.
 

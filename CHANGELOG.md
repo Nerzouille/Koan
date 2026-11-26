@@ -21,6 +21,8 @@
 ### Improved
 
 - The search field opens out of the address pill and closes back into it.
+- The tab stack looks more like real cards on a table: each card casts a soft shadow on the one
+  behind it and around the pile, with a thin edge and a header lit from above.
 - The translate icon stays in the address bar once a page is translated, filled; a tap opens
   Translate page (Show original, the languages). While a download runs, its ring takes the
   icon's place.

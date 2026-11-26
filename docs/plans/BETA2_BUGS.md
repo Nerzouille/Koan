@@ -35,7 +35,7 @@ the owner's wording of each feature.
 | 13 | Translate icon stays active after translating; download ring shares its slot | **Done (night).** `TranslateCue.Active`, filled disc, tap = ⋯ › Translate page; ring slot was already there, now `pillEndSlot` + `PillEndTest`. | 166f4c5 | No (checks below) |
 | 14 | Rotate row in the player's ⋯ menu | **Done.** Only with auto-rotate off, like the pill (owner, 2026-11-26). | b062a27, 83a76b2 | No |
 | 15 | Passkey failure message | **Done as option C (owner):** a Known limitation in FEATURES, no code. | 35a2398 | No |
-| 16 | Depth cue (A, B, C or A + B) | **Done: direction 3, one ambient light (owner, 2026-11-26),** replacing A. Back cards fade towards the background (light 0 · .10 · .18 · .26 · .32 × `StackTokens.LIGHT_FADE`; dark 0 · .20 · .35 · .48 · .58), the front card casts the long shadow and hands it over when the stack settles, the others a contact shadow; geometry unchanged. `DepthDimTest`. Captures: `reference/beta2-choices/depth3-{light,dark}.png` (+ `-zoom`). | see Day run 2 | No (feel check on the release build) |
+| 16 | Depth cue (A, B, C or A + B) | **Done: Cast shadows (owner, 2026-11-26),** after direction 3 and four styles tried live from a dev-only switcher. Light from above: a soft shadow around each card and a contact shadow onto the card behind (× 0.45), a 1.5dp thickness band, a faint header gradient; cards keep beta.1's dim. Settings › Debug › Stack style switches to Before (dev builds only). Day run 2, item 9. |
 | 17 | End of phase: R8 release build, kill and restore | **Partly done (night):** full suite 493 green; R8 **staging** build (Koan Test) launched, `am kill` in the background, restored on the same tab, no crash. The R8 build of the real app id and the release from `main` wait for the release steps. | none | No |
 
 **Also needs the owner:** Lock private tabs is **off** in the POCO's real Koan (turned off for the
@@ -612,3 +612,11 @@ was not touched.
    differs; the cards behind are the same tabs. The hero card (page ↔ overview) keeps its
    elevation shadow: watch the landing for a shadow change.
    The `capture-proto` branch (prototypes A, B, C) is deleted.
+9. **Depth, final: Cast shadows** (replaces direction 3). The owner tried four styles live on the
+   real Koan from a dev-only switcher (Before, Cast shadows, Haze, Tilt), then Cast with three
+   3D touches (thickness, surface light, motion). Kept: Cast at 0.45, thickness at 1.00, surface
+   light at 0.67, the same in every build (`ui/overview/StackLab.kt`, `StackLabShadows.kt`,
+   `StackLabTest`). Settings › Debug › Stack style keeps Before (beta.1) to compare, dev and debug
+   builds only. Removed: direction 3 (fades, front shadow and its handoff in `StackState`), Haze,
+   Tilt, motion (parallax + drag tilt, on the ROADMAP after beta.2) and the tuning sliders. The
+   card dim, `DepthCurve` and `StackState` are beta.1's again.
