@@ -31,6 +31,7 @@ import dev.nerzouille.koan.ui.menu.PagePrompts
 import dev.nerzouille.koan.ui.menu.SaveLoginCard
 import dev.nerzouille.koan.ui.sheet.Detent
 import dev.nerzouille.koan.ui.sheet.KoanCard
+import dev.nerzouille.koan.ui.sheet.SheetState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -56,9 +57,6 @@ internal fun LoginOverlays(
         prompt to (content?.private == false)
     }
     val (loginPrompt, regularTab) = loginState
-    val systemAutofill by components.settings.systemAutofill.collectAsStateWithLifecycle(false)
-    val context = LocalContext.current
-    val autofillManager = remember(context) { context.getSystemService(AutofillManager::class.java) }
     // A page's file field: Android's picker (and the camera).
     FilePrompt(components, activeTabId)
     // Everything else a page asks: <select>, pickers, alert/confirm, HTTP sign-in, pop-ups.
@@ -93,27 +91,41 @@ internal fun LoginOverlays(
             )
         }
     }
-    val save = loginPrompt as? PromptRequest.SaveLoginPrompt
+    SaveLoginOverlay(components, overlays.saveLoginCard, scope, loginPrompt as? PromptRequest.SaveLoginPrompt, regularTab, ::consumePrompt)
+}
+
+@Composable
+private fun SaveLoginOverlay(
+    components: Components,
+    card: SheetState,
+    scope: CoroutineScope,
+    save: PromptRequest.SaveLoginPrompt?,
+    regularTab: Boolean,
+    consumePrompt: (PromptRequest) -> Unit,
+) {
+    val systemAutofill by components.settings.systemAutofill.collectAsStateWithLifecycle(false)
+    val context = LocalContext.current
+    val autofillManager = remember(context) { context.getSystemService(AutofillManager::class.java) }
     val entry = save?.logins?.firstOrNull()
     val systemHandlesSave = save != null && regularTab && systemAutofill && autofillManager?.isEnabled == true
     var savedBefore by remember { mutableStateOf(false) }
     LaunchedEffect(save, systemHandlesSave) {
         if (save == null || entry == null) return@LaunchedEffect
         if (systemHandlesSave) {
-            overlays.saveLoginCard.animateTo(Detent.Closed)
+            card.animateTo(Detent.Closed)
             save.onDismiss()
             consumePrompt(save)
             return@LaunchedEffect
         }
         savedBefore = components.logins.forOrigin(entry.origin).any { it.username == entry.username }
-        overlays.saveLoginCard.animateTo(Detent.Compact)
+        card.animateTo(Detent.Compact)
     }
-    KoanCard(overlays.saveLoginCard) { interactive ->
+    KoanCard(card) { interactive ->
         if (save == null || entry == null || systemHandlesSave) return@KoanCard
         SaveLoginCard(
             origin = entry.origin, username = entry.username, update = savedBefore, interactive = interactive,
             onSave = {
-                overlays.saveLoginCard.animateTo(Detent.Closed)
+                card.animateTo(Detent.Closed)
                 scope.launch {
                     components.logins.saveLocal(
                         entry.origin, entry.formActionOrigin, entry.httpRealm, entry.usernameField, entry.passwordField,
@@ -124,7 +136,7 @@ internal fun LoginOverlays(
                 consumePrompt(save)
             },
             onNotNow = {
-                overlays.saveLoginCard.animateTo(Detent.Closed)
+                card.animateTo(Detent.Closed)
                 save.onDismiss()
                 consumePrompt(save)
             },
