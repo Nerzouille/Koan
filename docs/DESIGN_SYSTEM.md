@@ -361,7 +361,7 @@ Gesture thresholds:
 | Tab swipe on the dock | tabs 24dp apart; the resting tab goes live after 300 ms without a new swipe |
 | Sheets | commit past 25% of the gap to the next detent, or a fling ≥ 600dp/s; compact detent ≤ 55% of the screen; full detent 12dp below the status bar |
 | Toast | swipe past 30% of its width or fling ≥ 800dp/s; shown 3 s |
-| Pull to refresh | indicator moves 0.5× the finger; reloads past 72dp (max 120dp) |
+| Pull to refresh | indicator moves 0.5× the finger; reloads past 72dp (max 120dp). Prototypes (Settings › Debug › Pull to refresh): the page itself slides, rubber-banded max·(1 − e^(−0.7·dy/max)), same trigger and max |
 | Dismiss overview / start page by pulling down | 48dp / 64dp |
 | Dock on page scroll | always shown within 48dp of the top |
 
@@ -923,7 +923,9 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 Both shadows are × `LabTokens.CAST_STRENGTH` 0.45. The header gets Cast's surface light: a vertical gradient under its depth dim, lighter at the top, a little darker at the bottom (light: white 8% → `#1C1C30` 4%; dark: white 4% → black 10.7%, with the existing top-edge rim kept). The thickness was tuned at strength 1.00 and the surface light at 0.67 in a dev build, then fixed as these values. All of it is fixed drawing in the card's layers: nothing animates or recomposes per frame. A lifted card (long press) adds an elevation of 16dp × lift (`LiftShadow`, `CardShadowColor`).
 
-**Debug switcher** (dev and debug builds only, never in a release build): Settings › Debug › Stack style (`StackStylePage.kt`, state in `StackLab`, kept in the app's preferences) switches between Cast and Before, beta.1's stack to compare: its key shadow (`CardElevation`, softening 10% per depth step down to 60%) and its 16dp / 18dp contact shadow, no thickness, no surface light.
+**Debug switcher** (dev, debug and staging builds only, never in a release build): Settings › Debug › Stack style (`StackStylePage.kt`, state in `StackLab`, kept in the app's preferences) switches between Cast and Before, beta.1's stack to compare: its key shadow (`CardElevation`, softening 10% per depth step down to 60%) and its 16dp / 18dp contact shadow, no thickness, no surface light.
+
+**Pull to refresh, prototypes** (Settings › Debug › Pull to refresh, next to Current; dev, debug and staging builds only; `PullLab`, `PullBackdrop.kt`). The page itself slides down with the pull (rubber band, max 120dp, reloads past 72dp), stays at 72dp while it reloads, then slides back up. What it uncovers, a band as tall as the pull drawn under the page: *Arc*, the brand gradient (pink → violet → blue, opaque) with a white K; *Haze*, the base (`#F5F5F7` / `#121214`) with Settings' brand haze, its alpha 0.10 → 0.38 with the pull, the K in `TextPrimary`; *Logo only*, the plain base, the K in the brand gradient. The K (the launcher icon's path) grows from 35% to 34dp at the trigger and turns once per 900ms while reloading. "Remove animations": the page jumps back instead of sliding and the K stays still. Read at draw time and in the page's layer only.
 
 **Swipe tilt / fade** (applied to the same layer, `DepthStack.kt`): tilt = swipeX(dp) × 0.03°/dp (`StackTokens.SWIPE_TILT_PER_DP`), pivot at the card's bottom centre; alpha × max(1 − abs(swipeX)/420dp, 0.3) (`StackTokens.SwipeFadeDistance`, `StackTokens.SWIPE_MIN_ALPHA`).
 

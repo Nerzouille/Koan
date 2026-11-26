@@ -17,6 +17,10 @@
   ⋯ › Subtitles › Choose a file….
 - **Rotate** in the video player's ⋯ menu when the phone's auto-rotate is off.
 - **Copy link text** in the menu of a long-pressed link.
+- **New page:** long-press the tab counter › New page opens the start page, which now also lists
+  the pages you visited last and a download from the last hour.
+- **Open link you copied:** a link copied in the last few minutes is offered on the start page
+  and first in the search field, until you type.
 
 ### Improved
 
