@@ -96,6 +96,7 @@ internal fun PermissionOverlays(
     LaunchedEffect(appAsk) { if (appAsk != null) appLinkCard.animateTo(Detent.Compact) }
     LaunchedEffect(appLinkCard.open) { if (!appLinkCard.open) components.externalLinks.ask.value = null }
     LaunchedEffect(Unit) { components.externalLinks.messages.collect { onToast(Toast(it)) } }
+    LaunchedEffect(Unit) { components.errorPages.messages.collect { onToast(Toast(it)) } }
     KoanCard(appLinkCard) { interactive ->
         val ask = appAsk ?: return@KoanCard
         AppLinkPrompt(

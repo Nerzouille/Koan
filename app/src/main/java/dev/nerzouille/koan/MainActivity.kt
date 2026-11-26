@@ -94,6 +94,7 @@ class MainActivity : FragmentActivity() {
         components.pageVideo.start()
         components.startExtensions()
         components.startMedia()
+        components.errorPages.start()
         components.watchDownloadLocation()
         pip = PictureInPicture(this, components.store, components.settings, lifecycleScope, components.pageVideo.videos).also { p ->
             components.pip.value = p

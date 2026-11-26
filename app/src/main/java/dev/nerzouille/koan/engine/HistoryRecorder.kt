@@ -18,7 +18,12 @@ import mozilla.components.concept.storage.PageVisit
  * it is written, so the last one can still drop it. As the engine's history delegate it also keeps
  * titles current and makes visited links look visited.
  */
-class HistoryRecorder(private val dao: KoanDao, private val scope: CoroutineScope) : HistoryTrackingDelegate {
+class HistoryRecorder(
+    private val dao: KoanDao,
+    private val scope: CoroutineScope,
+    /** Tab, url: the tab shows Koan's error page for that url (never a visit). Main thread. */
+    private val isErrorPage: (String, String) -> Boolean = { _, _ -> false },
+) : HistoryTrackingDelegate {
     private class Held(val url: String, val at: Long, @Volatile var title: String) {
         var job: Job? = null
     }
@@ -30,6 +35,11 @@ class HistoryRecorder(private val dao: KoanDao, private val scope: CoroutineScop
     fun pageShown(tabId: String, url: String, title: String) {
         if (!shouldStoreUri(url)) return
         val previous = held[tabId]
+        // A page that failed to load isn't a place visited.
+        if (isErrorPage(tabId, url)) {
+            if (previous?.url == url) previous.job?.cancel()
+            return
+        }
         if (previous?.url == url) {
             // Same page, a new title.
             if (title.isNotEmpty() && title != previous.title) {
@@ -46,6 +56,7 @@ class HistoryRecorder(private val dao: KoanDao, private val scope: CoroutineScop
         next.job = scope.launch {
             delay(HOLD_MS)
             if (HistoryFilter.isRedirect(next.url, next.title)) return@launch
+            if (kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { isErrorPage(tabId, next.url) }) return@launch
             val title = next.title
             dao.recordVisit(next.url, title, next.at)
             // The title arrived while the visit was being written.

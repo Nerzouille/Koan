@@ -215,7 +215,13 @@ fun BrowserScreen(
         val began = async(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             withTimeoutOrNull(PullTokens.START_TIMEOUT_MS) { loading.first { it } } != null
         }
-        id?.let { session.reload(it) }
+        // Offline on a loaded page: no reload, the page stays (ErrorPages); the pull lets go at once.
+        if (id == null || !components.reloadTab(id)) {
+            began.cancel()
+            pullLog("reload: skipped, the page stays")
+            pull.done()
+            return@LaunchedEffect
+        }
         val loaded = began.await() && withTimeoutOrNull(PullTokens.LOAD_MAX_MS) { loading.first { !it } } != null
         // A quick reload still shows that it happened.
         delay(PullTokens.MIN_SPIN_MS - (System.currentTimeMillis() - start))

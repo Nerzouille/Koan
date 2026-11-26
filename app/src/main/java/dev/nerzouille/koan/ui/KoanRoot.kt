@@ -51,6 +51,7 @@ import dev.nerzouille.koan.data.TabEntity
 import dev.nerzouille.koan.data.TabOrigin
 import dev.nerzouille.koan.engine.ClosedTab
 import dev.nerzouille.koan.engine.Components
+import dev.nerzouille.koan.engine.ErrorPageUrl
 import dev.nerzouille.koan.engine.Opener
 import dev.nerzouille.koan.engine.returnToApp
 import dev.nerzouille.koan.privacy.PrivateTabs
@@ -765,6 +766,10 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             toasts.show(Toast("Tab closed", "Undo") { undoClose(closed) })
         }
     }
+    // An error page's Close tab button: like Back on the tab's first page.
+    LaunchedEffect(Unit) {
+        components.errorPages.closeRequests.collect { id -> if (id == activeTabId && !overviewOpen) backFromFirstPage(id) }
+    }
     // Page view: Back goes through the page's history, then closes the tab (see backFromFirstPage).
     BackHandler(enabled = !overviewOpen && !editing) {
         val id = activeTabId
@@ -911,7 +916,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 // Reader view shows its own extension page: the address stays the article's.
                 val reader = tab?.readerState?.takeIf { it.active }?.activeUrl
                 PageInfo(
-                    url = reader ?: c?.url.orEmpty(),
+                    // Koan's own offline page: the address stays the one that failed (ErrorPages).
+                    url = reader ?: ErrorPageUrl.shown(c?.url.orEmpty()),
                     loading = c?.loading == true,
                     canGoBack = c?.canGoBack == true,
                     canGoForward = c?.canGoForward == true,
@@ -920,6 +926,9 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             }
         }
         val currentPage = page
+        // An error page waiting out a network switch: the load line keeps going (ErrorPages).
+        val errorWaiting by components.errorPages.waiting.collectAsStateWithLifecycle()
+        val waitingHere = activeTabId != null && activeTabId in errorWaiting
         // The load's progress on its own: read only by the load line's animation, never here.
         val pageProgress = store.observeSlice(activeTabId) { state ->
             activeTabId?.let { state.findTab(it) }?.content?.progress?.let { it / 100f } ?: 0f
@@ -1025,8 +1034,8 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
             overviewOpen = overviewOpen,
             overview = { motion.progress },
             bar = bar,
-            loading = currentPage.loading && !startPage,
-            loadProgress = { pageProgress.value },
+            loading = (currentPage.loading || waitingHere) && !startPage,
+            loadProgress = { if (waitingHere) pageProgress.value.coerceAtMost(WAIT_PROGRESS) else pageProgress.value },
             dockHide = { dock.offset },
             dockAway = { dock.keyboard },
             drawerContent = { modifier ->
@@ -1270,3 +1279,5 @@ internal const val NO_CARD = ""
 /** After sign-in, how long the overview waits for the first sync before giving up on showing Zen's top tab. */
 private const val ZEN_TOP_WAIT_MS = 120_000L
 
+/** The load line during an error page's grace: part way, shimmering. */
+private const val WAIT_PROGRESS = 0.6f

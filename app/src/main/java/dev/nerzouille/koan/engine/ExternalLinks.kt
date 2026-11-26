@@ -44,6 +44,8 @@ class ExternalLinks(
     private val pageUrl: () -> String?,
     /** A page load to send elsewhere first (Google AMP links → the article, privacy/AmpLinks); null = as is. */
     private val rewrite: (EngineSession, String) -> String? = { _, _ -> null },
+    /** Koan's own error pages (ErrorPages); null = the engine's. */
+    private val errors: () -> ErrorPages? = { null },
 ) : RequestInterceptor {
     private val context = context.applicationContext
     private val pm = context.packageManager
@@ -68,9 +70,15 @@ class ExternalLinks(
         isDirectNavigation: Boolean,
         isSubframeRequest: Boolean,
     ): InterceptionResponse? {
+        // The error page's Close tab button: acted on only from Koan's own error page, never a site's.
+        if (uri == ErrorPageUrl.CLOSE) {
+            if (!isSubframeRequest) errors()?.closeFrom(engineSession, hasUserGesture)
+            return InterceptionResponse.Deny
+        }
         val scheme = uri.substringBefore(':', "").lowercase()
         if (!isSubframeRequest && (scheme == "https" || scheme == "http")) {
             rewrite(engineSession, uri)?.let { return InterceptionResponse.Url(it) }
+            errors()?.noteLoad(engineSession, uri)
         }
         if (scheme in ENGINE_SCHEMES) return null
         val page = lastUri?.takeIf { it.isNotBlank() } ?: pageUrl()
@@ -106,20 +114,12 @@ class ExternalLinks(
         return InterceptionResponse.Deny
     }
 
-    /**
-     * Private tabs are HTTPS-only: a site without HTTPS fails, and GeckoView shows nothing (the
-     * page stays). A toast says why.
-     */
+    /** A page that can't load: Koan's own error page (ErrorPages), or the page stays. */
     override fun onErrorRequest(
         session: EngineSession,
         errorType: mozilla.components.concept.engine.request.ErrorType,
         uri: String?,
-    ): RequestInterceptor.ErrorResponse? {
-        if (errorType == mozilla.components.concept.engine.request.ErrorType.ERROR_HTTPS_ONLY) {
-            messages.tryEmit("Not opened in Private: no HTTPS")
-        }
-        return null
-    }
+    ): RequestInterceptor.ErrorResponse? = errors()?.onError(session, errorType, uri)
 
     /** Whether [url] is for an app, not the engine (weixin://…, intent://…, tel:…). */
     fun isAppLink(url: String) = url.substringBefore(':', "").lowercase() !in ENGINE_SCHEMES

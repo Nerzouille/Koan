@@ -1,0 +1,133 @@
+<!doctype html>
+<!-- Koan's error page (engine/ErrorPages.kt). One file, no external loads. Parameters:
+     k = kind (ErrorKind.key), h = host, u = failed address, p = 1 in Private, w = grace in ms. -->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Koan</title>
+<style>
+  /* Koan's Base (ui/theme/Tokens.kt): Light / Dark, Private: Dusk / Night. Airy, example.com-like:
+     regular weight, 1.6 line height, soft lines at 60%, a thin icon at 55%. */
+  :root { --base: #F5F5F7; --text: #1C1C1E; --soft-fill: rgba(28,28,30,0.07); }
+  :root.private { --base: #DEDAF0; --text: #17142E; --soft-fill: rgba(23,20,46,0.08); }
+  @media (prefers-color-scheme: dark) {
+    :root { --base: #121214; --text: #FFFFFF; --soft-fill: rgba(255,255,255,0.10); }
+    :root.private { --base: #110F24; --text: #FFFFFF; --soft-fill: rgba(255,255,255,0.10); }
+  }
+  html, body { margin: 0; background: var(--base); overflow: hidden; }
+  body {
+    /* The visible area: Gecko's small viewport ends at the dock (dynamic toolbar). */
+    height: 100svh;
+    font: 16px/1.6 system-ui, sans-serif; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+  }
+  main {
+    box-sizing: border-box; width: 100%; max-width: 26em; padding: 0 2em;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    opacity: 0; animation: in 200ms ease-out forwards;
+  }
+  @keyframes in { to { opacity: 1; } }
+  svg { width: 44px; height: 44px; opacity: 0.55; fill: none; stroke: currentColor;
+        stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  p { margin: 0; }
+  #sentence { margin-top: 18px; font-size: 18px; }
+  .soft { margin-top: 6px; font-size: 0.875em; opacity: 0.6; overflow-wrap: anywhere; }
+  #host + .soft { margin-top: 2px; }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+  #main-action { margin-top: 26px; height: 44px; padding: 0 24px; border-radius: 22px; background: var(--soft-fill); }
+  #retry-link { margin-top: 8px; padding: 8px 16px; background: none; font-size: 0.875em; opacity: 0.6; }
+  button:active { opacity: 0.6; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main id="content">
+  <svg id="icon" viewBox="0 0 24 24" aria-hidden="true"></svg>
+  <p id="sentence"></p>
+  <p id="host" class="soft"></p>
+  <p id="hint" class="soft"></p>
+  <button id="main-action" type="button"></button>
+  <button id="retry-link" type="button" hidden>Try again</button>
+</main>
+<script>
+(function () {
+  // As an error page, location is the failed address; this page's own address is documentURI.
+  var q = new URL(document.documentURI).searchParams;
+  var kind = q.get('k') || 'failed';
+  var host = q.get('h') || '';
+  var wait = Math.max(0, Math.min(10000, parseInt(q.get('w') || '0', 10) || 0));
+  if (q.get('p') === '1') document.documentElement.classList.add('private');
+
+  // Icons on Koan's 24 grid (ui/icons/KoanIcons.kt style: round caps, stroked).
+  var ICONS = {
+    offline: 'M3.6 11.9A11 11 0 0 1 20.4 11.9 M6.6 14.5A7 7 0 0 1 17.4 14.5 M9.3 16.8A3.5 3.5 0 0 1 14.7 16.8 M12 19.5h.01 M4 4l16 16',
+    search: 'M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13z M15.3 15.3L20 20 M8.6 8.4a2 2 0 1 1 2.6 1.9c-.5.2-.7.6-.7 1.1 M10.5 13.6h.01',
+    hourglass: 'M7 3h10 M7 21h10 M8 3v2.5c0 2.5 4 4.2 4 6.5c0 2.3-4 4-4 6.5V21 M16 3v2.5c0 2.5-4 4.2-4 6.5c0 2.3 4 4 4 6.5V21',
+    unplug: 'M7 3.5h10 M10 10V7.5 M14 10V7.5 M7.5 10h9v3a4.5 4.5 0 0 1-9 0z M12 17.5V21',
+    unlocked: 'M6 11h12v9H6z M8.5 11V8a3.5 3.5 0 0 1 6.8-1.2 M12 13.8v2.4 M12 18.2h.01',
+    lockSlash: 'M6 11h12v9H6z M8.5 11V8a3.5 3.5 0 0 1 7 0v3 M3.5 3.5l17 17',
+    blocked: 'M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 1 0 0-17z M6 6l12 12',
+    page: 'M6 3.5h8l4 4v13H6z M14 3.5v4h4 M12 10.5v4 M12 17.5h.01'
+  };
+
+  // kind → icon, sentence, helpful line, and whether the button leaves (security, blocked) or tries again.
+  var KINDS = {
+    offline:  ['offline',  "You're offline. This page loads again when you're back online.", 'Check Wi-Fi or mobile data.'],
+    notfound: ['search',   "Koan can't find this site. Check the address.", 'It may be misspelled, or the site may be gone.'],
+    timeout:  ['hourglass', 'This site is taking too long to answer.', 'It may be busy or down. Try again in a moment.'],
+    refused:  ['unplug',   'This site refused the connection.', "It may be down, or it doesn't take visits at this address."],
+    cut:      ['unplug',   'The connection to this site was cut.', 'The network may have dropped for a moment.'],
+    cert:     ['unlocked', "Koan stopped here: this site's security certificate can't be trusted.", "The connection wouldn't be private. Its owner needs to fix the certificate.", 'leave', 'retry'],
+    nohttps:  ['lockSlash', "This site has no secure version, so Private doesn't open it.", 'Private only opens pages over a secure (HTTPS) connection.', 'leave'],
+    phishing: ['blocked',  "Koan blocked this page: it's reported as deceptive.", 'It may try to trick you into giving passwords or payment details.', 'leave'],
+    malware:  ['blocked',  "Koan blocked this page: it's reported as harmful.", 'It may try to install harmful software.', 'leave'],
+    unwanted: ['blocked',  "Koan blocked this page: it's reported as unwanted software.", "It may try to install software you didn't ask for.", 'leave'],
+    filetype: ['blocked',  "Koan blocked this page: its file type isn't safe.", "Koan doesn't open this kind of file from the web.", 'leave'],
+    port:     ['blocked',  'Koan blocked this address for safety.', 'It uses a port that browsers keep closed to websites.', 'leave'],
+    localnet: ['blocked',  'Koan blocked this page from reaching your local network.', "Websites can't reach the devices on your network.", 'leave'],
+    loop:     ['page',     'This site keeps redirecting.', 'Its pages send Koan from one to the other without end.'],
+    failed:   ['page',     "This page couldn't load.", 'Something went wrong on the way. Try again in a moment.']
+  };
+  var k = KINDS[kind] || KINDS.failed;
+
+  var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', ICONS[k[0]]);
+  document.getElementById('icon').appendChild(path);
+  document.getElementById('sentence').textContent = k[1];
+  document.getElementById('host').textContent = host;
+  document.getElementById('host').hidden = !host;
+  document.getElementById('hint').textContent = k[2];
+  if (host) document.title = host;
+
+  // Koan loaded this page itself (s=1, a load stopped while offline): the tab's address is this
+  // page's, so trying again goes to the failed address, in this page's place.
+  var failed = q.get('u') || '';
+  function retry() {
+    if (q.get('s') === '1' && /^https?:\/\//i.test(failed)) location.replace(failed);
+    else location.reload();
+  }
+
+  var action = document.getElementById('main-action');
+  if (k[3] === 'leave') {
+    var canBack = history.length > 1;
+    action.textContent = canBack ? 'Go back' : 'Close tab';
+    action.onclick = function () { if (canBack) history.back(); else location.href = 'koan-error:close'; };
+  } else {
+    action.textContent = 'Try again';
+    action.onclick = retry;
+  }
+  if (k[4] === 'retry') {
+    var retry = document.getElementById('retry-link');
+    retry.hidden = false;
+    retry.onclick = retry;
+  }
+
+  // Grace: Koan's load line runs meanwhile; the content fades in after it.
+  document.getElementById('content').style.animationDelay = wait + 'ms';
+})();
+</script>
+</body>
+</html>

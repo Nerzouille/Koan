@@ -51,6 +51,7 @@ import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.DefaultSettings
+import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.feature.session.SessionUseCases
@@ -73,7 +74,30 @@ class Components(context: Context) {
 
     /** tel:, intent://, apps' own schemes; the "Open in YouTube?" card and the menu's "Open in …". */
     val externalLinks: ExternalLinks by lazy {
-        ExternalLinks(appContext, pageUrl = { store.state.selectedTab?.content?.url }, rewrite = ::rewriteLoad)
+        ExternalLinks(appContext, pageUrl = { store.state.selectedTab?.content?.url }, rewrite = ::rewriteLoad, errors = { errorPages })
+    }
+
+    /** Koan's own error pages, the grace during a network switch, the auto-reload (ErrorPages). */
+    val errorPages: ErrorPages by lazy {
+        ErrorPages(
+            store, NetworkWatch(appContext), KoanScopes.guarded("errors", Dispatchers.Main.immediate),
+            reload = { sessionUseCases.reload(it) },
+            load = { id, url, replace ->
+                val flags = if (replace) EngineSession.LoadUrlFlags.select(EngineSession.LoadUrlFlags.LOAD_FLAGS_REPLACE_HISTORY) else EngineSession.LoadUrlFlags.none()
+                sessionUseCases.loadUrl(url, id, flags)
+            },
+            stop = { sessionUseCases.stopLoading(it) },
+        )
+    }
+
+    /**
+     * Every reload Koan starts (pull, ⋯ Reload, after a site setting): never one that would swap a
+     * loaded page for an error page while offline. False = not reloaded (the page stays).
+     */
+    fun reloadTab(id: String): Boolean {
+        if (!errorPages.beforeReload(id)) return false
+        if (!errorPages.retryOwnPage(id)) sessionUseCases.reload(id)
+        return true
     }
 
     /** Google AMP links open the article: always in private tabs, in normal tabs if the setting says so. */
@@ -344,7 +368,7 @@ class Components(context: Context) {
     val autoSave by lazy { sessionStorage.autoSave(store).whenSessionsChange(appScope) }
 
     /** History: the pages tabs settle on, redirects left out. */
-    val history by lazy { HistoryRecorder(database.dao(), appScope) }
+    val history by lazy { HistoryRecorder(database.dao(), appScope, isErrorPage = { id, url -> errorPages.isShowingUrl(id, url) }) }
 
     val tabs by lazy {
         TabManager(store, tabsUseCases, sessionUseCases, database.dao(), spaces.spaces, lastPlace, history, appScope, readState = { json ->

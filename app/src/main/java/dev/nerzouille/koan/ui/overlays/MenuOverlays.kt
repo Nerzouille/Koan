@@ -181,7 +181,7 @@ internal fun MenuOverlays(
                 actions = MenuActions(
                     back = { session.goBack(activeTabId) },
                     forward = { session.goForward(activeTabId) },
-                    reload = { session.reload(activeTabId) },
+                    reload = { activeTabId?.let(components::reloadTab) },
                     stop = { session.stopLoading(activeTabId) },
                     editAddress = { close(); onEditAddress() },
                     copyLink = { clipboard.setText(AnnotatedString(page.url)); copiedToast("Link")?.let(onToast); close() },
@@ -192,7 +192,7 @@ internal fun MenuOverlays(
                             if (on) components.trackingProtection.removeException(id)
                             else components.trackingProtection.addException(id, persistInPrivateMode = true)
                             protections = on
-                            session.reload(id)
+                            components.reloadTab(id)
                         }
                     },
                     newTab = { close(); onNewTab() },
@@ -292,7 +292,7 @@ internal fun MenuOverlays(
                             scope.launch {
                                 val done = components.sitePermissions.clearSiteData(url)
                                 decisionsVersion++
-                                session.reload(activeTabId)
+                                activeTabId?.let(components::reloadTab)
                                 // Success needs no toast: the card asked first and the list empties. Only a failure says so.
                                 if (!done) onToast(Toast("Couldn't clear all of $host's data"))
                             }
