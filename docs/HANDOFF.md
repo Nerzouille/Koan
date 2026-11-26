@@ -1,6 +1,6 @@
 # Handoff
 
-State of Koan for a session that starts with no context. Last updated **2026-11-26** (end of day).
+State of Koan for a session that starts with no context. Last updated **2026-11-27**.
 Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status of every item).
 
 ## Where things stand
@@ -12,7 +12,9 @@ Read `CLAUDE.md` first (rules), then this file, then `docs/ROADMAP.md` (status o
     0.67), pull to refresh Arc (irregular spin, blobs synced to it, double-pull fix), the start
     page (New page, Open link you copied, no Recent, typing and status bar fixes), search morph,
     drawer #11 A, Find, translation, Private after a kill, downloads.
-  - **Next task: error pages** (BETA2_BUGS item 18, the owner's decisions there).
+  - **Error pages: done and committed 2026-11-27** (BETA2_BUGS item 18: as built, findings,
+    what's untested). Spec in DESIGN_SYSTEM › Error pages; preview any kind in dev, debug and
+    staging builds with a failed address + `koan_error_preview=<kind>`.
   - **Left before beta.2:** item 11 player checks (VPN on), item 12 player tracks on the phone,
     the dock dead-zone feel (item 7), Arc recordings + R8 frame measurements, the latest build on
     the POCO and Lock private tabs back on there. Then merge into `dev` and the release checklist.
@@ -253,7 +255,7 @@ each group (launch + kill + restore checked).
 |---|---|---|---|
 | `release-prep` | dev | v1.0.0-beta.1 prep: batch 5 tests, CI, baseline profile module, update check, README, release docs, the 2026-11-12 fixes. | Pushed up to 8b29879 (draft PR #3); later commits local only; not merged |
 | `depth-cue-proto` | release-prep | Depth-cue prototype A/B/C (31e6f5d), switched by `debug.koan.depthcue`. | Local only, **not for release** |
-| `beta2-bugs` | dev (60a2199) | beta.2: bugs, player tracks, Cast stack, Arc pull to refresh, start page, search morph (docs/plans/BETA2_BUGS.md). | Pushed, not merged; error pages next |
+| `beta2-bugs` | dev (60a2199) | beta.2: bugs, player tracks, Cast stack, Arc pull to refresh, start page, search morph (docs/plans/BETA2_BUGS.md). | Error pages committed (not pushed), not merged |
 | `dev` | — | Working branch: night batch, video player, private mode, audit batches 1–3, batch 4 and the fixes list merged. | Active |
 | `main` | — | Released code, tags `vX.Y.Z`. Never commit here directly. | Release only |
 | `private` | dev | Private mode, already merged into `dev` (`06e13d6`). | **Kept on purpose** by the owner; don't delete |

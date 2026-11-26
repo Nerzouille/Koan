@@ -1196,13 +1196,74 @@ off the overview. A tab opened by another app goes back to that app instead (no 
 
 ### Error pages
 
-**Purpose:** what the user sees when a page fails to load.
+**Purpose:** what the user sees when a page can't load: one calm page of Koan's own instead of
+Gecko's, in Koan's colours, with no "continue anyway" for security errors.
 
-**Finding:** Koan does **not** have its own error page. The engine's only `RequestInterceptor` is `ExternalLinks` (`app/src/main/java/dev/nerzouille/koan/engine/ExternalLinks.kt`, registered at `app/src/main/java/dev/nerzouille/koan/engine/Components.kt`), and it overrides only `onLoadRequest` (`ExternalLinks.kt`); there is no `onErrorRequest`, no `ErrorPages`/`ErrorType` handling and no error-page asset anywhere in `app/src/main` (grep for onLoadError, onErrorRequest, ErrorType, ErrorPage, neterror: no hits). So load errors use **GeckoView's built-in default error pages, unchanged**. They follow the system light/dark preference (`preferredColorScheme = PreferredColorScheme.System`, `Components.kt`).
-- The page cover (`PageCover.kt`) lifts after at most 2500ms even if the page never reports a paint, so an error page is never hidden behind a cover.
-- Docs: UI_SPEC has no error-page section.
+**How it works:** `RequestInterceptor.onErrorRequest` (`engine/ExternalLinks.kt`) asks
+`engine/ErrorPages.kt`, which returns `assets/errorpages/error.html?k=<kind>&h=<host>&u=<url>&p=<0|1>&w=<ms>`.
+Gecko loads it as the failed load's error page: the tab keeps the failed address, Back returns to
+the previous page as it was, pull to refresh and Try again retry the address. The page reads its
+parameters from `document.documentURI` (its `location` is the failed address) and only uses
+`textContent`. No external loads. Rules (pure, `ErrorRulesTest`) in `engine/ErrorRules.kt`; the
+network state in `engine/NetworkWatch.kt` (online = a non-VPN network with internet).
 
-**Screenshot needed:** an unreachable host (e.g. `http://nonexistent.example/`) loaded in Koan in Light and Dark, to show the GeckoView default page inside Koan's page view with the dock.
+**Anatomy** (example.com-like, airy): one centred column, max 26em wide, 2em side padding,
+centred vertically in the visible area (`height: 100svh`, Gecko's small viewport, which ends at
+the dock).
+- Icon: 44px, 24 grid, stroke 1.4, round caps and joins, `currentColor` at 55% opacity.
+- Sentence: 18px, regular weight, line height 1.6, full text colour, 18px under the icon.
+- Host, then one helpful line: 0.875em (14px), 60% opacity.
+- One pill button: 44px high, 24px side padding, radius 22px, 16px regular, a soft fill (text
+  colour at 7 to 10%), text colour; pressed = 60% opacity. Certificate pages add a small 60% text
+  link "Try again" under it.
+- Content fades in over 200ms, after the grace wait `w` when there is one (Koan's loading line
+  keeps running meanwhile).
+- Colours: Koan's Base and text (Light #F5F5F7 / #1C1C1E, Dark #121214 / #FFFFFF); Private
+  (`p=1`): Dusk #DEDAF0 / #17142E, Night #110F24 / #FFFFFF. Light or dark follows Koan's theme
+  (Gecko's `preferredColorScheme`). No wash, no gradient.
+
+| Kind | Gecko errors | Icon | Sentence | Button |
+|---|---|---|---|---|
+| offline | OFFLINE, NO_INTERNET; any network kind while Android has no real network | Wi-Fi slashed | You're offline. This page loads again when you're back online. | Try again |
+| notfound | UNKNOWN_HOST, UNKNOWN_PROXY_HOST | Magnifier with "?" | Koan can't find this site. Check the address. | Try again |
+| timeout | NET_TIMEOUT | Hourglass | This site is taking too long to answer. | Try again |
+| refused | CONNECTION_REFUSED, PROXY_CONNECTION_REFUSED | Plug | This site refused the connection. | Try again |
+| cut | NET_RESET, NET_INTERRUPT | Plug | The connection to this site was cut. | Try again |
+| cert | SECURITY_SSL, SECURITY_BAD_CERT, BAD_HSTS_CERT | Open lock | Koan stopped here: this site's security certificate can't be trusted. | Go back / Close tab, + "Try again" link |
+| nohttps | HTTPS_ONLY (Private) | Lock slashed | This site has no secure version, so Private doesn't open it. | Go back / Close tab |
+| phishing, malware, unwanted, filetype, port, localnet | SAFEBROWSING_*, HARMFULADDON_URI, UNSAFE_CONTENT_TYPE, PORT_BLOCKED, LOCAL_NETWORK_ACCESS_DENIED | No-entry circle | Koan blocked this page: … (one per reason) | Go back / Close tab |
+| loop | REDIRECT_LOOP | Page with "!" | This site keeps redirecting. | Try again |
+| failed | everything else | Page with "!" | This page couldn't load. | Try again |
+
+HTTP errors (404, 500) are the site's own pages. Go back = `history.back()`; with no history the
+button is Close tab: it opens `koan-error:close`, which Koan acts on only from its own error page
+with a user gesture (KoanRoot closes the tab like Back on a first page); from a website it is
+denied.
+
+**Rules:**
+- A loaded page is never replaced: every Koan reload goes through `Components.reloadTab`. Offline,
+  it doesn't reload (toast "You're offline. The page stays as it is."); online, a failed reload
+  keeps the page (`onErrorRequest` returns null) with a short toast.
+- Grace: a network-kind error less than 4s after the networks changed waits the rest of the 4s
+  (`w`), then retries once if online.
+- Hung loads: while Android has no real (non-VPN) network, a top-level load still running after
+  the grace (4s since the network changed and 4s since the load began) with nothing new painted
+  is stopped (`ErrorRules.stopHungLoad`; never for localhost). A VPN that stays up with nothing
+  under it would make the engine wait ~35s. Koan then loads a stand-in address on the phone,
+  `http://127.0.0.1:4/koan-offline?u=<failed>` (nothing listens on port 4, which Gecko doesn't
+  block), which fails at once, and `onErrorRequest` serves the offline page with `s=1` for the
+  failed address. GeckoView ignores an app-initiated load of the `resource://` page itself, so the
+  stand-in is needed. The tab model, the address row, private tabs and history map the stand-in
+  back to the failed address (`ErrorPageUrl.shown`). Try again (`location.replace`), pull and the
+  auto-reload load the failed address in the stand-in's place, so Back skips it. A reload of a
+  loaded page that hangs is only stopped (the page stays, toast).
+- Auto-reload: when a real network comes back, the selected tab's network-kind error page reloads
+  (after 0.5s); a tab showing the offline page reloads when it comes up. Two automatic reloads per
+  failure at most.
+- Error pages leave no history visit.
+
+**Preview (dev, debug, staging builds):** a failed address with `koan_error_preview=<kind>` (and
+`koan_error_private=1`) shows that kind's page, e.g. `http://localhost:8766/?koan_error_preview=cert`.
 
 ---
 

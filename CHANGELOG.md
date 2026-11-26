@@ -20,6 +20,12 @@
 - **New page:** long-press the tab counter › New page opens the start page.
 - **Open link you copied:** a link copied in the last few minutes is offered on the start page
   and first in the search field, until you type.
+- **Koan's own error pages:** offline, site not found, too slow, connection problems, certificate
+  problems and blocked pages each get a calm page in Koan's colours with one clear action. The
+  page in front reloads by itself when the network comes back, and a loaded page is never
+  replaced by an error (pulling down offline keeps it). Offline, a loading page shows the offline
+  page after about 4 seconds, even with a VPN app on. Security errors offer no "continue
+  anyway".
 
 ### Improved
 

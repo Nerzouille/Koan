@@ -425,6 +425,20 @@ address):
 - When one card leads to another (Save image on a file you already have, a download confirmation
   then the duplicate card), the same card changes into the next one.
 
+### When a page can't load
+
+Koan shows its own calm page: an icon, one sentence, the site's name and a hint, and one button.
+- **Offline, site not found, too slow, connection refused or cut, couldn't load:** Try again (or
+  pull down). When the network comes back, the page in front reloads by itself; a tab with the
+  offline page reloads when you switch to it.
+- Offline, a page that is still loading shows the offline page after about 4 seconds, even when
+  a VPN app stays on and would make the engine wait much longer.
+- **Certificate problems, Private's "no secure version", blocked pages:** Go back (or Close tab
+  when there is nothing to go back to). There is no "continue anyway".
+- A page that has already loaded is never replaced by an error: pulling down while offline keeps
+  the page ("You're offline. The page stays as it is."), and a failed reload keeps it too.
+- A site's own "not found" (404) page stays the site's page.
+
 ### Desktop site
 
 ⋯ › **Desktop site** asks the site for its desktop version, for this tab.
@@ -738,6 +752,8 @@ offered the next beta and the final release; on a final release, only final rele
   request fail or get cancelled, and Koan shows no message. The engine sends the error straight
   to the page; Koan never sees it, and it can't tell it apart from you cancelling. Use another
   sign-in method on that site, or a password manager that lets Koan in.
+- **Blocked-port pages:** the engine replaces the previous page in the tab's history, so that
+  page offers Close tab instead of Go back.
 - **Pull to refresh in some chats:** a site whose message list scrolls inside the page (instead of
   the page itself) may reload when you pull down at the top of the list.
 - **Not there yet:** web notifications, a bookmarks screen, other add-ons than uBlock Origin,

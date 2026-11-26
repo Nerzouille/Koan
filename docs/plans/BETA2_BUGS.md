@@ -30,7 +30,7 @@ the beta.2 features (items 9 to 17; ROADMAP keeps the owner's wording of each fe
   front; then read `adb logcat | grep KoanPull` (dev and staging builds log every pull and reload)
   and look for Gecko errors around that time.
 - **Left before beta.2:**
-  1. **Error pages: the next task** (item 18, the owner's decisions are in its section).
+  1. **Error pages: done 2026-11-27** (item 18), committed, waiting for the owner's review on the phone.
   2. Item 11: player checks with the VPN on (Commons stream / WebM, Commons `<track>`s, Vimeo).
   3. Item 12: player tracks on the phone (Captions, Quality, Audio / Subtitles, side files).
   4. Item 7: dock dead-zone feel (`PageTokens.DockDeadZone` 28 dp) on a release build.
@@ -72,7 +72,7 @@ the owner's wording of each feature.
 | 14 | Rotate row in the player's ⋯ menu | **Done.** Only with auto-rotate off, like the pill (owner, 2026-11-26). | b062a27, 83a76b2 | No |
 | 15 | Passkey failure message | **Done as option C (owner):** a Known limitation in FEATURES, no code. | 35a2398 | No |
 | 16 | Depth cue (A, B, C or A + B) | **Done: Cast shadows (owner, 2026-11-26),** after direction 3 and four styles tried live from a dev-only switcher. Light from above: a soft shadow around each card and a contact shadow onto the card behind (× 0.45), the thickness band (1.00) and the surface light on the headers (0.67), fixed in every build; cards keep beta.1's dim. Settings › Debug › Stack style switches to Before (dev, debug, staging builds). Validated on the phone. | 15621c6, f1926a8 | No |
-| 18 | Error pages | **Next task** (owner, 2026-11-26): decisions in its section below. | none | No |
+| 18 | Error pages | **Done (2026-11-27), owner's review of the screenshots pending.** Koan's own page (`assets/errorpages/error.html`, example.com-like style), reload guard, 4 s grace, auto-reload, VPN-proof offline check; phone-tested on Koan Test (Xiaomi). Details in its section. | committed 2026-11-27 | No |
 | 19 | Start page: New page, Open link you copied | **Done, validated (owner, 2026-11-26).** Tab counter › New page opens the start page; "Open link you copied" (description first, reads only a recent link); no Recent list; typing after the keyboard was put away (`searchMorphValue`, `KeyboardSlideTest`); content stops at the status bar. | f0d812a, 7a69f4b | No |
 | 20 | Pull to refresh: Arc | **Done, validated (owner, 2026-11-26).** The page follows the finger (1 : 1, then a rubber band), Arc's blobs and the K under it, one loading signal for the K's spin and the blobs' drift (`PullSpin`), phases as a tested state machine (`PullMachine`), pulls logged as `KoanPull` in dev builds. Current stays as a Debug fallback. Recordings and R8 frame measurements not done yet. | 27ce39a, 5a8c449, 6dbdd6b | No |
 | 17 | End of phase: R8 release build, kill and restore | **Partly done (night):** full suite 493 green; R8 **staging** build (Koan Test) launched, `am kill` in the background, restored on the same tab, no crash. The R8 build of the real app id and the release from `main` wait for the release steps. | none | No |
@@ -316,7 +316,7 @@ ROADMAP › For 1.0.0-beta.2: options A (recessed tint), B (shadow and scale), C
 on `depth-cue-proto`. Redo the dark screenshots with Koan's own Settings › Theme. The owner picks;
 then build it and measure with `tools/perf`.
 
-## 18. Error pages (next task)
+## 18. Error pages (done 2026-11-27)
 
 What Koan shows when a page can't load. The owner's decisions (2026-11-26):
 
@@ -330,9 +330,38 @@ What Koan shows when a page can't load. The owner's decisions (2026-11-26):
 - **Security errors (bad certificate, HSTS):** no easy "continue anyway" button; leaving stays the
   obvious choice.
 
-To start: read how Koan shows errors today (`docs/DESIGN_SYSTEM.md` › 3.B error pages, the
-`onLoadError` path in the engine), list the error kinds Gecko reports, then propose the screens
-and the network watcher before building.
+Owner's additions (2026-11-27): Koan's loading line runs during the grace, the content fades in
+after it; `koan-error:close` works only from Koan's own error page; the Private HTTPS-only page
+has Go back / Close tab only. Style (after a first plain version): example.com's airy look with
+Koan's tokens, a soft pill button, the host and a helpful line in 60% text, truly centred between
+the status bar and the dock.
+
+**As built:** `engine/ErrorRules.kt` (pure rules, `ErrorRulesTest`), `engine/ErrorPages.kt`
+(per-tab state, grace, auto-reload, close), `engine/NetworkWatch.kt`,
+`assets/errorpages/error.html`; reloads go through `Components.reloadTab`. Spec in
+`docs/DESIGN_SYSTEM.md` › Error pages.
+
+**Checked on the Xiaomi (Koan Test, staging, 2026-11-27):** every kind in light, dark and Private
+(dev-only `koan_error_preview`); real refused, expired and self-signed certificates, blocked port;
+Back returns to the page intact; Try again; Close tab (and a site's `koan-error:close` link is
+ignored); airplane mode with the VPN on: offline page, auto-reload when the network returns, an
+offline pull on a loaded page keeps it with the toast.
+
+**Findings:**
+- With a VPN that stays up in airplane mode, Android still reports a "validated" network: Koan
+  counts only non-VPN networks. Gecko itself waits ~35 s before failing (the tunnel holds the
+  connection), so Koan stops such a load after the 4 s grace and shows the offline page itself
+  through a stand-in address (owner, 2026-11-27; DESIGN_SYSTEM › Error pages › Hung loads).
+  GeckoView ignores an app-initiated load of Koan's `resource://` page, hence the stand-in.
+  Checked on the Xiaomi with the VPN on: a link from a loaded page → offline page 4.4 s after the
+  tap (address = the link's), auto-reload when the network returns, Back to the first page
+  intact in one step; Try again and a pull while offline come back to the offline page in its
+  place; a new tab → 4.8 s; kill and restore → the offline page again, then auto-reload; no
+  stand-in or offline visit in History.
+- Blocked port: Gecko replaces the previous history entry, so the page offers Close tab, not
+  Go back. Known limitation.
+- Not tested for real: the grace on a fast failure (with the VPN, a network switch made loads
+  wait, not fail; the rule is unit-tested), a real timeout, real HTTPS-only in Private.
 
 ## 17. End of phase
 
