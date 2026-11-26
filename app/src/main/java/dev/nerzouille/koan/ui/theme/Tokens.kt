@@ -1364,13 +1364,20 @@ object PullTokens {
     val KSize = 32.dp
     const val K_MIN_SCALE = 0.6f
     val KGap = 14.dp
-    /** Let go: a flick of this speed that slows down like a wheel; then a breath while it loads. */
-    const val K_FLICK_DEG_PER_S = 2000f
-    const val K_FRICTION = 1f
-    const val K_BREATH = 1.1f
-    const val K_BREATH_MS = 650
-    const val K_SETTLE_DAMPING = 0.45f
-    const val K_SETTLE_STIFFNESS = 300f
+    /**
+     * The K's turn (PullSpin), one signal with the blobs' drift: let go, a flick of this speed that
+     * slows down like a wheel (time constant K_DECAY_MS); while the page still loads, small pushes
+     * every K_PUSH_MIN_MS…K_PUSH_MAX_MS (uneven, around the load line's shimmer, BarTokens.SHIMMER_MS),
+     * each adding K_PUSH_MIN…K_PUSH_MAX °/s, never past K_PUSH_CAP.
+     */
+    const val K_FLICK_DEG_PER_S = 1800f
+    const val K_DECAY_MS = 420f
+    const val K_FIRST_PUSH_DELAY_MS = 500f
+    const val K_PUSH_MIN_MS = 700f
+    const val K_PUSH_MAX_MS = 1700f
+    const val K_PUSH_MIN = 160f
+    const val K_PUSH_MAX = 320f
+    const val K_PUSH_CAP = 420f
 
     /** Arc: the ground under the blobs, the blobs' size and drift with the pull. */
     val ArcGroundLight = Color(0xFFD9C2FF)
@@ -1378,12 +1385,10 @@ object PullTokens {
     const val ARC_BLOB_RADIUS = 0.7f
     const val ARC_DRIFT = 0.08f
     const val ARC_BLOB_ALPHA_DARK = 0.75f
+    /** The blobs circle this far (a share of the width / band) as the K turns, this many radians per degree. */
+    const val ARC_CIRCLE = 0.05f
+    const val ARC_DRIFT_PER_DEG = 0.004f
 
-    /** Haze: the glows' size, how far they rise and their alpha from the start of the pull to the trigger. */
-    const val HAZE_RADIUS = 0.55f
-    const val HAZE_RISE = 0.35f
-    const val HAZE_MIN = 0.12f
-    const val HAZE_MAX = 0.55f
 
     /** The indicator moves this much of the finger's travel. */
     const val RESISTANCE = 0.5f

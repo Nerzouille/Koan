@@ -270,7 +270,7 @@ fun BrowserScreen(
             },
     ) {
         // Pull to refresh, the prototypes: what the page uncovers as it slides down.
-        if (pullStyle.slides && !fullScreen) PullBackdrop(pull, pullStyle, Modifier.align(Alignment.TopCenter))
+        if (pullStyle.slides && !fullScreen) PullBackdrop(pull, Modifier.align(Alignment.TopCenter))
         // A swipe on the dock: the tabs of the stack form a strip that follows the finger. The live
         // page (and its cover) sits in its slot, the tabs around the screen show their screenshots.
         Box(
