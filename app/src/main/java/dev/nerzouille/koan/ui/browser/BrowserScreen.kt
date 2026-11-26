@@ -47,6 +47,7 @@ import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.PageTokens
 import dev.nerzouille.koan.ui.theme.PullTokens
 import kotlin.math.roundToInt
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -203,14 +204,22 @@ fun BrowserScreen(
     }
     val currentId by components.store.observeSlice(Unit) { it.selectedTabId }
     LaunchedEffect(currentId) { pull.done() }
+    // Let go past the trigger: reload, and go back up once it has loaded. It listens before it
+    // reloads (a quick reload is never missed), and never waits longer than LOAD_MAX_MS (a page
+    // that keeps loading in the background would block every later pull).
     LaunchedEffect(pull.refreshing) {
         if (!pull.refreshing) return@LaunchedEffect
         val start = System.currentTimeMillis()
-        val loading = store.flow().map { s -> s.selectedTabId?.let(s::findTab)?.content?.loading == true }
-        withTimeoutOrNull(PullTokens.START_TIMEOUT_MS) { loading.first { it } }
-        loading.first { !it }
+        val id = currentId
+        val loading = store.flow().map { s -> id?.let(s::findTab)?.content?.loading == true }
+        val began = async(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            withTimeoutOrNull(PullTokens.START_TIMEOUT_MS) { loading.first { it } } != null
+        }
+        id?.let { session.reload(it) }
+        val loaded = began.await() && withTimeoutOrNull(PullTokens.LOAD_MAX_MS) { loading.first { !it } } != null
         // A quick reload still shows that it happened.
         delay(PullTokens.MIN_SPIN_MS - (System.currentTimeMillis() - start))
+        pullLog("reload: ${if (loaded) "loaded" else "no load seen in time"} after ${System.currentTimeMillis() - start}ms")
         pull.done()
     }
     val view = LocalView.current
@@ -231,8 +240,17 @@ fun BrowserScreen(
                 atTop = { !fullScreen && !swipe.active && engineView.verticalScrollPosition.value < 1f },
                 // Gecko's own "can overscroll top" is never set while the dock is on the page:
                 // the page only has to keep its touches (maps, canvases, pages with their own pull).
-                pageKeepsTouch = { engineView.getInputResultDetail().let { it.isTouchHandledByWebsite() || it.isTouchHandlingUnknown() } },
-                onRefresh = { currentId?.let { session.reload(it) } },
+                pageTouch = {
+                    engineView.getInputResultDetail().let {
+                        when {
+                            it.isTouchHandledByWebsite() -> PageTouch.Kept
+                            it.isTouchHandlingUnknown() -> PageTouch.Unknown
+                            else -> PageTouch.Free
+                        }
+                    }
+                },
+                // The reload itself is the watcher's above (it listens first).
+                onRefresh = {},
                 onTick = { KoanHaptics.tick(view) },
             )
             .pointerInput(dock) {

@@ -21,25 +21,28 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import dev.nerzouille.koan.ui.theme.BrandSpinner
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.Motion
 import dev.nerzouille.koan.ui.theme.PullTokens
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 /**
- * Pull to refresh: [pull] is how far the indicator came down (px, read in layers only); past
- * [triggerPx] a release reloads, and the indicator turns with the brand gradient until the page
- * has loaded ([refreshing]).
+ * Pull to refresh: [pull] is how far the page (or the circle) came down (px, read in layers only);
+ * past [triggerPx] a release reloads, and it rests at [restPx] until the page has loaded
+ * ([refreshing]). Its phases follow [PullRules]: a pull can always start again once the load is
+ * over, even while it is still settling back, and nothing but the finger ends a pull.
  */
 @Stable
 class PullRefresh(private val scope: CoroutineScope) {
     val pull = Animatable(0f)
-    var refreshing by mutableStateOf(false)
+    var phase by mutableStateOf(PullPhase.Idle)
         private set
+    val refreshing: Boolean get() = phase == PullPhase.Refreshing
     var triggerPx = 0f
     var maxPx = 0f
 
@@ -55,38 +58,72 @@ class PullRefresh(private val scope: CoroutineScope) {
     /** "Remove animations": the page or the circle jumps back instead of sliding. */
     var still = false
 
+    /** Where the pull was when the finger took it (it may be settling back): the drag adds to it. */
+    internal var grabbedAt = 0f
+        private set
+    private var settleJob: Job? = null
+
+    private fun on(event: PullEvent) {
+        val was = phase
+        phase = PullRules.next(phase, event)
+        if (phase != was) pullLog("$was → $phase ($event)")
+    }
+
+    /** A finger took it: from where it is, even on its way back. */
+    internal fun grab() {
+        settleJob?.cancel()
+        on(PullEvent.Grab)
+        grabbedAt = pull.value
+        armed = grabbedAt >= triggerPx
+    }
+
     internal fun dragTo(px: Float) {
-        scope.launch { pull.snapTo(px.coerceIn(0f, maxPx)) }
+        val to = px.coerceIn(0f, maxPx)
+        scope.launch { pull.snapTo(to) }
     }
 
     /** The finger lifted: reload (true) or go back up. */
     internal fun release(): Boolean {
         val go = pull.value >= triggerPx
         armed = false
-        if (go) {
-            refreshing = true
-            scope.launch { settle(restPx) }
-        } else {
-            scope.launch { settle(0f) }
-        }
+        on(if (go) PullEvent.ReleasePast else PullEvent.ReleaseShort)
+        settle(if (go) restPx else 0f)
         return go
     }
 
-    /** The page finished loading (or another tab came up): the indicator goes. */
-    fun done() {
-        if (!refreshing && pull.value == 0f) return
-        refreshing = false
+    /** A second finger: back up, no reload. */
+    internal fun cancel() {
         armed = false
-        scope.launch { settle(0f) }
+        on(PullEvent.Cancel)
+        settle(0f)
     }
 
-    private suspend fun settle(to: Float) {
-        when {
-            still -> pull.snapTo(to)
-            slides -> pull.animateTo(to, PullTokens.SlideBack)
-            else -> pull.animateTo(to, Motion.DockSettle)
+    /** The page finished loading (or another tab came up): it goes back up. Never under a finger. */
+    fun done() {
+        if (phase == PullPhase.Pulling) return
+        armed = false
+        if (phase == PullPhase.Refreshing) on(PullEvent.Loaded)
+        if (phase == PullPhase.Idle && pull.value == 0f) return
+        if (phase == PullPhase.Idle) phase = PullPhase.Settling
+        settle(0f)
+    }
+
+    private fun settle(to: Float) {
+        settleJob?.cancel()
+        settleJob = scope.launch {
+            when {
+                still -> pull.snapTo(to)
+                slides -> pull.animateTo(to, PullTokens.SlideBack)
+                else -> pull.animateTo(to, Motion.DockSettle)
+            }
+            if (to == 0f) on(PullEvent.Settled)
         }
     }
+}
+
+/** Dev, debug and staging builds: each pull attempt and phase, in logcat (tag KoanPull). */
+internal fun pullLog(message: String) {
+    if (dev.nerzouille.koan.ui.overview.StackLab.available) android.util.Log.i("KoanPull", message)
 }
 
 /**
@@ -104,15 +141,17 @@ fun rubberBand(dy: Float, maxPx: Float): Float {
 }
 
 /**
- * Watches (never consumes) the fingers on the page: a pull down that starts while the page is at
- * its top ([atTop]) and that the page doesn't keep for itself ([pageKeepsTouch]: maps, canvases,
- * pages with their own pull) moves the indicator. A second finger, a sideways start or the page
- * scrolling cancels it.
+ * Pull to refresh on the page. A touch that starts with the page at its top ([atTop], read when the
+ * finger goes down) becomes a pull once it moves down past the slop, unless the page keeps it
+ * ([pageTouch]: maps, canvases, pages with their own pull); while the page's engine hasn't answered
+ * yet it waits a moment for it ([PullRules.start]). From then on the pull owns the gesture until the
+ * finger lifts: its moves are consumed (the page gets a cancel), and no scroll, load or touch
+ * report from the page can end it; only a second finger does. Each attempt is logged ([pullLog]).
  */
 fun Modifier.pullToRefresh(
     state: PullRefresh,
     atTop: () -> Boolean,
-    pageKeepsTouch: () -> Boolean,
+    pageTouch: () -> PageTouch,
     onRefresh: () -> Unit,
     onTick: () -> Unit,
 ): Modifier =
@@ -121,47 +160,82 @@ fun Modifier.pullToRefresh(
         awaitPointerEventScope {
             while (true) {
                 val down = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.pressed && !it.previousPressed } ?: continue
-                if (state.refreshing || !atTop()) continue
-                var pulling = false
-                var decided = false
-                var startY = down.position.y
-                while (true) {
-                    val event = awaitPointerEvent(PointerEventPass.Initial)
-                    if (event.changes.count { it.pressed } > 1) {
-                        if (pulling) state.done()
-                        break
-                    }
-                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                    if (!change.pressed) {
-                        if (pulling && state.release()) onRefresh()
-                        break
-                    }
-                    val dx = change.position.x - down.position.x
-                    val dy = change.position.y - startY
-                    if (!decided) {
-                        if (abs(dx) < slop && abs(dy) < slop) continue
-                        decided = true
-                        pulling = dy > 0 && dy > abs(dx) && !pageKeepsTouch()
-                        if (!pulling) break
-                        startY = change.position.y
-                        continue
-                    }
-                    // The page scrolled after all (it took the gesture): let it go.
-                    if (pageKeepsTouch() || !atTop()) {
-                        state.done()
-                        pulling = false
-                        break
-                    }
-                    state.dragTo(if (PullLab.style.slides) rubberBand(dy, state.maxPx) else dy * PullTokens.RESISTANCE)
-                    val past = state.pull.value >= state.triggerPx
-                    if (past != state.armed) {
-                        state.armed = past
-                        if (past) onTick()
-                    }
+                val top = atTop()
+                if (!PullRules.canGrab(state.phase) || !top) {
+                    pullLog("down: no pull (phase ${state.phase}, at top $top)")
+                    continue
                 }
+                if (awaitPull(state, down, slop, top, pageTouch)) followPull(state, down, onRefresh, onTick)
             }
         }
     }
+
+/** Until the touch is a pull (true) or clearly isn't (false, logged). */
+private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.awaitPull(
+    state: PullRefresh,
+    down: PointerInputChange,
+    slop: Float,
+    atTop: Boolean,
+    pageTouch: () -> PageTouch,
+): Boolean {
+    var decision: PullStart = PullStart.Wait
+    while (decision == PullStart.Wait) {
+        val event = awaitPointerEvent(PointerEventPass.Initial)
+        val change = event.changes.firstOrNull { it.id == down.id }
+        if (change == null || !change.pressed || event.changes.count { it.pressed } > 1) {
+            decision = PullStart.Reject("lifted or a second finger before it moved")
+            pullLog("pull: ${decision.reason}")
+            break
+        }
+        val touch = pageTouch()
+        val waited = change.uptimeMillis - down.uptimeMillis
+        val dx = change.position.x - down.position.x
+        val dy = change.position.y - down.position.y
+        decision = PullRules.start(state.phase, atTop, dx, dy, slop, touch, waited)
+        val taken = if (change.isConsumed) ", its moves already taken by the page" else ""
+        when (decision) {
+            PullStart.Start -> pullLog("pull: start (page $touch after ${waited}ms, at top $atTop)")
+            is PullStart.Reject -> pullLog("pull: rejected, ${decision.reason} (page $touch after ${waited}ms$taken)")
+            PullStart.Wait -> Unit
+        }
+    }
+    return decision == PullStart.Start
+}
+
+/** The pull follows the finger, 1 : 1 from where it went down, until it lifts. */
+private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.followPull(
+    state: PullRefresh,
+    down: PointerInputChange,
+    onRefresh: () -> Unit,
+    onTick: () -> Unit,
+) {
+    state.grab()
+    while (true) {
+        val event = awaitPointerEvent(PointerEventPass.Initial)
+        if (event.changes.count { it.pressed } > 1) {
+            pullLog("pull: second finger, cancelled")
+            state.cancel()
+            return
+        }
+        val change = event.changes.firstOrNull { it.id == down.id }
+        if (change == null || !change.pressed) {
+            val go = state.release()
+            pullLog("pull: released at ${state.pull.value.toInt()}px, ${if (go) "reload" else "back up"}")
+            if (go) onRefresh()
+            return
+        }
+        // Koan's from here: the page gets a cancel and none of these moves.
+        event.changes.forEach { it.consume() }
+        val dy = (change.position.y - down.position.y).coerceAtLeast(0f)
+        val px = if (state.slides) rubberBand(state.grabbedAt + dy, state.maxPx) else state.grabbedAt + dy * PullTokens.RESISTANCE
+        state.dragTo(px)
+        val past = px >= state.triggerPx
+        if (past != state.armed) {
+            state.armed = past
+            if (past) onTick()
+        }
+    }
+}
 
 /** The small circle under the top edge: a quiet arc while pulling, the brand gradient turning while it reloads. */
 @Composable

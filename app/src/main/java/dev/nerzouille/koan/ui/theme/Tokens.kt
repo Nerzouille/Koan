@@ -1389,7 +1389,13 @@ object PullTokens {
     const val RESISTANCE = 0.5f
 
     /** A reload that never starts loading lets the indicator go after this. */
-    const val START_TIMEOUT_MS = 3000L
+    const val START_TIMEOUT_MS = 1500L
+
+    /** A reload still loading after this lets the pull go anyway (pages that never stop loading). */
+    const val LOAD_MAX_MS = 8000L
+
+    /** How long a pull waits for the page's engine to say whether it keeps the touch. */
+    const val PAGE_ANSWER_WAIT_MS = 120L
 
     /** The brand spinner turns at least this long, even for an instant reload. */
     const val MIN_SPIN_MS = 600L
