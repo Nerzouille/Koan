@@ -123,7 +123,7 @@ class PrivateTabs(
         // Saved a moment after any change: a tab opened, closed, navigated, or its page history.
         appScope.launch {
             val engine = store.flow().map { s ->
-                s.tabs.filter { it.content.private }.map { Triple(it.id, ErrorPageUrl.shown(it.content.url), it.engineState.engineSessionState) }
+                s.tabs.filter { it.content.private }.map { Triple(it.id, ErrorPageUrl.shown(it.id, it.content.url), it.engineState.engineSessionState) }
             }.distinctUntilChanged()
             combine(spaces.spaces, engine, tabs.current) { _, _, _ -> }
                 .drop(1)
@@ -168,7 +168,7 @@ class PrivateTabs(
                 }
                 SavedPrivateTab(
                     id = row.koanTabId,
-                    url = tab?.content?.url?.let(ErrorPageUrl::shown)?.takeIf { it.isNotEmpty() } ?: row.url,
+                    url = tab?.content?.url?.let { ErrorPageUrl.shown(tab.id, it) }?.takeIf { it.isNotEmpty() } ?: row.url,
                     title = row.title,
                     iconUrl = row.iconUrl,
                     order = row.order,

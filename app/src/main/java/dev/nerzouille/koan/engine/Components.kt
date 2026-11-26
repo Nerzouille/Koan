@@ -87,6 +87,8 @@ class Components(context: Context) {
                 sessionUseCases.loadUrl(url, id, flags)
             },
             stop = { sessionUseCases.stopLoading(it) },
+            goBack = { sessionUseCases.goBack(it) },
+            prefs = appContext.getSharedPreferences("error_stand_ins", android.content.Context.MODE_PRIVATE),
         )
     }
 

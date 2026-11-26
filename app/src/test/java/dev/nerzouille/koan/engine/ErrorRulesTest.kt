@@ -122,18 +122,89 @@ class ErrorRulesTest {
         }
     }
 
+    private fun standIns(): StandIns {
+        var n = 0
+        return StandIns(newToken = { "token${++n}" })
+    }
+
+    private val failed = "https://www.example.com/a b?x=1&y=2#z"
+
     @Test
-    fun `a stopped load's stand-in address carries the failed address back`() {
-        val failed = "https://www.example.com/a b?x=1&y=2#z"
-        val standIn = ErrorPageUrl.standIn(failed)
-        assertTrue(standIn.startsWith("http://127.0.0.1:4/"))
-        assertTrue(ErrorRules.onPhone(standIn))
-        assertEquals(failed, ErrorPageUrl.failedOf(standIn))
-        assertEquals(failed, ErrorPageUrl.shown(standIn))
-        assertEquals("https://example.org/", ErrorPageUrl.shown("https://example.org/"))
-        assertTrue(ErrorPageUrl.build(ErrorKind.Offline, failed, private = false, waitMs = 0, standalone = true).endsWith("&s=1"))
-        // Only the stand-in, and only a web address behind it.
-        assertEquals(null, ErrorPageUrl.failedOf("https://example.org/?u=https%3A%2F%2Fexample.com"))
-        assertEquals(null, ErrorPageUrl.failedOf("http://127.0.0.1:4/koan-offline?u=javascript%3Aalert(1)"))
+    fun `Koan's own stand-in, refused, shows the offline page and maps back to the failed address`() {
+        val s = standIns()
+        val url = s.start("tab1", failed, private = false)
+        assertTrue(url.startsWith("http://127.0.0.1:4/koan-offline?t=token1&u="))
+        assertTrue(ErrorRules.onPhone(url))
+        // Not mapped before its load failed as planned.
+        assertEquals(null, s.shown("tab1", url))
+        assertEquals(StandIns.Outcome.Offline(failed), s.onError("tab1", url, refused = true))
+        assertFalse(s.onShown("tab1", url))
+        assertEquals(failed, s.shown("tab1", url))
+        // Moving on ends it: the same address later is just itself.
+        assertFalse(s.onShown("tab1", "https://example.org/"))
+        assertEquals(null, s.shown("tab1", url))
+        assertEquals(StandIns.Outcome.NotOurs, s.onError("tab1", url, refused = true))
+    }
+
+    @Test
+    fun `a site's stand-in address is never mapped - no token, a guessed token, another tab's token`() {
+        val s = standIns()
+        val ours = s.start("tab1", failed, private = false)
+        val noToken = ErrorPageUrl.STAND_IN_BASE + "?u=https%3A%2F%2Fexample.org%2F"
+        val guessed = ErrorPageUrl.standIn("https://example.org/", "token1")
+        listOf(noToken, guessed).forEach {
+            assertEquals(it, StandIns.Outcome.NotOurs, s.onError("tab1", it, refused = true))
+            assertEquals(null, s.shown("tab1", it))
+        }
+        // Koan's own address, opened in another tab (a link copied from it).
+        assertEquals(StandIns.Outcome.NotOurs, s.onError("tab2", ours, refused = true))
+        assertEquals(null, s.shown("tab2", ours))
+        // A different failed address with tab1's token isn't tab1's stand-in either.
+        assertEquals(StandIns.Outcome.NotOurs, s.onError("tab1", ErrorPageUrl.standIn("https://example.net/", "token1"), refused = true))
+        // Each stop gets a new token: the old address stops counting.
+        val again = s.start("tab1", failed, private = false)
+        assertEquals(StandIns.Outcome.NotOurs, s.onError("tab1", ours, refused = true))
+        assertEquals(StandIns.Outcome.Offline(failed), s.onError("tab1", again, refused = true))
+    }
+
+    @Test
+    fun `fail-safe - a stand-in that answers or fails otherwise is abandoned and never mapped`() {
+        val s = standIns()
+        // A response: the engine shows the stand-in's page before any error.
+        val url = s.start("tab1", failed, private = false)
+        assertTrue(s.onShown("tab1", url))
+        assertEquals(null, s.shown("tab1", url))
+        assertEquals(StandIns.Outcome.NotOurs, s.onError("tab1", url, refused = true))
+        // Another error than "connection refused" (an engine update blocking the port, say).
+        val other = s.start("tab1", failed, private = false)
+        assertEquals(StandIns.Outcome.Abandon, s.onError("tab1", other, refused = false))
+        assertEquals(null, s.shown("tab1", other))
+        assertFalse(s.onShown("tab1", other))
+    }
+
+    @Test
+    fun `only the engine's connection refused counts as the stand-in failing as planned`() {
+        // ErrorPages passes refused = (type == ERROR_CONNECTION_REFUSED); the port must stay one
+        // the engine doesn't block, else the error would be ERROR_PORT_BLOCKED (and Back breaks).
+        assertTrue(ErrorPageUrl.STAND_IN_BASE.startsWith("http://127.0.0.1:4/"))
+        assertEquals(ErrorKind.Refused, ErrorRules.kindOf(ErrorType.ERROR_CONNECTION_REFUSED))
+    }
+
+    @Test
+    fun `stand-ins survive a restart for normal tabs only`() {
+        val saved = HashMap<String, StandIns.Entry>()
+        val s = standIns()
+        s.onChange = { saved.clear(); saved.putAll(it) }
+        val normal = s.start("tab1", failed, private = false)
+        val private = s.start("tab2", "https://example.org/", private = true)
+        s.onError("tab1", normal, refused = true)
+        s.onError("tab2", private, refused = true)
+        assertEquals(setOf("tab1"), saved.keys)
+        val after = standIns().also { it.restore(saved) }
+        assertEquals(failed, after.shown("tab1", normal))
+        assertEquals(StandIns.Outcome.Offline(failed), after.onError("tab1", normal, refused = true))
+        assertEquals(StandIns.Outcome.NotOurs, after.onError("tab2", private, refused = true))
+        s.closed("tab1")
+        assertTrue(saved.isEmpty())
     }
 }

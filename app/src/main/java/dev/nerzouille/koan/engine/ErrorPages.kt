@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.engine
 
+import android.content.SharedPreferences
 import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
@@ -18,6 +19,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.request.ErrorType
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.lib.state.ext.flow
+import java.security.SecureRandom
 
 /**
  * Koan's own error pages (`assets/errorpages/error.html`), per tab: which tab shows one, the grace
@@ -33,7 +35,14 @@ class ErrorPages(
     /** Loads an address in tab id; replace = in place of the current history entry. */
     private val load: (id: String, url: String, replace: Boolean) -> Unit,
     private val stop: (String) -> Unit,
+    private val goBack: (String) -> Unit,
+    /** Where normal tabs' stand-ins survive a restart (private tabs' never do); null = nowhere. */
+    private val prefs: SharedPreferences?,
 ) {
+    /** Koan's own stand-in loads, token-checked ([StandIns]). */
+    private val standIns = StandIns(newToken = {
+        ByteArray(TOKEN_BYTES).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
+    })
     /** [url]: the failed address. [page]: Koan's own page address when Koan loaded it itself (a stopped load). */
     private class Shown(val kind: ErrorKind, val url: String, val at: Long, val page: String? = null)
 
@@ -64,6 +73,9 @@ class ErrorPages(
     fun start() {
         if (started) return
         started = true
+        standIns.restore(loadStandIns())
+        standIns.onChange = ::saveStandIns
+        ErrorPageUrl.standIns = standIns
         net.start()
         watchLoads()
         watchNetwork()
@@ -85,11 +97,23 @@ class ErrorPages(
         val tab = tabOf(session)
         val id = tab?.id
         val now = SystemClock.elapsedRealtime()
-        // The stand-in for a load Koan stopped while offline: the offline page for the failed address.
-        ErrorPageUrl.failedOf(url)?.let { failed ->
-            if (id != null && shown[id]?.page != url) shown[id] = Shown(ErrorKind.Offline, failed, now, url)
-            log("offline page for a stopped load")
-            return RequestInterceptor.ErrorResponse(ErrorPageUrl.build(ErrorKind.Offline, failed, tab?.content?.private == true, 0, standalone = true))
+        // A stand-in address: Koan's own in this tab (its token) → the offline page for the failed
+        // address, only if it failed as planned; a site's copy → the usual page, as itself.
+        if (id != null && url.startsWith(ErrorPageUrl.STAND_IN_BASE)) {
+            when (val o = standIns.onError(id, url, refused = type == ErrorType.ERROR_CONNECTION_REFUSED)) {
+                is StandIns.Outcome.Offline -> {
+                    if (shown[id]?.page != url) shown[id] = Shown(ErrorKind.Offline, o.failed, now, url)
+                    log("offline page for a stopped load")
+                    return RequestInterceptor.ErrorResponse(ErrorPageUrl.build(ErrorKind.Offline, o.failed, tab.content.private, 0, standalone = true))
+                }
+                StandIns.Outcome.Abandon -> {
+                    log("stand-in failed with $type, not refused: abandoned, the page stays")
+                    shown.remove(id)
+                    messages.tryEmit(ErrorRules.OFFLINE_KEEP)
+                    return null
+                }
+                StandIns.Outcome.NotOurs -> Unit
+            }
         }
         val reloadOfLoaded = id != null && reloadingLoaded.remove(id)?.let { (u, at) -> u == url && now - at < RELOAD_MARK_MS } == true
         val online = net.state.value.online
@@ -182,13 +206,15 @@ class ErrorPages(
      */
     private fun watchLoads() = scope.launch {
         var loading = emptyMap<String, Boolean>()
+        var urls = emptyMap<String, String>()
         val started = HashMap<String, Long>()
-        store.flow().map { s -> (s.tabs + s.customTabs).associate { it.id to (it.content.loading to it.content.firstContentfulPaint) } }
+        store.flow().map { s -> (s.tabs + s.customTabs).associate { it.id to Triple(it.content.loading, it.content.firstContentfulPaint, it.content.url) } }
             .distinctUntilChanged().collect { tabs ->
                 val t = SystemClock.elapsedRealtime()
                 tabs.forEach { (id, state) ->
-                    val (l, painted) = state
+                    val (l, painted, url) = state
                     val was = loading[id] ?: false
+                    if (url != urls[id] && standIns.onShown(id, url)) abandonStandIn(id)
                     if (l && !was) {
                         loadStart[id] = t
                         unpainted.remove(id)
@@ -207,9 +233,11 @@ class ErrorPages(
                 (loading.keys - tabs.keys).forEach { id ->
                     shown.remove(id); reloadingLoaded.remove(id); autoReloads.remove(id); started.remove(id)
                     pending.remove(id); loadStart.remove(id); unpainted.remove(id)
+                    standIns.closed(id)
                     _waiting.value = _waiting.value - id
                 }
                 loading = tabs.mapValues { it.value.first }
+                urls = tabs.mapValues { it.value.third }
             }
     }
 
@@ -238,7 +266,7 @@ class ErrorPages(
             val start = loadStart[id] ?: return@forEach
             if (!c.loading) return@forEach
             // The address this load asked for (a link, a typed address); a reload asks for none.
-            val url = pending[id]?.takeIf { (_, at) -> at >= start - PENDING_MS }?.first ?: ErrorPageUrl.shown(c.url)
+            val url = pending[id]?.takeIf { (_, at) -> at >= start - PENDING_MS }?.first ?: ErrorPageUrl.shown(id, c.url)
             val painted = id in unpainted && c.firstContentfulPaint
             if (!ErrorRules.stopHungLoad(online, net.sinceChangeMs(), t - start, painted, url)) return@forEach
             loadStart.remove(id)
@@ -248,13 +276,13 @@ class ErrorPages(
                 messages.tryEmit(ErrorRules.OFFLINE_KEEP)
                 return@forEach
             }
-            val page = ErrorPageUrl.standIn(url)
+            // Already on the offline page (its Try again went nowhere): in its place, not a second entry.
+            val replace = standIns.isOurs(id, c.url)
+            val page = standIns.start(id, url, c.private)
             // Recorded before the stop: the stopped load's end must not clear it.
             shown[id] = Shown(ErrorKind.Offline, url, t, page)
             log("hung load stopped while offline after ${t - start}ms → offline page")
             stop(id)
-            // Already on the offline page (its Try again went nowhere): in its place, not a second entry.
-            val replace = ErrorPageUrl.failedOf(c.url) != null
             scope.launch {
                 delay(STOP_SETTLE_MS)
                 load(id, page, replace)
@@ -282,6 +310,30 @@ class ErrorPages(
     }
 
     /**
+     * Koan's stand-in got a real response (something listens on the phone's port 4): stop it, go
+     * back to the page before, say offline; its content never shows under the failed address.
+     */
+    private fun abandonStandIn(id: String) {
+        log("stand-in got a response: abandoned")
+        shown.remove(id)
+        stop(id)
+        if (store.state.findTabOrCustomTab(id)?.content?.canGoBack == true) goBack(id) else load(id, "about:blank", true)
+        messages.tryEmit(ErrorRules.OFFLINE_KEEP)
+    }
+
+    private fun loadStandIns(): Map<String, StandIns.Entry> = runCatching {
+        prefs?.all.orEmpty().mapNotNull { (id, v) ->
+            val parts = (v as? String)?.split('\n')?.takeIf { it.size == 3 } ?: return@mapNotNull null
+            id to StandIns.Entry(parts[1], parts[2], StandIns.State.valueOf(parts[0]), private = false)
+        }.toMap()
+    }.getOrDefault(emptyMap())
+
+    private fun saveStandIns(entries: Map<String, StandIns.Entry>) {
+        val p = prefs ?: return
+        p.edit().clear().apply { entries.forEach { (id, e) -> putString(id, "${e.state}\n${e.url}\n${e.failed}") } }.apply()
+    }
+
+    /**
      * Dev, debug and staging builds: a failed test address with `koan_error_preview=<key>` shows
      * that kind's page (and `koan_error_private=1` the Private colours), for checking every page.
      */
@@ -305,6 +357,8 @@ class ErrorPages(
         const val HUNG_CHECK_MS = 500L
         /** The stop reaches the engine before the stand-in's load. */
         const val STOP_SETTLE_MS = 300L
+        /** The stand-in's token: 128 random bits. */
+        const val TOKEN_BYTES = 16
         /** A load request this long before its load began still belongs to it. */
         const val PENDING_MS = 1000L
     }

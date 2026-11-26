@@ -917,7 +917,7 @@ private fun KoanRootContent(components: Components, hideStatus: Boolean, hero: C
                 val reader = tab?.readerState?.takeIf { it.active }?.activeUrl
                 PageInfo(
                     // Koan's own offline page: the address stays the one that failed (ErrorPages).
-                    url = reader ?: ErrorPageUrl.shown(c?.url.orEmpty()),
+                    url = reader ?: ErrorPageUrl.shown(tab?.id, c?.url.orEmpty()),
                     loading = c?.loading == true,
                     canGoBack = c?.canGoBack == true,
                     canGoForward = c?.canGoForward == true,

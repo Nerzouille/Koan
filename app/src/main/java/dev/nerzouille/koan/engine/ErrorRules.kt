@@ -2,7 +2,6 @@ package dev.nerzouille.koan.engine
 
 import mozilla.components.concept.engine.request.ErrorType
 import java.net.URI
-import java.net.URLDecoder
 import java.net.URLEncoder
 
 /**
@@ -139,21 +138,22 @@ object ErrorPageUrl {
     /**
      * Where Koan sends a load it stopped while offline: an address on the phone where nothing
      * listens (port 4, not one the engine blocks), so it fails at once and the engine shows Koan's
-     * offline page for it (the engine won't load Koan's page directly). The failed address rides along.
+     * offline page for it (the engine won't load Koan's page directly). [token] is Koan's one-time
+     * proof ([StandIns]); the failed address rides along for the engine's error only.
      */
-    private const val STAND_IN = "http://127.0.0.1:4/koan-offline?u="
+    fun standIn(failed: String, token: String): String = "$STAND_IN_BASE?t=$token&u=" + enc(failed)
 
-    fun standIn(failed: String): String = STAND_IN + enc(failed)
+    /** Every stand-in address starts so (Koan's own or a site's copy). */
+    const val STAND_IN_BASE = "http://127.0.0.1:4/koan-offline"
 
-    /** The failed address behind a [standIn] address, else null. */
-    fun failedOf(url: String): String? {
-        if (!url.startsWith(STAND_IN)) return null
-        return runCatching { URLDecoder.decode(url.removePrefix(STAND_IN), "UTF-8") }.getOrNull()
-            ?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
-    }
+    /**
+     * What Koan shows and keeps for tab [id]'s address [url]: the failed address behind Koan's own
+     * stand-in in that tab ([StandIns.shown]), else [url] itself. Main thread.
+     */
+    fun shown(id: String?, url: String): String = if (id == null) url else standIns?.shown(id, url) ?: url
 
-    /** What Koan shows and keeps for a tab's address: the failed one behind a [standIn]. */
-    fun shown(url: String): String = failedOf(url) ?: url
+    /** Set by ErrorPages.start. */
+    @Volatile var standIns: StandIns? = null
 
     /** The host to show: the address's host without "www.", else the address itself. */
     fun hostOf(url: String): String {
@@ -165,3 +165,92 @@ object ErrorPageUrl {
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 }
+
+/**
+ * Koan's stand-in loads ([ErrorPageUrl.standIn]), at most one per tab. Spoof-proof: a stand-in
+ * address counts only when Koan started it in that tab with its random token; any other load of
+ * such an address (a site's link) is shown as itself and gets the usual error page. Fail-safe:
+ * the failed address replaces the stand-in's only once its load failed with "connection refused";
+ * a response, or any other error, abandons the trick (the stand-in is never shown under the real
+ * address). Pure; main thread.
+ */
+class StandIns(private val newToken: () -> String) {
+    enum class State { Pending, Shown }
+
+    data class Entry(val url: String, val failed: String, val state: State, val private: Boolean)
+
+    sealed interface Outcome {
+        /** Not Koan's stand-in for this tab: the usual handling. */
+        data object NotOurs : Outcome
+
+        /** Koan's offline page for [failed]. */
+        data class Offline(val failed: String) : Outcome
+
+        /** Koan's stand-in didn't fail as expected: keep the page, say offline, show nothing of it. */
+        data object Abandon : Outcome
+    }
+
+    private val byTab = HashMap<String, Entry>()
+
+    /** Persisted entries changed (normal tabs only; private ones are never written). */
+    var onChange: (Map<String, Entry>) -> Unit = {}
+
+    fun restore(saved: Map<String, Entry>) {
+        byTab.putAll(saved.filterValues { !it.private })
+    }
+
+    /** Koan stops tab [id]'s hung load of [failed]: the stand-in address to load. */
+    fun start(id: String, failed: String, private: Boolean): String {
+        val url = ErrorPageUrl.standIn(failed, newToken())
+        byTab[id] = Entry(url, failed, State.Pending, private)
+        changed()
+        return url
+    }
+
+    /** The engine's error for tab [id]'s load of [url]; [refused]: it was "connection refused". */
+    fun onError(id: String, url: String, refused: Boolean): Outcome {
+        val e = byTab[id]?.takeIf { it.url == url } ?: return Outcome.NotOurs
+        if (!refused) {
+            byTab.remove(id)
+            changed()
+            return Outcome.Abandon
+        }
+        if (e.state != State.Shown) {
+            byTab[id] = e.copy(state = State.Shown)
+            changed()
+        }
+        return Outcome.Offline(e.failed)
+    }
+
+    /**
+     * Tab [id] now shows [url] (the engine committed it). True = Koan's stand-in got a real
+     * response (it showed before its error): abandon it. Moving on to another address ends it.
+     */
+    fun onShown(id: String, url: String): Boolean {
+        val e = byTab[id] ?: return false
+        if (url == e.url) {
+            if (e.state == State.Shown) return false
+            byTab.remove(id)
+            changed()
+            return true
+        }
+        if (e.state == State.Shown) {
+            byTab.remove(id)
+            changed()
+        }
+        return false
+    }
+
+    /** The failed address for tab [id]'s [url] once Koan's stand-in failed as planned, else null. */
+    fun shown(id: String, url: String): String? = byTab[id]?.takeIf { it.state == State.Shown && it.url == url }?.failed
+
+    /** Whether tab [id]'s [url] is Koan's own stand-in, shown or on its way. */
+    fun isOurs(id: String, url: String): Boolean = byTab[id]?.url == url
+
+    fun closed(id: String) {
+        if (byTab.remove(id) != null) changed()
+    }
+
+    private fun changed() = onChange(byTab.filterValues { !it.private })
+}
+

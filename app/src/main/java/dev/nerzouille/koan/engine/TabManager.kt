@@ -186,7 +186,7 @@ class TabManager(
             engineTab == null -> addEngineTab(id, tab.url)
             // Zen moved this (never phone-navigated) tab elsewhere since it was last open here:
             // its saved page is stale, load Zen's.
-            !tab.dirty && tab.url.isNotEmpty() && engineTab.content.url.isNotEmpty() && ErrorPageUrl.shown(engineTab.content.url) != tab.url -> {
+            !tab.dirty && tab.url.isNotEmpty() && engineTab.content.url.isNotEmpty() && ErrorPageUrl.shown(id, engineTab.content.url) != tab.url -> {
                 tabsUseCases.removeTab(id)
                 addEngineTab(id, tab.url)
             }
@@ -549,7 +549,7 @@ class TabManager(
             if (tab.readerState.active) return@launch
             val content = tab.content
             // Koan's own offline page keeps the failed address as the tab's (ErrorPages).
-            val url = ErrorPageUrl.shown(content.url)
+            val url = ErrorPageUrl.shown(id, content.url)
             if (url.isEmpty() || url == "about:blank") return@launch
             val title = content.title
             history?.pageShown(id, url, title)
