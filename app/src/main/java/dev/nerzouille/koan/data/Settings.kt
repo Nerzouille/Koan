@@ -56,6 +56,13 @@ class Settings internal constructor(private val store: DataStore<Preferences>) {
         store.edit { it[hideStatus] = on }
     }
 
+    private val systemAutofillKey = booleanPreferencesKey("system_autofill")
+    val systemAutofill: Flow<Boolean> = store.safeData.map { it[systemAutofillKey] ?: false }
+
+    suspend fun setSystemAutofill(on: Boolean) {
+        store.edit { it[systemAutofillKey] = on }
+    }
+
     private val sendPasswords = booleanPreferencesKey("send_passwords")
     private val sendHistory = booleanPreferencesKey("send_history")
 

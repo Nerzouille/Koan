@@ -44,6 +44,9 @@ On Android 14 and up, GeckoView can send a website's passkey request and origin 
 credential system for the selected password manager. The password manager handles verification
 and passkey storage.
 
+If you turn on System autofill in Settings › Passwords, Android can share regular web pages'
+autofill form data with your selected autofill service. Private tabs do not share their forms.
+
 While a page plays audio or video, its title and icon show in Android's media notification,
 including on the lock screen. Links like `tel:` or `mailto:` are handed to the app you choose,
 only when you tap them.

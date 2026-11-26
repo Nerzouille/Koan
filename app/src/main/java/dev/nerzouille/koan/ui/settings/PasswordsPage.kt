@@ -43,10 +43,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dev.nerzouille.koan.data.Login
 import dev.nerzouille.koan.data.LoginStore
 import dev.nerzouille.koan.data.LoginSummary
+import dev.nerzouille.koan.data.Settings
 import dev.nerzouille.koan.search.displayHost
 import dev.nerzouille.koan.ui.icons.KoanIcons
 import dev.nerzouille.koan.ui.kit.KoanField
@@ -106,7 +108,14 @@ class PasswordsUi(
  * fingerprint or PIN first. The floating + adds one by hand.
  */
 @Composable
-internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onOpenSite: (String) -> Unit, onAdd: () -> Unit) {
+internal fun PasswordsPage(
+    ui: PasswordsUi,
+    settings: Settings?,
+    on: Boolean,
+    onBack: () -> Unit,
+    onOpenSite: (String) -> Unit,
+    onAdd: () -> Unit,
+) {
     // No screenshot, recording or Recents preview of this page.
     SecureWindow()
     val palette = KoanTheme.colors
@@ -129,6 +138,18 @@ internal fun PasswordsPage(ui: PasswordsUi, on: Boolean, onBack: () -> Unit, onO
     Box(Modifier.fillMaxSize()) {
         SettingsPageFrame("Passwords", on, onBack, titleHidden = selecting) {
             BackHandler(enabled = selecting, onBack = selection::clear)
+            if (settings != null) {
+                val systemAutofill by settings.systemAutofill.collectAsStateWithLifecycle(false)
+                val scope = rememberCoroutineScope()
+                SettingsToggleRow(
+                    icon = null,
+                    title = "System autofill",
+                    on = on && !selecting,
+                    checked = systemAutofill,
+                    onChange = { checked -> scope.launch { settings.setSystemAutofill(checked) } },
+                    subtitle = "Use your Android autofill service in regular tabs.",
+                )
+            }
             if (ui.summaries.isEmpty()) {
                 Spacer(Modifier.height(SettingsTokens.SectionTop))
                 Text("No saved passwords yet", color = palette.TextPrimary, fontSize = SettingsTokens.RowTitleSize, fontWeight = FontWeight.SemiBold)

@@ -38,6 +38,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.thumbs.ThumbnailStore
 import dev.nerzouille.koan.ui.bar.barZone
@@ -52,7 +53,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
-import mozilla.components.browser.engine.gecko.GeckoEngineView
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.feature.session.SessionFeature
 import mozilla.components.lib.state.ext.flow
@@ -83,17 +83,16 @@ fun BrowserScreen(
     val store = components.store
     val session = components.sessionUseCases
 
-    val engineView = remember {
-        GeckoEngineView(context).apply {
-            // Logins are Koan's (its cards and chips): Android's autofill service (e.g. Google
-            // Password Manager) would offer to save the same login a second time.
-            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+    val systemAutofill by components.settings.systemAutofill.collectAsStateWithLifecycle(false)
+    val pageView = remember {
+        SystemAutofillView(context).apply {
             // window.print() goes through Android's print dialog, which needs the activity (held weakly).
             setActivityContext(context)
         }
     }
+    val engineView = pageView.engineView
     val sessionFeature = remember {
-        SessionFeature(store, session.goBack, session.goForward, engineView)
+        SessionFeature(store, session.goBack, session.goForward, pageView)
     }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -259,7 +258,11 @@ fun BrowserScreen(
                 }
             },
         ) {
-            AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())
+            AndroidView(
+                factory = { pageView },
+                modifier = Modifier.fillMaxSize(),
+                update = { it.enabledForRegularTabs = systemAutofill },
+            )
             PageCover(cover, store)
             PullIndicator(pull, Modifier.align(Alignment.TopCenter))
         }
