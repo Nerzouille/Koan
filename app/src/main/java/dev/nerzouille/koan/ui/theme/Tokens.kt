@@ -83,8 +83,7 @@ class KoanPalette(
     /** Every other match and its text. */
     val FindMatch: Color,
     val FindMatchText: Color,
-    // Depth stack: one ambient light (direction 3, owner 2026-11-26). Back cards, header and
-    // thumbnail alike, fade towards DimColor = Base by StackTokens.FadeLight / FadeDark × DimGain.
+    // Depth stack: beta.1's dim on the cards; the shadows are Cast's (ui/overview/StackLab.kt).
     /** Multiplies StackTokens.Dim, capped at DimMax (light haze is stronger than a dim). */
     val DimGain: Float,
     val DimMax: Float,
@@ -148,8 +147,8 @@ class KoanPalette(
             FindCurrentText = Color.White,
             FindMatch = Color(0xFFD0DDF5),
             FindMatchText = Color.Black,
-            DimGain = StackTokens.LIGHT_FADE,
-            DimMax = 1f,
+            DimGain = 1.25f,
+            DimMax = 0.85f,
             CardElevation = 12.dp,
             CardShadowColor = Color(0x241C1C30),
             CardHairline = Color(0x1A1C1C30),
@@ -206,7 +205,7 @@ class KoanPalette(
             CardHairline = Color(0x1FFFFFFF),
             CardRim = Color(0x1AFFFFFF),
             SyncDot = Color(0xFFE8B45A),
-            DimColor = Color(0xFF121214),
+            DimColor = Color.Black,
             AccentLightness = 0.62f..0.74f,
             InkLightness = 0.80f,
             PillAlpha = 0.18f,
@@ -313,7 +312,7 @@ class KoanPalette(
             CardHairline = Color(0x29B9B4FF),
             CardRim = Color(0x1AFFFFFF),
             SyncDot = Dark.SyncDot,
-            DimColor = Color(0xFF110F24),
+            DimColor = Color(0xFF050412),
             AccentLightness = Dark.AccentLightness,
             InkLightness = Dark.InkLightness,
             PillAlpha = Dark.PillAlpha,
@@ -486,15 +485,8 @@ object StackTokens {
     /** Breathing room between the header and the top of the pile. */
     val PileTopGap = 22.dp
 
-    /**
-     * One ambient light (direction 3, owner 2026-11-26): how far a card at d = 0, 1, 2 … fades
-     * towards the background (KoanPalette.DimColor), joined linearly, held past the last.
-     */
-    val FadeLight = floatArrayOf(0f, 0.10f, 0.18f, 0.26f, 0.32f)
-    val FadeDark = floatArrayOf(0f, 0.20f, 0.35f, 0.48f, 0.58f)
-
-    /** The light fade's strength, to tune: × FadeLight (Light and Dusk's DimGain). */
-    const val LIGHT_FADE = 1f
+    /** Keyframes at d = 0, 1, 2 …, joined linearly like the prototype. Thumbnail dim = 1 − brightness. */
+    val Dim = floatArrayOf(0f, 0.16f, 0.28f, 0.38f, 0.48f, 0.58f, 0.66f)
 
     /**
      * Thumbnail blur radius in dp. Design's CSS blur σ [0, 0, .5, 1, 1.6, 2.2, 2.8] converted to
@@ -502,6 +494,9 @@ object StackTokens {
      */
     val BlurDp = floatArrayOf(0f, 0f, 0f, 0.9f, 1.9f, 2.9f, 4f)
     val Alpha = floatArrayOf(1f, 1f, 1f, 1f, 1f, 0.85f, 0.6f, 0.3f, 0f)
+
+    /** Header strip is dimmed at most this much, so titles stay legible deep in the pile. */
+    const val HEADER_DIM_MAX = 0.2f
 
     /** Finger travel that moves the stack by one slot (prototype: 230dp; shorter covers more cards). */
     val SlotDrag = 170.dp
@@ -592,21 +587,6 @@ object CardTokens {
     val PlaceholderTop = 44.dp // below the header
     val PlaceholderGap = 14.dp
     val PlaceholderDomainSize = 14.sp
-
-    /**
-     * One ambient light's shadows (direction 3, owner 2026-11-26), as CSS box-shadows. The front
-     * card (the one in focus when the stack last settled, or the one being dragged) casts the
-     * front pair; every other card only a contact shadow. The handoff between two cards takes
-     * [FRONT_HANDOFF_MS].
-     */
-    val FrontKeyLight = CardShadowSpec(y = 16.dp, blur = 36.dp, spread = (-8).dp, color = Color(0xFF1C1C30), alpha = 0.18f)
-    val FrontAmbientLight = CardShadowSpec(y = 2.dp, blur = 6.dp, spread = 0.dp, color = Color(0xFF1C1C30), alpha = 0.06f)
-    val BackLight = CardShadowSpec(y = 1.dp, blur = 2.dp, spread = 0.dp, color = Color(0xFF1C1C30), alpha = 0.05f)
-    val FrontKeyDark = FrontKeyLight.copy(color = Color.Black, alpha = 0.70f)
-    /** The ambient pair keeps light's 6 : 18 ratio to the key. */
-    val FrontAmbientDark = FrontAmbientLight.copy(color = Color.Black, alpha = 0.70f * 6f / 18f)
-    val BackDark = BackLight.copy(color = Color.Black, alpha = 0.40f)
-    const val FRONT_HANDOFF_MS = 220
 
     /**
      * Only this top slice of the thumbnail is blurred: more than any blurred pile card ever shows
@@ -1640,17 +1620,4 @@ object PrivateTokens {
 
     /** A cold card (no private tab yet) fades in this long once the last one closed. */
     const val EMPTY_FADE_MS = 160
-}
-
-/** A CSS-style box-shadow: offset down [y], [blur], [spread], [color] at [alpha]. */
-@androidx.compose.runtime.Immutable
-data class CardShadowSpec(val y: Dp, val blur: Dp, val spread: Dp, val color: Color, val alpha: Float) {
-    val shadow: androidx.compose.ui.graphics.shadow.Shadow
-        get() = androidx.compose.ui.graphics.shadow.Shadow(
-            radius = blur,
-            color = color,
-            spread = spread,
-            offset = androidx.compose.ui.unit.DpOffset(0.dp, y),
-            alpha = alpha,
-        )
 }

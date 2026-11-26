@@ -103,8 +103,7 @@ fun TabCard(
 ) {
     val palette = KoanTheme.colors
     val private = dev.nerzouille.koan.ui.theme.LocalPrivateBrowsing.current
-    // The stack's looks keep beta.1's cards (StackLab).
-    val dimOf = { d: Float -> LabCards.cardDim(d, palette) }
+    val dimOf = { d: Float -> DepthCurve.cardDim(d, palette.DimGain, palette.DimMax) }
     if (card.skeleton) return SkeletonCard(depth, dimColor, dimOf, modifier)
     val look = faviconLook(card.url)
     Box(modifier.background(palette.Card).background(look.color.copy(alpha = CardTokens.PLACEHOLDER_TINT))) {
@@ -307,7 +306,7 @@ internal fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
             Modifier
                 .matchParentSize()
                 .graphicsLayer {
-                    val dim = LabCards.headerDim(depth(), palette)
+                    val dim = DepthCurve.cardHeaderDim(depth(), palette.DimGain, palette.DimMax)
                     alpha = if (dim > 0.01f) dim else 0f
                     compositingStrategy = CompositingStrategy.ModulateAlpha
                 }

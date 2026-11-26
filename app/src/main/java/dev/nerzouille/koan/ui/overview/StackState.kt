@@ -10,7 +10,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import dev.nerzouille.koan.ui.theme.Motion
-import dev.nerzouille.koan.ui.theme.CardTokens
 import dev.nerzouille.koan.ui.theme.StackTokens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -67,23 +66,6 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
     var liftedId by mutableStateOf<String?>(null)
         internal set
 
-    /**
-     * The slot whose card casts the front shadow (DepthCurve.frontness): the card in focus when
-     * the stack last came to rest. A drag leaves it on the card under the finger; once the stack
-     * settles elsewhere it moves to the new front card.
-     */
-    var frontSlot by mutableFloatStateOf(initialPos)
-        private set
-    private var frontJob: Job? = null
-
-    /**
-     * The finger's vertical speed while it drags the stack (px/s, down positive), for
-     * Feel.Motion; it eases back to 0 once the finger lets go. Read in layers only.
-     */
-    var dragVelocity by mutableFloatStateOf(0f)
-        private set
-    private var velocityJob: Job? = null
-
     internal val cards = HashMap<String, CardAnim>()
     private var scrollJob: Job? = null
     private var wheelJob: Job? = null
@@ -121,38 +103,10 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         return caught
     }
 
-    /** The finger drags at [vyPx] px/s (Feel.Motion). */
-    fun followFinger(vyPx: Float) {
-        velocityJob?.cancel()
-        dragVelocity = vyPx
-    }
-
-    /** Let go: the motion feel eases back to flat. */
-    private fun settleVelocity() {
-        if (dragVelocity == 0f || velocityJob?.isActive == true) return
-        velocityJob = scope.launch {
-            val ease = androidx.compose.animation.core.spring<Float>(dampingRatio = 1f, stiffness = 300f)
-            androidx.compose.animation.core.animate(dragVelocity, 0f, animationSpec = ease) { v, _ -> dragVelocity = v }
-        }
-    }
-
     /** The gesture that started with [startDrag] is over, whatever it turned out to be. */
     fun endTouch() {
-        settleVelocity()
         dragging = false
         busy = scrollJob?.isActive == true
-        if (!busy) settleFront()
-    }
-
-    /** At rest: the front shadow goes to the card now in focus. */
-    private fun settleFront() {
-        val target = kotlin.math.round(pos)
-        if (target == frontSlot) return
-        frontJob?.cancel()
-        frontJob = scope.launch {
-            val handoff = androidx.compose.animation.core.tween<Float>(CardTokens.FRONT_HANDOFF_MS)
-            androidx.compose.animation.core.animate(frontSlot, target, animationSpec = handoff) { v, _ -> frontSlot = v }
-        }
     }
 
     /**
@@ -163,8 +117,6 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         if (slots == 0) return
         pos += slots
         dragStart += slots
-        frontJob?.cancel()
-        frontSlot += slots
         for (a in cards.values) {
             a.slotJob?.cancel()
             a.slot += slots
@@ -184,7 +136,6 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
      * Fast: momentum scroll through as many cards as the velocity carries, landing on a card.
      */
     fun release(vyPx: Float = 0f) {
-        settleVelocity()
         dragging = false
         val v = -vyPx / slotPx
         val moved = if (abs(v) >= StackTokens.FLING_MIN_VELOCITY) v else pos - dragStart
@@ -234,8 +185,6 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         pos = index.toFloat()
         dragStart = pos
         lastDirection = 0
-        frontJob?.cancel()
-        frontSlot = pos
     }
 
     /** Exponential glide to [target]: fast start, no overshoot, like the prototype. */
@@ -258,10 +207,7 @@ class StackState(initialPos: Float, private val scope: CoroutineScope) {
         busy = true
         val job = scope.launch(block = block)
         scrollJob = job
-        job.invokeOnCompletion { cause ->
-            if (scrollJob === job && !dragging) busy = false
-            if (cause == null && scrollJob === job && !dragging) settleFront()
-        }
+        job.invokeOnCompletion { if (scrollJob === job && !dragging) busy = false }
     }
 
     internal fun animateSlot(a: CardAnim, target: Float) {

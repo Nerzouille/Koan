@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import dev.nerzouille.koan.BuildConfig
 import dev.nerzouille.koan.ui.theme.KoanPalette
 import dev.nerzouille.koan.ui.theme.StackTokens
@@ -28,9 +29,6 @@ enum class Feel(val label: String) {
 
     /** Headers lit from above: a little lighter at the top, a little darker at the bottom. */
     Surface("Surface light"),
-
-    /** While dragging only: back cards lag a little (parallax), the dragged card tilts with the speed. */
-    Motion("Motion"),
 }
 
 /**
@@ -68,7 +66,7 @@ object StackLab {
         style = StackStyle.entries.firstOrNull { it.name == p.getString("style", null) } ?: StackStyle.Cast
         StackStyle.entries.forEach { strengths[it] = p.getFloat("strength_${it.name}", strengths[it] ?: 1f) }
         Feel.entries.forEach {
-            feels[it] = p.getBoolean("feel_${it.name}", true)
+            feels[it] = p.getBoolean("feel_${it.name}", false)
             feelStrengths[it] = p.getFloat("feel_strength_${it.name}", 1f)
         }
         panel = p.getBoolean("panel", false)
@@ -76,14 +74,14 @@ object StackLab {
 
     fun select(s: StackStyle) {
         style = s
-        prefs?.edit()?.putString("style", s.name)?.apply()
+        prefs?.edit { putString("style", s.name) }
     }
 
     fun changeStrength(v: Float) { strengths[style] = v }
 
     fun showPanel(on: Boolean) {
         panel = on
-        prefs?.edit()?.putBoolean("panel", on)?.apply()
+        prefs?.edit { putBoolean("panel", on) }
     }
 
     /** How much of [f] the stack draws: 0 when off, or in Before; else its strength (1 = as designed). */
@@ -97,17 +95,17 @@ object StackLab {
     fun tune(f: Feel, on: Boolean? = null, strength: Float? = null) {
         if (on != null) {
             feels[f] = on
-            prefs?.edit()?.putBoolean("feel_${f.name}", on)?.apply()
+            prefs?.edit { putBoolean("feel_${f.name}", on) }
         }
         if (strength != null) feelStrengths[f] = strength
     }
 
     /** A slider let go: keep its value. */
     fun save() {
-        val e = prefs?.edit() ?: return
-        e.putFloat("strength_${style.name}", strength)
-        Feel.entries.forEach { e.putFloat("feel_strength_${it.name}", feelStrength(it)) }
-        e.apply()
+        prefs?.edit {
+            putFloat("strength_${style.name}", strength)
+            Feel.entries.forEach { putFloat("feel_strength_${it.name}", feelStrength(it)) }
+        }
     }
 
     /** After StackGeometry.applyTo, for a card at depth [d]: Before's key shadow (beta.1). */
@@ -122,41 +120,9 @@ object StackLab {
     }
 }
 
-/** The cards in every look: as in beta.1 (their dim, their header grey). */
-object LabCards {
-    /** Thumbnail dim at depth [d] (beta.1). */
-    fun cardDim(d: Float, palette: KoanPalette): Float = (beta1Dim(d) * gain(palette)).coerceAtMost(max(palette))
-
-    /** Header dim at depth [d] (beta.1: half the thumbnail's, capped). */
-    fun headerDim(d: Float, palette: KoanPalette): Float {
-        val header = (beta1Dim(d) * LabTokens.HEADER_DIM_SHARE).coerceAtMost(LabTokens.HEADER_DIM_MAX)
-        return (header * gain(palette)).coerceAtMost(max(palette))
-    }
-
-    /** The colour back cards dim towards (beta.1: black in dark). */
-    fun dimColor(palette: KoanPalette): Color = when {
-        palette === KoanPalette.Night -> LabTokens.NightDim
-        palette.isDark -> Color.Black
-        else -> palette.DimColor
-    }
-
-
-    // ── The card layer ───────────────────────────────────────────────────────────────────────
-}
-
-private fun beta1Dim(d: Float) = if (d >= 0f) DepthCurve.lerp(LabTokens.Dim, d) else StackTokens.PEEK_DIM * DepthCurve.drop(d)
-private fun gain(p: KoanPalette) = if (p.isDark) 1f else LabTokens.LIGHT_DIM_GAIN
-private fun max(p: KoanPalette) = if (p.isDark) 1f else LabTokens.LIGHT_DIM_MAX
-
 /** The stack looks' values (see [StackLab]). */
 object LabTokens {
-    // beta.1's cards.
-    val Dim = floatArrayOf(0f, 0.16f, 0.28f, 0.38f, 0.48f, 0.58f, 0.66f)
-    const val LIGHT_DIM_GAIN = 1.25f
-    const val LIGHT_DIM_MAX = 0.85f
-    const val HEADER_DIM_SHARE = 0.5f
-    const val HEADER_DIM_MAX = 0.2f
-    val NightDim = Color(0xFF050412)
+    // beta.1's key shadow (Before).
     const val KEY_SHADOW_STEP = 0.1f
     const val KEY_SHADOW_MIN = 0.6f
 
@@ -180,7 +146,7 @@ object LabTokens {
     const val CAST_ALPHA_DARK = 0.80f
 
     /** Cast's strength in every build (owner, 2026-11-26). */
-    const val CAST_STRENGTH = 0.65f
+    const val CAST_STRENGTH = 0.45f
 
     // Thickness: the edge of the card in front, a band this tall above its top edge.
     val Thickness = 1.5.dp
@@ -194,18 +160,6 @@ object LabTokens {
     val SurfaceTopDark = Color(0x1FFFFFFF)
     val SurfaceBottomDark = Color(0x52000000)
     const val SURFACE_FULL = 2f
-
-    // Motion: how far back cards lag (seconds of the finger's speed, at most MAX slots) and
-    // how much the dragged card tilts (MOTION_TILT° at MOTION_FULL_SPEED dp/s, never past the max).
-    const val PARALLAX_SECONDS = 0.05f
-    const val PARALLAX_MAX_SLOTS = 0.25f
-    const val MOTION_TILT = 3f
-    const val MOTION_TILT_MAX = 4f
-    const val MOTION_FULL_SPEED = 2000f
-    const val MOTION_TILT_SIGN = -1f
-
-    /** The layer's camera distance for the tilt, × density (the layer's unit is 72 px). */
-    const val MOTION_CAMERA = 12f
 
     const val MIN_STRENGTH = 0.25f
     const val MAX_STRENGTH = 2f

@@ -50,8 +50,9 @@ class DepthCurveTest {
         var d = -2f
         while (d <= 10f) {
             assertTrue(DepthCurve.alpha(d) in 0f..1f)
-            assertTrue(DepthCurve.fade(d, dark = true) in 0f..1f)
+            assertTrue(DepthCurve.dim(d) in 0f..1f)
             assertTrue(DepthCurve.blurDp(d) >= 0f)
+            assertTrue(DepthCurve.headerDim(d) <= StackTokens.HEADER_DIM_MAX)
             d += 0.01f
         }
     }
@@ -79,7 +80,7 @@ class DepthCurveTest {
 
     @Test
     fun `pile keyframes are joined linearly`() {
-        assertEquals((StackTokens.FadeLight[1] + StackTokens.FadeLight[2]) / 2f, DepthCurve.fade(1.5f, dark = false), 1e-5f)
+        assertEquals((StackTokens.Dim[1] + StackTokens.Dim[2]) / 2f, DepthCurve.dim(1.5f), 1e-5f)
     }
 
     @Test

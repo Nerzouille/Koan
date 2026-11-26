@@ -212,7 +212,7 @@ fun DepthStack(
 
     val palette = KoanTheme.colors
     // Light: back cards fade into the background (a haze); dark: they darken.
-    val dimColor = LabCards.dimColor(palette)
+    val dimColor = palette.DimColor
     // The stack's look (Cast; dev builds can pick Before in Settings › Debug › Stack style).
     val lab = StackLab.active
 
@@ -358,10 +358,7 @@ fun DepthStack(
                                     state.release()
                                     swipeCard(state, state.anim(focusedId, 0), down.id, slop.x, geo.cardWidth) { dir -> flyOff(focusedId, dir) }
                                 } else {
-                                    trackUntilUp(down.id, tracker) {
-                                        state.dragBy(it.positionChange().y)
-                                        if (StackLab.feel(Feel.Motion) > 0f) state.followFinger(tracker.calculateVelocity().y)
-                                    }
+                                    trackUntilUp(down.id, tracker) { state.dragBy(it.positionChange().y) }
                                     state.release(tracker.calculateVelocity().y)
                                 }
                             }
@@ -554,9 +551,6 @@ private class StackGeometry(
 
     fun depthOf(a: CardAnim): Float = if (a.flyDepth.isNaN()) state.pos - a.slot else a.flyDepth
 
-    /** How much of the front shadow [a] casts (one ambient light). */
-    fun front(a: CardAnim): Float = DepthCurve.frontness(a.slot, state.frontSlot)
-
     private fun visible(d: Float) = d <= DepthCurve.MAX_VISIBLE_D && d >= DepthCurve.MIN_VISIBLE_D
 
     /**
@@ -617,30 +611,6 @@ private class StackGeometry(
         ambientShadowColor = palette.CardShadowColor
         spotShadowColor = palette.CardShadowColor
         StackLab.adjust(this, d, a.lift, density, palette)
-        motion(this, d)
-    }
-
-    /**
-     * Feel.Motion, while the finger drags the stack only: the cards behind lag a little (they
-     * move slower than the front), the dragged card tilts with the finger's speed. Both ease
-     * back with StackState.dragVelocity once it lets go; at rest everything is flat.
-     */
-    private fun motion(layer: GraphicsLayerScope, d: Float) = with(layer) {
-        val k = StackLab.feel(Feel.Motion)
-        val v = state.dragVelocity
-        if (k <= 0f || v == 0f) return@with
-        if (d > 0f) {
-            val lag = (v / state.slotPx * LabTokens.PARALLAX_SECONDS * k)
-                .coerceIn(-LabTokens.PARALLAX_MAX_SLOTS, LabTokens.PARALLAX_MAX_SLOTS) * min(d, 1f)
-            translationY += topOf(d + lag) - topOf(d)
-        }
-        val near = 1f - abs(d)
-        if (near > 0f) {
-            val speed = (v / density / LabTokens.MOTION_FULL_SPEED).coerceIn(-1f, 1f)
-            val tilt = (LabTokens.MOTION_TILT * k).coerceAtMost(LabTokens.MOTION_TILT_MAX)
-            rotationX = LabTokens.MOTION_TILT_SIGN * speed * tilt * near
-            cameraDistance = LabTokens.MOTION_CAMERA * density
-        }
     }
 
     /**
