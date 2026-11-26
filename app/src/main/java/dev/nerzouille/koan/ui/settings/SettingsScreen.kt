@@ -161,7 +161,7 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.DownloadFolder -> FolderPage(ui, interactive, back)
                         SettingsPage.Translation -> TranslationPage(ui.translation, interactive, back)
                         SettingsPage.Passwords -> PasswordsPage(
-                            ui.passwords, interactive, back,
+                            ui.passwords, ui.settings, interactive, back,
                             onOpenSite = { nav.push(SettingsPage.PasswordSite(it)) },
                             onAdd = { nav.push(SettingsPage.AddPassword) },
                         )

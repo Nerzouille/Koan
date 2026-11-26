@@ -578,8 +578,9 @@ Playback keeps going with Koan in the background or the screen off.
   now**). It's kept encrypted on the phone; it goes to your Mozilla account only if you turned on
   two-way sync for passwords. The next visit offers it like the others. Saving the same site and
   username again updates it.
-- Android's own autofill service (for example Google Password Manager) is kept out of pages, so a
-  login isn't offered to be saved twice.
+- **Settings › Passwords › System autofill** lets the selected Android autofill service fill forms
+  in regular tabs. It's off by default and always off in Private. If an Android autofill service is
+  active, it handles save prompts in regular tabs. Koan's saved logins remain available.
 - **Passkeys:** website buttons to create or use a passkey can open Android's credential flow.
   The selected password manager may require Koan to be on its trusted-browser list.
 - **Settings › Passwords:** screenshots, screen recordings and the recent-apps preview are blocked

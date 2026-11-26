@@ -1,5 +1,6 @@
 package dev.nerzouille.koan.ui.overlays
 
+import android.view.autofill.AutofillManager
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
@@ -15,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nerzouille.koan.data.Login
 import dev.nerzouille.koan.engine.Components
 import dev.nerzouille.koan.search.origin
@@ -28,6 +31,7 @@ import dev.nerzouille.koan.ui.menu.PagePrompts
 import dev.nerzouille.koan.ui.menu.SaveLoginCard
 import dev.nerzouille.koan.ui.sheet.Detent
 import dev.nerzouille.koan.ui.sheet.KoanCard
+import dev.nerzouille.koan.ui.sheet.SheetState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -47,10 +51,12 @@ internal fun LoginOverlays(
     activeTabId: String?,
 ) {
     // ---- logins: fill from a chip (7f) or the full list (7e); save a new one on the phone ----
-    val loginPrompt by components.store.observeSlice(activeTabId) { s ->
-        activeTabId?.let { s.findTab(it) }?.content?.promptRequests
-            ?.firstOrNull { it is PromptRequest.SelectLoginPrompt || it is PromptRequest.SaveLoginPrompt }
+    val loginState by components.store.observeSlice(activeTabId) { s ->
+        val content = activeTabId?.let { s.findTab(it) }?.content
+        val prompt = content?.promptRequests?.firstOrNull { it is PromptRequest.SelectLoginPrompt || it is PromptRequest.SaveLoginPrompt }
+        prompt to (content?.private == false)
     }
+    val (loginPrompt, regularTab) = loginState
     // A page's file field: Android's picker (and the camera).
     FilePrompt(components, activeTabId)
     // Everything else a page asks: <select>, pickers, alert/confirm, HTTP sign-in, pop-ups.
@@ -85,20 +91,41 @@ internal fun LoginOverlays(
             )
         }
     }
-    val save = loginPrompt as? PromptRequest.SaveLoginPrompt
+    SaveLoginOverlay(components, overlays.saveLoginCard, scope, loginPrompt as? PromptRequest.SaveLoginPrompt, regularTab, ::consumePrompt)
+}
+
+@Composable
+private fun SaveLoginOverlay(
+    components: Components,
+    card: SheetState,
+    scope: CoroutineScope,
+    save: PromptRequest.SaveLoginPrompt?,
+    regularTab: Boolean,
+    consumePrompt: (PromptRequest) -> Unit,
+) {
+    val systemAutofill by components.settings.systemAutofill.collectAsStateWithLifecycle(false)
+    val context = LocalContext.current
+    val autofillManager = remember(context) { context.getSystemService(AutofillManager::class.java) }
     val entry = save?.logins?.firstOrNull()
+    val systemHandlesSave = save != null && regularTab && systemAutofill && autofillManager?.isEnabled == true
     var savedBefore by remember { mutableStateOf(false) }
-    LaunchedEffect(save) {
+    LaunchedEffect(save, systemHandlesSave) {
         if (save == null || entry == null) return@LaunchedEffect
+        if (systemHandlesSave) {
+            card.animateTo(Detent.Closed)
+            save.onDismiss()
+            consumePrompt(save)
+            return@LaunchedEffect
+        }
         savedBefore = components.logins.forOrigin(entry.origin).any { it.username == entry.username }
-        overlays.saveLoginCard.animateTo(Detent.Compact)
+        card.animateTo(Detent.Compact)
     }
-    KoanCard(overlays.saveLoginCard) { interactive ->
-        if (save == null || entry == null) return@KoanCard
+    KoanCard(card) { interactive ->
+        if (save == null || entry == null || systemHandlesSave) return@KoanCard
         SaveLoginCard(
             origin = entry.origin, username = entry.username, update = savedBefore, interactive = interactive,
             onSave = {
-                overlays.saveLoginCard.animateTo(Detent.Closed)
+                card.animateTo(Detent.Closed)
                 scope.launch {
                     components.logins.saveLocal(
                         entry.origin, entry.formActionOrigin, entry.httpRealm, entry.usernameField, entry.passwordField,
@@ -109,7 +136,7 @@ internal fun LoginOverlays(
                 consumePrompt(save)
             },
             onNotNow = {
-                overlays.saveLoginCard.animateTo(Detent.Closed)
+                card.animateTo(Detent.Closed)
                 save.onDismiss()
                 consumePrompt(save)
             },
