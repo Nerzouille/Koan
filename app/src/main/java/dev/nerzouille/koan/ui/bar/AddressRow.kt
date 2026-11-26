@@ -710,7 +710,7 @@ private fun AddressInput(
     var focused by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
     // Back closes the search field, not just the keyboard.
-    CloseWithKeyboard(focused = { focused }, onClose = onCancel)
+    CloseWithKeyboard(focused = { focused }, onClose = onCancel, away = { field.keyboardAway }, onShown = { field.keyboardAway = false })
     // "@" = pick an engine or a scope: the brand gradient flows in around the ring.
     val at = value.text.trimStart().startsWith("@")
     val flow = remember { Animatable(0f) }
@@ -925,17 +925,27 @@ private data class CompletionAfter(
  */
 @Composable
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-private fun CloseWithKeyboard(focused: () -> Boolean, onClose: () -> Unit) {
+private fun CloseWithKeyboard(
+    focused: () -> Boolean,
+    onClose: () -> Unit,
+    /** The keyboard went away on purpose: the field stays (the start page). */
+    away: () -> Boolean = { false },
+    onShown: () -> Unit = {},
+) {
     // Where the keyboard is heading, not where it is: the field closes as the keyboard starts
     // going down (its results go at once), not once it is gone.
     val target = WindowInsets.imeAnimationTarget
     val density = LocalDensity.current
     val close by rememberUpdatedState(onClose)
     val isFocused by rememberUpdatedState(focused)
+    val isAway by rememberUpdatedState(away)
+    val shownAgain by rememberUpdatedState(onShown)
     LaunchedEffect(target, density) {
         var shown = false
         snapshotFlow { target.getBottom(density) > 0 }.collect { visible ->
-            if (shown && !visible && isFocused()) close()
+            val wentDown = shown && !visible
+            if (wentDown && isFocused() && !isAway()) close()
+            if (visible && !shown) shownAgain()
             shown = visible
         }
     }

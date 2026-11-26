@@ -197,6 +197,8 @@ fun KoanOverlays(
     currentSpaceUuid: String?,
     /** Private shown: copies are marked sensitive, no Essentials, the site's Protections switch. */
     private: Boolean = false,
+    /** The tab counter's New page: the start page. */
+    onNewPage: () -> Unit = onNewTab,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = LocalContext.current
@@ -292,7 +294,7 @@ fun KoanOverlays(
     LinkCardOverlay(components, overlays, scope, page, activeTabId, clipboard, onOpenNew, onToast, ::share)
 
     // ---- the tab counter's long-press menu; back's long-press list ----
-    DockMenus(components, overlays, activeTabId, currentSpaceUuid, onNewTab, onCloseTab, onRestoreClosed)
+    DockMenus(components, overlays, activeTabId, currentSpaceUuid, onNewPage, onCloseTab, onRestoreClosed)
 
     // ---- Settings, full screen, sliding up over everything ----
     SettingsOverlays(

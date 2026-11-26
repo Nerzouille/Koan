@@ -31,7 +31,8 @@ enum class StackStyle(val label: String, val short: String) {
  * or in layers: switching never recomposes a frame of the stack.
  */
 object StackLab {
-    val available: Boolean = BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "dev"
+    /** Dev, debug and staging ("Koan Test", R8, for frame checks) builds; never a release build. */
+    val available: Boolean = BuildConfig.DEBUG || BuildConfig.BUILD_TYPE == "dev" || BuildConfig.BUILD_TYPE == "staging"
 
     var style by mutableStateOf(StackStyle.Cast)
         private set

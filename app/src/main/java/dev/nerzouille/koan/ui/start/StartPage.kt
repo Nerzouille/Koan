@@ -33,6 +33,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,14 +49,18 @@ import dev.nerzouille.koan.ui.kit.swipeDownToDismiss
 import dev.nerzouille.koan.ui.overview.Favicon
 import dev.nerzouille.koan.ui.overview.SpaceModel
 import dev.nerzouille.koan.ui.overview.SpaceTitle
+import dev.nerzouille.koan.ui.search.CopiedLinkRow
 import dev.nerzouille.koan.ui.theme.DrawerTokens
 import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.StartPageTokens
 
 /**
- * Where Koan comes back after a while unused: the current space's essentials and a "Continue" card
- * for the last tab ([last], none if it's gone) above the dock, whose search field is focused. Not a tab: nothing exists until a search or an essential opens one.
- * Swipe down (or Back, or the field's ✕) goes back to the last tab. It shows at once and fades out.
+ * Where Koan comes back after a while unused, or from the tab counter's New page: the current
+ * space's essentials and a "Continue" card for the last tab ([last], none if it's gone) above the
+ * dock, whose search field is focused; above them the latest pages visited and a recent download
+ * ([quick]), right on the field the link just copied. Not a tab: nothing exists until something
+ * opens one. A tap or a drag anywhere puts the keyboard away ([onKeyboardAway]); then a swipe down
+ * (or Back, or the field's ✕) goes back to the last tab. It shows at once and fades out.
  * [bottom]: the dock's height; the keyboard and navigation bar are added in layout.
  */
 @Composable
@@ -62,6 +71,9 @@ fun StartPage(
     bottom: Dp,
     onOpenTab: (String) -> Unit,
     onDismiss: () -> Unit,
+    quick: StartQuick = StartQuick(),
+    keyboardAway: Boolean = true,
+    onKeyboardAway: () -> Unit = {},
 ) {
     val alpha = rememberPresence(open, enter = snap(), exit = tween(StartPageTokens.FADE_OUT_MS), snapIn = true)
     // The last space shown stays while it fades out.
@@ -69,6 +81,9 @@ fun StartPage(
     if (open && space != null) shown = space
     var shownLast by remember { mutableStateOf(last) }
     if (open) shownLast = last
+    var shownQuick by remember { mutableStateOf(quick) }
+    if (open) shownQuick = quick
+    val away by rememberUpdatedState(onKeyboardAway)
     if (!alpha.composed) return
     val current = shown ?: return
     val dismiss by rememberUpdatedState(onDismiss)
@@ -78,11 +93,13 @@ fun StartPage(
             .fillMaxSize()
             .graphicsLayer { this.alpha = alpha.progress }
             .background(palette.Base)
+            .clipToBounds()
             .then(
-                if (!open) {
-                    Modifier
-                } else {
-                    Modifier.swipeDownToDismiss(StartPageTokens.SwipeDownToDismiss) { dismiss() }
+                when {
+                    !open -> Modifier
+                    // The first touch only puts the keyboard away; then a swipe down leaves.
+                    !keyboardAway -> Modifier.pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false); away() } }
+                    else -> Modifier.swipeDownToDismiss(StartPageTokens.SwipeDownToDismiss) { dismiss() }
                 },
             ),
     ) {
@@ -90,10 +107,14 @@ fun StartPage(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                // Taller than the room above the keyboard: the top (the recent pages) goes under
+                // the status bar, the essentials stay right above the field.
+                .wrapContentHeight(Alignment.Bottom, unbounded = true)
                 .padding(horizontal = StartPageTokens.SidePadding)
                 .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime).only(WindowInsetsSides.Bottom))
                 .padding(bottom = bottom + StartPageTokens.BottomGap),
         ) {
+            QuickRows(shownQuick, interactive = open)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SpaceTitle(current.icon, current.name)
             }
@@ -110,6 +131,12 @@ fun StartPage(
             shownLast?.let { tab ->
                 Spacer(Modifier.height(StartPageTokens.ContinueTop))
                 ContinueCard(tab, interactive = open, onClick = onDismiss)
+            }
+            shownQuick.copied?.let { link ->
+                Spacer(Modifier.height(StartPageTokens.ContinueTop))
+                Box(Modifier.clip(RoundedCornerShape(StartPageTokens.ContinueRadius)).background(palette.Glass)) {
+                    CopiedLinkRow(link, interactive = open, onOpen = shownQuick.onOpenUrl)
+                }
             }
         }
     }

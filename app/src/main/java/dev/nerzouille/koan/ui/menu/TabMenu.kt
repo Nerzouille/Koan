@@ -14,12 +14,12 @@ import dev.nerzouille.koan.ui.theme.KoanTheme
 import dev.nerzouille.koan.ui.theme.TabMenuTokens
 
 /**
- * The tab counter's long-press menu (New tab, Close tab, Reopen closed tab: greyed out when
+ * The tab counter's long-press menu (New page: the start page; Close tab; Reopen closed tab: greyed out when
  * [onReopenClosed] is null), just above the dock: its right edge on the dock's right margin,
  * growing to the left with its labels. It grows out of the counter.
  */
 @Composable
-fun TabMenu(open: Boolean, onDismiss: () -> Unit, onNewTab: () -> Unit, onCloseTab: () -> Unit, onReopenClosed: (() -> Unit)?) {
+fun TabMenu(open: Boolean, onDismiss: () -> Unit, onNewPage: () -> Unit, onCloseTab: () -> Unit, onReopenClosed: (() -> Unit)?) {
     DockPopup(
         open = open,
         onDismiss = onDismiss,
@@ -28,7 +28,7 @@ fun TabMenu(open: Boolean, onDismiss: () -> Unit, onNewTab: () -> Unit, onCloseT
         anchor = BarTokens.RowPadding + BarTokens.IconTouch + BarTokens.RowGap + BarTokens.IconTouch / 2,
         minWidth = TabMenuTokens.MinWidth,
     ) {
-        MenuItem(KoanIcons.Plus, "New tab", open, onNewTab)
+        MenuItem(KoanIcons.Plus, "New page", open, onNewPage)
         MenuItem(KoanIcons.Close, "Close tab", open, onCloseTab)
         MenuItem(KoanIcons.History, "Reopen closed tab", open && onReopenClosed != null, onReopenClosed ?: {}, enabled = onReopenClosed != null)
     }

@@ -97,6 +97,8 @@ fun SearchSheet(
     modifier: Modifier = Modifier,
     /** Private: the notice first, bookmarks and private tabs only. */
     private: Boolean = false,
+    /** A link just copied: offered first (right on the field) until something is typed. */
+    copied: CopiedLink? = null,
 ) {
     val fade = rememberPresence(open, Motion.SearchScrim)
     if (!fade.composed) return
@@ -115,7 +117,7 @@ fun SearchSheet(
                     .matchParentSize()
                     .graphicsLayer { alpha = if (open) 1f else fade.progress }
                     .then(if (open) Modifier else Modifier.pointerInput(Unit) { swallowTouches() }),
-            ) { Results(field, search, engine, shortcuts, bottom, currentSpace, actions, private) }
+            ) { Results(field, search, engine, shortcuts, bottom, currentSpace, actions, private, copied?.takeIf { !field.edited }) }
         }
     }
 }
@@ -138,6 +140,7 @@ private fun BoxScope.Results(
     currentSpace: Int,
     actions: SearchActions,
     private: Boolean,
+    copied: CopiedLink?,
 ) {
     val palette = KoanTheme.colors
     val parsed = parseQuery(field.typed, shortcuts)
@@ -157,7 +160,8 @@ private fun BoxScope.Results(
         )
         return
     }
-    val showing = !parsed.picking && (private || !results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty()))
+    val showing = !parsed.picking &&
+        (private || copied != null || !results.isEmpty || suggestions.isNotEmpty() || (shortcut != null && parsed.rest.isNotEmpty()))
     if (!showing) return
     Column(
         Modifier
@@ -215,6 +219,8 @@ private fun BoxScope.Results(
                 }
             }
         }
+        // The first suggestion, right on the field: the link just copied (gone once you type).
+        if (copied != null) Group(null, null) { CopiedLinkRow(copied, interactive = true, onOpen = actions.search) }
     }
 }
 

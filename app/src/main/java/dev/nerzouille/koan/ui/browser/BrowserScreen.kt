@@ -192,6 +192,8 @@ fun BrowserScreen(
     // Pull to refresh: the indicator lets go once the reload has loaded (or another tab came up).
     val scope = rememberCoroutineScope()
     val pull = remember { PullRefresh(scope) }
+    pull.still = dev.nerzouille.koan.ui.kit.rememberAnimationsOff()
+    val pullStyle = PullLab.style
     with(density) {
         pull.triggerPx = PullTokens.Trigger.toPx()
         pull.maxPx = PullTokens.Max.toPx()
@@ -246,11 +248,15 @@ fun BrowserScreen(
                 }
             },
     ) {
+        // Pull to refresh, the prototypes: what the page uncovers as it slides down.
+        if (pullStyle.slides && !fullScreen) PullBackdrop(pull, pullStyle, Modifier.align(Alignment.TopCenter))
         // A swipe on the dock: the tabs of the stack form a strip that follows the finger. The live
         // page (and its cover) sits in its slot, the tabs around the screen show their screenshots.
         Box(
             Modifier.fillMaxSize().graphicsLayer {
                 translationX = if (swipe.active) (swipe.live - swipe.pos) * swipe.pageWidthPx else 0f
+                // The prototypes: the page itself slides down with the pull.
+                translationY = if (pullStyle.slides && !fullScreen) pull.pull.value else 0f
                 // A fullscreen video follows the player's swipe down and flies to the mini-player.
                 if (fullScreen) {
                     val p = components.player
@@ -262,7 +268,7 @@ fun BrowserScreen(
         ) {
             AndroidView(factory = { engineView }, modifier = Modifier.fillMaxSize())
             PageCover(cover, store)
-            PullIndicator(pull, Modifier.align(Alignment.TopCenter))
+            if (!pullStyle.slides) PullIndicator(pull, Modifier.align(Alignment.TopCenter))
         }
         if (swipe.active) {
             val strip = swipe.strip

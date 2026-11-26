@@ -62,6 +62,9 @@ sealed interface SettingsPage {
 
     /** Dev builds only: Debug › Stack style. */
     data object StackStyle : SettingsPage
+
+    /** Dev builds only: Debug › Pull to refresh. */
+    data object PullStyle : SettingsPage
 }
 
 /** Everything Settings shows and does. [email] null = signed out. */
@@ -171,6 +174,7 @@ fun SettingsScreen(ui: SettingsUi, nav: SheetNav<SettingsPage>, onClose: () -> U
                         SettingsPage.AddPassword -> AddPasswordPage(ui.passwords, interactive, back)
                         is SettingsPage.PasswordSite -> PasswordSitePage(ui.passwords, page.site, interactive, back)
                         SettingsPage.StackStyle -> StackStylePage(interactive, back)
+                        SettingsPage.PullStyle -> PullStylePage(interactive, back)
                     }
                 }
             }
@@ -260,6 +264,9 @@ private fun RootPage(ui: SettingsUi, on: Boolean, onBack: () -> Unit, push: (Set
             SettingsSection("Debug")
             val style = dev.nerzouille.koan.ui.overview.StackLab.style.label
             SettingsRow(null, "Stack style", on, value = style, chevron = true, onClick = { push(SettingsPage.StackStyle) })
+            SettingsDivider()
+            val pull = dev.nerzouille.koan.ui.browser.PullLab.style.short
+            SettingsRow(null, "Pull to refresh", on, value = pull, chevron = true, onClick = { push(SettingsPage.PullStyle) })
         }
     }
 }

@@ -63,6 +63,8 @@ class MainActivity : FragmentActivity() {
 
         DeviceProfile.initialize(this)
         dev.nerzouille.koan.ui.overview.StackLab.load(this)
+        dev.nerzouille.koan.ui.browser.PullLab.load(this)
+        debugLooks(intent)
         val app = application as KoanApp
         val components = app.components
         app.componentsReady = true
@@ -204,7 +206,19 @@ class MainActivity : FragmentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (debugLooks(intent)) return
         handleIntent(intent)
+    }
+
+    /**
+     * Dev and debug builds only (never a release build): `--es debug_pull Arc` picks a pull-to-refresh
+     * look from adb, for recordings. True when the intent was only that.
+     */
+    private fun debugLooks(intent: Intent?): Boolean {
+        val pull = intent?.getStringExtra("debug_pull")?.takeIf { dev.nerzouille.koan.ui.overview.StackLab.available }
+        val style = dev.nerzouille.koan.ui.browser.PullStyle.entries.firstOrNull { it.name == pull }
+        style?.let(dev.nerzouille.koan.ui.browser.PullLab::select)
+        return pull != null
     }
 
     /**

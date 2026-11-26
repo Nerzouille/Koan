@@ -45,6 +45,12 @@ class SearchField {
     var current by mutableStateOf(false)
         private set
 
+    /**
+     * The keyboard was put away on purpose (a tap or a scroll on the start page): the field stays
+     * open and focused; a tap on it brings the keyboard back.
+     */
+    var keyboardAway by mutableStateOf(false)
+
     /** Typing added to the end (not a deletion): only then is it completed. */
     private var growing = false
 
@@ -56,6 +62,7 @@ class SearchField {
         edited = false
         completion = ""
         current = true
+        keyboardAway = false
     }
 
     /** The field is gone (its closing morph done): what it held belongs to the last editing. */

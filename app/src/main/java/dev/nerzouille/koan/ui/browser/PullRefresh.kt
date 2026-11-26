@@ -46,6 +46,9 @@ class PullRefresh(private val scope: CoroutineScope) {
     /** The finger went past the trigger (for one tick). */
     internal var armed = false
 
+    /** "Remove animations": the page or the circle jumps back instead of sliding. */
+    var still = false
+
     internal fun dragTo(px: Float) {
         scope.launch { pull.snapTo(px.coerceIn(0f, maxPx)) }
     }
@@ -56,9 +59,9 @@ class PullRefresh(private val scope: CoroutineScope) {
         armed = false
         if (go) {
             refreshing = true
-            scope.launch { pull.animateTo(triggerPx, Motion.DockSettle) }
+            scope.launch { settle(triggerPx) }
         } else {
-            scope.launch { pull.animateTo(0f, Motion.DockSettle) }
+            scope.launch { settle(0f) }
         }
         return go
     }
@@ -68,9 +71,20 @@ class PullRefresh(private val scope: CoroutineScope) {
         if (!refreshing && pull.value == 0f) return
         refreshing = false
         armed = false
-        scope.launch { pull.animateTo(0f, Motion.DockSettle) }
+        scope.launch { settle(0f) }
+    }
+
+    private suspend fun settle(to: Float) {
+        if (still) pull.snapTo(to) else pull.animateTo(to, Motion.DockSettle)
     }
 }
+
+/**
+ * The prototypes' rubber band: [dy] px of finger travel → page travel, 1 : [PullTokens.RUBBER] at
+ * first, tightening so it never passes [maxPx].
+ */
+fun rubberBand(dy: Float, maxPx: Float): Float =
+    if (dy <= 0f || maxPx <= 0f) 0f else maxPx * (1f - kotlin.math.exp(-dy * PullTokens.RUBBER / maxPx))
 
 /**
  * Watches (never consumes) the fingers on the page: a pull down that starts while the page is at
@@ -121,7 +135,7 @@ fun Modifier.pullToRefresh(
                         pulling = false
                         break
                     }
-                    state.dragTo(dy * PullTokens.RESISTANCE)
+                    state.dragTo(if (PullLab.style.slides) rubberBand(dy, state.maxPx) else dy * PullTokens.RESISTANCE)
                     val past = state.pull.value >= state.triggerPx
                     if (past != state.armed) {
                         state.armed = past

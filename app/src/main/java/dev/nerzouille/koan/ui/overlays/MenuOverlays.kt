@@ -315,7 +315,7 @@ internal fun DockMenus(
     overlays: Overlays,
     activeTabId: String?,
     currentSpaceUuid: String?,
-    onNewTab: () -> Unit,
+    onNewPage: () -> Unit,
     onCloseTab: () -> Unit,
     onRestoreClosed: (String) -> Unit,
 ) {
@@ -326,7 +326,7 @@ internal fun DockMenus(
     TabMenu(
         open = overlays.tabMenuOpen,
         onDismiss = { overlays.tabMenuOpen = false },
-        onNewTab = { overlays.tabMenuOpen = false; onNewTab() },
+        onNewPage = { overlays.tabMenuOpen = false; onNewPage() },
         onCloseTab = { overlays.tabMenuOpen = false; onCloseTab() },
         onReopenClosed = lastClosed?.let { closed -> { overlays.tabMenuOpen = false; onRestoreClosed(closed.koanTabId) } },
     )

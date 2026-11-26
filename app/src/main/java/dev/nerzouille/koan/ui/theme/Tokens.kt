@@ -1307,9 +1307,20 @@ object StartPageTokens {
     val ContinueSubtitleSize = 13.sp
     val LabelSize = 13.sp
     const val FADE_OUT_MS = 180
+
+    /** Quick rows under "Continue": the latest pages visited, and the last download if recent. */
+    const val RECENT_PAGES = 4
+    const val RECENT_DOWNLOAD_MAX_AGE_MS = 60 * 60 * 1000L
+    val SectionTop = 18.dp
+    val QuickRowHeight = 48.dp
+    val QuickRowFavicon = 20.dp
 }
 
 object SearchTokens {
+    /** "Open link you copied": a link copied this recently (owner, 2026-11-26), Android sure enough it's a link. */
+    const val COPIED_LINK_MAX_AGE_MS = 3 * 60 * 1000L
+    const val COPIED_LINK_MIN_CONFIDENCE = 0.5f
+    const val COPIED_LINK_MAX_LENGTH = 2048
     val Margin = 10.dp
     val GroupGap = 8.dp
     val GroupRadius = SharedTokens.GroupRadius
@@ -1343,6 +1354,17 @@ object PullTokens {
     /** Pulled this far (after resistance), a release reloads. */
     val Trigger = 72.dp
     val Max = 120.dp
+
+    // The prototypes (PullLab): the page itself slides down, rubber-banded towards Max.
+    /** Finger travel → page travel at the start of the pull; it then tightens towards Max. */
+    const val RUBBER = 0.7f
+    /** The K at the trigger, and how small it starts. */
+    val KSize = 34.dp
+    const val K_MIN_SCALE = 0.35f
+    const val K_TURN_MS = 900
+    /** Haze: the brand spots' alpha at the start of the pull and at the trigger. */
+    const val HAZE_MIN = 0.10f
+    const val HAZE_MAX = 0.38f
 
     /** The indicator moves this much of the finger's travel. */
     const val RESISTANCE = 0.5f
