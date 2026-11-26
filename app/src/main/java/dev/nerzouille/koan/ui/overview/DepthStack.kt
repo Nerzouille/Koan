@@ -214,7 +214,7 @@ fun DepthStack(
     // Light: back cards fade into the background (a haze); dark: they darken.
     val dimColor = palette.DimColor
     // The stack's look (Cast; dev builds can pick Before in Settings › Debug › Stack style).
-    val lab = StackLab.active
+    val lab = StackLab.style
 
     val hero = LocalCardHero.current
     val coordinates = remember { arrayOfNulls<LayoutCoordinates>(1) }
@@ -463,7 +463,7 @@ private fun BoxScope.FlyingCard(
         clip = false
         shadowElevation = 0f
     }
-    LabShadows(StackLab.active, contact = { 0f }, modifier = shadowLayer)
+    LabShadows(StackLab.style, contact = { 0f }, modifier = shadowLayer)
     TabCard(
         card = f.card,
         depth = { geo.depthOf(f.anim) },
@@ -606,7 +606,8 @@ private class StackGeometry(
         compositingStrategy = CompositingStrategy.ModulateAlpha
         shape = CardShape
         clip = true
-        // The stack's shadows are CardShadows' layer; only a lifted card (long press) rises above it.
+        // The stack's shadows are LabShadows' layer; only a lifted card (long press) rises above it
+        // (Before: beta.1's key shadow, StackLab.adjust).
         shadowElevation = a.lift * StackTokens.LiftShadow.value * density
         ambientShadowColor = palette.CardShadowColor
         spotShadowColor = palette.CardShadowColor

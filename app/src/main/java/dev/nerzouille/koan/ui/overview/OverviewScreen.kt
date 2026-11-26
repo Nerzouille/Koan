@@ -392,8 +392,6 @@ fun OverviewScreen(
                 Spacer(Modifier.navigationBarsPadding().height(dock - StackTokens.UnderDock))
             }
         }
-        // Dev builds only: the stack look's live controls (Settings › Debug › Stack style).
-        if (StackLab.available) dev.nerzouille.koan.ui.settings.StackLabPanel(Modifier.align(androidx.compose.ui.Alignment.TopCenter))
     }
 }
 

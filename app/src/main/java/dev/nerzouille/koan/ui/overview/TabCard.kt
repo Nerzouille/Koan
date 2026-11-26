@@ -291,16 +291,10 @@ internal fun CardHeader(card: CardModel, depth: () -> Float, dimColor: Color) {
                 }
             }
         }
-        // Feel.Surface: the header lit from above, under its depth dim.
-        Box(
-            Modifier
-                .matchParentSize()
-                .graphicsLayer {
-                    alpha = (StackLab.feel(Feel.Surface) / LabTokens.SURFACE_FULL).coerceIn(0f, 1f)
-                    compositingStrategy = CompositingStrategy.ModulateAlpha
-                }
-                .background(if (palette.isDark) SurfaceDark else SurfaceLight),
-        )
+        // Cast's surface light: the header lit from above, under its depth dim.
+        if (StackLab.style == StackStyle.Cast) {
+            Box(Modifier.matchParentSize().background(if (palette.isDark) SurfaceDark else SurfaceLight))
+        }
         // The depth dim over the header: a layer's alpha, nothing re-recorded per scroll frame.
         Box(
             Modifier
