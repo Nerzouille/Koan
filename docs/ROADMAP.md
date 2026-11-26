@@ -207,6 +207,9 @@ losing data, and the owner has approved and published the release.
 - **Payments, return to the same tab:** a bank or pay app (Revolut, …) sending you back to the
   checkout opens its return address in the tab that sent you to the app, not a new tab
   (`docs/plans/PAYMENTS_RESEARCH.md`, the small fix; owner, 2026-11-26).
+- **Stack motion: parallax + drag tilt, tuned so it doesn't bounce.** While dragging the stack,
+  back cards move a little slower than the front and the dragged card tilts 2–4° with the drag
+  speed, flat again at rest (tried on Cast in a dev build, 2026-11-26, then taken out).
 
 ### Batch 4 leftovers (after the release)
 

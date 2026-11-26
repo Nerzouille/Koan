@@ -82,17 +82,17 @@ Rules (docs/UI_SPEC.md "Themes", "Visual restraint"):
 | `FindCurrentText` | `#FFFFFFFF` | `#FFFFFFFF` | Its text (`ui.textSelectAttentionForeground`). |
 | `FindMatch` | `#D0DDF5FF` | `#1C396EFF` | Every other match (`ui.textHighlightBackground`). |
 | `FindMatchText` | `#000000FF` | `#FFFFFFFF` | Their text (`ui.textHighlightForeground`), so Gecko never forces its own white. |
-| `CardShadowColor` | `#1C1C3024` | `#00000099` | Only a lifted card's (long press) and the page ↔ card hero's elevation shadow; the stack's own shadows are `CardShadows` (one ambient light). |
+| `CardShadowColor` | `#1C1C3024` | `#00000099` | A lifted card's (long press) and the page ↔ card hero's elevation shadow; the stack's own shadows are Cast's (`LabShadows`). |
 | `CardHairline` | `#1C1C301A` | `#FFFFFF1F` | 1dp line all around a stack card, drawn over its depth dim so back cards keep their edge. |
 | `CardRim` | — (transparent) | `#FFFFFF1A` | Dark only: 1dp light line inside a stack card's top edge. |
 | `SyncDot` | `#C0841AFF` | `#E8B45AFF` | The overview header's "sync failed" dot. |
-| `DimColor` | `#F5F5F7FF` | `#121214FF` | What back cards fade towards: the background, Base (one ambient light, owner 2026-11-26). |
+| `DimColor` | `#F5F5F7FF` | `#000000FF` | What back cards dim towards: light, Base (a haze); dark, black (as in beta.1). |
 | `PrivateAccent`, `PrivatePill`, `PrivateInk` | — | — | Set only in the private palettes (see below). |
 
 Private mode has two more palettes, `KoanPalette.Dusk` (light theme) and `KoanPalette.Night` (dark
 theme), with the same fields; their main values are in **3.B › Private mode**. For example
 `PrivateAccent` `#4B3FD6` / `#9C8CFF`, `PrivatePill` `#4B3FD629` / `#9C8CFF33`, `PrivateInk`
-`#2E2399` / `#CFC6FF`, `DimColor` = their Base, `#DEDAF0` / `#110F24`.
+`#2E2399` / `#CFC6FF`, `DimColor` `#DEDAF0` / `#050412`.
 
 #### Contrast
 
@@ -147,7 +147,7 @@ text on the pill ("ink") = the accent at 38% / 80% lightness.
 | `SheetScrim` | `#1C1C284D` | `#00000080` | Over the page while a sheet or floating card is open |
 | `DrawerScrim` | `#1C1C2829` | `#00000073` | Over the overview at full drawer open (with 14dp blur) |
 | `DrawerScrimNoBlur` | `#1C1C2852` | `#0000009E` | Same on Android 11 (no live blur) |
-| Stack fade | towards `Base`, `FadeLight` [0, .10, .18, .26, .32] × `LIGHT_FADE` 1 | towards `Base`, `FadeDark` [0, .20, .35, .48, .58] | Back cards in the depth stack (see 3.B Depth stack) |
+| Stack dim | towards `Base`, `StackTokens.Dim` × 1.25, at most 0.85 | towards black, `StackTokens.Dim` | Back cards in the depth stack (see 3.B Depth stack) |
 
 ### 1.2 Typography
 
@@ -225,8 +225,8 @@ drawer, sheets, first run), 16dp (start page), 20dp (settings, sign-in pages), 2
 
 | What | Light | Dark |
 |---|---|---|
-| Stack card shadows (`CardShadows`) | front 0/16/36/−8 `#1C1C30` 18% + 0/2/6 6%; back 0/1/2 5% | front black 70% (+ 23%); back black 40% |
-| Contact shadow (a card on the card behind it, just above its top edge) | `#1C1C30` at 18%, 16dp long, at most 35% of the visible sliver | black at 65%, 18dp |
+| Stack card shadow, Cast (every card, light from above) | 0/10/30/+2 `#1C1C30` at 30% × 0.45 | black at 80% × 0.45 |
+| Cast's contact shadow (a card on the card behind it, just above its top edge) | `#1C1C30` at 30% × 0.45, 30dp long, at most 70% of the visible sliver | black at 85% × 0.45, same |
 | Dock's upward shadow (`DockShadow`, 28dp tall, no hairline) | `#3C281E` at 7% | black at 35% |
 | Drawer sheet shadow over the cards without blur (Android 11, 56dp) | `#1C1C28` at 16% | black at 45% |
 | Long-press lifted card | +16dp shadow, scale +3% | same |
@@ -860,8 +860,8 @@ Palette tokens used in this file (resolved once):
 | Skeleton | black @ 0.06 | white @ 0.07 |
 | IconBacking | Unspecified (never used) | #E9E9EE |
 | Attention | #8A5C00 | #E8B45A |
-| DimGain | `StackTokens.LIGHT_FADE` (1.0, the light fade's strength) | 1.0 |
-| DimMax | 1.0 | 1.0 |
+| DimGain | 1.25 | 1.0 |
+| DimMax | 0.85 | 1.0 |
 | CardElevation | 12dp | 20dp (hero and lift only) |
 | CardShadowColor | #1C1C30 @ 0.14 | black @ 0.60 (hero and lift only) |
 
@@ -877,7 +877,7 @@ Brand gradient (`BrandTokens`): Pink #FF5FA2 → Violet #B46BFF → Blue #4F8DFF
 
 **Anatomy** (`OV/DepthStack.kt`)
 - Viewport: a `BoxWithConstraints`, clipped except while the hero card flies out of it (`DepthStack.kt`).
-- Per card, back to front by index: its `CardShadows` layer, the `TabCard`, and, for the card the page transition is flying, the `FlyingHero` drawn in that card's place (`DepthStack.kt`).
+- Per card, back to front by index: its shadow layer (`LabShadows`), the `TabCard`, and, for the card the page transition is flying, the `FlyingHero` drawn in that card's place (`DepthStack.kt`).
 - Cards closed and flying off are drawn where they were in the pile: over the cards behind, under the ones in front (`DepthStack.kt`).
 - Only cards near the focus are composed: visible range plus `WINDOW_MARGIN` = 2 each side once settled, growing while idle to 16 behind / 10 in front, 1 more card per side per frame (`DepthStack.kt`).
 
@@ -900,13 +900,13 @@ Parameters: r = `R` = 0.45, r_s = `SCALE_R` = 0.52, sMin = `S_MIN` = 0.58, `PEEK
 | drop(d) | 0 | −d | 1 | DepthCurve.kt |
 | top (translationY) | focusTop − A·(1 − 0.45^d) | focusTop + (peekTop − focusTop)·(−d) | peekTop + (−1 − d)·(H − peekTop) | DepthStack.kt |
 | scale | 0.58 + 0.42·0.52^d | 1 + 0.05·(−d) (1.05 at d = −1) | 1.05 | DepthCurve.kt |
-| fade (overlay alpha on thumbnail and header) | keyframes `FadeLight` / `FadeDark`, linear between integer d | 0.12·(−d) | 0.12 | DepthCurve.kt |
+| dim (overlay alpha on the thumbnail; header: half, at most `HEADER_DIM_MAX` 0.2, then × gain) | keyframes `Dim` × `DimGain`, at most `DimMax` | 0.12·(−d) | 0.12 | DepthCurve.kt |
 | blur radius (dp) | keyframes `BlurDp` (0 at d ≤ 0) | 0 | 0 | DepthCurve.kt |
 | card alpha | keyframes `Alpha` | 1 | 1 | DepthCurve.kt |
 | ✕ alpha | clamp(1 − 2·abs(d), 0, 1) | same | same | TabCard.kt |
 
 Keyframes at d = 0, 1, 2, … joined linearly and held at the last value (`DepthCurve.kt`):
-- `FadeLight` = [0, 0.10, 0.18, 0.26, 0.32] × `LIGHT_FADE` (1, the one number to tune), `FadeDark` = [0, 0.20, 0.35, 0.48, 0.58]; held past d = 4. The overlay colour is `DimColor` = Base, drawn over the thumbnail and the header alike, under the card's edge (one ambient light, owner 2026-11-26; `TabCard.kt`).
+- `Dim` = [0, 0.16, 0.28, 0.38, 0.48, 0.58, 0.66] (as in beta.1); the overlay colour is `DimColor` (light: Base, a haze; dark: black), under the card's edge (`TabCard.kt`).
 - `BlurDp` = [0, 0, 0, 0.9, 1.9, 2.9, 4.0] dp; quantised to 0.5dp steps (`DepthStack.kt`). Only a top slice of 512px of the thumbnail is blurred (`CardTokens.BLUR_SLICE_PX`, `TabCard.kt`). Without live blur (Android 11) or before baked copies exist, an extra dim of `NO_BLUR_DIM` 0.22 × (blurDp/4dp) is added instead (`TabCard.kt`).
 - `Alpha` = [1, 1, 1, 1, 1, 0.85, 0.6, 0.3, 0] → cards fade from d = 5 and are invisible at d = 8 (`MAX_VISIBLE_D` = 8, DepthCurve.kt). In front, cards are invisible below d = −2 (`MIN_VISIBLE_D`, DepthCurve.kt). Invisible cards get alpha 0 and are not hit-tested.
 
@@ -914,7 +914,9 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 **Corner radius vs depth:** the card's shape is a constant `RoundedCornerShape(28dp)` (`CardTokens.Radius`, `DepthStack.kt`) applied before the layer scale, so on screen the corner is 28dp × scale(d) (e.g. ≈ 22.3dp at d = 1, 29.4dp at the peek). Not animated separately.
 
-**Shadow:** one ambient light (direction 3, owner 2026-11-26), drawn by `CardShadows`, a layer under each card with its transform: the front card casts 0/16/36/−8 at 18% + 0/2/6 at 6% (Dark: black at 70%, the ambient at the same ratio), every other card a contact shadow 0/1/2 at 5% (Dark 40%) (`CardTokens.FrontKey*`, `FrontAmbient*`, `Back*`). The front card is the one in `StackState.frontSlot`: the card in focus when the stack last settled. While dragging it keeps the shadow; once the stack settles elsewhere the shadow hands over in `FRONT_HANDOFF_MS` 220 ms (`DepthCurve.frontness`). Each shadow is fixed (its blurred image made once, shared by every card), only layer alphas change. A lifted card (long press) adds an elevation of 16dp × lift (`LiftShadow`, `CardShadowColor`).
+**Shadow: Cast** (owner, 2026-11-26), light from above, so the pile reads as objects on a surface. Each card's shadow layer (`LabShadows`, under the card, with its transform) draws two shadows: a soft shadow all around the card (Compose `dropShadow`, 0/10/30/+2, `#1C1C30` at 30% in light, black at 80% in dark), which lands on the card behind and on the background beside and below the pile; and a contact shadow rising from the card's top edge onto the card behind (30dp, at most 70% of the visible sliver, `#1C1C30` at 30% / black at 85%, fading as t²). Both × the strength, `LabTokens.CAST_STRENGTH` 0.45 in every build. Only layer alphas and the contact gradient change; nothing recomposes. A lifted card (long press) adds an elevation of 16dp × lift (`LiftShadow`, `CardShadowColor`).
+
+**Debug switcher** (dev and debug builds only, never in a release build): Settings › Debug › Stack style (`StackStylePage.kt`, state in `StackLab`) switches between Cast and Before (beta.1's stack: its key shadow, softening 10% per depth step down to 60%, and its 16dp / 18dp contact shadow) and sets the look's strength. Two optional 3D touches on top of Cast, off by default, each with a switch and a strength: *Thickness*, a 1.5dp darker band just above each card's top edge (the card's own shape, raised, under it); *Surface light*, a faint vertical gradient on the headers, lighter at the top, darker at the bottom. "Panel on the overview" shows the same controls over the stack. The choice is kept in the app's preferences.
 
 **Swipe tilt / fade** (applied to the same layer, `DepthStack.kt`): tilt = swipeX(dp) × 0.03°/dp (`StackTokens.SWIPE_TILT_PER_DP`), pivot at the card's bottom centre; alpha × max(1 − abs(swipeX)/420dp, 0.3) (`StackTokens.SwipeFadeDistance`, `StackTokens.SWIPE_MIN_ALPHA`).
 
@@ -1033,13 +1035,13 @@ Worked values (computed from the formulas): scale d=1 0.798, d=2 0.694, d=3 0.63
 
 ---
 
-### CardShadows
+### LabShadows
 
-**Purpose:** the stack's shadows under one ambient light: a long soft shadow under the front card, a small contact shadow under every other card.
+**Purpose:** a stack card's shadows in its look: Cast's all-around shadow and contact shadow (or Before's contact shadow).
 
-**Anatomy** (`OV/CardShadows.kt`): a separate, unclipped layer drawn just under the card, with the card's size and transform (`DepthStack.kt`), holding Compose `dropShadow`s with the card's shape: the back shadow at alpha 1 − front, and, only while front > 0, the front pair at alpha front. Fades with the card (same alpha incl. swipe fade). Closed cards flying off keep theirs.
+**Anatomy** (`OV/StackLabShadows.kt`): a separate, unclipped layer drawn just under the card, with the card's size and transform (`DepthStack.kt`): the all-around shadow (`dropShadow` with the card's shape, strength as layer alpha), the contact shadow (a cached vertical gradient whose ends fade before the rounded corners, scaled to the visible sliver), and, when on, the thickness band. Fades with the card (same alpha incl. swipe fade). Closed cards flying off keep theirs.
 
-**Light vs dark:** see the shadow tokens in 3.B Depth stack.
+**Light vs dark:** see 1.5 Elevation and shadows.
 
 ---
 
@@ -1244,7 +1246,7 @@ cover, atmosphere, the flip driver), `privacy/` (private tabs, vault, engine set
 full table is in the spec §5.1. Main values: Base `#DEDAF0` / `#110F24`, Card `#FFFFFF` /
 `#1E1C38`, Dock `#F6F4FD` / `#18162F`, text `#17142E` / white, `PrivateAccent` `#4B3FD6` /
 `#9C8CFF`, `PrivatePill` accent at 16% / 20%, `PrivateInk` `#2E2399` / `#CFC6FF`. Stack dim to
-`DimColor` (their Base, `#DEDAF0` / `#110F24`, with the normal stack's fade: one ambient light, owner 2026-11-26). Settings, History,
+`DimColor` (`#DEDAF0` / `#050412`, with the normal stack's dim). Settings, History,
 Downloads and the ⋯ sheet keep the normal palette (`KoanNormalTheme`).
 
 **Toggle** (`PrivateTokens`): 56×48 touch, 56×32 track (radius 16), 26dp white knob at x 3 → 27dp,
